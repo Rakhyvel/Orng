@@ -59,7 +59,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         // Create a new scope, pass it to children
         .@"if", .block, .match, .@"while", .@"for" => {
             var new_self = self;
-            new_self.scope = symbol_.Scope.init(self.scope, "", self.allocator);
+            new_self.scope = symbol_.Scope.init(self.scope, self.allocator);
             new_self.scope.in_loop = new_self.scope.in_loop or ast.* == .@"while" or ast.* == .@"for";
             ast.set_scope(new_self.scope);
             return new_self;
@@ -127,7 +127,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 return null;
             }
             var new_self = self;
-            new_self.scope = symbol_.Scope.init(self.scope, "", self.allocator);
+            new_self.scope = symbol_.Scope.init(self.scope, self.allocator);
             ast.set_scope(new_self.scope);
             const symbol = try create_trait_symbol(ast, self.scope, self.allocator);
             try put_symbol(symbol, self.scope, self.errors);
@@ -155,7 +155,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         .impl => {
             // Impls get there own scope, actually
             var new_self = self;
-            new_self.scope = symbol_.Scope.init(self.scope, "", self.allocator);
+            new_self.scope = symbol_.Scope.init(self.scope, self.allocator);
             ast.set_scope(new_self.scope);
 
             if (ast.impl.trait == null) {
@@ -197,7 +197,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             } else if (ast.method_decl.init == null) {
                 // Trait method decl
                 var new_self = self;
-                new_self.scope = symbol_.Scope.init(self.scope, "", self.allocator);
+                new_self.scope = symbol_.Scope.init(self.scope, self.allocator);
                 new_self.scope.function_depth = new_self.scope.function_depth + 1;
                 return new_self;
             } else {
@@ -377,7 +377,7 @@ fn create_symbol(
 /// mapping's scope.
 fn create_match_pattern_symbol(match: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Error!void {
     for (match.children().items) |mapping| {
-        const new_scope = symbol_.Scope.init(scope, "", allocator);
+        const new_scope = symbol_.Scope.init(scope, allocator);
         mapping.set_scope(new_scope);
         var symbols = std.ArrayList(*symbol_.Symbol).init(allocator);
         defer symbols.deinit();
@@ -411,7 +411,7 @@ pub fn create_function_symbol(
     );
 
     // Create the function scope
-    var fn_scope = symbol_.Scope.init(scope, "", allocator);
+    var fn_scope = symbol_.Scope.init(scope, allocator);
     fn_scope.function_depth = scope.function_depth + 1;
     fn_scope.is_param_scope = true;
 
@@ -431,7 +431,6 @@ pub fn create_function_symbol(
         const key = key_set[i];
         var symbol = fn_scope.symbols.get(key).?;
         symbol.defined = true;
-        symbol.decld = true;
         symbol.param = true;
     }
 
@@ -568,7 +567,7 @@ pub fn create_temp_comptime_symbol(
 
     // Create the comptime scope
     // This is to prevent `comptime` expressions from using runtime variables
-    var comptime_scope = symbol_.Scope.init(scope, "", allocator);
+    var comptime_scope = symbol_.Scope.init(scope, allocator);
     comptime_scope.function_depth = scope.function_depth + 1;
 
     // Choose name
@@ -646,7 +645,7 @@ fn create_method_symbol(
     const _type = create_method_type(ast, allocator);
 
     // Create the function scope
-    var fn_scope = symbol_.Scope.init(scope, "", allocator);
+    var fn_scope = symbol_.Scope.init(scope, allocator);
     fn_scope.function_depth = scope.function_depth + 1;
 
     // Recurse parameters and init
@@ -708,7 +707,6 @@ fn create_method_symbol(
         const key = key_set[i];
         var symbol = fn_scope.symbols.get(key).?;
         symbol.defined = true;
-        symbol.decld = true;
         symbol.param = true;
     }
 

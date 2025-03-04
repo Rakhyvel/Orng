@@ -148,7 +148,7 @@ pub const Module = struct {
         }
 
         // Create the symbol for this module
-        var file_root = symbol_.Scope.init(compiler.prelude, full_name, compiler.allocator());
+        var file_root = symbol_.Scope.init(compiler.prelude, compiler.allocator());
         var module = Module.init(short_name, in_name, undefined, compiler.allocator());
         file_root.module = module;
         const symbol = symbol_.Symbol.init(
@@ -510,7 +510,6 @@ pub fn get_cfg(
     }
     if (symbol.cfg == null) {
         symbol.cfg = cfg_.CFG.init(symbol, caller, allocator);
-        symbol.cfg.?.module = symbol.scope.module.?;
         // TODO: These should be steps in a pipeline
         try lower_.lower_AST_into_cfg(symbol.cfg.?, errors, allocator);
         try ir_validate_.validate_cfg(symbol.cfg.?, errors);

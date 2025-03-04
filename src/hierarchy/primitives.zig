@@ -125,7 +125,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
     byte_slice_type = ast_.AST.create_slice_type(byte_type, false, compiler.allocator()).assert_ast_valid();
 
     // Create prelude scope
-    prelude = symbol_.Scope.init(null, "", compiler.allocator());
+    prelude = symbol_.Scope.init(null, compiler.allocator());
 
     // Create Symbols for primitives
     _ = create_prelude_symbol("String", type_type, byte_slice_type, compiler.allocator());

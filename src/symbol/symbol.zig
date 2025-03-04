@@ -16,7 +16,6 @@ pub const Scope = struct {
     traits: std.ArrayList(*ast_.AST), // List of all `trait`s in this scope. Added to in the `decorate` phase.
     impls: std.ArrayList(*ast_.AST), // List of all `impl`s in this scope Added to in the `decorate` phase.
     module: ?*module_.Module, // Enclosing module
-    name: []const u8,
     uid: usize,
 
     function_depth: usize = 0,
@@ -26,14 +25,13 @@ pub const Scope = struct {
     inner_function: ?*Symbol = null,
     is_param_scope: bool = false, // true when this scope encompases function parameters and externs. prohibits defaults from being generated
 
-    pub fn init(parent: ?*Scope, name: []const u8, allocator: std.mem.Allocator) *Scope {
+    pub fn init(parent: ?*Scope, allocator: std.mem.Allocator) *Scope {
         var retval = allocator.create(Scope) catch unreachable;
         retval.parent = parent;
         retval.children = std.ArrayList(*Scope).init(allocator);
         retval.symbols = std.StringArrayHashMap(*Symbol).init(allocator);
         retval.traits = std.ArrayList(*ast_.AST).init(allocator);
         retval.impls = std.ArrayList(*ast_.AST).init(allocator);
-        retval.name = name;
         retval.uid = scope_UID;
         retval.defers = std.ArrayList(*ast_.AST).init(allocator);
         retval.errdefers = std.ArrayList(*ast_.AST).init(allocator);
@@ -158,26 +156,6 @@ pub const Scope = struct {
         }
     }
 
-    /// Given a scope and a type, fills in a map of methods defined for that type in that scope.
-    pub fn fill_method_map(self: *Scope, for_type: *ast_.AST, method_map: *std.StringArrayHashMap(*ast_.AST)) void {
-        // TODO: Is this even called?
-        if (self.parent != null) {
-            self.parent.?.fill_method_map(for_type, method_map);
-        }
-        for (self.impls.items) |impl| {
-            if (!impl.impl._type.types_match(for_type) or !for_type.types_match(impl.impl._type)) {
-                // Types do not match
-                continue;
-            }
-            for (impl.impl.method_defs.items) |def| {
-                if (method_map.get(def.decl.symbols.items[0].name)) {
-                    unreachable; // TODO: Give an error about redefining a method for a given type
-                }
-                method_map.put(def.decl.symbols.items[0].name, def);
-            }
-        }
-    }
-
     pub fn pprint(self: *Scope) void {
         std.debug.print("scope_{}:\n", .{self.uid});
         for (self.symbols.keys()) |name| {
@@ -229,7 +207,6 @@ pub const Symbol = struct {
     defined: bool, // Used for decorating identifiers. True when the symbol is defined at the identifier
     validation_state: Symbol_Validation_State,
     init_validation_state: Symbol_Validation_State,
-    decld: bool, // True when the symbol is a local variable, whether or not the variable has been printed out or not
     param: bool, // True when the symbol is a parameter in a function
     is_temp: bool = false, // True
 
@@ -268,7 +245,6 @@ pub const Symbol = struct {
         }
         retval.validation_state = .unvalidated;
         retval.init_validation_state = .unvalidated;
-        retval.decld = false;
         return retval;
     }
 

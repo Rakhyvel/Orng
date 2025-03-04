@@ -356,7 +356,6 @@ fn output_function_definition(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void
             continue; // Do not output unit variables
         }
         try output_var_decl(symbver.symbol, writer, false);
-        symbver.symbol.decld = true;
     }
 
     // Mark unused parameters as discarded

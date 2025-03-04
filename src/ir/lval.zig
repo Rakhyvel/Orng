@@ -325,23 +325,6 @@ pub const Symbol_Version = struct {
         // try writer.print("{s:<10}", .{out.str()});
     }
 
-    /// Finds the last definition of a Symbol_Version in a given range of an Instruction linked-list
-    pub fn find_version(self: *Symbol_Version, instr: ?*ir_.Instruction, stop: ?*ir_.Instruction) *Symbol_Version {
-        var retval: *Symbol_Version = self;
-        var maybe_instr = instr;
-        // Go through Instruction linked-list, stop at `stop` Instruction, if it's not null.
-        while (maybe_instr != null and maybe_instr != stop) : (maybe_instr = maybe_instr.?.next) {
-            if (maybe_instr.?.dest != null and // instr dest exists
-                maybe_instr.?.dest.?.* == .symbver and // instr dest is a symbver lvalue
-                maybe_instr.?.dest.?.symbver.symbol == self.symbol // instr dest symbver symbol is this symbol
-            ) {
-                // remember this symbver, but keep looking to find the very latest until `stop`
-                retval = maybe_instr.?.dest.?.symbver;
-            }
-        }
-        return retval;
-    }
-
     /// Finds a Symbol Version in a Symbol Version set, or null if not found.
     ///
     /// Two Symbol Versions are considered equivalent if they refer to the same Symbol.

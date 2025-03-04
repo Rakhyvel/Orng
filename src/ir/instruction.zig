@@ -15,6 +15,7 @@ pub const String_Idx: type = struct {
 
 var instruction_uid: u64 = 0;
 pub const Instruction = struct { // TODO: Add Instruction_List struct, with some append_instruction, mark_instructions_as_removed, and get_latest_def
+    /// Unique identifier for this Instruction. Mainly used for debugging.
     uid: u64,
     kind: Kind,
     dest: ?*lval_.L_Value,

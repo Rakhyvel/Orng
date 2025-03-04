@@ -38,11 +38,10 @@ pub const CFG = struct {
     /// The function that this CFG represents
     symbol: *symbol_.Symbol,
 
-    /// The module that this CFG belongs to
-    module: *module_.Module,
-
+    /// How many temporary variables are used in this CFG. Used to generate unique names for temporaries.
     number_temps: usize,
 
+    /// The symbol that is used to store the return value of this function
     return_symbol: *symbol_.Symbol,
 
     /// Whether or not this CFG is visited
