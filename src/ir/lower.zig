@@ -11,6 +11,7 @@ const primitives_ = @import("../hierarchy/primitives.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const span_ = @import("../util/span.zig");
 const symbol_ = @import("../symbol/symbol.zig");
+const Symbol_Version = @import("symbol_version.zig");
 
 pub const Lower_Errors = error{CompileError};
 
@@ -29,7 +30,7 @@ pub fn lower_AST_into_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.
         // `_comptime` symbols don't have parameters anyway
         const param_symbols = if (cfg.symbol.decl.?.* == .fn_decl) cfg.symbol.decl.?.fn_decl.param_symbols else cfg.symbol.decl.?.method_decl.param_symbols;
         for (param_symbols.items) |param| {
-            cfg.parameters.append(lval_.Symbol_Version.create_unversioned(param, allocator)) catch unreachable;
+            cfg.parameters.append(Symbol_Version.create_unversioned(param, allocator)) catch unreachable;
         }
     }
     const return_version = lval_.L_Value.create_unversioned_symbver(cfg.return_symbol, allocator);

@@ -11,6 +11,7 @@ const module_ = @import("../hierarchy/module.zig");
 const offsets_ = @import("../hierarchy/offsets.zig");
 const span_ = @import("../util/span.zig");
 const symbol_ = @import("../symbol/symbol.zig");
+const Symbol_Version = @import("symbol_version.zig");
 
 pub const CFG = struct {
     /// Temporary, flat instruction list before the BBs are created
@@ -29,11 +30,11 @@ pub const CFG = struct {
 
     /// All symbol versions that are parameters to the function this CFG defines
     /// TODO: Make this it's own type, in it's own file, with `put` and `get` methods
-    parameters: std.ArrayList(*lval_.Symbol_Version),
+    parameters: std.ArrayList(*Symbol_Version),
 
     /// All symbol versions that are used. Should be filled in after optimizations.
     /// TODO: Make this it's own type, in it's own file, with `put` and `get` methods
-    symbvers: std.ArrayList(*lval_.Symbol_Version),
+    symbvers: std.ArrayList(*Symbol_Version),
 
     /// The function that this CFG represents
     symbol: *symbol_.Symbol,
@@ -74,8 +75,8 @@ pub const CFG = struct {
         retval.block_graph_head = null;
         retval.basic_blocks = std.ArrayList(*basic_block_.Basic_Block).init(allocator);
         retval.children = std.ArrayList(*CFG).init(allocator);
-        retval.symbvers = std.ArrayList(*lval_.Symbol_Version).init(allocator);
-        retval.parameters = std.ArrayList(*lval_.Symbol_Version).init(allocator);
+        retval.symbvers = std.ArrayList(*Symbol_Version).init(allocator);
+        retval.parameters = std.ArrayList(*Symbol_Version).init(allocator);
         retval.symbol = symbol;
         retval.number_temps = 0;
         retval.return_symbol = symbol_.Symbol.init(

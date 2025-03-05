@@ -9,6 +9,7 @@ const primitives_ = @import("../hierarchy/primitives.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const span_ = @import("../util/span.zig");
 const symbol_ = @import("../symbol/symbol.zig");
+const Symbol_Version = @import("symbol_version.zig");
 
 var debug = false;
 
@@ -38,7 +39,7 @@ fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator
 
     for (cfg.basic_blocks.items) |bb| {
         // For each BB, keep a map of symbol versions and their definitions
-        var def_map = std.AutoArrayHashMap(*lval_.Symbol_Version, ?*instructions_.Instruction).init(allocator);
+        var def_map = std.AutoArrayHashMap(*Symbol_Version, ?*instructions_.Instruction).init(allocator);
         defer def_map.deinit();
 
         var maybe_instr = bb.instr_head;
