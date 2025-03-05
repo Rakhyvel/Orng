@@ -8,7 +8,7 @@ const compiler_ = @import("../compilation/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const interpreter_ = @import("../interpretation/interpreter.zig");
 const ir_validate_ = @import("../semantic/ir-validate.zig");
-const ir_ = @import("../ir/instruction.zig");
+const instructions_ = @import("../ir/instruction.zig");
 const lower_ = @import("../ir/lower.zig");
 const offsets_ = @import("../hierarchy/offsets.zig");
 const optimizations_ = @import("../ir/optimizations.zig");
@@ -72,7 +72,7 @@ pub const Module = struct {
 
     /// List of instructions for this module. Used by the interpreter, so that instructions are indexable by a random
     /// access instruction pointer.
-    instructions: std.ArrayList(*ir_.Instruction),
+    instructions: std.ArrayList(*instructions_.Instruction),
 
     /// List of CFGs defined in this module. Used by codegen to generate functions and method definitions.
     cfgs: std.ArrayList(*cfg_.CFG),
@@ -114,7 +114,7 @@ pub const Module = struct {
         retval.allocator = allocator;
         retval.local_imported_modules = std.AutoArrayHashMap(*Module, void).init(allocator);
         retval.cincludes = std.ArrayList(*ast_.AST).init(allocator);
-        retval.instructions = std.ArrayList(*ir_.Instruction).init(allocator);
+        retval.instructions = std.ArrayList(*instructions_.Instruction).init(allocator);
         retval.traits = std.ArrayList(*ast_.AST).init(allocator);
         retval.impls = std.ArrayList(*ast_.AST).init(allocator);
         retval.cfgs = std.ArrayList(*cfg_.CFG).init(allocator);
@@ -390,7 +390,7 @@ pub const Module = struct {
         self: *Module,
         first_bb: *basic_block_.Basic_Block,
         cfg: *cfg_.CFG,
-    ) offsets_.Instruction_Idx {
+    ) instructions_.Instruction_Idx {
         var work_queue = std.ArrayList(*basic_block_.Basic_Block).init(self.allocator);
         defer work_queue.deinit();
         work_queue.append(first_bb) catch unreachable;
@@ -403,8 +403,8 @@ pub const Module = struct {
                 continue;
             }
 
-            bb.offset = @as(offsets_.Instruction_Idx, @intCast(self.instructions.items.len));
-            var label = ir_.Instruction.init_label(cfg, span_.phony_span, self.allocator);
+            bb.offset = @as(instructions_.Instruction_Idx, @intCast(self.instructions.items.len));
+            var label = instructions_.Instruction.init_label(cfg, span_.phony_span, self.allocator);
             label.uid = bb.uid;
             self.instructions.append(label) catch unreachable;
 
@@ -420,7 +420,7 @@ pub const Module = struct {
                 if (bb.branch) |branch| {
                     work_queue.append(branch) catch unreachable;
                 }
-                self.instructions.append(ir_.Instruction.init_branch_addr(
+                self.instructions.append(instructions_.Instruction.init_branch_addr(
                     bb.condition.?,
                     bb.next,
                     bb.branch,
@@ -431,7 +431,7 @@ pub const Module = struct {
                 if (bb.next) |next| {
                     work_queue.append(next) catch unreachable;
                 }
-                self.instructions.append(ir_.Instruction.init_jump_addr(
+                self.instructions.append(instructions_.Instruction.init_jump_addr(
                     bb.next,
                     span_.phony_span,
                     self.allocator,
@@ -447,16 +447,16 @@ pub const Module = struct {
     fn append_phony_block(
         self: *Module,
         cfg: *cfg_.CFG,
-    ) offsets_.Instruction_Idx {
-        const offset = @as(offsets_.Instruction_Idx, @intCast(self.instructions.items.len));
+    ) instructions_.Instruction_Idx {
+        const offset = @as(instructions_.Instruction_Idx, @intCast(self.instructions.items.len));
         // Append a label which has a back-reference to the CFG
-        self.instructions.append(ir_.Instruction.init_label(
+        self.instructions.append(instructions_.Instruction.init_label(
             cfg,
             span_.phony_span,
             self.allocator,
         )) catch unreachable;
         // Append a return instruction (a jump to null)
-        self.instructions.append(ir_.Instruction.init_jump_addr(
+        self.instructions.append(instructions_.Instruction.init_jump_addr(
             null,
             span_.phony_span,
             self.allocator,
@@ -469,7 +469,7 @@ pub const Module = struct {
     }
 
     // TODO: Interned String Set type that takes module uid
-    pub fn interned_string_set_add(self: *Module, str: []const u8) ir_.String_Idx {
+    pub fn interned_string_set_add(self: *Module, str: []const u8) instructions_.String_Idx {
         for (0..self.interned_strings.items.len) |i| {
             const item = self.interned_strings.items[i];
             if (std.mem.eql(u8, item, str)) {

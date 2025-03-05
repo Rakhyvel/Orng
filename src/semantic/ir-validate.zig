@@ -3,7 +3,7 @@
 const std = @import("std");
 const cfg_ = @import("../ir/cfg.zig");
 const errs_ = @import("../util/errors.zig");
-const ir_ = @import("../ir/instruction.zig");
+const instructions_ = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const span_ = @import("../util/span.zig");
@@ -22,7 +22,7 @@ pub fn validate_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors) error{CompileError}!v
     }
 
     for (cfg.basic_blocks.items) |bb| {
-        var maybe_instr: ?*ir_.Instruction = bb.instr_head;
+        var maybe_instr: ?*instructions_.Instruction = bb.instr_head;
         while (maybe_instr) |instr| : (maybe_instr = instr.next) {
             if (instr.dest != null and // has a dest symbol to test
                 instr.dest.?.* == .symbver and // dest is symbver

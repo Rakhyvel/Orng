@@ -5,7 +5,7 @@
 
 const std = @import("std");
 const basic_block_ = @import("../ir/basic-block.zig");
-const ir_ = @import("../ir/instruction.zig");
+const instructions_ = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
 const module_ = @import("../hierarchy/module.zig");
 const offsets_ = @import("../hierarchy/offsets.zig");
@@ -15,8 +15,8 @@ const symbol_ = @import("../symbol/symbol.zig");
 pub const CFG = struct {
     /// Temporary, flat instruction list before the BBs are created
     /// TODO: Linked Instruction list
-    instr_head: ?*ir_.Instruction,
-    instr_tail: ?*ir_.Instruction,
+    instr_head: ?*instructions_.Instruction,
+    instr_tail: ?*instructions_.Instruction,
 
     /// Initial basic block in the basic block graph
     block_graph_head: ?*basic_block_.Basic_Block,
@@ -53,7 +53,7 @@ pub const CFG = struct {
 
     /// Address in the first instruction of this CFG
     /// Used for Instruction interpretation
-    offset: ?offsets_.Instruction_Idx,
+    offset: ?instructions_.Instruction_Idx,
     /// Number of bytes required in order to store the local variables of the function
     locals_size: ?i64,
 
@@ -147,7 +147,7 @@ pub const CFG = struct {
     }
 
     /// Appends an Instruction instruction to the end of a CFG's temporary instruction list
-    pub fn append_instruction(self: *CFG, instr: *ir_.Instruction) void {
+    pub fn append_instruction(self: *CFG, instr: *instructions_.Instruction) void {
         if (self.instr_head == null) {
             self.instr_head = instr;
         } else if (self.instr_tail == null) {
@@ -163,7 +163,7 @@ pub const CFG = struct {
 
     /// Converts the list of Instruction to a web of BB's
     /// Also versions Instruction dest's if they are symbvers. This versioning should persist and should not be wiped.
-    pub fn basic_block_from_instructions(self: *CFG, maybe_instr: ?*ir_.Instruction, allocator: std.mem.Allocator) ?*basic_block_.Basic_Block {
+    pub fn basic_block_from_instructions(self: *CFG, maybe_instr: ?*instructions_.Instruction, allocator: std.mem.Allocator) ?*basic_block_.Basic_Block {
         // FIXME: High Cyclo
         if (maybe_instr == null) {
             return null;
@@ -211,7 +211,7 @@ pub const CFG = struct {
             } else if (instr.kind == .branch_if_false) {
                 // If you find a branch, end this block, start both blocks
                 retval.has_branch = true;
-                var branch_next: ?*ir_.Instruction = null; // = instr.data.branch.next;
+                var branch_next: ?*instructions_.Instruction = null; // = instr.data.branch.next;
                 // Since instr->branch->next may get nullifued by calling this function on instr->next
                 if (instr.data.branch) |branch| {
                     branch_next = branch.next;
@@ -238,7 +238,7 @@ pub const CFG = struct {
             } else if (bb.instr_head.?.next == null) {
                 bb.instr_head = null;
             } else {
-                var maybe_instr: ?*ir_.Instruction = bb.instr_head;
+                var maybe_instr: ?*instructions_.Instruction = bb.instr_head;
                 while (maybe_instr.?.next != null) : (maybe_instr = maybe_instr.?.next) {}
                 maybe_instr.?.prev.?.next = null;
             }
@@ -256,7 +256,7 @@ pub const CFG = struct {
 
         for (cfg.basic_blocks.items) |bb| {
             // Clear all used flags
-            var maybe_instr: ?*ir_.Instruction = bb.instr_head;
+            var maybe_instr: ?*instructions_.Instruction = bb.instr_head;
             while (maybe_instr) |instr| : (maybe_instr = instr.next) {
                 if (instr.dest != null) {
                     instr.dest.?.reset_usage();
@@ -307,7 +307,7 @@ pub const CFG = struct {
         // FIXME: High Cyclo
         for (cfg.basic_blocks.items) |bb| {
             // Reset all reachable symbol verison counts to 0
-            var maybe_instr: ?*ir_.Instruction = bb.instr_head;
+            var maybe_instr: ?*instructions_.Instruction = bb.instr_head;
             while (maybe_instr) |instr| : (maybe_instr = instr.next) {
                 reset_defs(instr.dest);
                 reset_defs(instr.src1);
@@ -330,7 +330,7 @@ pub const CFG = struct {
 
         for (cfg.basic_blocks.items) |bb| {
             // Go through sum up each definition
-            var maybe_instr: ?*ir_.Instruction = bb.instr_head;
+            var maybe_instr: ?*instructions_.Instruction = bb.instr_head;
             while (maybe_instr) |instr| : (maybe_instr = instr.next) {
                 if (instr.dest != null) {
                     var symbver = instr.dest.?.extract_symbver();

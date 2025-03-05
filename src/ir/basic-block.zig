@@ -1,7 +1,7 @@
 // This file defines the Basic_Block struct.
 
 const std = @import("std");
-const ir_ = @import("../ir/instruction.zig");
+const instructions_ = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
 const offsets_ = @import("../hierarchy/offsets.zig");
 
@@ -19,9 +19,9 @@ pub const Basic_Block = struct {
     uid: u64,
     /// Linked list of the instructions in this basic-block.
     /// TODO: Linked List type with `remove_instruction`, `get_latest_def`, and `mark_instructions_as_removed` methods
-    instr_head: ?*ir_.Instruction,
+    instr_head: ?*instructions_.Instruction,
     /// List of the instructions that have been removed from this block, used for deinitialization.
-    removed_instrs: std.ArrayList(*ir_.Instruction),
+    removed_instrs: std.ArrayList(*instructions_.Instruction),
     /// Whether or not this basic-block has a branch.
     has_branch: bool,
     /// Whether or not this basic-block has a panic (ie it doesn't return!)
@@ -40,7 +40,7 @@ pub const Basic_Block = struct {
     allocator: std.mem.Allocator,
     /// Address in the first instruction of this Basic_Block
     /// Used for Instruction interpretation
-    offset: ?offsets_.Instruction_Idx,
+    offset: ?instructions_.Instruction_Idx,
 
     /// Initializes a basic-block
     pub fn init(allocator: std.mem.Allocator) *Basic_Block {
@@ -49,7 +49,7 @@ pub const Basic_Block = struct {
         retval.condition = null;
         retval.has_panic = false;
         retval.offset = null;
-        retval.removed_instrs = std.ArrayList(*ir_.Instruction).init(allocator);
+        retval.removed_instrs = std.ArrayList(*instructions_.Instruction).init(allocator);
         retval.next = null;
         retval.branch = null;
         retval.uid = uid;
@@ -60,7 +60,7 @@ pub const Basic_Block = struct {
 
     /// Deinitializes a basic-block
     pub fn deinit(self: *Basic_Block) void {
-        var maybe_instr: ?*ir_.Instruction = self.instr_head;
+        var maybe_instr: ?*instructions_.Instruction = self.instr_head;
         while (maybe_instr) |instr| {
             maybe_instr = instr.next;
             instr.deinit();
@@ -114,7 +114,7 @@ pub const Basic_Block = struct {
     }
 
     /// Removes an instruction from a basic-block
-    pub fn remove_instruction(bb: *Basic_Block, instr: *ir_.Instruction) void {
+    pub fn remove_instruction(bb: *Basic_Block, instr: *instructions_.Instruction) void {
         std.debug.assert(instr.in_block == bb); // Can't remove instr from random blocks! It's gotta belong to this block!
         instr.removed = true;
         if (bb.instr_head != null and bb.instr_head == instr) {
@@ -136,8 +136,8 @@ pub const Basic_Block = struct {
     pub fn get_latest_def(
         bb: *Basic_Block,
         lval: *lval_.L_Value,
-        stop_at_instr: ?*ir_.Instruction,
-    ) ?*ir_.Instruction {
+        stop_at_instr: ?*instructions_.Instruction,
+    ) ?*instructions_.Instruction {
         if (lval.* != .symbver) {
             return null;
         }
@@ -167,7 +167,7 @@ pub const Basic_Block = struct {
     pub fn mark_instructions_as_removed(
         bb: *Basic_Block,
     ) void {
-        var maybe_instr: ?*ir_.Instruction = bb.instr_head;
+        var maybe_instr: ?*instructions_.Instruction = bb.instr_head;
         while (maybe_instr) |instr| : (maybe_instr = instr.next) {
             instr.removed = true;
         }

@@ -4,7 +4,7 @@ const builtin_ = @import("builtin.zig");
 const cfg_ = @import("../ir/cfg.zig");
 const compiler_ = @import("../compilation/compiler.zig");
 const errs_ = @import("../util/errors.zig");
-const ir_ = @import("../ir/instruction.zig");
+const instructions_ = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
 const module_ = @import("../hierarchy/module.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
@@ -21,7 +21,7 @@ const stack_limit = 0x8000; // 32 KiB
 /// Executing an instruction at this address causes the interpreter to halt. This is used as the return address for the
 /// entry point, so that if the entry returns, interpretation halts. Also allows for a way to halt interpretation from
 /// anywhere, by simply jumping to here.
-const halt_trap_instruction: offsets_.Instruction_Idx = 0xFFFF_FFF0;
+const halt_trap_instruction: instructions_.Instruction_Idx = 0xFFFF_FFF0;
 
 /// When true, interpreter runs each instruction at a time, printing the stack and registers for debugging purposes.
 /// I _think_ that VSCode language servers consume a JSON file representing the state of the debugger, so this could be
@@ -32,7 +32,7 @@ const Instruction_Pointer = struct {
     /// The UID of the module currently being executed
     module_uid: module_.Module_UID,
     /// The index of the instruction currently being executed, relative to the current module
-    inst_idx: offsets_.Instruction_Idx,
+    inst_idx: instructions_.Instruction_Idx,
 };
 
 pub const Context = struct {
@@ -112,7 +112,7 @@ pub const Context = struct {
         const initial_call_depth = self.call_depth;
         // Stop whenever has returned more than called, or instruction pointer is not a halt trap representation
         while (self.call_depth >= initial_call_depth and self.instruction_pointer.inst_idx < halt_trap_instruction) : (self.instruction_pointer.inst_idx += 1) {
-            const instr: *ir_.Instruction = try self.curr_instruction();
+            const instr: *instructions_.Instruction = try self.curr_instruction();
             if (debugger) {
                 std.debug.print("\n", .{});
                 self.print_registers();
@@ -132,7 +132,7 @@ pub const Context = struct {
     }
 
     /// Executes an instruction within the interpreter context.
-    inline fn execute_instruction(self: *Context, instr: *ir_.Instruction, compiler: *compiler_.Context) error{CompileError}!void { // This doesn't work if it's not inlined, lol!
+    inline fn execute_instruction(self: *Context, instr: *instructions_.Instruction, compiler: *compiler_.Context) error{CompileError}!void { // This doesn't work if it's not inlined, lol!
         switch (instr.kind) {
             // Invalid instructions
             .load_extern,
@@ -148,7 +148,7 @@ pub const Context = struct {
                 self.store_int(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), instr.data.int);
             },
             .load_float => self.store_float(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), instr.data.float),
-            .load_string => self.store(ir_.String_Idx, try self.effective_address(instr.dest.?), instr.data.string_id),
+            .load_string => self.store(instructions_.String_Idx, try self.effective_address(instr.dest.?), instr.data.string_id),
             .load_symbol => {
                 const symbol_module = instr.data.symbol.scope.module.?;
                 if (self.modules.get(symbol_module.uid) == null) {
@@ -337,7 +337,7 @@ pub const Context = struct {
                             // Store the directory of the package inside the package struct before returning
                             const dir_string = self.modules.get(0).?.interned_string_set_add(package_info.package_dirname);
                             const dir_offset = primitives_.package_type.product.get_offset_field("dir", self.allocator);
-                            self.store(ir_.String_Idx, adrs + dir_offset, dir_string);
+                            self.store(instructions_.String_Idx, adrs + dir_offset, dir_string);
                             // Store the address of the package in the retval
                             self.store_int(ret_addr, 8, adrs);
                         } else |_| {
@@ -457,7 +457,7 @@ pub const Context = struct {
                         }
                     },
                     .string => {
-                        const idx = self.load(ir_.String_Idx, address);
+                        const idx = self.load(instructions_.String_Idx, address);
                         const module = self.modules.get(idx.module_uid) orelse std.debug.panic("interpreter error: unknown module uid: {}\n", .{idx.module_uid});
                         const string = module.interned_strings.items[idx.string_idx];
                         return ast_.AST.create_string(token_.Token.init_simple("\""), string, self.allocator);
@@ -605,7 +605,7 @@ pub const Context = struct {
         std.debug.print("\n", .{});
     }
 
-    fn curr_instruction(self: *Context) error{CompileError}!*ir_.Instruction {
+    fn curr_instruction(self: *Context) error{CompileError}!*instructions_.Instruction {
         const module = try self.curr_module();
         return module.instructions.items[@as(usize, @intCast(self.instruction_pointer.inst_idx))];
     }

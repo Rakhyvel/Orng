@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
-const ir_ = @import("../ir/instruction.zig");
+const instructions_ = @import("../ir/instruction.zig");
 const symbol_ = @import("../symbol/symbol.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 
@@ -220,7 +220,7 @@ pub const L_Value = union(enum) {
 
     pub fn lval_precedence(self: *L_Value) i64 {
         return switch (self.*) {
-            .symbver => ir_.Kind.precedence(ir_.Kind.load_symbol),
+            .symbver => instructions_.Kind.precedence(instructions_.Kind.load_symbol),
             .dereference => 2,
             .index => 2,
             .select => 1,
@@ -279,7 +279,7 @@ pub const L_Value = union(enum) {
 
 pub const Symbol_Version = struct {
     symbol: *symbol_.Symbol,
-    def: ?*ir_.Instruction,
+    def: ?*instructions_.Instruction,
 
     uses: usize = 0,
 

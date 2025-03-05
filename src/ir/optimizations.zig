@@ -3,7 +3,7 @@ const ast_ = @import("../ast/ast.zig");
 const basic_block_ = @import("../ir/basic-block.zig");
 const cfg_ = @import("../ir/cfg.zig");
 const errs_ = @import("../util/errors.zig");
-const ir_ = @import("../ir/instruction.zig");
+const instructions_ = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const String = @import("../zig-string/zig-string.zig").String;
@@ -38,14 +38,14 @@ fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator
 
     for (cfg.basic_blocks.items) |bb| {
         // For each BB, keep a map of symbol versions and their definitions
-        var def_map = std.AutoArrayHashMap(*lval_.Symbol_Version, ?*ir_.Instruction).init(allocator);
+        var def_map = std.AutoArrayHashMap(*lval_.Symbol_Version, ?*instructions_.Instruction).init(allocator);
         defer def_map.deinit();
 
         var maybe_instr = bb.instr_head;
         while (maybe_instr) |instr| : (maybe_instr = instr.next) {
             // Walk through Instruction in BB, update map of src1 and src2 defs
-            const src1_def: ?*ir_.Instruction = if (instr.src1 != null and instr.src1.?.* == .symbver) def_map.get(instr.src1.?.symbver) orelse null else null;
-            const src2_def: ?*ir_.Instruction = if (instr.src2 != null and instr.src2.?.* == .symbver) def_map.get(instr.src2.?.symbver) orelse null else null;
+            const src1_def: ?*instructions_.Instruction = if (instr.src1 != null and instr.src1.?.* == .symbver) def_map.get(instr.src1.?.symbver) orelse null else null;
+            const src2_def: ?*instructions_.Instruction = if (instr.src2 != null and instr.src2.?.* == .symbver) def_map.get(instr.src2.?.symbver) orelse null else null;
             retval = try propagate_instruction(instr, src1_def, src2_def, errors) or retval;
 
             if (instr.dest != null and instr.dest.?.* != .symbver) {
@@ -58,7 +58,7 @@ fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator
             }
         }
         if (bb.has_branch and bb.condition.?.* == .symbver) {
-            const cond_def: ?*ir_.Instruction = def_map.get(bb.condition.?.symbver) orelse null;
+            const cond_def: ?*instructions_.Instruction = def_map.get(bb.condition.?.symbver) orelse null;
             bb.condition.?.symbver.def = cond_def;
             if (cond_def != null and cond_def.?.kind == .copy) {
                 bb.condition = cond_def.?.src1;
@@ -72,7 +72,7 @@ fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator
 
 /// May throw `error.CompileError` for integer arithmetic overflow, or `error.CompileError` when it can be
 /// proven that code would divide by zero.
-fn propagate_instruction(instr: *ir_.Instruction, src1_def: ?*ir_.Instruction, src2_def: ?*ir_.Instruction, errors: *errs_.Errors) error{CompileError}!bool {
+fn propagate_instruction(instr: *instructions_.Instruction, src1_def: ?*instructions_.Instruction, src2_def: ?*instructions_.Instruction, errors: *errs_.Errors) error{CompileError}!bool {
     var retval = false;
 
     switch (instr.kind) {
@@ -435,7 +435,7 @@ fn propagate_instruction(instr: *ir_.Instruction, src1_def: ?*ir_.Instruction, s
     return retval;
 }
 
-fn copy_prop(instr: *ir_.Instruction, src1_def: ?*ir_.Instruction, kind: ir_.Kind, errors: *errs_.Errors) error{CompileError}!bool {
+fn copy_prop(instr: *instructions_.Instruction, src1_def: ?*instructions_.Instruction, kind: instructions_.Kind, errors: *errs_.Errors) error{CompileError}!bool {
     if (src1_def != null and src1_def.?.kind == kind) {
         if (kind == .load_int) {
             try assert_fits(src1_def.?.data.int, instr.dest.?.get_expanded_type(), instr.span, errors);
@@ -453,7 +453,7 @@ fn copy_prop(instr: *ir_.Instruction, src1_def: ?*ir_.Instruction, kind: ir_.Kin
 
 /// Determines if a source value can be safely replaced by its definition in the Instruction and updates the source if possible,
 /// modifying src when propagation is performed.
-fn copy_of_prop(instr: *ir_.Instruction, src: *?*lval_.L_Value, src_def: ?*ir_.Instruction) bool {
+fn copy_of_prop(instr: *instructions_.Instruction, src: *?*lval_.L_Value, src_def: ?*instructions_.Instruction) bool {
     if (instr.kind != .addr_of and instr.kind != .mut_addr_of and // instr is not an address, this could mess with aliasing
         src_def != null and // src has a definition
         src_def.?.kind == .copy and // src's definition is a copy of something
@@ -493,7 +493,7 @@ fn assert_fits(val: i128, _type: *ast_.AST, span: span_.Span, errors: *errs_.Err
 }
 
 /// Converts a non-load Instruction to a load Instruction, with data. Performs bounds checking for load_int destination Instruction Kinds.
-fn convert_to_load(instr: *ir_.Instruction, kind: ir_.Kind, data: ir_.Data, errors: *errs_.Errors) error{CompileError}!void {
+fn convert_to_load(instr: *instructions_.Instruction, kind: instructions_.Kind, data: instructions_.Data, errors: *errs_.Errors) error{CompileError}!void {
     if (kind == .load_int) {
         try assert_fits(data.int, instr.dest.?.get_expanded_type(), instr.span, errors);
     }
@@ -504,7 +504,7 @@ fn convert_to_load(instr: *ir_.Instruction, kind: ir_.Kind, data: ir_.Data, erro
 }
 
 /// Converts a non-unop Instruction to an unop Instruction.
-fn convert_to_unop(instr: *ir_.Instruction, src1: *lval_.L_Value, kind: ir_.Kind) void {
+fn convert_to_unop(instr: *instructions_.Instruction, src1: *lval_.L_Value, kind: instructions_.Kind) void {
     instr.kind = kind;
     instr.data = .none;
     instr.src1 = src1;
@@ -512,7 +512,7 @@ fn convert_to_unop(instr: *ir_.Instruction, src1: *lval_.L_Value, kind: ir_.Kind
 }
 
 /// Checks if a div_int, div_float, or mod Instruction divides by zero
-fn divide_by_zero_check(instr: ?*ir_.Instruction, errors: *errs_.Errors) error{CompileError}!void {
+fn divide_by_zero_check(instr: ?*instructions_.Instruction, errors: *errs_.Errors) error{CompileError}!void {
     if (instr != null) {
         if (instr.?.kind == .load_int and instr.?.data.int == 0) {
             errors.add_error(errs_.Error{ .basic = .{
@@ -540,7 +540,7 @@ fn remove_unused_defs(cfg: *cfg_.CFG) bool {
     cfg.calculate_definitions();
 
     for (cfg.basic_blocks.items) |bb| {
-        var maybe_instr: ?*ir_.Instruction = bb.instr_head;
+        var maybe_instr: ?*instructions_.Instruction = bb.instr_head;
         while (maybe_instr) |instr| : (maybe_instr = instr.next) {
             if (instr.dest != null and
                 !instr.removed and
@@ -590,7 +590,7 @@ fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
             defer log_msg.deinit();
             log_msg.writer().print("adopt BB{} into BB{}", .{ bb.next.?.uid, bb.uid }) catch unreachable;
             defer log_optimization_pass(log_msg.str(), cfg);
-            var end: *ir_.Instruction = bb.instr_head.?.get_tail();
+            var end: *instructions_.Instruction = bb.instr_head.?.get_tail();
 
             // Join next block at the end of this block
             end.next = bb.next.?.instr_head;
@@ -603,7 +603,7 @@ fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
             bb.branch = bb.next.?.branch;
             bb.condition = bb.next.?.condition;
 
-            var maybe_child: ?*ir_.Instruction = bb.next.?.instr_head;
+            var maybe_child: ?*instructions_.Instruction = bb.next.?.instr_head;
             while (maybe_child) |child| : (maybe_child = child.next) {
                 child.in_block = bb;
             }

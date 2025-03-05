@@ -5,7 +5,7 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const basic_block_ = @import("../ir/basic-block.zig");
 const cfg_ = @import("../ir/cfg.zig");
-const ir_ = @import("../ir/instruction.zig");
+const instructions_ = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const module_ = @import("../hierarchy/module.zig");
@@ -627,7 +627,7 @@ fn output_basic_block(
 }
 
 /// Outputs the C code for an instruction.
-fn output_instruction(instr: *ir_.Instruction, writer: Writer) CodeGen_Error!void {
+fn output_instruction(instr: *instructions_.Instruction, writer: Writer) CodeGen_Error!void {
     if (instr.dest != null) {
         try output_lvalue_check(instr.span, instr.dest.?, writer);
     }
@@ -651,7 +651,7 @@ fn output_instruction(instr: *ir_.Instruction, writer: Writer) CodeGen_Error!voi
 }
 
 /// Outputs the C code for an Instruction instruction after runtime checks have run.
-fn output_instruction_post_check(instr: *ir_.Instruction, writer: Writer) CodeGen_Error!void {
+fn output_instruction_post_check(instr: *instructions_.Instruction, writer: Writer) CodeGen_Error!void {
     switch (instr.kind) {
         .load_unit => {
             // Do nothing!
@@ -839,7 +839,7 @@ fn output_instruction_post_check(instr: *ir_.Instruction, writer: Writer) CodeGe
 }
 
 /// Outputs C code for the prefix of a call
-fn output_call_prefix(instr: *ir_.Instruction, writer: anytype) !void {
+fn output_call_prefix(instr: *instructions_.Instruction, writer: anytype) !void {
     const void_fn = instr.dest.?.get_expanded_type().is_c_void_type();
     const symbol_used = if (instr.dest.?.* == .symbver) instr.dest.?.symbver.symbol.uses > 0 else false;
     if (!symbol_used) {
@@ -1005,7 +1005,7 @@ fn output_var_assign_cast(lval: *lval_.L_Value, _type: *ast_.AST, writer: Writer
 }
 
 /// Outputs the C code for an operator from an Instruction.
-fn output_operator(instr: *ir_.Instruction, writer: Writer) CodeGen_Error!void {
+fn output_operator(instr: *instructions_.Instruction, writer: Writer) CodeGen_Error!void {
     try output_var_assign(instr.dest.?, writer);
     if (instr.kind.is_checked() and instr.dest.?.get_expanded_type().can_expanded_represent_int()) { // TODO: Check if checked operations are enabled, too
         try writer.print("${s}_{s}(", .{ instr.kind.checked_name(), primitives_.info_from_ast(instr.dest.?.get_expanded_type()).?.c_name });

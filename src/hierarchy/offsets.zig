@@ -47,8 +47,6 @@ const symbol_ = @import("../symbol/symbol.zig");
 // There is padding before, in between, and after parameters, locals, and tuple fields so that each
 // location is aligned to a multiple of it's size in bytes.
 
-pub const Instruction_Idx: type = u32;
-
 // bp offset of a frame's retval address
 pub const retval_offset: i64 = -3 * @sizeOf(i64);
 pub const locals_starting_offset = 8;
