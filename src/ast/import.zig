@@ -8,7 +8,7 @@ const module_ = @import("../hierarchy/module.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
-const token_ = @import("../lexer/token.zig");
+const Token = @import("../lexer/token.zig");
 const walker_ = @import("../ast/walker.zig");
 
 module: *module_.Module,
@@ -84,7 +84,7 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
                     // Insert `const rhs = lhs::rhs`
                     const init = ast_.AST.create_access(
                         ast.token(),
-                        ast_.AST.create_identifier(token_.Token.init_simple(anon_names.items[i + 1]), self.compiler.allocator()),
+                        ast_.AST.create_identifier(Token.init_simple(anon_names.items[i + 1]), self.compiler.allocator()),
                         terms.items[i],
                         self.compiler.allocator(),
                     );

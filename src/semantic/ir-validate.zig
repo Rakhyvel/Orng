@@ -1,14 +1,14 @@
 // This file validates a CFG of Instruction. It checks for things like unused symbols, symbols marked `mut` that are never mutated, etc.
 
 const std = @import("std");
-const cfg_ = @import("../ir/cfg.zig");
+const CFG = @import("../ir/cfg.zig");
 const errs_ = @import("../util/errors.zig");
-const instructions_ = @import("../ir/instruction.zig");
+const Instruction = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
-const span_ = @import("../util/span.zig");
+const Span = @import("../util/span.zig");
 const Symbol = @import("../symbol/symbol.zig");
 
-pub fn validate_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors) error{CompileError}!void {
+pub fn validate_cfg(cfg: *CFG, errors: *errs_.Errors) error{CompileError}!void {
     cfg.calculate_usage();
     cfg.calculate_definitions();
 
@@ -21,7 +21,7 @@ pub fn validate_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors) error{CompileError}!v
     }
 
     for (cfg.basic_blocks.items) |bb| {
-        var maybe_instr: ?*instructions_.Instruction = bb.instr_head;
+        var maybe_instr: ?*Instruction = bb.instr_head;
         while (maybe_instr) |instr| : (maybe_instr = instr.next) {
             if (instr.dest != null and // has a dest symbol to test
                 instr.dest.?.* == .symbver and // dest is symbver
@@ -73,7 +73,7 @@ fn err_if_unused(symbol: *Symbol, errors: *errs_.Errors) error{CompileError}!voi
     }
 }
 
-fn err_if_chain_undefd(maybe_lval: ?*lval_.L_Value, errors: *errs_.Errors, return_symbol: *Symbol, use: span_.Span) error{CompileError}!void {
+fn err_if_chain_undefd(maybe_lval: ?*lval_.L_Value, errors: *errs_.Errors, return_symbol: *Symbol, use: Span) error{CompileError}!void {
     if (maybe_lval == null) {
         return;
     }
@@ -96,7 +96,7 @@ fn err_if_chain_undefd(maybe_lval: ?*lval_.L_Value, errors: *errs_.Errors, retur
     }
 }
 
-fn err_if_undefd(symbol: *Symbol, errors: *errs_.Errors, use: span_.Span) error{CompileError}!void {
+fn err_if_undefd(symbol: *Symbol, errors: *errs_.Errors, use: Span) error{CompileError}!void {
     // std.debug.print("{s} uses:{} defs:{}\n", .{ symbol.name, symbol.uses, symbol.defs });
     if (symbol.uses != 0 and // symbol has been used somewhere
         symbol.defs == 0 and // symbol hasn't been defined anywhere
@@ -135,7 +135,7 @@ fn err_if_var_not_mutated(symbol: *Symbol, errors: *errs_.Errors) error{CompileE
     }
 }
 
-fn valid_lvalue_expanded_type_check(span: span_.Span, lvalue: ?*lval_.L_Value, errors: *errs_.Errors) error{CompileError}!void {
+fn valid_lvalue_expanded_type_check(span: Span, lvalue: ?*lval_.L_Value, errors: *errs_.Errors) error{CompileError}!void {
     if (lvalue != null and !lvalue.?.get_expanded_type().valid_type()) {
         errors.add_error(errs_.Error{ .recursive_definition = .{
             .span = span,

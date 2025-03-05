@@ -3,11 +3,11 @@ const ast_ = @import("../ast/ast.zig");
 const Compiler_Context = @import("../compilation/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const module_ = @import("../hierarchy/module.zig");
-const span_ = @import("../util/span.zig");
+const Span = @import("../util/span.zig");
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Symbol_Tree = @import("../ast/symbol-tree.zig");
-const token_ = @import("../lexer/token.zig");
+const Token = @import("../lexer/token.zig");
 
 // TODO: Think about how to remove these public variables. They're only variable because they need to be constructed later.
 pub var anyptr_type: *ast_.AST = undefined;
@@ -137,20 +137,20 @@ fn create_prelude(compiler: *Compiler_Context) !void {
     // Setup default values
     // These have to be all different AST nodes because they then represent different types
     // The types are created later, and then the represents field is set after that
-    const default_bool = ast_.AST.create_false(token_.Token.init_simple("false"), compiler.allocator());
-    const default_char = ast_.AST.create_char(token_.Token.init_simple("'\\\\0'"), compiler.allocator());
-    const default_float32 = ast_.AST.create_float(token_.Token.init_simple("0.0"), 0.0, compiler.allocator());
-    const default_float64 = ast_.AST.create_float(token_.Token.init_simple("0.0"), 0.0, compiler.allocator());
+    const default_bool = ast_.AST.create_false(Token.init_simple("false"), compiler.allocator());
+    const default_char = ast_.AST.create_char(Token.init_simple("'\\\\0'"), compiler.allocator());
+    const default_float32 = ast_.AST.create_float(Token.init_simple("0.0"), 0.0, compiler.allocator());
+    const default_float64 = ast_.AST.create_float(Token.init_simple("0.0"), 0.0, compiler.allocator());
     // TODO: De-duplicate the following
-    const default_int8 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, compiler.allocator());
-    const default_int16 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, compiler.allocator());
-    const default_int32 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, compiler.allocator());
-    const default_int64 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, compiler.allocator());
-    const default_word8 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, compiler.allocator());
-    const default_word16 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, compiler.allocator());
-    const default_word32 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, compiler.allocator());
-    const default_word64 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, compiler.allocator());
-    const default_string = ast_.AST.create_string(token_.Token.init_simple("\"\""), "", compiler.allocator());
+    const default_int8 = ast_.AST.create_int(Token.init_simple("0"), 0, compiler.allocator());
+    const default_int16 = ast_.AST.create_int(Token.init_simple("0"), 0, compiler.allocator());
+    const default_int32 = ast_.AST.create_int(Token.init_simple("0"), 0, compiler.allocator());
+    const default_int64 = ast_.AST.create_int(Token.init_simple("0"), 0, compiler.allocator());
+    const default_word8 = ast_.AST.create_int(Token.init_simple("0"), 0, compiler.allocator());
+    const default_word16 = ast_.AST.create_int(Token.init_simple("0"), 0, compiler.allocator());
+    const default_word32 = ast_.AST.create_int(Token.init_simple("0"), 0, compiler.allocator());
+    const default_word64 = ast_.AST.create_int(Token.init_simple("0"), 0, compiler.allocator());
+    const default_string = ast_.AST.create_string(Token.init_simple("\"\""), "", compiler.allocator());
 
     // Setup primitive map
     primitives = std.StringArrayHashMap(Primitive_Info).init(compiler.allocator());
@@ -380,10 +380,10 @@ fn create_prelude(compiler: *Compiler_Context) !void {
     const symbol = Symbol.init(
         compiler.prelude,
         "prelude",
-        span_.Span{ .col = 1, .line_number = 1, .filename = "prelude", .line_text = "" },
+        Span{ .col = 1, .line_number = 1, .filename = "prelude", .line_text = "" },
         unit_type,
         ast_.AST.create_module(
-            token_.Token.init_simple("prelude"),
+            Token.init_simple("prelude"),
             prelude.?,
             module,
             compiler.allocator(),
@@ -413,26 +413,26 @@ fn create_prelude(compiler: *Compiler_Context) !void {
 }
 
 fn create_primitive_identifier(name: []const u8, allocator: std.mem.Allocator) *ast_.AST {
-    return ast_.AST.create_identifier(token_.Token.init_simple(name), allocator).assert_ast_valid();
+    return ast_.AST.create_identifier(Token.init_simple(name), allocator).assert_ast_valid();
 }
 
 fn create_unit_type(allocator: std.mem.Allocator) *ast_.AST {
-    return ast_.AST.create_unit_type(token_.Token.init_simple("("), allocator).assert_ast_valid();
+    return ast_.AST.create_unit_type(Token.init_simple("("), allocator).assert_ast_valid();
 }
 
 fn create_anyptr_type_primitive(allocator: std.mem.Allocator) *ast_.AST {
-    return ast_.AST.create_anyptr_type(token_.Token.init_simple("anyptr_type"), allocator).assert_ast_valid();
+    return ast_.AST.create_anyptr_type(Token.init_simple("anyptr_type"), allocator).assert_ast_valid();
 }
 
 fn create_unit_value(allocator: std.mem.Allocator) *ast_.AST {
-    return ast_.AST.create_unit_value(token_.Token.init_simple("{"), allocator).assert_ast_valid();
+    return ast_.AST.create_unit_value(Token.init_simple("{"), allocator).assert_ast_valid();
 }
 
 fn create_prelude_symbol(name: []const u8, _type: *ast_.AST, init: *ast_.AST, allocator: std.mem.Allocator) *Symbol {
     var symbol = Symbol.init(
         prelude.?,
         name,
-        span_.phony_span,
+        Span.phony,
         _type,
         init,
         null,

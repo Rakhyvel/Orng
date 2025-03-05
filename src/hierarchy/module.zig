@@ -1,24 +1,24 @@
 const std = @import("std");
 const ast_validate_ = @import("../semantic/ast-validate.zig");
 const ast_ = @import("../ast/ast.zig");
-const basic_block_ = @import("../ir/basic-block.zig");
-const cfg_ = @import("../ir/cfg.zig");
+const Basic_Block = @import("../ir/basic-block.zig");
+const CFG = @import("../ir/cfg.zig");
 const codegen_ = @import("../codegen/codegen.zig");
 const Compiler_Context = @import("../compilation/compiler.zig");
 const errs_ = @import("../util/errors.zig");
-const interpreter_ = @import("../interpretation/interpreter.zig");
+const Interpreter_Context = @import("../interpretation/interpreter.zig");
 const ir_validate_ = @import("../semantic/ir-validate.zig");
-const instructions_ = @import("../ir/instruction.zig");
+const Instruction = @import("../ir/instruction.zig");
 const lower_ = @import("../ir/lower.zig");
 const offsets_ = @import("../hierarchy/offsets.zig");
 const optimizations_ = @import("../ir/optimizations.zig");
 const pipeline_ = @import("../util/pipeline.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
-const span_ = @import("../util/span.zig");
+const Span = @import("../util/span.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
-const token_ = @import("../lexer/token.zig");
+const Token = @import("../lexer/token.zig");
 const Type_Set = @import("../ast/type-set.zig");
 const walker_ = @import("../ast/walker.zig");
 
@@ -73,15 +73,15 @@ pub const Module = struct {
 
     /// List of instructions for this module. Used by the interpreter, so that instructions are indexable by a random
     /// access instruction pointer.
-    instructions: std.ArrayList(*instructions_.Instruction),
+    instructions: std.ArrayList(*Instruction),
 
     /// List of CFGs defined in this module. Used by codegen to generate functions and method definitions.
-    cfgs: std.ArrayList(*cfg_.CFG),
+    cfgs: std.ArrayList(*CFG),
 
     /// Main function. Used by codegen to jump to the main function. May be null for modules that don't contain the
     /// entry point of the package.
     /// TODO: Isn't this more of a property of the package than the module?
-    entry: ?*cfg_.CFG,
+    entry: ?*CFG,
 
     /// List of all traits defined in this module. Used by codegen to output the vtable structs definitions
     traits: std.ArrayList(*ast_.AST),
@@ -115,10 +115,10 @@ pub const Module = struct {
         retval.allocator = allocator;
         retval.local_imported_modules = std.AutoArrayHashMap(*Module, void).init(allocator);
         retval.cincludes = std.ArrayList(*ast_.AST).init(allocator);
-        retval.instructions = std.ArrayList(*instructions_.Instruction).init(allocator);
+        retval.instructions = std.ArrayList(*Instruction).init(allocator);
         retval.traits = std.ArrayList(*ast_.AST).init(allocator);
         retval.impls = std.ArrayList(*ast_.AST).init(allocator);
-        retval.cfgs = std.ArrayList(*cfg_.CFG).init(allocator);
+        retval.cfgs = std.ArrayList(*CFG).init(allocator);
         retval.type_set = Type_Set.init(allocator);
         retval.visited = false;
         retval.entry = null;
@@ -143,7 +143,7 @@ pub const Module = struct {
         if (!module_name_is_good(short_name)) {
             compiler.errors.add_error(errs_.Error{ .symbol_error = .{
                 .problem = "has an improper module name",
-                .span = span_.Span{ .filename = in_name, .col = 0, .line_number = 0, .line_text = "" },
+                .span = Span{ .filename = in_name, .col = 0, .line_number = 0, .line_text = "" },
                 .name = short_name,
             } });
         }
@@ -155,10 +155,10 @@ pub const Module = struct {
         const symbol = Symbol.init(
             compiler.prelude,
             short_name,
-            span_.Span{ .col = 1, .line_number = 1, .filename = in_name, .line_text = "" },
+            Span{ .col = 1, .line_number = 1, .filename = in_name, .line_text = "" },
             primitives_.unit_type,
             ast_.AST.create_module(
-                token_.Token.init_simple(short_name),
+                Token.init_simple(short_name),
                 file_root,
                 module,
                 compiler.allocator(),
@@ -243,7 +243,7 @@ pub const Module = struct {
         }
         if (need_entry and !found_entry) {
             compiler.errors.add_error(errs_.Error{ .basic = .{
-                .span = span_.phony_span,
+                .span = Span.phony,
                 .msg = "no main function found",
             } });
             // Cannot find main function, fatal, do not procede
@@ -252,7 +252,7 @@ pub const Module = struct {
     }
 
     /// This allows us to pick up anon and inner CFGs that wouldn't be exposed to the module's scope
-    fn collect_cfgs(self: *Module, cfg: *cfg_.CFG) void {
+    fn collect_cfgs(self: *Module, cfg: *CFG) void {
         if (cfg.visited) {
             return;
         }
@@ -360,7 +360,7 @@ pub const Module = struct {
     /// instructions for the CFG start.
     ///
     /// Returns the index in the cfg in the cfgs list.
-    pub fn emplace_cfg(self: *Module, cfg: *cfg_.CFG) i64 {
+    pub fn emplace_cfg(self: *Module, cfg: *CFG) i64 {
         const len = @as(i64, @intCast(self.cfgs.items.len));
         if (cfg.offset != null) {
             // Already visited, do nothing
@@ -389,10 +389,10 @@ pub const Module = struct {
     /// Returns the offset of the basic block
     fn append_basic_block(
         self: *Module,
-        first_bb: *basic_block_.Basic_Block,
-        cfg: *cfg_.CFG,
-    ) instructions_.Instruction_Idx {
-        var work_queue = std.ArrayList(*basic_block_.Basic_Block).init(self.allocator);
+        first_bb: *Basic_Block,
+        cfg: *CFG,
+    ) Instruction.Index {
+        var work_queue = std.ArrayList(*Basic_Block).init(self.allocator);
         defer work_queue.deinit();
         work_queue.append(first_bb) catch unreachable;
 
@@ -404,8 +404,8 @@ pub const Module = struct {
                 continue;
             }
 
-            bb.offset = @as(instructions_.Instruction_Idx, @intCast(self.instructions.items.len));
-            var label = instructions_.Instruction.init_label(cfg, span_.phony_span, self.allocator);
+            bb.offset = @as(Instruction.Index, @intCast(self.instructions.items.len));
+            var label = Instruction.init_label(cfg, Span.phony, self.allocator);
             label.uid = bb.uid;
             self.instructions.append(label) catch unreachable;
 
@@ -421,20 +421,20 @@ pub const Module = struct {
                 if (bb.branch) |branch| {
                     work_queue.append(branch) catch unreachable;
                 }
-                self.instructions.append(instructions_.Instruction.init_branch_addr(
+                self.instructions.append(Instruction.init_branch_addr(
                     bb.condition.?,
                     bb.next,
                     bb.branch,
-                    span_.phony_span,
+                    Span.phony,
                     self.allocator,
                 )) catch unreachable;
             } else {
                 if (bb.next) |next| {
                     work_queue.append(next) catch unreachable;
                 }
-                self.instructions.append(instructions_.Instruction.init_jump_addr(
+                self.instructions.append(Instruction.init_jump_addr(
                     bb.next,
-                    span_.phony_span,
+                    Span.phony,
                     self.allocator,
                 )) catch unreachable;
             }
@@ -447,19 +447,19 @@ pub const Module = struct {
     /// instruction is for interpreting so that jumping to the function won't jump to some random function.
     fn append_phony_block(
         self: *Module,
-        cfg: *cfg_.CFG,
-    ) instructions_.Instruction_Idx {
-        const offset = @as(instructions_.Instruction_Idx, @intCast(self.instructions.items.len));
+        cfg: *CFG,
+    ) Instruction.Index {
+        const offset = @as(Instruction.Index, @intCast(self.instructions.items.len));
         // Append a label which has a back-reference to the CFG
-        self.instructions.append(instructions_.Instruction.init_label(
+        self.instructions.append(Instruction.init_label(
             cfg,
-            span_.phony_span,
+            Span.phony,
             self.allocator,
         )) catch unreachable;
         // Append a return instruction (a jump to null)
-        self.instructions.append(instructions_.Instruction.init_jump_addr(
+        self.instructions.append(Instruction.init_jump_addr(
             null,
-            span_.phony_span,
+            Span.phony,
             self.allocator,
         )) catch unreachable;
         return offset;
@@ -470,7 +470,7 @@ pub const Module = struct {
     }
 
     // TODO: Interned String Set type that takes module uid
-    pub fn interned_string_set_add(self: *Module, str: []const u8) instructions_.String_Idx {
+    pub fn interned_string_set_add(self: *Module, str: []const u8) Instruction.String_Idx {
         for (0..self.interned_strings.items.len) |i| {
             const item = self.interned_strings.items[i];
             if (std.mem.eql(u8, item, str)) {
@@ -499,10 +499,10 @@ pub const Module = struct {
 // TODO: Move to own file
 pub fn get_cfg(
     symbol: *Symbol,
-    caller: ?*cfg_.CFG,
+    caller: ?*CFG,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) lower_.Lower_Errors!*cfg_.CFG {
+) lower_.Lower_Errors!*CFG {
     std.debug.assert(symbol.kind == .@"fn" or symbol.kind == .@"comptime");
     std.debug.assert(symbol.validation_state == .valid);
     if (symbol.init_validation_state == .validating) {
@@ -513,7 +513,7 @@ pub fn get_cfg(
         return error.CompileError;
     }
     if (symbol.cfg == null) {
-        symbol.cfg = cfg_.CFG.init(symbol, caller, allocator);
+        symbol.cfg = CFG.init(symbol, caller, allocator);
         // TODO: These should be steps in a pipeline
         try lower_.lower_AST_into_cfg(symbol.cfg.?, errors, allocator);
         try ir_validate_.validate_cfg(symbol.cfg.?, errors);
@@ -532,7 +532,7 @@ pub fn get_cfg(
 pub fn stamp(
     template_ast: *ast_.AST,
     args: *std.ArrayList(*ast_.AST),
-    call_span: span_.Span,
+    call_span: Span,
     scope: *Scope,
     compiler: *Compiler_Context,
 ) !*ast_.AST {
@@ -593,7 +593,7 @@ pub fn stamp(
         template_ast.template.memo = fn_symbol;
     }
 
-    const identifier = ast_.AST.create_identifier(token_.Token.init_simple(template_ast.template.memo.?.name), compiler.allocator());
+    const identifier = ast_.AST.create_identifier(Token.init_simple(template_ast.template.memo.?.name), compiler.allocator());
     identifier.set_symbol(template_ast.template.memo);
     return identifier;
 }
@@ -632,7 +632,7 @@ pub fn interpret(
     defer module.pop_cfg(idx); // Remove the cfg so that it isn't output
 
     // Create a context and interpret
-    var context = interpreter_.Context.init(&compiler.errors, compiler.allocator());
+    var context = Interpreter_Context.init(&compiler.errors, compiler.allocator());
     context.set_entry_point(cfg, ret_type);
     defer context.deinit();
     context.load_module(module);

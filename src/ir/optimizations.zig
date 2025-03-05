@@ -1,17 +1,17 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
-const cfg_ = @import("../ir/cfg.zig");
+const CFG = @import("../ir/cfg.zig");
 const errs_ = @import("../util/errors.zig");
-const instructions_ = @import("../ir/instruction.zig");
+const Instruction = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const String = @import("../zig-string/zig-string.zig").String;
-const span_ = @import("../util/span.zig");
+const Span = @import("../util/span.zig");
 const Symbol_Version = @import("symbol_version.zig");
 
 var debug = false;
 
-pub fn optimize(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) error{CompileError}!void {
+pub fn optimize(cfg: *CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) error{CompileError}!void {
     // debug = std.mem.eql(u8, cfg.symbol.name, "main") and std.mem.eql(u8, cfg.module.package_name, "externs");
     if (debug) {
         std.debug.print("[  CFG  ]: {s}\n", .{cfg.symbol.name});
@@ -29,7 +29,7 @@ pub fn optimize(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Alloca
     log_optimization_pass("final", cfg);
 }
 
-fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) error{CompileError}!bool {
+fn propagate(cfg: *CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) error{CompileError}!bool {
     var retval = false;
 
     cfg.calculate_definitions();
@@ -37,14 +37,14 @@ fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator
 
     for (cfg.basic_blocks.items) |bb| {
         // For each BB, keep a map of symbol versions and their definitions
-        var def_map = std.AutoArrayHashMap(*Symbol_Version, ?*instructions_.Instruction).init(allocator);
+        var def_map = std.AutoArrayHashMap(*Symbol_Version, ?*Instruction).init(allocator);
         defer def_map.deinit();
 
         var maybe_instr = bb.instr_head;
         while (maybe_instr) |instr| : (maybe_instr = instr.next) {
             // Walk through Instruction in BB, update map of src1 and src2 defs
-            const src1_def: ?*instructions_.Instruction = if (instr.src1 != null and instr.src1.?.* == .symbver) def_map.get(instr.src1.?.symbver) orelse null else null;
-            const src2_def: ?*instructions_.Instruction = if (instr.src2 != null and instr.src2.?.* == .symbver) def_map.get(instr.src2.?.symbver) orelse null else null;
+            const src1_def: ?*Instruction = if (instr.src1 != null and instr.src1.?.* == .symbver) def_map.get(instr.src1.?.symbver) orelse null else null;
+            const src2_def: ?*Instruction = if (instr.src2 != null and instr.src2.?.* == .symbver) def_map.get(instr.src2.?.symbver) orelse null else null;
             retval = try propagate_instruction(instr, src1_def, src2_def, errors) or retval;
 
             if (instr.dest != null and instr.dest.?.* != .symbver) {
@@ -57,7 +57,7 @@ fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator
             }
         }
         if (bb.has_branch and bb.condition.?.* == .symbver) {
-            const cond_def: ?*instructions_.Instruction = def_map.get(bb.condition.?.symbver) orelse null;
+            const cond_def: ?*Instruction = def_map.get(bb.condition.?.symbver) orelse null;
             bb.condition.?.symbver.def = cond_def;
             if (cond_def != null and cond_def.?.kind == .copy) {
                 bb.condition = cond_def.?.src1;
@@ -71,7 +71,7 @@ fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator
 
 /// May throw `error.CompileError` for integer arithmetic overflow, or `error.CompileError` when it can be
 /// proven that code would divide by zero.
-fn propagate_instruction(instr: *instructions_.Instruction, src1_def: ?*instructions_.Instruction, src2_def: ?*instructions_.Instruction, errors: *errs_.Errors) error{CompileError}!bool {
+fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def: ?*Instruction, errors: *errs_.Errors) error{CompileError}!bool {
     var retval = false;
 
     switch (instr.kind) {
@@ -434,7 +434,7 @@ fn propagate_instruction(instr: *instructions_.Instruction, src1_def: ?*instruct
     return retval;
 }
 
-fn copy_prop(instr: *instructions_.Instruction, src1_def: ?*instructions_.Instruction, kind: instructions_.Kind, errors: *errs_.Errors) error{CompileError}!bool {
+fn copy_prop(instr: *Instruction, src1_def: ?*Instruction, kind: Instruction.Kind, errors: *errs_.Errors) error{CompileError}!bool {
     if (src1_def != null and src1_def.?.kind == kind) {
         if (kind == .load_int) {
             try assert_fits(src1_def.?.data.int, instr.dest.?.get_expanded_type(), instr.span, errors);
@@ -452,7 +452,7 @@ fn copy_prop(instr: *instructions_.Instruction, src1_def: ?*instructions_.Instru
 
 /// Determines if a source value can be safely replaced by its definition in the Instruction and updates the source if possible,
 /// modifying src when propagation is performed.
-fn copy_of_prop(instr: *instructions_.Instruction, src: *?*lval_.L_Value, src_def: ?*instructions_.Instruction) bool {
+fn copy_of_prop(instr: *Instruction, src: *?*lval_.L_Value, src_def: ?*Instruction) bool {
     if (instr.kind != .addr_of and instr.kind != .mut_addr_of and // instr is not an address, this could mess with aliasing
         src_def != null and // src has a definition
         src_def.?.kind == .copy and // src's definition is a copy of something
@@ -479,7 +479,7 @@ fn copy_of_prop(instr: *instructions_.Instruction, src: *?*lval_.L_Value, src_de
 
 /// Checks if a value fits within the bounds of a given type and reports an overflow error if it does not, modifying the
 /// error list.
-fn assert_fits(val: i128, _type: *ast_.AST, span: span_.Span, errors: *errs_.Errors) error{CompileError}!void {
+fn assert_fits(val: i128, _type: *ast_.AST, span: Span, errors: *errs_.Errors) error{CompileError}!void {
     const bounds = primitives_.bounds_from_ast(_type);
     if (bounds != null and (val < bounds.?.lower or val > bounds.?.upper)) {
         errors.add_error(errs_.Error{ .integer_out_of_bounds = .{
@@ -492,7 +492,7 @@ fn assert_fits(val: i128, _type: *ast_.AST, span: span_.Span, errors: *errs_.Err
 }
 
 /// Converts a non-load Instruction to a load Instruction, with data. Performs bounds checking for load_int destination Instruction Kinds.
-fn convert_to_load(instr: *instructions_.Instruction, kind: instructions_.Kind, data: instructions_.Data, errors: *errs_.Errors) error{CompileError}!void {
+fn convert_to_load(instr: *Instruction, kind: Instruction.Kind, data: Instruction.Data, errors: *errs_.Errors) error{CompileError}!void {
     if (kind == .load_int) {
         try assert_fits(data.int, instr.dest.?.get_expanded_type(), instr.span, errors);
     }
@@ -503,7 +503,7 @@ fn convert_to_load(instr: *instructions_.Instruction, kind: instructions_.Kind, 
 }
 
 /// Converts a non-unop Instruction to an unop Instruction.
-fn convert_to_unop(instr: *instructions_.Instruction, src1: *lval_.L_Value, kind: instructions_.Kind) void {
+fn convert_to_unop(instr: *Instruction, src1: *lval_.L_Value, kind: Instruction.Kind) void {
     instr.kind = kind;
     instr.data = .none;
     instr.src1 = src1;
@@ -511,7 +511,7 @@ fn convert_to_unop(instr: *instructions_.Instruction, src1: *lval_.L_Value, kind
 }
 
 /// Checks if a div_int, div_float, or mod Instruction divides by zero
-fn divide_by_zero_check(instr: ?*instructions_.Instruction, errors: *errs_.Errors) error{CompileError}!void {
+fn divide_by_zero_check(instr: ?*Instruction, errors: *errs_.Errors) error{CompileError}!void {
     if (instr != null) {
         if (instr.?.kind == .load_int and instr.?.data.int == 0) {
             errors.add_error(errs_.Error{ .basic = .{
@@ -532,14 +532,14 @@ fn divide_by_zero_check(instr: ?*instructions_.Instruction, errors: *errs_.Error
 /// Removes unused definitions from the CFG, skipping calls and invokes (to avoid removing instructions with side
 /// effects). Returns true if any instructions were removed.
 /// TODO: Move to ssa file/namespace, along with the other use/def stuff
-fn remove_unused_defs(cfg: *cfg_.CFG) bool {
+fn remove_unused_defs(cfg: *CFG) bool {
     var retval = false;
 
     cfg.calculate_usage();
     cfg.calculate_definitions();
 
     for (cfg.basic_blocks.items) |bb| {
-        var maybe_instr: ?*instructions_.Instruction = bb.instr_head;
+        var maybe_instr: ?*Instruction = bb.instr_head;
         while (maybe_instr) |instr| : (maybe_instr = instr.next) {
             if (instr.dest != null and
                 !instr.removed and
@@ -565,7 +565,7 @@ fn remove_unused_defs(cfg: *cfg_.CFG) bool {
 
 /// Performs various Basic Block optimizations in a CFG. Returns true if any optimizations are made.
 /// TODO: Split up optimization checks into their own functions
-fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
+fn bb_optimizations(cfg: *CFG, allocator: std.mem.Allocator) bool {
     // FIXME: High Cyclo
     var retval: bool = false;
 
@@ -589,7 +589,7 @@ fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
             defer log_msg.deinit();
             log_msg.writer().print("adopt BB{} into BB{}", .{ bb.next.?.uid, bb.uid }) catch unreachable;
             defer log_optimization_pass(log_msg.str(), cfg);
-            var end: *instructions_.Instruction = bb.instr_head.?.get_tail();
+            var end: *Instruction = bb.instr_head.?.get_tail();
 
             // Join next block at the end of this block
             end.next = bb.next.?.instr_head;
@@ -602,7 +602,7 @@ fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
             bb.branch = bb.next.?.branch;
             bb.condition = bb.next.?.condition;
 
-            var maybe_child: ?*instructions_.Instruction = bb.next.?.instr_head;
+            var maybe_child: ?*Instruction = bb.next.?.instr_head;
             while (maybe_child) |child| : (maybe_child = child.next) {
                 child.in_block = bb;
             }
@@ -724,7 +724,7 @@ fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
 }
 
 // TODO: Move this out, and into a proper logging system that's configurable from the cmd line
-fn log_optimization_pass(msg: []const u8, cfg: *cfg_.CFG) void {
+fn log_optimization_pass(msg: []const u8, cfg: *CFG) void {
     if (debug) {
         std.debug.print("[OPTIMIZATION] {s}\n", .{msg});
         if (cfg.block_graph_head) |block_head| {

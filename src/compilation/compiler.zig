@@ -1,5 +1,5 @@
 const std = @import("std");
-const cfg_ = @import("../ir/cfg.zig");
+const CFG = @import("../ir/cfg.zig");
 const errs_ = @import("../util/errors.zig");
 const module_ = @import("../hierarchy/module.zig");
 const Package = @import("../hierarchy/package.zig");
@@ -61,7 +61,7 @@ pub fn allocator(self: *Self) std.mem.Allocator {
     return self.arena.allocator();
 }
 
-pub fn compile_build_file(self: *Self, absolute_path: []const u8) Error!*cfg_.CFG {
+pub fn compile_build_file(self: *Self, absolute_path: []const u8) Error!*CFG {
     const build_module = try self.compile_module(absolute_path, "build", false);
     return build_module.init.?.scope().?.lookup("build", .{}).found.cfg.?;
 }

@@ -1,12 +1,15 @@
 const std = @import("std");
 const String = @import("../zig-string/zig-string.zig").String;
 
+const Self = @This();
+
 pub const Span_Print_Error = std.fs.File.WriteError;
 
 const Span_Format = struct {
     fmt_str: []const u8,
     sanitize: bool,
 };
+
 pub const c_format: Span_Format = .{
     .fmt_str = "\"{s}:{}:{}:\\n{s}\\n{s}^\"",
     .sanitize = true,
@@ -17,66 +20,64 @@ pub const interpreter_format: Span_Format = .{
     .sanitize = false,
 };
 
-pub const phony_span = Span{ .filename = "", .line_text = "", .line_number = 0, .col = 0 };
+pub const phony = Self{ .filename = "", .line_text = "", .line_number = 0, .col = 0 };
 
-pub const Span = struct {
-    filename: []const u8,
-    line_text: []const u8, // The entire gosh-darn line from the source file text that this span originates
-    line_number: usize,
-    col: usize,
+filename: []const u8,
+line_text: []const u8, // The entire gosh-darn line from the source file text that this span originates
+line_number: usize,
+col: usize,
 
-    /// Prints out a line string, with quotes and arrow.
-    pub fn print_debug_line(self: *const Span, writer: anytype, comptime span_format: Span_Format) Span_Print_Error!void {
-        var spaces = String.init(std.heap.page_allocator);
-        defer spaces.deinit();
+/// Prints out a line string, with quotes and arrow.
+pub fn print_debug_line(self: *const Self, writer: anytype, comptime span_format: Span_Format) Span_Print_Error!void {
+    var spaces = String.init(std.heap.page_allocator);
+    defer spaces.deinit();
 
-        if (self.col > 0) {
-            for (1..self.col -| 1) |_| {
-                spaces.insert(" ", spaces.size) catch unreachable;
-            }
+    if (self.col > 0) {
+        for (1..self.col -| 1) |_| {
+            spaces.insert(" ", spaces.size) catch unreachable;
         }
-
-        const sanitized_filename = if (span_format.sanitize)
-            sanitize_string(self.filename, std.heap.page_allocator)
-        else
-            self.filename;
-
-        const text_to_write = if (span_format.sanitize)
-            sanitize_string(self.line_text, std.heap.page_allocator)
-        else
-            self.line_text;
-
-        try writer.print(span_format.fmt_str, .{
-            sanitized_filename,
-            self.line_number,
-            self.col,
-            text_to_write,
-            spaces.str(),
-        });
     }
 
-    pub fn pprint(self: Span, allocator: std.mem.Allocator) ![]const u8 {
-        var out = String.init(allocator);
-        defer out.deinit();
-        const writer = out.writer();
+    const sanitized_filename = if (span_format.sanitize)
+        sanitize_string(self.filename, std.heap.page_allocator)
+    else
+        self.filename;
 
-        // TODO: Generic pprinter that makes the arena and string and passes the writer to a pprint method
-        try writer.print("{s}:{}:{}", .{ self.filename, self.line_number, self.col });
+    const text_to_write = if (span_format.sanitize)
+        sanitize_string(self.line_text, std.heap.page_allocator)
+    else
+        self.line_text;
 
-        return (try out.toOwned()).?;
-    }
+    try writer.print(span_format.fmt_str, .{
+        sanitized_filename,
+        self.line_number,
+        self.col,
+        text_to_write,
+        spaces.str(),
+    });
+}
 
-    pub fn format(self: Span, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-        _ = options;
-        _ = fmt;
-        var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-        defer arena.deinit();
+pub fn pprint(self: Self, allocator: std.mem.Allocator) ![]const u8 {
+    var out = String.init(allocator);
+    defer out.deinit();
+    const writer = out.writer();
 
-        const out = self.pprint(arena.allocator()) catch unreachable;
+    // TODO: Generic pprinter that makes the arena and string and passes the writer to a pprint method
+    try writer.print("{s}:{}:{}", .{ self.filename, self.line_number, self.col });
 
-        try writer.print("{s}", .{out});
-    }
-};
+    return (try out.toOwned()).?;
+}
+
+pub fn format(self: Self, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
+    _ = options;
+    _ = fmt;
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+
+    const out = self.pprint(arena.allocator()) catch unreachable;
+
+    try writer.print("{s}", .{out});
+}
 
 /// Sanitizes a string, escaping proper characters.
 ///

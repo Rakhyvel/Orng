@@ -5,7 +5,7 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const errs_ = @import("../util/errors.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
-const token_ = @import("../lexer/token.zig");
+const Token = @import("../lexer/token.zig");
 const walk_ = @import("../ast/walker.zig");
 
 errors: *errs_.Errors,
@@ -59,7 +59,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 ast.sub_slice.lower = ast_.AST.create_int(ast.token(), 0, self.allocator);
             }
             if (ast.sub_slice.upper == null) {
-                const length = ast_.AST.create_field(token_.Token.init("length", null, "", "", 0, 0), self.allocator);
+                const length = ast_.AST.create_field(Token.init("length", null, "", "", 0, 0), self.allocator);
                 ast.sub_slice.upper = ast_.AST.create_select(
                     ast.token(),
                     ast.sub_slice.super,

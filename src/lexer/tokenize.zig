@@ -1,7 +1,7 @@
 const std = @import("std");
-const token_ = @import("token.zig");
+const Token = @import("token.zig");
 const errs_ = @import("../util/errors.zig");
-const span_ = @import("../util/span.zig");
+const Span = @import("../util/span.zig");
 
 const Self: type = @This();
 
@@ -44,7 +44,7 @@ const Lex_State = enum {
     }
 };
 
-tokens: *std.ArrayList(token_.Token),
+tokens: *std.ArrayList(Token),
 filename: []const u8,
 errors: *errs_.Errors,
 fuzz_tokens: bool,
@@ -63,7 +63,7 @@ pub fn init(
     allocator: std.mem.Allocator,
 ) Self {
     const retval = Self{
-        .tokens = allocator.create(std.ArrayList(token_.Token)) catch unreachable,
+        .tokens = allocator.create(std.ArrayList(Token)) catch unreachable,
         .filename = filename,
         .errors = errors,
         .fuzz_tokens = fuzz_tokens,
@@ -74,11 +74,11 @@ pub fn init(
         .ix = 0,
         .state = .none,
     };
-    retval.tokens.* = std.ArrayList(token_.Token).init(allocator);
+    retval.tokens.* = std.ArrayList(Token).init(allocator);
     return retval;
 }
 
-pub fn run(self: *Self, lines: std.ArrayList([]const u8)) Lexer_Errors!*std.ArrayList(token_.Token) {
+pub fn run(self: *Self, lines: std.ArrayList([]const u8)) Lexer_Errors!*std.ArrayList(Token) {
     for (lines.items) |line| {
         self.slice_start = 0;
         self.ix = 0;
@@ -92,10 +92,10 @@ pub fn run(self: *Self, lines: std.ArrayList([]const u8)) Lexer_Errors!*std.Arra
             const next_char = if (self.ix < line.len) line[self.ix] else '\n';
             try self.state_machine(next_char, line);
         }
-        self.tokens.append(token_.Token.init("\n", .newline, self.filename, line, self.line_number, self.col)) catch unreachable;
+        self.tokens.append(Token.init("\n", .newline, self.filename, line, self.line_number, self.col)) catch unreachable;
     }
 
-    self.tokens.append(token_.Token.init("EOF", .EOF, self.filename, "", self.line_number, self.col)) catch unreachable;
+    self.tokens.append(Token.init("EOF", .EOF, self.filename, "", self.line_number, self.col)) catch unreachable;
     return self.tokens;
 }
 
@@ -355,7 +355,7 @@ fn state_machine(self: *Self, next_char: u8, line: []const u8) Lexer_Errors!void
         } else if (self.ix - self.slice_start > 0 and line[self.slice_start] == '/' and next_char == '/') {
             // comment (because of the maximal munch thing I think this isnt even needed...)
             self.advance_ix(.comment);
-        } else if (self.ix == line.len or token_.Token_Kind.from_string(line[self.slice_start .. self.ix + 1]) == .identifier) {
+        } else if (self.ix == line.len or Token.Kind.from_string(line[self.slice_start .. self.ix + 1]) == .identifier) {
             // Couldn't maximally munch, this must be the end of the token
             const token = self.create_token(line, null);
             self.tokens.append(token) catch unreachable;
@@ -367,7 +367,7 @@ fn state_machine(self: *Self, next_char: u8, line: []const u8) Lexer_Errors!void
 
         .multiline => if (next_char == '\n') {
             self.tokens.append(
-                token_.Token.init(line[self.slice_start + 2 .. self.ix], .multi_line_string, self.filename, line, self.line_number, self.col),
+                Token.init(line[self.slice_start + 2 .. self.ix], .multi_line_string, self.filename, line, self.line_number, self.col),
             ) catch unreachable;
             self.slice_start = self.ix;
             self.state = .none;
@@ -376,7 +376,7 @@ fn state_machine(self: *Self, next_char: u8, line: []const u8) Lexer_Errors!void
         },
 
         .comment => if (next_char == '\n') {
-            self.tokens.append(token_.Token.init("", .comment, self.filename, line, self.line_number, self.col)) catch unreachable;
+            self.tokens.append(Token.init("", .comment, self.filename, line, self.line_number, self.col)) catch unreachable;
             self.slice_start = self.ix;
             self.state = .none;
         } else {
@@ -385,8 +385,8 @@ fn state_machine(self: *Self, next_char: u8, line: []const u8) Lexer_Errors!void
     }
 }
 
-fn get_span(self: *Self, line: []const u8, offset: usize) span_.Span {
-    return span_.Span{ .filename = self.filename, .line_text = line, .col = self.col + offset, .line_number = self.line_number };
+fn get_span(self: *Self, line: []const u8, offset: usize) Span {
+    return Span{ .filename = self.filename, .line_text = line, .col = self.col + offset, .line_number = self.line_number };
 }
 
 fn throw_invalid_decimal(self: *Self, line: []const u8, digit: u8, base: []const u8) Lexer_Errors {
@@ -440,8 +440,8 @@ fn identifier(self: *Self, line: []const u8, next_char: u8) void {
 }
 
 /// Creates a token from the Self's line and col and filename
-fn create_token(self: *Self, line: []const u8, kind: ?token_.Token_Kind) token_.Token {
-    return token_.Token.init(
+fn create_token(self: *Self, line: []const u8, kind: ?Token.Kind) Token {
+    return Token.init(
         line[self.slice_start..self.ix],
         kind,
         self.filename,

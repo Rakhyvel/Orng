@@ -1,6 +1,6 @@
 const std = @import("std");
 const AST = @import("ast.zig").AST;
-const Token = @import("../lexer/token.zig").Token;
+const Token = @import("../lexer/token.zig");
 
 pub var poisoned: *AST = undefined;
 var inited: bool = false;

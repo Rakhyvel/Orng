@@ -54,6 +54,7 @@ pub const Lookup_Flags = struct {
     crossed_boundary: bool = false,
     allow_modules: bool = false,
 };
+
 pub fn lookup(self: *Self, name: []const u8, flags: Lookup_Flags) Lookup_Result {
     if (self.symbols.get(name)) |symbol| {
         if (!flags.allow_modules and symbol.kind == .module) {

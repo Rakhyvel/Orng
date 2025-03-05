@@ -3,13 +3,13 @@ const ast_ = @import("../ast/ast.zig");
 const errs_ = @import("../util/errors.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
-const token_ = @import("../lexer/token.zig");
+const Token = @import("../lexer/token.zig");
 
 const Self: type = @This();
 
 const Parser_Error_Enum = error{ParseError};
 
-tokens: *std.ArrayList(token_.Token),
+tokens: *std.ArrayList(Token),
 cursor: usize,
 errors: *errs_.Errors,
 allocator: std.mem.Allocator,
@@ -23,11 +23,11 @@ pub fn init(errors: *errs_.Errors, allocator: std.mem.Allocator) Self {
     };
 }
 
-fn peek(self: *Self) token_.Token {
+fn peek(self: *Self) Token {
     return self.tokens.items[self.cursor];
 }
 
-fn peek_kind(self: *Self, kind: token_.Token_Kind) bool {
+fn peek_kind(self: *Self, kind: Token.Kind) bool {
     return self.peek().kind == kind;
 }
 
@@ -92,7 +92,7 @@ fn next_is_statement(self: *Self) bool {
 
 /// Returns the next token if its kind matches the given kind, otherwise
 /// null
-fn accept(self: *Self, kind: token_.Token_Kind) ?token_.Token {
+fn accept(self: *Self, kind: Token.Kind) ?Token {
     const token = self.peek();
     if (token.kind == kind) {
         self.cursor += 1;
@@ -103,7 +103,7 @@ fn accept(self: *Self, kind: token_.Token_Kind) ?token_.Token {
 }
 
 /// Returns the token with an expected kind, or throws an error.
-fn expect(self: *Self, kind: token_.Token_Kind) Parser_Error_Enum!token_.Token {
+fn expect(self: *Self, kind: Token.Kind) Parser_Error_Enum!Token {
     if (self.accept(kind)) |token| {
         return token;
     } else {
@@ -113,7 +113,7 @@ fn expect(self: *Self, kind: token_.Token_Kind) Parser_Error_Enum!token_.Token {
 }
 
 /// Parses a token stream a file into a list of declaration ASTs
-pub fn run(self: *Self, tokens: *std.ArrayList(token_.Token)) Parser_Error_Enum!*std.ArrayList(*ast_.AST) {
+pub fn run(self: *Self, tokens: *std.ArrayList(Token)) Parser_Error_Enum!*std.ArrayList(*ast_.AST) {
     self.tokens = tokens;
     var decls = self.allocator.create(std.ArrayList(*ast_.AST)) catch unreachable;
     decls.* = std.ArrayList(*ast_.AST).init(self.allocator);
@@ -335,7 +335,7 @@ fn let_pattern_atom(self: *Self) Parser_Error_Enum!*ast_.AST {
 fn let_pattern_product(self: *Self) Parser_Error_Enum!*ast_.AST {
     const exp = try self.let_pattern_atom();
     var terms: ?std.ArrayList(*ast_.AST) = null;
-    var firsttoken_: ?token_.Token = null;
+    var firsttoken_: ?Token = null;
     while (self.accept(.comma)) |token| {
         if (terms == null) {
             terms = std.ArrayList(*ast_.AST).init(self.allocator);
@@ -405,7 +405,7 @@ fn parse_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
 fn sum_type(self: *Self) Parser_Error_Enum!*ast_.AST {
     const exp = try self.product_expr();
     var terms: ?std.ArrayList(*ast_.AST) = null;
-    var firsttoken_: ?token_.Token = null;
+    var firsttoken_: ?Token = null;
     while (self.accept(.bar)) |token| {
         if (terms == null) {
             terms = std.ArrayList(*ast_.AST).init(self.allocator);
@@ -429,7 +429,7 @@ fn sum_type(self: *Self) Parser_Error_Enum!*ast_.AST {
 fn product_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
     const exp = try self.annotation_expr();
     var terms: ?std.ArrayList(*ast_.AST) = null;
-    var firsttoken_: ?token_.Token = null;
+    var firsttoken_: ?Token = null;
     while (self.accept(.comma)) |token| {
         if (terms == null) {
             terms = std.ArrayList(*ast_.AST).init(self.allocator);
@@ -1110,7 +1110,7 @@ fn param(self: *Self) Parser_Error_Enum!*ast_.AST {
 
 fn trait_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     _ = try self.expect(.trait);
-    const trait_name: token_.Token = try self.expect(.identifier);
+    const trait_name: Token = try self.expect(.identifier);
     _ = try self.expect(.left_brace);
     var method_decls = std.ArrayList(*ast_.AST).init(self.allocator);
     errdefer method_decls.deinit();
@@ -1355,7 +1355,7 @@ fn match_pattern_atom(self: *Self) Parser_Error_Enum!*ast_.AST {
 fn match_pattern_product(self: *Self) Parser_Error_Enum!*ast_.AST {
     const exp = try self.match_pattern_sum_value();
     var terms: ?std.ArrayList(*ast_.AST) = null;
-    var firsttoken_: ?token_.Token = null;
+    var firsttoken_: ?Token = null;
     while (self.accept(.comma)) |token| {
         if (terms == null) {
             terms = std.ArrayList(*ast_.AST).init(self.allocator);

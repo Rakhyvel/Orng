@@ -1,8 +1,8 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
-const cfg_ = @import("../ir/cfg.zig");
+const CFG = @import("../ir/cfg.zig");
 const Scope = @import("../symbol/scope.zig");
-const span_ = @import("../util/span.zig");
+const Span = @import("../util/span.zig");
 const validation_state_ = @import("../util/validation_state.zig");
 
 const Self = @This();
@@ -31,12 +31,12 @@ var number_of_comptime: usize = 0;
 // TODO: Much like AST, create a symbol-create.zig, and usingnamespace it here with `create_comptime_init`, `create_symbol`, `create_method_type`, `create_temp_comptime_symbol`, `create_template_symbol`, `create_function_symbol`, and any other supporting infra
 scope: *Scope, // Enclosing parent scope
 name: []const u8,
-span: span_.Span,
+span: Span,
 _type: *ast_.AST,
 expanded_type: ?*ast_.AST,
 init: ?*ast_.AST,
 kind: Kind,
-cfg: ?*cfg_.CFG,
+cfg: ?*CFG,
 decl: ?*ast_.AST,
 is_alias: bool, // when this is true, this symbol is a type-alias, and should be expanded before use
 
@@ -58,7 +58,7 @@ offset: ?i64, // The offset from the BP that this symbol
 pub fn init(
     scope: *Scope,
     name: []const u8,
-    span: span_.Span,
+    span: Span,
     _type: *ast_.AST,
     _init: ?*ast_.AST,
     decl: ?*ast_.AST,

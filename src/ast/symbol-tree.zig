@@ -7,7 +7,7 @@ const primitives_ = @import("../hierarchy/primitives.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
-const token_ = @import("../lexer/token.zig");
+const Token = @import("../lexer/token.zig");
 const walk_ = @import("../ast/walker.zig");
 
 scope: *Scope,
@@ -137,7 +137,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             const self_type_decl = ast_.AST.create_decl(
                 ast.token(),
                 ast_.AST.create_pattern_symbol(
-                    token_.Token.init_simple("Self"),
+                    Token.init_simple("Self"),
                     .@"const",
                     "Self",
                     self.allocator,
@@ -175,7 +175,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             const self_type_decl = ast_.AST.create_decl(
                 ast.token(),
                 ast_.AST.create_pattern_symbol(
-                    token_.Token.init_simple("Self"),
+                    Token.init_simple("Self"),
                     .@"const",
                     "Self",
                     self.allocator,
@@ -675,11 +675,11 @@ fn create_method_symbol(
 
         if (ast.method_decl.receiver.?.receiver.kind == .value) {
             const self_type = recv_type.expr();
-            const self_init = ast_.AST.create_dereference(ast.token(), ast_.AST.create_identifier(token_.Token.init_simple("$self_ptr"), allocator), allocator);
+            const self_init = ast_.AST.create_dereference(ast.token(), ast_.AST.create_identifier(Token.init_simple("$self_ptr"), allocator), allocator);
             const receiver_span = ast.method_decl.receiver.?.token().span;
             const self_decl = ast_.AST.create_decl(
                 ast.token(),
-                ast_.AST.create_pattern_symbol(token_.Token.init("self", .identifier, receiver_span.filename, receiver_span.line_text, receiver_span.line_number, receiver_span.col), .let, "self", allocator),
+                ast_.AST.create_pattern_symbol(Token.init("self", .identifier, receiver_span.filename, receiver_span.line_text, receiver_span.line_number, receiver_span.col), .let, "self", allocator),
                 self_type,
                 self_init,
                 false,

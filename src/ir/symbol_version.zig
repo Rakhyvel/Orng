@@ -1,12 +1,12 @@
 const std = @import("std");
 const Symbol = @import("../symbol/symbol.zig");
 const String = @import("../zig-string/zig-string.zig").String;
-const instructions_ = @import("../ir/instruction.zig");
+const Instruction = @import("../ir/instruction.zig");
 
 const Self = @This();
 
 symbol: *Symbol,
-def: ?*instructions_.Instruction,
+def: ?*Instruction,
 
 uses: usize = 0,
 

@@ -3,13 +3,13 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
-const basic_block_ = @import("../ir/basic-block.zig");
-const cfg_ = @import("../ir/cfg.zig");
-const instructions_ = @import("../ir/instruction.zig");
+const Basic_Block = @import("../ir/basic-block.zig");
+const CFG = @import("../ir/cfg.zig");
+const Instruction = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const module_ = @import("../hierarchy/module.zig");
-const span_ = @import("../util/span.zig");
+const Span = @import("../util/span.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Type_Set = @import("../ast/type-set.zig");
 const Dependency_Node = @import("../ast/dependency_node.zig");
@@ -291,10 +291,10 @@ fn output_interned_strings(interned_strings: *std.ArrayList([]const u8), writer:
 
 /// Applies a function to all CFGs in a list of CFGs.
 fn forall_functions(
-    cfgs: *std.ArrayList(*cfg_.CFG),
+    cfgs: *std.ArrayList(*CFG),
     header_comment: []const u8,
     writer: Writer,
-    comptime f: fn (*cfg_.CFG, Writer) CodeGen_Error!void,
+    comptime f: fn (*CFG, Writer) CodeGen_Error!void,
 ) CodeGen_Error!void {
     try writer.print("{s}\n", .{header_comment});
 
@@ -311,7 +311,7 @@ fn forall_functions(
 }
 
 /// Outputs the forward declaration of a function.
-fn output_forward_function(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void {
+fn output_forward_function(cfg: *CFG, writer: Writer) CodeGen_Error!void {
     try output_function_prototype(cfg, writer);
     try writer.print(";\n", .{});
 }
@@ -345,7 +345,7 @@ fn output_impls(
 }
 
 /// Output the definition of a function.
-fn output_function_definition(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void {
+fn output_function_definition(cfg: *CFG, writer: Writer) CodeGen_Error!void {
     try output_function_prototype(cfg, writer);
     try writer.print("{{\n", .{});
 
@@ -384,7 +384,7 @@ fn output_function_definition(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void
 
 /// Outputs the prototype of a function
 fn output_function_prototype(
-    cfg: *cfg_.CFG, // TODO: Accept cfg symbol
+    cfg: *CFG, // TODO: Accept cfg symbol
     writer: Writer,
 ) CodeGen_Error!void {
     // Output function return type and name
@@ -422,7 +422,7 @@ fn output_function_prototype(
 }
 
 fn output_main_function(
-    cfg: *cfg_.CFG, // TODO: Accept symbol
+    cfg: *CFG, // TODO: Accept symbol
     writer: Writer,
 ) CodeGen_Error!void {
     const codomain = cfg.symbol.expanded_type.?.rhs();
@@ -549,13 +549,13 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
 
 /// Outputs the C code for a basic-block in the given control flow graph.
 fn output_basic_block(
-    cfg: *cfg_.CFG, // TODO: Accept cfg block graph head
-    start_bb: *basic_block_.Basic_Block,
+    cfg: *CFG, // TODO: Accept cfg block graph head
+    start_bb: *Basic_Block,
     return_symbol: *Symbol,
     writer: Writer,
 ) CodeGen_Error!void {
     // FIXME: High Cyclo
-    var bb_queue = std.ArrayList(*basic_block_.Basic_Block).init(std.heap.page_allocator); // page alloc ok, immediately deinit'd
+    var bb_queue = std.ArrayList(*Basic_Block).init(std.heap.page_allocator); // page alloc ok, immediately deinit'd
     defer bb_queue.deinit();
     bb_queue.append(start_bb) catch unreachable;
     start_bb.visited = true;
@@ -563,7 +563,7 @@ fn output_basic_block(
     // Output basic-blocks in BFS order
     var head: usize = 0;
     while (head < bb_queue.items.len) {
-        const bb: *basic_block_.Basic_Block = bb_queue.items[head];
+        const bb: *Basic_Block = bb_queue.items[head];
         head += 1;
 
         const is_head_bb = cfg.block_graph_head != null and cfg.block_graph_head.? == bb;
@@ -627,7 +627,7 @@ fn output_basic_block(
 }
 
 /// Outputs the C code for an instruction.
-fn output_instruction(instr: *instructions_.Instruction, writer: Writer) CodeGen_Error!void {
+fn output_instruction(instr: *Instruction, writer: Writer) CodeGen_Error!void {
     if (instr.dest != null) {
         try output_lvalue_check(instr.span, instr.dest.?, writer);
     }
@@ -651,7 +651,7 @@ fn output_instruction(instr: *instructions_.Instruction, writer: Writer) CodeGen
 }
 
 /// Outputs the C code for an Instruction instruction after runtime checks have run.
-fn output_instruction_post_check(instr: *instructions_.Instruction, writer: Writer) CodeGen_Error!void {
+fn output_instruction_post_check(instr: *Instruction, writer: Writer) CodeGen_Error!void {
     switch (instr.kind) {
         .load_unit => {
             // Do nothing!
@@ -817,7 +817,7 @@ fn output_instruction_post_check(instr: *instructions_.Instruction, writer: Writ
                 spaces.insert(" ", spaces.size) catch unreachable;
             }
             try writer.print("    $lines[$line_idx++] = ", .{});
-            try instr.span.print_debug_line(writer, span_.c_format);
+            try instr.span.print_debug_line(writer, Span.c_format);
             try writer.print(";\n", .{});
         },
         .pop_stack_trace => {
@@ -839,7 +839,7 @@ fn output_instruction_post_check(instr: *instructions_.Instruction, writer: Writ
 }
 
 /// Outputs C code for the prefix of a call
-fn output_call_prefix(instr: *instructions_.Instruction, writer: anytype) !void {
+fn output_call_prefix(instr: *Instruction, writer: anytype) !void {
     const void_fn = instr.dest.?.get_expanded_type().is_c_void_type();
     const symbol_used = if (instr.dest.?.* == .symbver) instr.dest.?.symbver.symbol.uses > 0 else false;
     if (!symbol_used) {
@@ -854,7 +854,7 @@ fn output_call_prefix(instr: *instructions_.Instruction, writer: anytype) !void 
 /// Outputs the C code for checking lvalue operations. The current checks are:
 /// - Index bounds check
 /// - Tag check on union selects
-fn output_lvalue_check(span: span_.Span, lvalue: *lval_.L_Value, writer: Writer) CodeGen_Error!void {
+fn output_lvalue_check(span: Span, lvalue: *lval_.L_Value, writer: Writer) CodeGen_Error!void {
     switch (lvalue.*) {
         .symbver => {},
         .dereference => try output_lvalue_check(span, lvalue.dereference.expr, writer),
@@ -868,7 +868,7 @@ fn output_lvalue_check(span: span_.Span, lvalue: *lval_.L_Value, writer: Writer)
                 try writer.print(", ", .{});
                 try output_rvalue(lvalue.index.length.?, HIGHEST_PRECEDENCE, writer); // length
                 try writer.print(", ", .{});
-                try span.print_debug_line(writer, span_.c_format);
+                try span.print_debug_line(writer, Span.c_format);
                 try writer.print(");\n", .{});
             }
         },
@@ -879,7 +879,7 @@ fn output_lvalue_check(span: span_.Span, lvalue: *lval_.L_Value, writer: Writer)
                 try writer.print("    $tag_check(", .{});
                 try output_rvalue(lvalue.select.tag.?, HIGHEST_PRECEDENCE, writer); // tag
                 try writer.print(", {}, ", .{lvalue.select.field});
-                try span.print_debug_line(writer, span_.c_format);
+                try span.print_debug_line(writer, Span.c_format);
                 try writer.print(");\n", .{});
             }
         },
@@ -1005,7 +1005,7 @@ fn output_var_assign_cast(lval: *lval_.L_Value, _type: *ast_.AST, writer: Writer
 }
 
 /// Outputs the C code for an operator from an Instruction.
-fn output_operator(instr: *instructions_.Instruction, writer: Writer) CodeGen_Error!void {
+fn output_operator(instr: *Instruction, writer: Writer) CodeGen_Error!void {
     try output_var_assign(instr.dest.?, writer);
     if (instr.kind.is_checked() and instr.dest.?.get_expanded_type().can_expanded_represent_int()) { // TODO: Check if checked operations are enabled, too
         try writer.print("${s}_{s}(", .{ instr.kind.checked_name(), primitives_.info_from_ast(instr.dest.?.get_expanded_type()).?.c_name });
@@ -1015,7 +1015,7 @@ fn output_operator(instr: *instructions_.Instruction, writer: Writer) CodeGen_Er
             try output_rvalue(instr.src2.?, instr.kind.precedence(), writer);
             try writer.print(", ", .{});
         }
-        try instr.span.print_debug_line(writer, span_.c_format);
+        try instr.span.print_debug_line(writer, Span.c_format);
         try writer.print(")", .{});
     } else if (instr.kind.arity() == .unop) {
         // Unop, no-check

@@ -2,9 +2,9 @@ const std = @import("std");
 const ast_ = @import("ast/ast.zig");
 const Compiler_Context = @import("compilation/compiler.zig");
 const errs_ = @import("util/errors.zig");
-const interpreter_ = @import("interpretation/interpreter.zig");
+const Interpreter_Context = @import("interpretation/interpreter.zig");
 const primitives_ = @import("hierarchy/primitives.zig");
-const span_ = @import("util/span.zig");
+const Span = @import("util/span.zig");
 const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol/symbol.zig");
 
@@ -77,7 +77,7 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
         error.FileNotFound => {
             (errs_.Error{ .basic = .{
                 .msg = "no `build.orng` file found in current working directory",
-                .span = span_.phony_span,
+                .span = Span.phony,
             } }).fatal_error();
         },
         else => return error.CompileError,
@@ -87,13 +87,13 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     defer compiler.deinit();
     const build_cfg = compiler.compile_build_file(build_path) catch return error.CompileError;
 
-    var interpreter = interpreter_.Context.init(&compiler.errors, compiler.allocator());
+    var interpreter = Interpreter_Context.init(&compiler.errors, compiler.allocator());
     interpreter.set_entry_point(build_cfg, primitives_.package_type.expand_type(compiler.allocator()));
     try interpreter.run(compiler);
     defer interpreter.deinit();
 
     // Extract the retval
-    const package_dag = try interpreter.extract_ast(0, primitives_.package_type, span_.phony_span);
+    const package_dag = try interpreter.extract_ast(0, primitives_.package_type, Span.phony);
     const cwd_buffer = compiler.allocator().alloc(u8, std.fs.MAX_PATH_BYTES) catch unreachable;
     const cwd = std.fs.cwd().realpath(".", cwd_buffer) catch unreachable;
     const package_name = std.fs.path.basename(cwd);
@@ -111,7 +111,7 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
         if (curr_package.is_static_lib) {
             (errs_.Error{ .basic = .{
                 .msg = "cannot run a non-executable package",
-                .span = span_.phony_span,
+                .span = Span.phony,
             } }).fatal_error();
             return error.CompileError;
         }
@@ -142,7 +142,7 @@ fn validate_env_vars(allocator: std.mem.Allocator) Command_Error!void {
         (errs_.Error{
             .basic = .{
                 .msg = "an environment variable is not defined",
-                .span = span_.phony_span,
+                .span = Span.phony,
             },
         }).fatal_error();
         return error.CompileError;
@@ -151,14 +151,14 @@ fn validate_env_vars(allocator: std.mem.Allocator) Command_Error!void {
         error.FileNotFound => {
             (errs_.Error{ .basic = .{
                 .msg = "the path specified by an environment variable does not exist",
-                .span = span_.phony_span,
+                .span = Span.phony,
             } }).fatal_error();
             return error.CompileError;
         },
         error.NotDir => {
             (errs_.Error{ .basic = .{
                 .msg = "the path specified by an environment variable does not refer to a directory",
-                .span = span_.phony_span,
+                .span = Span.phony,
             } }).fatal_error();
             return error.CompileError;
         },
@@ -173,7 +173,7 @@ fn make_package(
     package: *ast_.AST,
     package_name: []const u8,
     compiler: *Compiler_Context,
-    interpreter: *interpreter_.Context,
+    interpreter: *Interpreter_Context,
     working_directory: []const u8,
     entry_name: ?[]const u8,
 ) Command_Error!*symbol_.Symbol {
@@ -188,7 +188,7 @@ fn make_package(
         const required_package_name: []const u8 = requirement.children().items[0].string.data;
         const required_package_addr: i64 = @intCast(requirement.children().items[1].int.data);
         const requirement_name = requirement.get_field(primitives_.package_type, "root").string.data;
-        const required_package = try interpreter.extract_ast(required_package_addr, primitives_.package_type, span_.phony_span);
+        const required_package = try interpreter.extract_ast(required_package_addr, primitives_.package_type, Span.phony);
         const required_package_dir = required_package.get_field(primitives_.package_type, "dir").string.data;
 
         const new_working_directory_buffer = compiler.allocator().alloc(u8, std.fs.MAX_PATH_BYTES) catch unreachable;
@@ -278,7 +278,7 @@ pub fn init(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem
     if (std.fs.cwd().openFile(main_path, .{})) |_| {
         (errs_.Error{ .basic = .{
             .msg = "an Orng package already exists here",
-            .span = span_.phony_span,
+            .span = Span.phony,
         } }).fatal_error();
     } else |err| switch (err) {
         error.FileNotFound => {},
@@ -289,7 +289,7 @@ pub fn init(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem
     if (std.fs.cwd().openFile(build_path, .{})) |_| {
         (errs_.Error{ .basic = .{
             .msg = "an Orng package already exists here",
-            .span = span_.phony_span,
+            .span = Span.phony,
         } }).fatal_error();
     } else |err| switch (err) {
         error.FileNotFound => {},

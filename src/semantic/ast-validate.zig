@@ -11,15 +11,15 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const Compiler_Context = @import("../compilation/compiler.zig");
 const errs_ = @import("../util/errors.zig");
-const interpreter_ = @import("../interpretation/interpreter.zig");
+const Interpreter_Context = @import("../interpretation/interpreter.zig");
 const module_ = @import("../hierarchy/module.zig");
 const poison_ = @import("../ast/poison.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
-const span_ = @import("../util/span.zig");
+const Span = @import("../util/span.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
-const token_ = @import("../lexer/token.zig");
+const Token = @import("../lexer/token.zig");
 
 const Validate_Error_Enum = error{ LexerError, ParseError, CompileError };
 
@@ -148,7 +148,7 @@ pub fn validate_symbol(symbol: *Symbol, compiler: *Compiler_Context) Validate_Er
         if (symbol.kind.@"extern".c_name != null) {
             symbol.kind.@"extern".c_name = validate_AST(symbol.kind.@"extern".c_name.?, primitives_.string_type, compiler);
         } else {
-            symbol.kind.@"extern".c_name = ast_.AST.create_string(token_.Token.init_simple(symbol.name), symbol.name, compiler.allocator());
+            symbol.kind.@"extern".c_name = ast_.AST.create_string(Token.init_simple(symbol.name), symbol.name, compiler.allocator());
         }
     }
     _ = symbol.assert_init_valid();
@@ -592,7 +592,7 @@ fn validate_AST_internal(
             defer module.pop_cfg(idx); // Remove the cfg so that it isn't output
 
             // Create a context and interpret
-            var context = interpreter_.Context.init(&compiler.errors, compiler.allocator());
+            var context = Interpreter_Context.init(&compiler.errors, compiler.allocator());
             context.set_entry_point(cfg, expanded_expected orelse ret_type);
             defer context.deinit();
             context.load_module(module);
@@ -765,7 +765,7 @@ fn validate_AST_internal(
                     return ast.enpoison();
                 }
                 // rhs is compile-time known, change to select
-                const field = ast_.AST.create_field(token_.Token.init_simple(""), compiler.allocator());
+                const field = ast_.AST.create_field(Token.init_simple(""), compiler.allocator());
                 const select = ast_.AST.create_select(ast.token(), ast.lhs(), field, compiler.allocator()).assert_ast_valid();
                 select.set_pos(@as(usize, @intCast(ast.rhs().int.data)));
                 return select;
@@ -1230,7 +1230,7 @@ fn validate_AST_internal(
                     const opt_type = ast_.AST.create_optional_type(ast.body_block().typeof(compiler.allocator()), compiler.allocator());
                     statements.append(ast_.AST.create_none_value(opt_type, compiler.allocator())) catch unreachable;
                 }
-                const ret_block = ast_.AST.create_block(token_.Token.init_simple("{"), statements, null, compiler.allocator());
+                const ret_block = ast_.AST.create_block(Token.init_simple("{"), statements, null, compiler.allocator());
                 ret_block.set_scope(ast.scope().?.parent.?);
                 return ret_block;
             } else {
@@ -1391,27 +1391,27 @@ fn checked_types_match(A: *ast_.AST, B: *ast_.AST, errors: *errs_.Errors) Valida
     return A.types_match(B);
 }
 
-fn type_valid_check(span: span_.Span, _type: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
+fn type_valid_check(span: Span, _type: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (!_type.valid_type()) {
         errors.add_error(errs_.Error{ .invalid_type = .{ .span = span, .got = _type } });
         return error.CompileError;
     }
 }
 
-fn type_check(span: span_.Span, got: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
+fn type_check(span: Span, got: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (expected != null and !try checked_types_match(got, expected.?, errors)) {
         return throw_unexpected_type(span, expected.?, got, errors);
     }
 }
 
-fn void_check(span: span_.Span, expected: ?*ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
+fn void_check(span: Span, expected: ?*ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (expected != null and try checked_types_match(primitives_.type_type, expected.?, errors)) {
         return throw_unexpected_type(span, expected.?, primitives_.void_type, errors);
     }
 }
 
 /// Checks that a type is equal to unit, throws an error if it is not.
-fn middle_statement_check(span: span_.Span, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
+fn middle_statement_check(span: Span, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (!got.valid_type()) {
         errors.add_error(errs_.Error{ .invalid_type = .{ .span = span, .got = got } });
         return error.CompileError;
@@ -1457,52 +1457,52 @@ fn type_check_float(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors)
     ast.set_represents(expected orelse primitives_.float_type);
 }
 
-fn type_check_eq(span: span_.Span, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
+fn type_check_eq(span: Span, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (!got.is_eq_type()) {
         errors.add_error(errs_.Error{ .expected_builtin_typeclass = .{ .span = span, .expected = "equalable", .got = got } });
         return error.CompileError;
     }
 }
 
-fn type_check_ord(span: span_.Span, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
+fn type_check_ord(span: Span, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (!got.is_ord_type()) {
         errors.add_error(errs_.Error{ .expected_builtin_typeclass = .{ .span = span, .expected = "orderable", .got = got } });
         return error.CompileError;
     }
 }
 
-fn type_check_arithmetic(span: span_.Span, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
+fn type_check_arithmetic(span: Span, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (!got.is_num_type()) {
         errors.add_error(errs_.Error{ .expected_builtin_typeclass = .{ .span = span, .expected = "arithmetic", .got = got } });
         return error.CompileError;
     }
 }
 
-fn type_check_integral(span: span_.Span, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
+fn type_check_integral(span: Span, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (!got.is_int_type()) {
         errors.add_error(errs_.Error{ .expected_builtin_typeclass = .{ .span = span, .expected = "integer", .got = got } });
         return error.CompileError;
     }
 }
 
-fn type_check_bits(span: span_.Span, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
+fn type_check_bits(span: Span, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (!got.is_bits_type()) {
         errors.add_error(errs_.Error{ .expected_builtin_typeclass = .{ .span = span, .expected = "bits", .got = got } });
         return error.CompileError;
     }
 }
 
-fn throw_unexpected_type(span: span_.Span, expected: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum {
+fn throw_unexpected_type(span: Span, expected: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum {
     errors.add_error(errs_.Error{ .unexpected_type = .{ .span = span, .expected = expected, .got = got } });
     return error.CompileError;
 }
 
-fn throw_unexpected_void_type(span: span_.Span, errors: *errs_.Errors) Validate_Error_Enum {
+fn throw_unexpected_void_type(span: Span, errors: *errs_.Errors) Validate_Error_Enum {
     errors.add_error(errs_.Error{ .basic = .{ .span = span, .msg = "comptime cannot be type `Void`" } });
     return error.CompileError;
 }
 
-fn throw_not_selectable(span: span_.Span, errors: *errs_.Errors) Validate_Error_Enum {
+fn throw_not_selectable(span: Span, errors: *errs_.Errors) Validate_Error_Enum {
     errors.add_error(errs_.Error{ .basic = .{ .span = span, .msg = "left-hand-side of select is not selectable" } });
     return error.CompileError;
 }
@@ -1511,7 +1511,7 @@ fn throw_wrong_from(
     from_name: []const u8,
     operator_name: []const u8,
     got: *ast_.AST,
-    span: span_.Span,
+    span: Span,
     errors: *errs_.Errors,
 ) Validate_Error_Enum {
     errors.add_error(errs_.Error{ .wrong_from = .{
@@ -1596,7 +1596,7 @@ fn binary_operator_open(
     return lhs_type;
 }
 
-fn coalesce_operator(lhs_expanded_type: *ast_.AST, ast: *ast_.AST, span: span_.Span, errors: *errs_.Errors) Validate_Error_Enum!void {
+fn coalesce_operator(lhs_expanded_type: *ast_.AST, ast: *ast_.AST, span: Span, errors: *errs_.Errors) Validate_Error_Enum!void {
     std.debug.assert(ast.* == .@"orelse" or ast.* == .@"catch");
     const expected_sum_from: ast_.Sum_From = if (ast.* == .@"orelse") .optional else .@"error";
     if (lhs_expanded_type.* != .sum_type or lhs_expanded_type.sum_type.from != expected_sum_from) {
@@ -1821,7 +1821,7 @@ pub fn validate_args_arity(
     args: *std.ArrayList(*ast_.AST),
     expected: *ast_.AST,
     variadic: bool,
-    span: span_.Span,
+    span: Span,
     errors: *errs_.Errors,
 ) Validate_Error_Enum!void {
     const expected_length = if (expected.* == .unit_type) 0 else if (expected.* == .product) expected.children().items.len else 1;
@@ -1894,7 +1894,7 @@ fn put_assign(ast: *ast_.AST, arg_map: *std.StringArrayHashMap(*ast_.AST), error
 fn merge_sums(
     lhs: *ast_.AST,
     rhs: *ast_.AST,
-    token: token_.Token,
+    token: Token,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Validate_Error_Enum!*ast_.AST {
@@ -1932,7 +1932,7 @@ fn put_many_annot_map(
 fn put_ast_map(
     ast: *ast_.AST,
     name: []const u8,
-    span: span_.Span,
+    span: Span,
     map: *std.StringArrayHashMap(*ast_.AST),
     errors: *errs_.Errors,
 ) Validate_Error_Enum!void {
@@ -2025,7 +2025,7 @@ fn implicit_dereference(
     return lhs_type;
 }
 
-fn find_select_pos(_type: *ast_.AST, field: []const u8, span: span_.Span, errors: *errs_.Errors) Validate_Error_Enum!usize {
+fn find_select_pos(_type: *ast_.AST, field: []const u8, span: Span, errors: *errs_.Errors) Validate_Error_Enum!usize {
     if (_type.* != .product and _type.* != .sum_type and _type.* != .untagged_sum_type) {
         return throw_not_selectable(span, errors);
     }
@@ -2088,7 +2088,7 @@ fn assert_pattern_matches(
 fn exhaustive_check(
     _type: *ast_.AST,
     mappings: *std.ArrayList(*ast_.AST),
-    match_span: span_.Span,
+    match_span: Span,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Validate_Error_Enum!void {
@@ -2132,13 +2132,13 @@ fn exhaustive_check_sub(ast: *ast_.AST, ids: *std.ArrayList(usize)) void {
     }
 }
 
-fn generate_default(_type: *ast_.AST, span: span_.Span, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
+fn generate_default(_type: *ast_.AST, span: Span, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
     var retval = (try generate_default_unvalidated(_type, span, errors, allocator)).assert_ast_valid();
     retval.common()._type = _type;
     return retval;
 }
 
-fn generate_default_unvalidated(_type: *ast_.AST, span: span_.Span, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
+fn generate_default_unvalidated(_type: *ast_.AST, span: Span, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
     // TODO: Too long
     switch (_type.*) {
         .anyptr_type => return _type,
