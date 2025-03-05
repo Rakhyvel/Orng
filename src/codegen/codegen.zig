@@ -11,7 +11,8 @@ const primitives_ = @import("../hierarchy/primitives.zig");
 const module_ = @import("../hierarchy/module.zig");
 const span_ = @import("../util/span.zig");
 const String = @import("../zig-string/zig-string.zig").String;
-const type_set_ = @import("../ast/type-set.zig");
+const Type_Set = @import("../ast/type-set.zig");
+const Dependency_Node = @import("../ast/dependency_node.zig");
 const symbol_ = @import("../symbol/symbol.zig");
 
 var cheat_module: *module_.Module = undefined; // TODO: I hate this
@@ -94,7 +95,7 @@ fn output_includes(cincludes: []*ast_.AST, modules: []*module_.Module, writer: W
 
 /// Outputs forward declarations for typedefs based on the provided `Type_Set`.
 fn output_forward_typedefs(
-    type_set: *type_set_.Type_Set,
+    type_set: *Type_Set,
     writer: Writer,
 ) CodeGen_Error!void {
     if (type_set.types.items.len > 0) {
@@ -114,7 +115,7 @@ fn output_forward_typedefs(
 
 /// Outputs typedefs based on the provided `Type_Set`.
 fn output_typedefs(
-    type_set: *type_set_.Type_Set,
+    type_set: *Type_Set,
     writer: Writer,
 ) CodeGen_Error!void {
     if (type_set.types.items.len > 0) {
@@ -130,7 +131,7 @@ fn output_typedefs(
 
 /// Outputs a typedef declaration based on the provided `DAG`.
 fn output_typedef(
-    dag: *type_set_.DAG,
+    dag: *Dependency_Node,
     writer: Writer,
 ) CodeGen_Error!void {
     // FIXME: High Cyclo

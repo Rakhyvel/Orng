@@ -18,7 +18,7 @@ const span_ = @import("../util/span.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const symbol_ = @import("../symbol/symbol.zig");
 const token_ = @import("../lexer/token.zig");
-const type_set_ = @import("../ast/type-set.zig");
+const Type_Set = @import("../ast/type-set.zig");
 const walker_ = @import("../ast/walker.zig");
 
 // Front-end pipeline steps
@@ -68,7 +68,7 @@ pub const Module = struct {
     cincludes: std.ArrayList(*ast_.AST),
 
     // A graph of type dependencies
-    type_set: type_set_.Type_Set,
+    type_set: Type_Set,
 
     /// List of instructions for this module. Used by the interpreter, so that instructions are indexable by a random
     /// access instruction pointer.
@@ -118,7 +118,7 @@ pub const Module = struct {
         retval.traits = std.ArrayList(*ast_.AST).init(allocator);
         retval.impls = std.ArrayList(*ast_.AST).init(allocator);
         retval.cfgs = std.ArrayList(*cfg_.CFG).init(allocator);
-        retval.type_set = type_set_.Type_Set.init(allocator);
+        retval.type_set = Type_Set.init(allocator);
         retval.visited = false;
         retval.entry = null;
         return retval;
