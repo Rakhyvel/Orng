@@ -1,6 +1,6 @@
 const std = @import("std");
 const ast_ = @import("ast/ast.zig");
-const compiler_ = @import("compilation/compiler.zig");
+const Compiler_Context = @import("compilation/compiler.zig");
 const errs_ = @import("util/errors.zig");
 const interpreter_ = @import("interpretation/interpreter.zig");
 const primitives_ = @import("hierarchy/primitives.zig");
@@ -83,7 +83,7 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
         else => return error.CompileError,
     };
 
-    var compiler = try compiler_.Context.init(allocator);
+    var compiler = try Compiler_Context.init(allocator);
     defer compiler.deinit();
     const build_cfg = compiler.compile_build_file(build_path) catch return error.CompileError;
 
@@ -172,7 +172,7 @@ fn validate_env_vars(allocator: std.mem.Allocator) Command_Error!void {
 fn make_package(
     package: *ast_.AST,
     package_name: []const u8,
-    compiler: *compiler_.Context,
+    compiler: *Compiler_Context,
     interpreter: *interpreter_.Context,
     working_directory: []const u8,
     entry_name: ?[]const u8,

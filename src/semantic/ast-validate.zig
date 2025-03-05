@@ -9,7 +9,7 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
-const compiler_ = @import("../compilation/compiler.zig");
+const Compiler_Context = @import("../compilation/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const interpreter_ = @import("../interpretation/interpreter.zig");
 const module_ = @import("../hierarchy/module.zig");
@@ -47,7 +47,7 @@ const Validate_Args_Thing = enum {
     }
 };
 
-pub fn validate_module(module: *module_.Module, compiler: *compiler_.Context) Validate_Error_Enum!void {
+pub fn validate_module(module: *module_.Module, compiler: *Compiler_Context) Validate_Error_Enum!void {
     try validate_scope(module.top_level_scope(), compiler);
     for (0..module.cincludes.items.len) |i| {
         module.cincludes.items[i] = validate_AST(module.cincludes.items[i], primitives_.string_type, compiler);
@@ -58,7 +58,7 @@ pub fn validate_module(module: *module_.Module, compiler: *compiler_.Context) Va
     }
 }
 
-pub fn validate_scope(scope: *Scope, compiler: *compiler_.Context) Validate_Error_Enum!void {
+pub fn validate_scope(scope: *Scope, compiler: *Compiler_Context) Validate_Error_Enum!void {
     for (scope.symbols.keys()) |key| {
         const symbol = scope.symbols.get(key).?;
         if (symbol.kind == .@"comptime") {
@@ -74,7 +74,7 @@ pub fn validate_scope(scope: *Scope, compiler: *compiler_.Context) Validate_Erro
     }
 }
 
-pub fn validate_symbol(symbol: *Symbol, compiler: *compiler_.Context) Validate_Error_Enum!void {
+pub fn validate_symbol(symbol: *Symbol, compiler: *Compiler_Context) Validate_Error_Enum!void {
     // TODO: Bit long
     if (symbol.validation_state == .valid or symbol.validation_state == .validating) {
         return;
@@ -154,7 +154,7 @@ pub fn validate_symbol(symbol: *Symbol, compiler: *compiler_.Context) Validate_E
     _ = symbol.assert_init_valid();
 }
 
-fn validate_trait(trait: *Symbol, compiler: *compiler_.Context) Validate_Error_Enum!void {
+fn validate_trait(trait: *Symbol, compiler: *Compiler_Context) Validate_Error_Enum!void {
     var names = std.StringArrayHashMap(*ast_.AST).init(compiler.allocator());
     defer names.deinit();
     for (trait.decl.?.trait.method_decls.items) |decl| {
@@ -189,7 +189,7 @@ fn validate_trait(trait: *Symbol, compiler: *compiler_.Context) Validate_Error_E
 }
 
 // TODO: Split up into smaller functions
-fn validate_impl(impl: *ast_.AST, compiler: *compiler_.Context) Validate_Error_Enum!void {
+fn validate_impl(impl: *ast_.AST, compiler: *Compiler_Context) Validate_Error_Enum!void {
     if (impl.impl._type.* == .addr_of) {
         compiler.errors.add_error(errs_.Error{ .basic = .{
             .span = impl.impl._type.token().span,
@@ -372,7 +372,7 @@ fn is_capitalized(name: []const u8) bool {
 
 /// Errors out if `ast` is not the expected type
 /// - `old_expected_type`: Should be null if `ast` can be any type
-fn validate_AST(ast: *ast_.AST, old_expected_type: ?*ast_.AST, compiler: *compiler_.Context) *ast_.AST {
+fn validate_AST(ast: *ast_.AST, old_expected_type: ?*ast_.AST, compiler: *Compiler_Context) *ast_.AST {
     // TODO: Bit long
     var expected_type = old_expected_type;
     if (ast.common().validation_state == .validating) {
@@ -429,7 +429,7 @@ fn validate_AST(ast: *ast_.AST, old_expected_type: ?*ast_.AST, compiler: *compil
 fn validate_AST_internal(
     ast: *ast_.AST,
     expected: ?*ast_.AST,
-    compiler: *compiler_.Context,
+    compiler: *Compiler_Context,
 ) Validate_Error_Enum!*ast_.AST {
     // TODO: Ugh this function is too long
     // std.debug.print("{}: {?}\n", .{ ast, expected });
@@ -1570,7 +1570,7 @@ fn binary_operator_closed(
     ast: *ast_.AST,
     self_type: *ast_.AST,
     expected: ?*ast_.AST,
-    compiler: *compiler_.Context,
+    compiler: *Compiler_Context,
 ) Validate_Error_Enum!*ast_.AST {
     ast.set_lhs(validate_AST(ast.lhs(), self_type, compiler));
     ast.set_rhs(validate_AST(ast.rhs(), self_type, compiler));
@@ -1586,7 +1586,7 @@ fn binary_operator_closed(
 fn binary_operator_open(
     ast: *ast_.AST,
     expected: ?*ast_.AST,
-    compiler: *compiler_.Context,
+    compiler: *Compiler_Context,
 ) Validate_Error_Enum!*ast_.AST {
     ast.set_lhs(validate_AST(ast.lhs(), expected, compiler));
     const lhs_type = ast.lhs().typeof(compiler.allocator());
@@ -1854,7 +1854,7 @@ pub fn validate_args_arity(
 pub fn validate_args_type(
     args: *std.ArrayList(*ast_.AST),
     expected: *ast_.AST,
-    compiler: *compiler_.Context,
+    compiler: *Compiler_Context,
 ) Validate_Error_Enum!*std.ArrayList(*ast_.AST) {
     const expected_length = if (expected.* == .unit_type) 0 else if (expected.* == .product) expected.children().items.len else 1;
 
@@ -2014,7 +2014,7 @@ fn assert_mutable_address(ast: *ast_.AST, errors: *errs_.Errors) Validate_Error_
 fn implicit_dereference(
     ast: *ast_.AST,
     old_lhs_type: *ast_.AST,
-    compiler: *compiler_.Context,
+    compiler: *Compiler_Context,
 ) Validate_Error_Enum!*ast_.AST {
     var lhs_type = old_lhs_type;
     if (lhs_type.* == .addr_of and !lhs_type.addr_of.multiptr) {
@@ -2046,7 +2046,7 @@ fn find_select_pos(_type: *ast_.AST, field: []const u8, span: span_.Span, errors
 fn assert_pattern_matches(
     pattern: *ast_.AST,
     expr_type: *ast_.AST,
-    compiler: *compiler_.Context,
+    compiler: *Compiler_Context,
 ) Validate_Error_Enum!void {
     switch (pattern.*) {
         .unit_value => try type_check(pattern.token().span, primitives_.unit_type, expr_type, &compiler.errors),

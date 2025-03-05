@@ -4,7 +4,7 @@ const ast_ = @import("../ast/ast.zig");
 const basic_block_ = @import("../ir/basic-block.zig");
 const cfg_ = @import("../ir/cfg.zig");
 const codegen_ = @import("../codegen/codegen.zig");
-const compiler_ = @import("../compilation/compiler.zig");
+const Compiler_Context = @import("../compilation/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const interpreter_ = @import("../interpretation/interpreter.zig");
 const ir_validate_ = @import("../semantic/ir-validate.zig");
@@ -130,7 +130,7 @@ pub const Module = struct {
         in_name: []const u8,
         entry_name: ?[]const u8,
         fuzz_tokens: bool,
-        compiler: *compiler_.Context,
+        compiler: *Compiler_Context,
     ) Module_Errors!*Module {
         // Construct the name
         var i: usize = 0;
@@ -198,7 +198,7 @@ pub const Module = struct {
         file_root: *Scope,
         module: *Module,
         fuzz_tokens: bool,
-        compiler: *compiler_.Context,
+        compiler: *Compiler_Context,
     ) Module_Errors!void {
         // Setup and run the front-end pipeline
         _ = try pipeline_.run(in_name, .{
@@ -223,7 +223,7 @@ pub const Module = struct {
         module.collect_cfg_types(compiler.allocator());
     }
 
-    fn add_all_cfgs(self: *Module, entry_name: ?[]const u8, compiler: *compiler_.Context) Module_Errors!void {
+    fn add_all_cfgs(self: *Module, entry_name: ?[]const u8, compiler: *Compiler_Context) Module_Errors!void {
         var found_entry = false;
         const need_entry = entry_name != null;
         for (self.top_level_scope().symbols.keys()) |key| {
@@ -285,7 +285,7 @@ pub const Module = struct {
         }
     }
 
-    fn collect_impl_cfgs(self: *Module, compiler: *compiler_.Context) Module_Errors!void {
+    fn collect_impl_cfgs(self: *Module, compiler: *Compiler_Context) Module_Errors!void {
         for (self.impls.items) |impl| {
             for (impl.impl.method_defs.items) |def| {
                 const symbol = def.symbol().?;
@@ -534,7 +534,7 @@ pub fn stamp(
     args: *std.ArrayList(*ast_.AST),
     call_span: span_.Span,
     scope: *Scope,
-    compiler: *compiler_.Context,
+    compiler: *Compiler_Context,
 ) !*ast_.AST {
     std.debug.assert(template_ast.* == .template);
     if (template_ast.template.memo == null) {
@@ -613,7 +613,7 @@ pub fn interpret(
     ast: *ast_.AST,
     ret_type: *ast_.AST,
     scope: *Scope,
-    compiler: *compiler_.Context,
+    compiler: *Compiler_Context,
 ) !*ast_.AST {
     const symbol: *Symbol = (try Symbol_Tree.create_temp_comptime_symbol(
         ast,

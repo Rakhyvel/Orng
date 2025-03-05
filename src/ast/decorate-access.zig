@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
-const compiler_ = @import("../compilation/compiler.zig");
+const Compiler_Context = @import("../compilation/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");
@@ -11,11 +11,11 @@ const walk_ = @import("../ast/walker.zig");
 
 scope: *Scope,
 errors: *errs_.Errors,
-compiler: *compiler_.Context,
+compiler: *Compiler_Context,
 
 const Self = @This();
 
-pub fn new(scope: *Scope, errors: *errs_.Errors, compiler: *compiler_.Context) Self {
+pub fn new(scope: *Scope, errors: *errs_.Errors, compiler: *Compiler_Context) Self {
     return Self{ .scope = scope, .errors = errors, .compiler = compiler };
 }
 

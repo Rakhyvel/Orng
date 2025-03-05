@@ -1,5 +1,5 @@
 const std = @import("std");
-const compiler_ = @import("../compilation/compiler.zig");
+const Compiler_Context = @import("../compilation/compiler.zig");
 const interpreter_ = @import("../interpretation/interpreter.zig");
 const lval_ = @import("../ir/lval.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
@@ -15,7 +15,7 @@ pub fn module_path() []const u8 {}
 
 /// Implements the Package::find method at build-time. Takes in a string representing the name of
 /// the package in the Orng cache, and returns an AST representing the package.
-pub fn package_find(compiler: *compiler_.Context, interpreter: *interpreter_.Context, current_module_path: []const u8, package_path: []const u8) Error!struct { package_adrs: i64, package_dirname: []const u8 } {
+pub fn package_find(compiler: *Compiler_Context, interpreter: *interpreter_.Context, current_module_path: []const u8, package_path: []const u8) Error!struct { package_adrs: i64, package_dirname: []const u8 } {
     // Construct the path to the package's `build.orng` file
     const current_package = std.fs.path.dirname(current_module_path).?;
     const required_package_paths = [_][]const u8{ current_package, package_path };

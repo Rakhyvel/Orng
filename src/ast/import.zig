@@ -3,7 +3,7 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
-const compiler_ = @import("../compilation/compiler.zig");
+const Compiler_Context = @import("../compilation/compiler.zig");
 const module_ = @import("../hierarchy/module.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const String = @import("../zig-string/zig-string.zig").String;
@@ -12,11 +12,11 @@ const token_ = @import("../lexer/token.zig");
 const walker_ = @import("../ast/walker.zig");
 
 module: *module_.Module,
-compiler: *compiler_.Context,
+compiler: *Compiler_Context,
 
 const Self = @This();
 
-pub fn new(compiler: *compiler_.Context, module: *module_.Module) Self {
+pub fn new(compiler: *Compiler_Context, module: *module_.Module) Self {
     return Self{ .compiler = compiler, .module = module };
 }
 

@@ -1,5 +1,5 @@
 const std = @import("std");
-const compiler_ = @import("compilation/compiler.zig");
+const Compiler_Context = @import("compilation/compiler.zig");
 const exec = @import("util/exec.zig").exec;
 const module_ = @import("hierarchy/module.zig");
 const Read_File = @import("lexer/read_file.zig");
@@ -99,7 +99,7 @@ fn integrate_test_file(filename: []const u8, coverage: bool) bool {
     errdefer {
         _ = debug_alloc.deinit();
     }
-    var compiler = compiler_.Context.init(debug_alloc.allocator()) catch unreachable;
+    var compiler = Compiler_Context.init(debug_alloc.allocator()) catch unreachable;
     var contents = Read_File.init(compiler.allocator()).run(absolute_filename) catch unreachable;
     const new_line_idx = until_newline(contents);
     if (new_line_idx < 3) {
@@ -185,7 +185,7 @@ fn negative_test_file(filename: []const u8, coverage: bool) bool {
     errdefer {
         _ = debug_alloc.deinit();
     }
-    var compiler = compiler_.Context.init(debug_alloc.allocator()) catch unreachable;
+    var compiler = Compiler_Context.init(debug_alloc.allocator()) catch unreachable;
 
     // Try to compile Orng (make sure YES errors)
     _ = module_.Module.compile(absolute_filename, "main", false, compiler) catch |err| {
@@ -273,7 +273,7 @@ fn fuzz_tests() !void { // TODO: Uninfer error
             }
             var arena_alloc = std.heap.ArenaAllocator.init(debug_alloc.allocator());
             errdefer arena_alloc.deinit();
-            var compiler = compiler_.Context.init(arena_alloc.allocator()) catch unreachable;
+            var compiler = Compiler_Context.init(arena_alloc.allocator()) catch unreachable;
             defer compiler.deinit();
             var lines = std.ArrayList([]const u8).init(allocator);
             defer lines.deinit();

@@ -2,7 +2,7 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const builtin_ = @import("builtin.zig");
 const cfg_ = @import("../ir/cfg.zig");
-const compiler_ = @import("../compilation/compiler.zig");
+const Compiler_Context = @import("../compilation/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const instructions_ = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
@@ -107,7 +107,7 @@ pub const Context = struct {
     /// instructions, and the instruction pointer isn't a trap representation.
     pub fn run(
         self: *Context,
-        compiler: *compiler_.Context,
+        compiler: *Compiler_Context,
     ) error{CompileError}!void {
         const initial_call_depth = self.call_depth;
         // Stop whenever has returned more than called, or instruction pointer is not a halt trap representation
@@ -132,7 +132,7 @@ pub const Context = struct {
     }
 
     /// Executes an instruction within the interpreter context.
-    inline fn execute_instruction(self: *Context, instr: *instructions_.Instruction, compiler: *compiler_.Context) error{CompileError}!void { // This doesn't work if it's not inlined, lol!
+    inline fn execute_instruction(self: *Context, instr: *instructions_.Instruction, compiler: *Compiler_Context) error{CompileError}!void { // This doesn't work if it's not inlined, lol!
         switch (instr.kind) {
             // Invalid instructions
             .load_extern,
