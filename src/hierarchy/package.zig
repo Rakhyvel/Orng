@@ -1,16 +1,16 @@
-const module_ = @import("../hierarchy/module.zig");
 const std = @import("std");
+const module_ = @import("../hierarchy/module.zig");
 const String = @import("../zig-string/zig-string.zig").String;
-const symbol_ = @import("../symbol/symbol.zig");
+const Symbol = @import("../symbol/symbol.zig");
 
 const Package = @This();
 
 name: []const u8,
 absolute_path: []const u8,
 output_absolute_path: []const u8,
-root: *symbol_.Symbol,
+root: *Symbol,
 local_modules: std.ArrayList(*module_.Module),
-requirements: std.StringArrayHashMap(*symbol_.Symbol),
+requirements: std.StringArrayHashMap(*Symbol),
 include_directories: std.StringArrayHashMap(void),
 library_directories: std.StringArrayHashMap(void),
 libraries: std.StringArrayHashMap(void),
@@ -21,7 +21,7 @@ pub fn new(allocator: std.mem.Allocator, package_absolute_path: []const u8, is_s
     const package = allocator.create(Package) catch unreachable;
     package.root = undefined; // filled in later
     package.output_absolute_path = undefined; // filled in when the output binary is created
-    package.requirements = std.StringArrayHashMap(*symbol_.Symbol).init(allocator);
+    package.requirements = std.StringArrayHashMap(*Symbol).init(allocator);
     package.include_directories = std.StringArrayHashMap(void).init(allocator);
     package.library_directories = std.StringArrayHashMap(void).init(allocator);
     package.libraries = std.StringArrayHashMap(void).init(allocator);

@@ -5,16 +5,17 @@ const ast_ = @import("../ast/ast.zig");
 const compiler_ = @import("../compilation/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const String = @import("../zig-string/zig-string.zig").String;
-const symbol_ = @import("../symbol/symbol.zig");
+const Scope = @import("../symbol/scope.zig");
+const Symbol = @import("../symbol/symbol.zig");
 const walk_ = @import("../ast/walker.zig");
 
-scope: *symbol_.Scope,
+scope: *Scope,
 errors: *errs_.Errors,
 compiler: *compiler_.Context,
 
 const Self = @This();
 
-pub fn new(scope: *symbol_.Scope, errors: *errs_.Errors, compiler: *compiler_.Context) Self {
+pub fn new(scope: *Scope, errors: *errs_.Errors, compiler: *compiler_.Context) Self {
     return Self{ .scope = scope, .errors = errors, .compiler = compiler };
 }
 
@@ -29,7 +30,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
     }
 }
 
-fn resolve_qualified_name(self: Self, ast: *ast_.AST) walk_.Error!*symbol_.Symbol {
+fn resolve_qualified_name(self: Self, ast: *ast_.AST) walk_.Error!*Symbol {
     if ((ast.* == .identifier or ast.* == .pattern_symbol) and ast.symbol().?.kind == .import) {
         const this_module = ast.symbol().?.scope.module.?;
         const curr_package_path = this_module.get_package_abs_path();
@@ -62,7 +63,7 @@ fn resolve_qualified_name(self: Self, ast: *ast_.AST) walk_.Error!*symbol_.Symbo
     }
 }
 
-fn resolve_access_symbol(self: Self, lhs: *symbol_.Symbol, rhs: *ast_.AST, scope: *symbol_.Scope) walk_.Error!*symbol_.Symbol {
+fn resolve_access_symbol(self: Self, lhs: *Symbol, rhs: *ast_.AST, scope: *Scope) walk_.Error!*Symbol {
     var access_result: ?*ast_.AST = null;
     switch (lhs.kind) {
         else => std.debug.panic("unsupported: {}\n", .{lhs.kind}),

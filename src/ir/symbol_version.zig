@@ -1,18 +1,18 @@
 const std = @import("std");
-const symbol_ = @import("../symbol/symbol.zig");
+const Symbol = @import("../symbol/symbol.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const instructions_ = @import("../ir/instruction.zig");
 
 const Self = @This();
 
-symbol: *symbol_.Symbol,
+symbol: *Symbol,
 def: ?*instructions_.Instruction,
 
 uses: usize = 0,
 
 allocator: std.mem.Allocator,
 
-pub fn create_unversioned(symbol: *symbol_.Symbol, allocator: std.mem.Allocator) *Self {
+pub fn create_unversioned(symbol: *Symbol, allocator: std.mem.Allocator) *Self {
     var retval = allocator.create(Self) catch unreachable;
     retval.symbol = symbol;
     retval.uses = 0;

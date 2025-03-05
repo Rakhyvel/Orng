@@ -1,5 +1,5 @@
 const std = @import("std");
-const symbol_ = @import("../symbol/symbol.zig");
+const Symbol = @import("../symbol/symbol.zig");
 
 // # Orng interpreter calling convention
 // (stack grows up btw, lmao)
@@ -53,7 +53,7 @@ pub const locals_starting_offset = 8;
 
 /// Calculate offsets for each local and parameter in a function.
 pub fn calculate_offsets(
-    symbol: *symbol_.Symbol, //< Represents the symbol of a function.
+    symbol: *Symbol, //< Represents the symbol of a function.
 ) i64 //< Number of bytes used for locals by the function.
 {
     symbol.cfg.?.return_symbol.offset = null; // return value is set using an out-parameter
@@ -68,7 +68,7 @@ pub fn calculate_offsets(
         // Go through params, as if we were pushing them
         var i: i64 = @as(i64, @intCast(param_symbols.len)) - 1;
         while (i >= 0) : (i -= 1) {
-            var param: *symbol_.Symbol = param_symbols[@as(usize, @intCast(i))];
+            var param: *Symbol = param_symbols[@as(usize, @intCast(i))];
             const size = param.expanded_type.?.sizeof();
             const alignof = param.expanded_type.?.alignof();
             phony_sp = next_alignment(phony_sp, alignof);

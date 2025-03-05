@@ -3,7 +3,6 @@
 const std = @import("std");
 const instructions_ = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
-const offsets_ = @import("../hierarchy/offsets.zig");
 
 /// Unique id for a basic-block.
 var uid: u64 = 0;

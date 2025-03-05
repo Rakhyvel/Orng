@@ -1,6 +1,5 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
-const basic_block_ = @import("../ir/basic-block.zig");
 const cfg_ = @import("../ir/cfg.zig");
 const errs_ = @import("../util/errors.zig");
 const instructions_ = @import("../ir/instruction.zig");
@@ -8,7 +7,6 @@ const lval_ = @import("../ir/lval.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const span_ = @import("../util/span.zig");
-const symbol_ = @import("../symbol/symbol.zig");
 const Symbol_Version = @import("symbol_version.zig");
 
 var debug = false;

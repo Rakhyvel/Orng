@@ -1,14 +1,8 @@
 const std = @import("std");
-const ast_ = @import("../ast/ast.zig");
-const cfg_ = @import("../ir/cfg.zig");
 const compiler_ = @import("../compilation/compiler.zig");
-const errs_ = @import("../util/errors.zig");
 const interpreter_ = @import("../interpretation/interpreter.zig");
 const lval_ = @import("../ir/lval.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
-const module_ = @import("../hierarchy/module.zig");
-const span_ = @import("../util/span.zig");
-const symbol_ = @import("../symbol/symbol.zig");
 
 const Error: type = error{
     LexerError,

@@ -13,7 +13,7 @@ const span_ = @import("../util/span.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Type_Set = @import("../ast/type-set.zig");
 const Dependency_Node = @import("../ast/dependency_node.zig");
-const symbol_ = @import("../symbol/symbol.zig");
+const Symbol = @import("../symbol/symbol.zig");
 
 var cheat_module: *module_.Module = undefined; // TODO: I hate this
 const HIGHEST_PRECEDENCE = 100;
@@ -470,7 +470,7 @@ fn output_main_function(
 /// Outputs a symbol's declaration. Parameters are not formatted with a preceding tab, nor a
 /// semicolon nor newline.
 fn output_var_decl(
-    symbol: *symbol_.Symbol,
+    symbol: *Symbol,
     writer: Writer,
     is_parameter: bool, // TODO: New function, that surrounds output_var_decl
 ) CodeGen_Error!void {
@@ -486,7 +486,7 @@ fn output_var_decl(
 }
 
 /// Outputs a symbol with it's file's unique identifier
-fn output_symbol(symbol: *symbol_.Symbol, writer: Writer) CodeGen_Error!void {
+fn output_symbol(symbol: *Symbol, writer: Writer) CodeGen_Error!void {
     if (symbol.kind == .@"extern") {
         try writer.print("{s}", .{symbol.kind.@"extern".c_name.?.string.data});
     } else if (symbol.decl != null and symbol.decl.?.* != .receiver and symbol.decl.?.top_level()) {
@@ -551,7 +551,7 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
 fn output_basic_block(
     cfg: *cfg_.CFG, // TODO: Accept cfg block graph head
     start_bb: *basic_block_.Basic_Block,
-    return_symbol: *symbol_.Symbol,
+    return_symbol: *Symbol,
     writer: Writer,
 ) CodeGen_Error!void {
     // FIXME: High Cyclo
@@ -979,7 +979,7 @@ fn output_lvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer)
 }
 
 /// Emits the return statement from a function
-fn output_return(return_symbol: *symbol_.Symbol, writer: Writer) CodeGen_Error!void {
+fn output_return(return_symbol: *Symbol, writer: Writer) CodeGen_Error!void {
     try writer.print("    return", .{});
     if (return_symbol.defs > 0 and !return_symbol.expanded_type.?.is_c_void_type()) {
         try writer.print(" ", .{});

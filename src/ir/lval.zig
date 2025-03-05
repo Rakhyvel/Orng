@@ -3,7 +3,7 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const instructions_ = @import("../ir/instruction.zig");
-const symbol_ = @import("../symbol/symbol.zig");
+const Symbol = @import("../symbol/symbol.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Symbol_Version = @import("symbol_version.zig");
 
@@ -78,7 +78,7 @@ pub const L_Value = union(enum) {
         return retval;
     }
 
-    pub fn create_unversioned_symbver(symbol: *symbol_.Symbol, allocator: std.mem.Allocator) *L_Value {
+    pub fn create_unversioned_symbver(symbol: *Symbol, allocator: std.mem.Allocator) *L_Value {
         const retval = L_Value.create_symbver(Symbol_Version.create_unversioned(symbol, allocator), allocator);
         return retval;
     }

@@ -7,10 +7,8 @@ const std = @import("std");
 const basic_block_ = @import("../ir/basic-block.zig");
 const instructions_ = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
-const module_ = @import("../hierarchy/module.zig");
-const offsets_ = @import("../hierarchy/offsets.zig");
 const span_ = @import("../util/span.zig");
-const symbol_ = @import("../symbol/symbol.zig");
+const Symbol = @import("../symbol/symbol.zig");
 const Symbol_Version = @import("symbol_version.zig");
 
 pub const CFG = struct {
@@ -37,13 +35,13 @@ pub const CFG = struct {
     symbvers: std.ArrayList(*Symbol_Version),
 
     /// The function that this CFG represents
-    symbol: *symbol_.Symbol,
+    symbol: *Symbol,
 
     /// How many temporary variables are used in this CFG. Used to generate unique names for temporaries.
     number_temps: usize,
 
     /// The symbol that is used to store the return value of this function
-    return_symbol: *symbol_.Symbol,
+    return_symbol: *Symbol,
 
     /// Whether or not this CFG is visited
     visited: bool,
@@ -62,7 +60,7 @@ pub const CFG = struct {
 
     /// Initializes a CFG
     pub fn init(
-        symbol: *symbol_.Symbol,
+        symbol: *Symbol,
         caller: ?*CFG,
         allocator: std.mem.Allocator,
     ) *CFG {
@@ -79,7 +77,7 @@ pub const CFG = struct {
         retval.parameters = std.ArrayList(*Symbol_Version).init(allocator);
         retval.symbol = symbol;
         retval.number_temps = 0;
-        retval.return_symbol = symbol_.Symbol.init(
+        retval.return_symbol = Symbol.init(
             symbol.scope,
             "$retval",
             span_.phony_span,

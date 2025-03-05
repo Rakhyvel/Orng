@@ -4,7 +4,8 @@ const compiler_ = @import("../compilation/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const module_ = @import("../hierarchy/module.zig");
 const span_ = @import("../util/span.zig");
-const symbol_ = @import("../symbol/symbol.zig");
+const Scope = @import("../symbol/scope.zig");
+const Symbol = @import("../symbol/symbol.zig");
 const Symbol_Tree = @import("../ast/symbol-tree.zig");
 const token_ = @import("../lexer/token.zig");
 
@@ -33,7 +34,7 @@ pub var word16_type: *ast_.AST = undefined;
 pub var word32_type: *ast_.AST = undefined;
 pub var word64_type: *ast_.AST = undefined;
 
-pub var blackhole: *symbol_.Symbol = undefined;
+pub var blackhole: *Symbol = undefined;
 
 pub const Primitive_Info = struct {
     c_name: []const u8,
@@ -91,8 +92,8 @@ pub const Type_Kind = enum {
 var primitives: std.StringArrayHashMap(Primitive_Info) = undefined;
 
 // The prelude should only be created once per compilation. _ALL_ packages and modules are within this one prelude scope.
-var prelude: ?*symbol_.Scope = null;
-pub fn get_scope(compiler: *compiler_.Context) !*symbol_.Scope {
+var prelude: ?*Scope = null;
+pub fn get_scope(compiler: *compiler_.Context) !*Scope {
     if (prelude == null) {
         try create_prelude(compiler);
     }
@@ -125,7 +126,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
     byte_slice_type = ast_.AST.create_slice_type(byte_type, false, compiler.allocator()).assert_ast_valid();
 
     // Create prelude scope
-    prelude = symbol_.Scope.init(null, compiler.allocator());
+    prelude = Scope.init(null, compiler.allocator());
 
     // Create Symbols for primitives
     _ = create_prelude_symbol("String", type_type, byte_slice_type, compiler.allocator());
@@ -376,7 +377,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
     errdefer errors.print_errors();
 
     var module = module_.Module.init("prelude", "/prelude/prelude.orng", undefined, compiler.allocator());
-    const symbol = symbol_.Symbol.init(
+    const symbol = Symbol.init(
         compiler.prelude,
         "prelude",
         span_.Span{ .col = 1, .line_number = 1, .filename = "prelude", .line_text = "" },
@@ -427,8 +428,8 @@ fn create_unit_value(allocator: std.mem.Allocator) *ast_.AST {
     return ast_.AST.create_unit_value(token_.Token.init_simple("{"), allocator).assert_ast_valid();
 }
 
-fn create_prelude_symbol(name: []const u8, _type: *ast_.AST, init: *ast_.AST, allocator: std.mem.Allocator) *symbol_.Symbol {
-    var symbol = symbol_.Symbol.init(
+fn create_prelude_symbol(name: []const u8, _type: *ast_.AST, init: *ast_.AST, allocator: std.mem.Allocator) *Symbol {
+    var symbol = Symbol.init(
         prelude.?,
         name,
         span_.phony_span,
@@ -457,7 +458,7 @@ fn create_info(
     allocator: std.mem.Allocator,
 ) void {
     const symbol_lookup_res = prelude.?.lookup(name, .{});
-    var symbol: *symbol_.Symbol = undefined;
+    var symbol: *Symbol = undefined;
     if (symbol_lookup_res == .found) {
         symbol = symbol_lookup_res.found;
     } else {

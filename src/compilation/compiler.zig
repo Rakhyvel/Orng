@@ -6,7 +6,8 @@ const Package = @import("../hierarchy/package.zig");
 const poison_ = @import("../ast/poison.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const String = @import("../zig-string/zig-string.zig").String;
-const symbol_ = @import("../symbol/symbol.zig");
+const Symbol = @import("../symbol/symbol.zig");
+const Scope = @import("../symbol/scope.zig");
 
 const Error: type = error{
     LexerError,
@@ -21,12 +22,12 @@ pub const Context = struct {
     /// List of errors found during compilation
     errors: errs_.Errors,
 
-    prelude: *symbol_.Scope,
+    prelude: *Scope,
 
     // So far, only stores a local module's name to it's module struct
     // This will need to be modified to store packages, too, and deal with module name collisions
     // TODO: Module_Registry
-    modules: std.StringArrayHashMap(*symbol_.Symbol),
+    modules: std.StringArrayHashMap(*Symbol),
 
     // Maps package names to their root module
     // TODO: Package_Registry
@@ -44,7 +45,7 @@ pub const Context = struct {
             retval.errors.print_errors();
             return error.CompileError;
         };
-        retval.modules = std.StringArrayHashMap(*symbol_.Symbol).init(retval.allocator());
+        retval.modules = std.StringArrayHashMap(*Symbol).init(retval.allocator());
         retval.packages = std.StringArrayHashMap(*Package).init(retval.allocator());
 
         return retval;
@@ -70,7 +71,7 @@ pub const Context = struct {
         absolute_path: []const u8,
         entry_name: ?[]const u8,
         fuzz_tokens: bool,
-    ) Error!*symbol_.Symbol {
+    ) Error!*Symbol {
         if (self.modules.get(absolute_path)) |module| {
             return module;
         }
@@ -101,7 +102,7 @@ pub const Context = struct {
         return module.symbol;
     }
 
-    pub fn lookup_module(self: *Context, absolute_path: []const u8) ?*symbol_.Symbol {
+    pub fn lookup_module(self: *Context, absolute_path: []const u8) ?*Symbol {
         return self.modules.get(absolute_path);
     }
 
@@ -109,7 +110,7 @@ pub const Context = struct {
         return self.packages.get(package_name);
     }
 
-    pub fn lookup_package_root_module(self: *Context, package_name: []const u8, requirement_name: []const u8) ?*symbol_.Symbol {
+    pub fn lookup_package_root_module(self: *Context, package_name: []const u8, requirement_name: []const u8) ?*Symbol {
         return self.lookup_package(package_name).?.requirements.get(requirement_name);
     }
 
@@ -126,7 +127,7 @@ pub const Context = struct {
         package.requirements.put(requirement_name, requirement.root) catch unreachable;
     }
 
-    pub fn set_package_root(self: *Context, package_name: []const u8, root: *symbol_.Symbol) void {
+    pub fn set_package_root(self: *Context, package_name: []const u8, root: *Symbol) void {
         const package = self.lookup_package(package_name).?;
         package.root = root;
     }

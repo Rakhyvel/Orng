@@ -5,9 +5,8 @@ const cfg_ = @import("../ir/cfg.zig");
 const errs_ = @import("../util/errors.zig");
 const instructions_ = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
-const primitives_ = @import("../hierarchy/primitives.zig");
 const span_ = @import("../util/span.zig");
-const symbol_ = @import("../symbol/symbol.zig");
+const Symbol = @import("../symbol/symbol.zig");
 
 pub fn validate_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors) error{CompileError}!void {
     cfg.calculate_usage();
@@ -52,14 +51,14 @@ pub fn validate_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors) error{CompileError}!v
     }
 }
 
-fn lvalue_is_symbol(symbol: *symbol_.Symbol, return_symbol: *symbol_.Symbol) bool {
+fn lvalue_is_symbol(symbol: *Symbol, return_symbol: *Symbol) bool {
     return !symbol.is_temp and // isnt temporary
         symbol != return_symbol // isnt the function's return value
     ;
 }
 
 /// Throws an `error.CompileError` if a symbol is not used.
-fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) error{CompileError}!void {
+fn err_if_unused(symbol: *Symbol, errors: *errs_.Errors) error{CompileError}!void {
     if (symbol.kind != .@"const" and
         symbol.uses == 0)
     {
@@ -74,7 +73,7 @@ fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) error{CompileEr
     }
 }
 
-fn err_if_chain_undefd(maybe_lval: ?*lval_.L_Value, errors: *errs_.Errors, return_symbol: *symbol_.Symbol, use: span_.Span) error{CompileError}!void {
+fn err_if_chain_undefd(maybe_lval: ?*lval_.L_Value, errors: *errs_.Errors, return_symbol: *Symbol, use: span_.Span) error{CompileError}!void {
     if (maybe_lval == null) {
         return;
     }
@@ -97,7 +96,7 @@ fn err_if_chain_undefd(maybe_lval: ?*lval_.L_Value, errors: *errs_.Errors, retur
     }
 }
 
-fn err_if_undefd(symbol: *symbol_.Symbol, errors: *errs_.Errors, use: span_.Span) error{CompileError}!void {
+fn err_if_undefd(symbol: *Symbol, errors: *errs_.Errors, use: span_.Span) error{CompileError}!void {
     // std.debug.print("{s} uses:{} defs:{}\n", .{ symbol.name, symbol.uses, symbol.defs });
     if (symbol.uses != 0 and // symbol has been used somewhere
         symbol.defs == 0 and // symbol hasn't been defined anywhere
@@ -120,7 +119,7 @@ fn err_if_undefd(symbol: *symbol_.Symbol, errors: *errs_.Errors, use: span_.Span
 /// Symbols are mutated when:
 /// - They are the root of at least one Instruction's destination's L-Value tree, OR
 /// - They are aliased with `&mut`.
-fn err_if_var_not_mutated(symbol: *symbol_.Symbol, errors: *errs_.Errors) error{CompileError}!void {
+fn err_if_var_not_mutated(symbol: *Symbol, errors: *errs_.Errors) error{CompileError}!void {
     if (symbol.kind == .mut and
         symbol.aliases == 0 and
         symbol.roots == 0)

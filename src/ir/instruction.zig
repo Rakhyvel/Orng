@@ -2,11 +2,10 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const basic_block_ = @import("../ir/basic-block.zig");
 const cfg_ = @import("../ir/cfg.zig");
-const errs_ = @import("../util/errors.zig");
 const lval_ = @import("../ir/lval.zig");
 const span_ = @import("../util/span.zig");
 const String = @import("../zig-string/zig-string.zig").String;
-const symbol_ = @import("../symbol/symbol.zig");
+const Symbol = @import("../symbol/symbol.zig");
 
 pub const String_Idx: type = struct {
     module_uid: u32,
@@ -410,7 +409,7 @@ pub const Instruction = struct { // TODO: Add Instruction_List struct, with some
     }
 
     /// This function is O(n) in terms of Instruction between start and stop
-    pub fn get_latest_def_after(start_at_instr: *Instruction, symbol: *symbol_.Symbol, stop_at_instr: ?*Instruction) ?*Instruction {
+    pub fn get_latest_def_after(start_at_instr: *Instruction, symbol: *Symbol, stop_at_instr: ?*Instruction) ?*Instruction {
         var maybe_instr: ?*Instruction = start_at_instr;
         var retval: ?*Instruction = null;
         while (maybe_instr != null and maybe_instr != stop_at_instr) : (maybe_instr = maybe_instr.?.next) {
@@ -429,7 +428,7 @@ pub const Instruction = struct { // TODO: Add Instruction_List struct, with some
     }
 
     // This function is O(n)
-    pub fn any_def_after(start_at_instr: *Instruction, symbol: *symbol_.Symbol, stop_at_instr: ?*Instruction) ?*Instruction {
+    pub fn any_def_after(start_at_instr: *Instruction, symbol: *Symbol, stop_at_instr: ?*Instruction) ?*Instruction {
         var maybe_instr: ?*Instruction = start_at_instr;
         while (maybe_instr != null and maybe_instr != stop_at_instr) : (maybe_instr = maybe_instr.?.next) {
             var instr: *Instruction = maybe_instr.?;
@@ -665,7 +664,7 @@ pub const Data = union(enum) {
     string_id: String_Idx,
     cfg: ?*cfg_.CFG, // Used by the interpreter to know how much space to leave for a CFGs locals
     string: []const u8,
-    symbol: *symbol_.Symbol,
+    symbol: *Symbol,
     lval_list: std.ArrayList(*lval_.L_Value),
     invoke: struct {
         method_decl: *ast_.AST, // AST of method decl. Either trait's definition if dyn, or impl's declaration if static

@@ -3,7 +3,7 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const span_ = @import("../util/span.zig");
-const symbol_ = @import("../symbol/symbol.zig");
+const Symbol = @import("../symbol/symbol.zig");
 const term_ = @import("term.zig");
 const token_ = @import("../lexer/token.zig");
 
@@ -59,7 +59,7 @@ pub const Error = union(enum) {
     },
     discard_marked: struct {
         span: span_.Span,
-        kind: symbol_.Symbol_Kind,
+        kind: Symbol.Kind,
     },
     not_inside_loop: struct {
         span: span_.Span,

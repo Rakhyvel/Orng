@@ -7,14 +7,13 @@
 // 6. `pub using namespace @import("poisoned-ast.zig");
 
 const std = @import("std");
-const errs_ = @import("../util/errors.zig");
 const module_ = @import("../hierarchy/module.zig");
 const offsets_ = @import("../hierarchy/offsets.zig");
 const poison_ = @import("poison.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
-const span_ = @import("../util/span.zig");
 const String = @import("../zig-string/zig-string.zig").String;
-const symbol_ = @import("../symbol/symbol.zig");
+const Scope = @import("../symbol/scope.zig");
+const Symbol = @import("../symbol/symbol.zig");
 const token_ = @import("../lexer/token.zig");
 const validation_state_ = @import("../util/validation_state.zig");
 
@@ -109,7 +108,7 @@ pub const AST = union(enum) {
     /// Identifier
     identifier: struct {
         common: AST_Common,
-        _symbol: ?*symbol_.Symbol = null,
+        _symbol: ?*Symbol = null,
 
         pub inline fn refers_to_template(self: @This()) bool {
             return self._symbol.?.kind == .template;
@@ -122,13 +121,13 @@ pub const AST = union(enum) {
     @"try": struct {
         common: AST_Common,
         _expr: *AST,
-        _symbol: ?*symbol_.Symbol, // `try`'s must be in functions. This is the function's symbol.
+        _symbol: ?*Symbol, // `try`'s must be in functions. This is the function's symbol.
     },
     @"comptime": struct {
         common: AST_Common,
         _expr: *AST,
         name: ?*AST = null,
-        _symbol: ?*symbol_.Symbol = null,
+        _symbol: ?*Symbol = null,
         result: ?*AST = null,
     },
 
@@ -169,8 +168,8 @@ pub const AST = union(enum) {
         _lhs: *AST,
         _rhs: *AST,
         // _pos: ?usize,
-        _symbol: ?*symbol_.Symbol = null,
-        _scope: ?*symbol_.Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
+        _symbol: ?*Symbol = null,
+        _scope: ?*Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
     },
     function: struct {
         common: AST_Common,
@@ -183,8 +182,8 @@ pub const AST = union(enum) {
         method_decls: std.ArrayList(*AST),
         const_decls: std.ArrayList(*AST),
         num_virtual_methods: i64 = 0,
-        _symbol: ?*symbol_.Symbol = null, // Filled by symbol-tree pass.
-        _scope: ?*symbol_.Scope = null, // Filled by symbol-tree pass.
+        _symbol: ?*Symbol = null, // Filled by symbol-tree pass.
+        _scope: ?*Scope = null, // Filled by symbol-tree pass.
 
         pub fn find_method(self: @This(), name: []const u8) ?*AST {
             for (self.method_decls.items) |decl| {
@@ -202,7 +201,7 @@ pub const AST = union(enum) {
         method_defs: std.ArrayList(*AST),
         const_defs: std.ArrayList(*AST),
         num_virtual_methods: i64 = 0,
-        _scope: ?*symbol_.Scope = null, // Scope used for `impl` methods, rooted in `impl`'s scope.
+        _scope: ?*Scope = null, // Scope used for `impl` methods, rooted in `impl`'s scope.
         impls_anon_trait: bool = false, // true when this impl implements an anonymous trait
     },
     invoke: struct {
@@ -210,7 +209,7 @@ pub const AST = union(enum) {
         _lhs: *AST,
         _rhs: *AST,
         _args: std.ArrayList(*AST),
-        _scope: ?*symbol_.Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
+        _scope: ?*Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
         method_decl: ?*AST = null,
     },
     /// A product-type of pointers to the vtable, and to the receiver
@@ -226,7 +225,7 @@ pub const AST = union(enum) {
         _expr: *AST,
         mut: bool,
         impl: ?*AST = null, // The implementation AST, whose vtable should be used
-        _scope: ?*symbol_.Scope = null, // Surrounding scope. Filled in when addr-of is converted
+        _scope: ?*Scope = null, // Surrounding scope. Filled in when addr-of is converted
     },
     sum_type: struct {
         common: AST_Common,
@@ -319,7 +318,7 @@ pub const AST = union(enum) {
         mut: bool,
         multiptr: bool = false,
         anytptr: bool = false, // When this is true, the addr_of should output as a void*, and should be cast whenever dereferenced
-        _scope: ?*symbol_.Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
+        _scope: ?*Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
     },
     slice_of: struct {
         common: AST_Common,
@@ -366,7 +365,7 @@ pub const AST = union(enum) {
     // Control-flow expressions
     @"if": struct {
         common: AST_Common,
-        _scope: ?*symbol_.Scope,
+        _scope: ?*Scope,
         let: ?*AST,
         condition: *AST,
         _body_block: *AST,
@@ -374,7 +373,7 @@ pub const AST = union(enum) {
     },
     match: struct {
         common: AST_Common,
-        _scope: ?*symbol_.Scope,
+        _scope: ?*Scope,
         let: ?*AST,
         _expr: *AST,
         _mappings: std.ArrayList(*AST),
@@ -383,11 +382,11 @@ pub const AST = union(enum) {
         common: AST_Common,
         _lhs: *AST,
         _rhs: *AST,
-        _scope: ?*symbol_.Scope, // Scope used for `match` mappings, rooted in `match`'s scope. Captures, rhs live in this scope
+        _scope: ?*Scope, // Scope used for `match` mappings, rooted in `match`'s scope. Captures, rhs live in this scope
     },
     @"while": struct {
         common: AST_Common,
-        _scope: ?*symbol_.Scope,
+        _scope: ?*Scope,
         let: ?*AST,
         condition: *AST,
         post: ?*AST,
@@ -396,7 +395,7 @@ pub const AST = union(enum) {
     },
     @"for": struct {
         common: AST_Common,
-        _scope: ?*symbol_.Scope,
+        _scope: ?*Scope,
         let: ?*AST,
         elem: *AST,
         iterable: *AST,
@@ -405,7 +404,7 @@ pub const AST = union(enum) {
     },
     block: struct {
         common: AST_Common,
-        _scope: ?*symbol_.Scope,
+        _scope: ?*Scope,
         _statements: std.ArrayList(*AST),
         final: ?*AST, // either `return`, `continue`, or `break`
     },
@@ -417,7 +416,7 @@ pub const AST = union(enum) {
     @"return": struct {
         common: AST_Common,
         _ret_expr: ?*AST,
-        _symbol: ?*symbol_.Symbol, // `retrun`'s must be in functions. This is the function's symbol.
+        _symbol: ?*Symbol, // `retrun`'s must be in functions. This is the function's symbol.
     },
     /// This type is a special version of an identifier. It is needed to encapsulate information about a
     /// symbol declaration that is needed before the symbol is even constructed. An identifier AST cannot be
@@ -425,12 +424,12 @@ pub const AST = union(enum) {
     pattern_symbol: struct {
         common: AST_Common,
         name: []const u8,
-        kind: symbol_.Symbol_Kind,
-        _symbol: ?*symbol_.Symbol = undefined,
+        kind: Symbol.Kind,
+        _symbol: ?*Symbol = undefined,
     },
     decl: struct {
         common: AST_Common,
-        symbols: std.ArrayList(*symbol_.Symbol), // List of symbols that are defined with this statement
+        symbols: std.ArrayList(*Symbol), // List of symbols that are defined with this statement
         pattern: *AST, // Structure of ASTs. Has to be structured to allow tree patterns like `let ((a, b), (c, d)) = blah`
         type: *AST,
         init: ?*AST,
@@ -442,11 +441,11 @@ pub const AST = union(enum) {
         common: AST_Common,
         name: ?*AST, //
         _params: std.ArrayList(*AST), // Parameters' decl ASTs
-        param_symbols: std.ArrayList(*symbol_.Symbol), // Parameters' symbols
+        param_symbols: std.ArrayList(*Symbol), // Parameters' symbols
         ret_type: *AST,
         refinement: ?*AST,
         init: *AST,
-        _symbol: ?*symbol_.Symbol = null,
+        _symbol: ?*Symbol = null,
         infer_error: bool,
 
         pub fn is_templated(self: *@This()) bool {
@@ -475,19 +474,19 @@ pub const AST = union(enum) {
         is_virtual: bool,
         receiver: ?*AST,
         _params: std.ArrayList(*AST), // Parameters' decl ASTs
-        param_symbols: std.ArrayList(*symbol_.Symbol), // Parameters' symbols
+        param_symbols: std.ArrayList(*Symbol), // Parameters' symbols
         c_type: ?*AST = null,
         domain: ?*AST = null, // Domain type when calling. Filled in at symbol-tree creation for impls and traits.
         ret_type: *AST,
         refinement: ?*AST,
         init: ?*AST,
         impl: ?*AST = null, // The surrounding `impl`. Null for method_decls in traits.
-        _symbol: ?*symbol_.Symbol = null,
+        _symbol: ?*Symbol = null,
         infer_error: bool,
     },
     module: struct {
         common: AST_Common,
-        _scope: ?*symbol_.Scope, // Only null for compatibility. Always present.
+        _scope: ?*Scope, // Only null for compatibility. Always present.
         module: *module_.Module,
     },
     import: struct {
@@ -501,8 +500,8 @@ pub const AST = union(enum) {
     template: struct {
         common: AST_Common,
         decl: *AST, // The decl of the symbol(s) that is being templated
-        memo: ?*symbol_.Symbol, // TODO: This should be some sort of map that maps const parameters to stamped-out anonymous function symbols
-        _symbol: ?*symbol_.Symbol = null, // The symbol for this template
+        memo: ?*Symbol, // TODO: This should be some sort of map that maps const parameters to stamped-out anonymous function symbols
+        _symbol: ?*Symbol = null, // The symbol for this template
     },
     @"defer": struct { common: AST_Common, _statement: *AST },
     @"errdefer": struct { common: AST_Common, _statement: *AST },
@@ -969,7 +968,7 @@ pub const AST = union(enum) {
         _token: token_.Token,
         dyn_type: *AST,
         _expr: *AST,
-        _scope: *symbol_.Scope,
+        _scope: *Scope,
         _mut: bool,
         allocator: std.mem.Allocator,
     ) *AST {
@@ -1212,7 +1211,7 @@ pub const AST = union(enum) {
 
     pub fn create_pattern_symbol(
         _token: token_.Token,
-        kind: symbol_.Symbol_Kind,
+        kind: Symbol.Kind,
         name: []const u8,
         allocator: std.mem.Allocator,
     ) *AST {
@@ -1237,7 +1236,7 @@ pub const AST = union(enum) {
         return AST.box(
             AST{ .decl = .{
                 .common = AST_Common{ ._token = _token, ._type = null },
-                .symbols = std.ArrayList(*symbol_.Symbol).init(allocator),
+                .symbols = std.ArrayList(*Symbol).init(allocator),
                 .pattern = pattern,
                 .type = _type,
                 .init = init,
@@ -1262,7 +1261,7 @@ pub const AST = union(enum) {
             .common = AST_Common{ ._token = _token, ._type = null },
             .name = name,
             ._params = params,
-            .param_symbols = std.ArrayList(*symbol_.Symbol).init(allocator),
+            .param_symbols = std.ArrayList(*Symbol).init(allocator),
             .ret_type = ret_type,
             .refinement = refinement,
             .init = init,
@@ -1287,7 +1286,7 @@ pub const AST = union(enum) {
             .is_virtual = is_virtual,
             .receiver = receiver,
             ._params = params,
-            .param_symbols = std.ArrayList(*symbol_.Symbol).init(allocator),
+            .param_symbols = std.ArrayList(*Symbol).init(allocator),
             .ret_type = ret_type,
             .refinement = refinement,
             .init = init,
@@ -1297,7 +1296,7 @@ pub const AST = union(enum) {
 
     pub fn create_module(
         _token: token_.Token,
-        _scope: *symbol_.Scope,
+        _scope: *Scope,
         module: *module_.Module,
         allocator: std.mem.Allocator,
     ) *AST {
@@ -1806,19 +1805,19 @@ pub const AST = union(enum) {
         set_field(self, "_expr", val);
     }
 
-    pub fn symbol(self: AST) ?*symbol_.Symbol {
+    pub fn symbol(self: AST) ?*Symbol {
         return get_struct_field(self, "_symbol");
     }
 
-    pub fn set_symbol(self: *AST, val: ?*symbol_.Symbol) void {
+    pub fn set_symbol(self: *AST, val: ?*Symbol) void {
         set_field(self, "_symbol", val);
     }
 
-    pub fn scope(self: AST) ?*symbol_.Scope {
+    pub fn scope(self: AST) ?*Scope {
         return get_struct_field(self, "_scope");
     }
 
-    pub fn set_scope(self: *AST, val: ?*symbol_.Scope) void {
+    pub fn set_scope(self: *AST, val: ?*Scope) void {
         set_field(self, "_scope", val);
     }
 

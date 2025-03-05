@@ -11,7 +11,7 @@ const primitives_ = @import("../hierarchy/primitives.zig");
 const offsets_ = @import("../hierarchy/offsets.zig");
 const token_ = @import("../lexer/token.zig");
 const span_ = @import("../util/span.zig");
-const symbol_ = @import("../symbol/symbol.zig");
+const Symbol = @import("../symbol/symbol.zig");
 
 /// Interpreter execution timeout in milliseconds
 const timeout_ms = 1000;
@@ -318,7 +318,7 @@ pub const Context = struct {
                 // std.debug.print("symbol_loc: {}\n", .{symbol_loc});
                 const symbol_int = @as(usize, @intCast(self.load_int(symbol_loc, 8)));
                 // std.debug.print("symbol_int: {}\n", .{symbol_int});
-                const symbol: *symbol_.Symbol = @ptrFromInt(symbol_int);
+                const symbol: *Symbol = @ptrFromInt(symbol_int);
 
                 // Intercept method calls to builtin methods
                 if (symbol.decl != null and
@@ -352,7 +352,7 @@ pub const Context = struct {
             .invoke => {
                 const symbol_loc = try self.effective_address(instr.data.invoke.method_decl_lval.?);
                 const symbol_int = @as(usize, @intCast(self.load_int(symbol_loc, 8)));
-                const symbol: *symbol_.Symbol = @ptrFromInt(symbol_int);
+                const symbol: *Symbol = @ptrFromInt(symbol_int);
 
                 try self.call(symbol, instr.dest.?, instr.data.invoke.lval_list);
             },
@@ -375,7 +375,7 @@ pub const Context = struct {
 
     /// Sets up the caller's stack frame, pushes function arguments in reverse order, stores the return value location,
     /// and then jumps to the function's code.
-    pub fn call(self: *Context, function_symbol: *symbol_.Symbol, retval_place: *lval_.L_Value, args_list: std.ArrayList(*lval_.L_Value)) error{CompileError}!void {
+    pub fn call(self: *Context, function_symbol: *Symbol, retval_place: *lval_.L_Value, args_list: std.ArrayList(*lval_.L_Value)) error{CompileError}!void {
         self.call_depth += 1;
         // Save old stack pointer
         const old_sp = self.stack_pointer;
@@ -510,7 +510,7 @@ pub const Context = struct {
                 if (stack_value == 0) {
                     return primitives_.void_type;
                 } else {
-                    const symbol: *symbol_.Symbol = @ptrFromInt(stack_value);
+                    const symbol: *Symbol = @ptrFromInt(stack_value);
                     const ast = ast_.AST.create_pattern_symbol(
                         token_.Token.init_simple("function"),
                         .@"fn",

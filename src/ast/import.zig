@@ -7,7 +7,7 @@ const compiler_ = @import("../compilation/compiler.zig");
 const module_ = @import("../hierarchy/module.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const String = @import("../zig-string/zig-string.zig").String;
-const symbol_ = @import("../symbol/symbol.zig");
+const Symbol = @import("../symbol/symbol.zig");
 const token_ = @import("../lexer/token.zig");
 const walker_ = @import("../ast/walker.zig");
 
@@ -45,7 +45,7 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
             const common = ast_.AST_Common{ ._token = ast.token(), ._type = null };
             ast.* = ast_.AST{ .decl = .{
                 .common = common,
-                .symbols = std.ArrayList(*symbol_.Symbol).init(self.compiler.allocator()),
+                .symbols = std.ArrayList(*Symbol).init(self.compiler.allocator()),
                 .pattern = ast.import.pattern,
                 .type = primitives_.type_type,
                 .init = primitives_.unit_type,
@@ -106,7 +106,7 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
                     const common = ast_.AST_Common{ ._token = ast.token(), ._type = null };
                     ast.* = ast_.AST{ .decl = .{
                         .common = common,
-                        .symbols = std.ArrayList(*symbol_.Symbol).init(self.compiler.allocator()),
+                        .symbols = std.ArrayList(*Symbol).init(self.compiler.allocator()),
                         .pattern = ast_.AST.create_pattern_symbol(
                             ast.token(),
                             .{ .import = .{ .real_name = term.token().data } },
@@ -131,7 +131,7 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
 }
 
 /// Given an import pattern symbol `ast`, resolve the module symbol that it refers to, potentially compiling it if necessary
-fn resolve_import(self: Self, ast: *ast_.AST) walker_.Error!*symbol_.Symbol {
+fn resolve_import(self: Self, ast: *ast_.AST) walker_.Error!*Symbol {
     std.debug.assert(ast.* == .pattern_symbol and ast.pattern_symbol.kind == .import);
     const package_path = std.fs.path.dirname(self.module.absolute_path).?;
     const package_name = self.module.package_name;
@@ -142,7 +142,7 @@ fn resolve_import(self: Self, ast: *ast_.AST) walker_.Error!*symbol_.Symbol {
     const import_file_paths = [_][]const u8{ package_path, import_filename.str() };
     const import_file_path = std.fs.path.join(self.compiler.allocator(), &import_file_paths) catch unreachable;
 
-    var import_symbol: *symbol_.Symbol = undefined;
+    var import_symbol: *Symbol = undefined;
     if (self.compiler.packages.get(package_name) != null and self.compiler.packages.get(package_name).?.requirements.get(import_name) != null) {
         // Foreign import of a package
         import_symbol = self.compiler.packages.get(package_name).?.requirements.get(import_name).?;

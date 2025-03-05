@@ -9,7 +9,6 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
-const builtin_ = @import("../interpretation/builtin.zig");
 const compiler_ = @import("../compilation/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const interpreter_ = @import("../interpretation/interpreter.zig");
@@ -18,7 +17,8 @@ const poison_ = @import("../ast/poison.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const span_ = @import("../util/span.zig");
 const String = @import("../zig-string/zig-string.zig").String;
-const symbol_ = @import("../symbol/symbol.zig");
+const Scope = @import("../symbol/scope.zig");
+const Symbol = @import("../symbol/symbol.zig");
 const token_ = @import("../lexer/token.zig");
 
 const Validate_Error_Enum = error{ LexerError, ParseError, CompileError };
@@ -58,7 +58,7 @@ pub fn validate_module(module: *module_.Module, compiler: *compiler_.Context) Va
     }
 }
 
-pub fn validate_scope(scope: *symbol_.Scope, compiler: *compiler_.Context) Validate_Error_Enum!void {
+pub fn validate_scope(scope: *Scope, compiler: *compiler_.Context) Validate_Error_Enum!void {
     for (scope.symbols.keys()) |key| {
         const symbol = scope.symbols.get(key).?;
         if (symbol.kind == .@"comptime") {
@@ -74,7 +74,7 @@ pub fn validate_scope(scope: *symbol_.Scope, compiler: *compiler_.Context) Valid
     }
 }
 
-pub fn validate_symbol(symbol: *symbol_.Symbol, compiler: *compiler_.Context) Validate_Error_Enum!void {
+pub fn validate_symbol(symbol: *Symbol, compiler: *compiler_.Context) Validate_Error_Enum!void {
     // TODO: Bit long
     if (symbol.validation_state == .valid or symbol.validation_state == .validating) {
         return;
@@ -154,7 +154,7 @@ pub fn validate_symbol(symbol: *symbol_.Symbol, compiler: *compiler_.Context) Va
     _ = symbol.assert_init_valid();
 }
 
-fn validate_trait(trait: *symbol_.Symbol, compiler: *compiler_.Context) Validate_Error_Enum!void {
+fn validate_trait(trait: *Symbol, compiler: *compiler_.Context) Validate_Error_Enum!void {
     var names = std.StringArrayHashMap(*ast_.AST).init(compiler.allocator());
     defer names.deinit();
     for (trait.decl.?.trait.method_decls.items) |decl| {
@@ -200,7 +200,7 @@ fn validate_impl(impl: *ast_.AST, compiler: *compiler_.Context) Validate_Error_E
 
     impl.impl._type = validate_AST(impl.impl._type, primitives_.type_type, compiler);
 
-    const trait_symbol: *symbol_.Symbol = impl.impl.trait.?.symbol().?;
+    const trait_symbol: *Symbol = impl.impl.trait.?.symbol().?;
     const trait_ast = trait_symbol.decl.?;
 
     // Check that the (trait, type) pair is unique for this scope

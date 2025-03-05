@@ -10,7 +10,7 @@ const module_ = @import("../hierarchy/module.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const span_ = @import("../util/span.zig");
-const symbol_ = @import("../symbol/symbol.zig");
+const Symbol = @import("../symbol/symbol.zig");
 const Symbol_Version = @import("symbol_version.zig");
 
 pub const Lower_Errors = error{CompileError};
@@ -623,7 +623,7 @@ fn lval_from_int(
 }
 
 fn lval_from_symbol_cfg(
-    symbol: *symbol_.Symbol,
+    symbol: *Symbol,
     caller: *cfg_.CFG,
     span: span_.Span,
     errors: *errs_.Errors,
@@ -990,7 +990,7 @@ fn flow(
 fn generate_control_flow_block(
     cfg: *cfg_.CFG,
     ast: *ast_.AST,
-    symbol: *symbol_.Symbol,
+    symbol: *Symbol,
     has_else: bool,
     labels: Labels,
     errors: *errs_.Errors,
@@ -1009,7 +1009,7 @@ fn generate_control_flow_block(
 fn generate_control_flow_else(
     cfg: *cfg_.CFG,
     ast: ?*ast_.AST,
-    symbol: *symbol_.Symbol,
+    symbol: *Symbol,
     span: span_.Span,
     labels: Labels,
     errors: *errs_.Errors,
@@ -1115,7 +1115,7 @@ fn generate_match_bodies(
     expr: *lval_.L_Value,
     mappings: std.ArrayList(*ast_.AST),
     rhs_label_list: std.ArrayList(*instructions_.Instruction),
-    symbol: *symbol_.Symbol,
+    symbol: *Symbol,
     end_label: *instructions_.Instruction,
     span: span_.Span,
     labels: Labels,
@@ -1160,11 +1160,11 @@ fn create_temp_lvalue(cfg: *cfg_.CFG, _type: *ast_.AST, allocator: std.mem.Alloc
     return retval;
 }
 
-fn create_temp_symbol(cfg: *cfg_.CFG, _type: *ast_.AST, allocator: std.mem.Allocator) *symbol_.Symbol {
+fn create_temp_symbol(cfg: *cfg_.CFG, _type: *ast_.AST, allocator: std.mem.Allocator) *Symbol {
     var buf = String.init_with_contents(allocator, "t") catch unreachable;
     buf.writer().print("{}", .{cfg.number_temps}) catch unreachable;
     cfg.number_temps += 1;
-    var temp_symbol = symbol_.Symbol.init(
+    var temp_symbol = Symbol.init(
         cfg.symbol.scope,
         (buf.toOwned() catch unreachable).?,
         span_.phony_span,

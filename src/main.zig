@@ -3,7 +3,6 @@ const ast_ = @import("ast/ast.zig");
 const compiler_ = @import("compilation/compiler.zig");
 const errs_ = @import("util/errors.zig");
 const interpreter_ = @import("interpretation/interpreter.zig");
-const module_ = @import("hierarchy/module.zig");
 const primitives_ = @import("hierarchy/primitives.zig");
 const span_ = @import("util/span.zig");
 const String = @import("zig-string/zig-string.zig").String;

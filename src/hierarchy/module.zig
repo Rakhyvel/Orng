@@ -16,7 +16,8 @@ const pipeline_ = @import("../util/pipeline.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const span_ = @import("../util/span.zig");
 const String = @import("../zig-string/zig-string.zig").String;
-const symbol_ = @import("../symbol/symbol.zig");
+const Scope = @import("../symbol/scope.zig");
+const Symbol = @import("../symbol/symbol.zig");
 const token_ = @import("../lexer/token.zig");
 const Type_Set = @import("../ast/type-set.zig");
 const walker_ = @import("../ast/walker.zig");
@@ -93,7 +94,7 @@ pub const Module = struct {
 
     /// The symbol that represents this module. Mainly used to get the scope for the module
     /// TODO: Make this better
-    symbol: *symbol_.Symbol,
+    symbol: *Symbol,
 
     /// Whether or not this module has been visited in a graph traversal
     visited: bool,
@@ -101,7 +102,7 @@ pub const Module = struct {
     /// Allocator for the module
     allocator: std.mem.Allocator,
 
-    pub fn init(name: []const u8, absolute_path: []const u8, symbol: *symbol_.Symbol, allocator: std.mem.Allocator) *Module {
+    pub fn init(name: []const u8, absolute_path: []const u8, symbol: *Symbol, allocator: std.mem.Allocator) *Module {
         var retval = allocator.create(Module) catch unreachable;
         retval.uid = module_uids;
         module_uids += 1;
@@ -148,10 +149,10 @@ pub const Module = struct {
         }
 
         // Create the symbol for this module
-        var file_root = symbol_.Scope.init(compiler.prelude, compiler.allocator());
+        var file_root = Scope.init(compiler.prelude, compiler.allocator());
         var module = Module.init(short_name, in_name, undefined, compiler.allocator());
         file_root.module = module;
-        const symbol = symbol_.Symbol.init(
+        const symbol = Symbol.init(
             compiler.prelude,
             short_name,
             span_.Span{ .col = 1, .line_number = 1, .filename = in_name, .line_text = "" },
@@ -194,7 +195,7 @@ pub const Module = struct {
     pub fn fill_contents(
         in_name: []const u8,
         entry_name: ?[]const u8,
-        file_root: *symbol_.Scope,
+        file_root: *Scope,
         module: *Module,
         fuzz_tokens: bool,
         compiler: *compiler_.Context,
@@ -226,7 +227,7 @@ pub const Module = struct {
         var found_entry = false;
         const need_entry = entry_name != null;
         for (self.top_level_scope().symbols.keys()) |key| {
-            const symbol: *symbol_.Symbol = self.top_level_scope().symbols.get(key).?;
+            const symbol: *Symbol = self.top_level_scope().symbols.get(key).?;
             if (symbol.kind != .@"fn") {
                 continue;
             }
@@ -267,7 +268,7 @@ pub const Module = struct {
 
     /// Collects traits and implementations from the specified scope and its children, appending them to the module's traits and impls
     /// lists.
-    fn collect_traits_and_impls(self: *Module, scope: *symbol_.Scope) void {
+    fn collect_traits_and_impls(self: *Module, scope: *Scope) void {
         self.traits.appendSlice(scope.traits.items) catch unreachable;
         self.impls.appendSlice(scope.impls.items) catch unreachable;
 
@@ -484,7 +485,7 @@ pub const Module = struct {
 
     /// Returns the scope that contains this module's top-level definitions
     /// TODO: Remove from module, pass around as needed
-    pub fn top_level_scope(self: *Module) *symbol_.Scope {
+    pub fn top_level_scope(self: *Module) *Scope {
         return self.symbol.init.?.scope().?;
     }
 
@@ -497,7 +498,7 @@ pub const Module = struct {
 
 // TODO: Move to own file
 pub fn get_cfg(
-    symbol: *symbol_.Symbol,
+    symbol: *Symbol,
     caller: ?*cfg_.CFG,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
@@ -532,7 +533,7 @@ pub fn stamp(
     template_ast: *ast_.AST,
     args: *std.ArrayList(*ast_.AST),
     call_span: span_.Span,
-    scope: *symbol_.Scope,
+    scope: *Scope,
     compiler: *compiler_.Context,
 ) !*ast_.AST {
     std.debug.assert(template_ast.* == .template);
@@ -611,10 +612,10 @@ pub fn stamp(
 pub fn interpret(
     ast: *ast_.AST,
     ret_type: *ast_.AST,
-    scope: *symbol_.Scope,
+    scope: *Scope,
     compiler: *compiler_.Context,
 ) !*ast_.AST {
-    const symbol: *symbol_.Symbol = (try Symbol_Tree.create_temp_comptime_symbol(
+    const symbol: *Symbol = (try Symbol_Tree.create_temp_comptime_symbol(
         ast,
         ret_type,
         scope,

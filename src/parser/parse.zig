@@ -1,9 +1,8 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const errs_ = @import("../util/errors.zig");
-const primitives_ = @import("../hierarchy/primitives.zig");
 const String = @import("../zig-string/zig-string.zig").String;
-const symbol_ = @import("../symbol/symbol.zig");
+const Symbol = @import("../symbol/symbol.zig");
 const token_ = @import("../lexer/token.zig");
 
 const Self: type = @This();
@@ -313,7 +312,7 @@ fn let_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
 
 fn let_pattern_atom(self: *Self) Parser_Error_Enum!*ast_.AST {
     if (self.peek_kind(.mut) or self.peek_kind(.@"const") or self.peek_kind(.identifier)) {
-        var kind: symbol_.Symbol_Kind = undefined;
+        var kind: Symbol.Kind = undefined;
         if (self.accept(.mut) != null) {
             kind = .mut;
         } else if (self.accept(.@"const") != null) {
@@ -1075,7 +1074,7 @@ fn paramlist(self: *Self) Parser_Error_Enum!std.ArrayList(*ast_.AST) {
 }
 
 fn param(self: *Self) Parser_Error_Enum!*ast_.AST {
-    var kind: symbol_.Symbol_Kind = undefined;
+    var kind: Symbol.Kind = undefined;
     if (self.accept(.mut) != null) {
         kind = .mut;
     } else if (self.accept(.@"const") != null) {

@@ -1,13 +1,9 @@
 const std = @import("std");
-const ast_ = @import("ast/ast.zig");
 const compiler_ = @import("compilation/compiler.zig");
-const errs_ = @import("util/errors.zig");
 const exec = @import("util/exec.zig").exec;
 const module_ = @import("hierarchy/module.zig");
-const primitives_ = @import("hierarchy/primitives.zig");
 const Read_File = @import("lexer/read_file.zig");
 const String = @import("zig-string/zig-string.zig").String;
-const symbol_ = @import("symbol/symbol.zig");
 const term_ = @import("util/term.zig");
 
 const allocator = std.heap.page_allocator;
