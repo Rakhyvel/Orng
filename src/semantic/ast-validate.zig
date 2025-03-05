@@ -14,6 +14,7 @@ const compiler_ = @import("../compilation/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const interpreter_ = @import("../interpretation/interpreter.zig");
 const module_ = @import("../hierarchy/module.zig");
+const poison_ = @import("../ast/poison.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const span_ = @import("../util/span.zig");
 const String = @import("../zig-string/zig-string.zig").String;
@@ -380,9 +381,9 @@ fn validate_AST(ast: *ast_.AST, old_expected_type: ?*ast_.AST, compiler: *compil
             .span = ast.token().span,
             .symbol_name = null,
         } });
-        return ast_.poisoned;
+        return poison_.poisoned;
     } else if (ast.common().validation_state == .invalid) {
-        return ast_.poisoned;
+        return poison_.poisoned;
     } else if (ast.* != .@"comptime" and ast.common().validation_state == .valid) {
         // TODO: Why do we need comptime here?
         return ast.common().validation_state.valid.valid_form;
@@ -951,7 +952,7 @@ fn validate_AST_internal(
                 // It's ok to assign this to a unit type, something like `_ = (1, 2, 3)`
                 // expecting something that is not a type nor a product is not ok!
                 // poison `got`, so that it doesn't print anything for the `got` section, wouldn't make sense anyway
-                return throw_unexpected_type(ast.token().span, expected.?, ast_.poisoned, &compiler.errors);
+                return throw_unexpected_type(ast.token().span, expected.?, poison_.poisoned, &compiler.errors);
             }
             return ast;
         },
@@ -1013,7 +1014,7 @@ fn validate_AST_internal(
                     );
                 } else if (expanded_expected.* != .addr_of) {
                     // Didn't expect an address type. Validate expr and report error
-                    return throw_unexpected_type(ast.token().span, expected.?, ast_.poisoned, &compiler.errors);
+                    return throw_unexpected_type(ast.token().span, expected.?, poison_.poisoned, &compiler.errors);
                 }
                 _ = expanded_expected.expr().expand_type(compiler.allocator());
 
@@ -1179,7 +1180,7 @@ fn validate_AST_internal(
                 } else if (is_result_optional) {
                     expected_type = expanded_expected.get_some_type();
                 } else {
-                    return throw_unexpected_type(ast.token().span, expected.?, ast_.poisoned, &compiler.errors);
+                    return throw_unexpected_type(ast.token().span, expected.?, poison_.poisoned, &compiler.errors);
                 }
             }
 

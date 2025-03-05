@@ -1,9 +1,9 @@
 const std = @import("std");
-const ast_ = @import("../ast/ast.zig");
 const cfg_ = @import("../ir/cfg.zig");
 const errs_ = @import("../util/errors.zig");
 const module_ = @import("../hierarchy/module.zig");
 const Package = @import("../hierarchy/package.zig");
+const poison_ = @import("../ast/poison.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const symbol_ = @import("../symbol/symbol.zig");
@@ -37,7 +37,7 @@ pub const Context = struct {
         var retval: *Context = alloc.create(Context) catch unreachable;
         retval.arena = std.heap.ArenaAllocator.init(alloc);
 
-        ast_.init_structures(retval.allocator());
+        poison_.init_structures(retval.allocator());
         retval.errors = errs_.Errors.init(retval.allocator());
         retval.prelude = primitives_.get_scope(retval) catch {
             // Prelude compilation can sometimes fail :(

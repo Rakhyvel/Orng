@@ -10,6 +10,7 @@ const std = @import("std");
 const errs_ = @import("../util/errors.zig");
 const module_ = @import("../hierarchy/module.zig");
 const offsets_ = @import("../hierarchy/offsets.zig");
+const poison_ = @import("poison.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const span_ = @import("../util/span.zig");
 const String = @import("../zig-string/zig-string.zig").String;
@@ -18,21 +19,6 @@ const token_ = @import("../lexer/token.zig");
 const validation_state_ = @import("../util/validation_state.zig");
 
 pub const AST_Validation_State = validation_state_.Validation_State(*AST);
-
-pub var poisoned: *AST = undefined;
-var inited: bool = false;
-
-/// Initializes internal structures if they are not already initialized.
-pub fn init_structures(allocator: std.mem.Allocator) void {
-    if (!inited) {
-        poisoned = AST.create_poison(
-            token_.Token.init_simple("LMAO GET POISONED!"),
-            allocator,
-        );
-        _ = poisoned.enpoison();
-        inited = true;
-    }
-}
 
 pub const Receiver_Kind = enum {
     value, // Receiver is taken by value
@@ -521,7 +507,7 @@ pub const AST = union(enum) {
     @"defer": struct { common: AST_Common, _statement: *AST },
     @"errdefer": struct { common: AST_Common, _statement: *AST },
 
-    fn create_poison(_token: token_.Token, allocator: std.mem.Allocator) *AST {
+    pub fn create_poison(_token: token_.Token, allocator: std.mem.Allocator) *AST {
         return AST.box(AST{ .poison = .{ .common = AST_Common{
             ._token = _token,
             ._type = null,
@@ -2578,7 +2564,7 @@ pub const AST = union(enum) {
     fn typeof_internal(self: *AST, allocator: std.mem.Allocator) *AST {
         switch (self.*) {
             // Poisoned type
-            .poison => return poisoned,
+            .poison => return poison_.poisoned,
 
             // Bool type
             .true,
@@ -2695,7 +2681,7 @@ pub const AST = union(enum) {
                 } else if (lhs_type.* == .identifier and std.mem.eql(u8, lhs_type.token().data, "String")) {
                     return primitives_.byte_type;
                 } else if (lhs_type.* == .poison) {
-                    return poisoned;
+                    return poison_.poisoned;
                 } else {
                     std.debug.panic("compiler error: {s} is not indexable", .{@tagName(lhs_type.*)});
                 }
@@ -2732,7 +2718,7 @@ pub const AST = union(enum) {
             .slice_of => {
                 var expr_type = self.expr().typeof(allocator);
                 if (expr_type.* != .product or !expr_type.product.is_homotypical()) {
-                    return poisoned;
+                    return poison_.poisoned;
                 } else {
                     var child_type = expr_type.children().items[0];
                     if (child_type.types_match(primitives_.type_type)) {
@@ -3106,7 +3092,7 @@ pub const AST = union(enum) {
     /// Used to poison an AST node. Marks as valid, so any attempt to validate is memoized to return poison.
     pub fn enpoison(self: *AST) *AST {
         self.common().validation_state = .invalid;
-        return poisoned;
+        return poison_.poisoned;
     }
 
     /// Sets an ASTs validation status to valid.
