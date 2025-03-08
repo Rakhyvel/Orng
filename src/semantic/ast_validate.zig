@@ -226,38 +226,19 @@ fn validate_AST_internal(
             if (ast.@"comptime".result != null) {
                 return ast.@"comptime".result.?;
             }
-            // Validate symbol
-            try validate_symbol_.validate(ast.symbol().?, compiler); // ast.@"comptime".symbol.? is created during symbol tree expansion
-            try poison_.assert_none_poisoned(ast.symbol().?._type);
-            const ast_type = ast.symbol().?._type.rhs();
-            const ret_type = ast_type.expand_type(compiler.allocator());
-            if (try typing_.checked_types_match(ret_type, primitives_.void_type, &compiler.errors)) {
+            ast.set_expr(validate_AST(ast.expr(), expected, compiler));
+            const ast_type = ast.expr().typeof(compiler.allocator());
+            const expanded_ast_type = ast_type.expand_type(compiler.allocator());
+            if (try typing_.checked_types_match(expanded_ast_type, primitives_.void_type, &compiler.errors)) {
                 return typing_.throw_unexpected_void_type(ast.expr().token().span, &compiler.errors);
             }
-            try typing_.type_check(ast.token().span, ret_type, expected, &compiler.errors);
+            try typing_.type_check(ast.token().span, expanded_ast_type, expected, &compiler.errors);
 
             var expanded_expected = expected;
             if (expected != null and expected.?.* == .type_of) {
                 expanded_expected = expected.?.expand_type(compiler.allocator());
             }
-
-            // Get the cfg from the symbol, and embed into the module
-            const module = ast.symbol().?.scope.module.?;
-            const cfg = try cfg_builder_.get_cfg(ast.symbol().?, null, &compiler.errors, compiler.allocator());
-            defer cfg.deinit(); // Remove the cfg so that it isn't output
-
-            const idx = module.emplace_cfg(cfg);
-            defer module.pop_cfg(idx); // Remove the cfg so that it isn't output
-
-            // Create a context and interpret
-            var context = Interpreter_Context.init(&compiler.errors, compiler.allocator());
-            context.set_entry_point(cfg, expanded_expected orelse ret_type);
-            defer context.deinit();
-            context.load_module(module);
-            try context.run(compiler);
-
-            // Extract the retval
-            ast.@"comptime".result = try context.extract_ast(0, expanded_expected orelse ret_type, ast.token().span);
+            ast.@"comptime".result = try interpret(ast.expr(), expanded_expected orelse expanded_ast_type, ast.scope().?, compiler);
             return ast.@"comptime".result.?;
         },
         .assign => {

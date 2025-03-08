@@ -127,8 +127,8 @@ pub const AST = union(enum) {
         common: AST_Common,
         _expr: *AST,
         name: ?*AST = null,
-        _symbol: ?*Symbol = null,
         result: ?*AST = null,
+        _scope: ?*Scope = null, // Surrounding scope. Filled in at symbol-tree creation. Used to create a comptime symbol
     },
 
     // Binary operators
@@ -637,7 +637,7 @@ pub const AST = union(enum) {
     pub fn create_comptime(_token: Token, _expr: *AST, allocator: std.mem.Allocator) *AST {
         const _common: AST_Common = .{ ._token = _token };
         return AST.box(
-            AST{ .@"comptime" = .{ .common = _common, ._expr = _expr, .name = null, ._symbol = null } },
+            AST{ .@"comptime" = .{ .common = _common, ._expr = _expr, .name = null } },
             allocator,
         );
     }

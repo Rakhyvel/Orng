@@ -30,7 +30,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         else => {},
 
         // Capture scope
-        .access, .invoke, .addr_of => ast.set_scope(self.scope),
+        .access, .invoke, .addr_of, .@"comptime" => ast.set_scope(self.scope),
 
         // Check that AST is inside a loop
         .@"break", .@"continue" => try in_loop_check(ast, self.scope, self.errors),
@@ -38,24 +38,9 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         // Check that AST is inside a function
         .@"try", .@"return" => ast.set_symbol(try in_function_check(ast, self.scope, self.errors)),
 
-        // Add to scope's defers
+        // Add defers to scope
         .@"defer" => self.scope.defers.append(ast.statement()) catch unreachable,
         .@"errdefer" => self.scope.errdefers.append(ast.statement()) catch unreachable,
-
-        // Create comptime symbol, place inside scope
-        .@"comptime" => {
-            const symbol = try create_temp_comptime_symbol(
-                ast.expr(),
-                null,
-                self.scope,
-                self.errors,
-                self.allocator,
-            );
-            try put_symbol(symbol, self.scope, self.errors); // Why? No one refers to it...
-            ast.set_symbol(symbol);
-
-            return null; // NOTE: DO NOT WALK CHILDREN!
-        },
 
         // Create a new scope, pass it to children
         .@"if", .block, .match, .@"while", .@"for" => {
@@ -335,7 +320,7 @@ fn create_symbol(
                 init
             else if (init != null)
                 // Wrap init in comptime if symbol is const and non-alias
-                try create_comptime_init(init.?, _type, scope, errors, allocator)
+                try create_comptime_init(init.?, scope, allocator)
             else
                 null;
             const symbol = Symbol.init(
@@ -541,15 +526,11 @@ fn create_receiver_annot(receiver_addr: *ast_.AST, receiver: *ast_.AST, allocato
 /// Creates the comptime context symbol for `const` initializers
 fn create_comptime_init(
     old_init: *ast_.AST,
-    _type: *ast_.AST,
     scope: *Scope,
-    errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Error!*ast_.AST {
     const retval = ast_.AST.create_comptime(old_init.token(), old_init, allocator);
-    const comptime_symbol = try create_temp_comptime_symbol(old_init, _type, scope, errors, allocator);
-    try put_symbol(comptime_symbol, scope, errors);
-    retval.set_symbol(comptime_symbol);
+    retval.set_scope(scope);
     return retval;
 }
 
@@ -558,7 +539,6 @@ pub fn create_temp_comptime_symbol(
     ast: *ast_.AST,
     rhs_type_hint: ?*ast_.AST,
     scope: *Scope,
-    errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Error!*Symbol {
     // Create the function type. The rhs is a typeof node, since type expansion is done in a later time
@@ -588,8 +568,6 @@ pub fn create_temp_comptime_symbol(
     );
     comptime_scope.inner_function = retval;
 
-    const symbol_walk = Self.new(comptime_scope, errors, allocator);
-    try walk_.walk_ast(ast, symbol_walk);
     return retval;
 }
 

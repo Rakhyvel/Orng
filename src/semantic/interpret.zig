@@ -35,7 +35,6 @@ pub fn interpret(
         ast,
         ret_type,
         scope,
-        &compiler.errors,
         compiler.allocator(),
     )).assert_symbol_valid().assert_init_valid();
 
