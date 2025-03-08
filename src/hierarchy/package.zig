@@ -144,7 +144,7 @@ fn gcc(
         const requirement = packages.get(requirement_name).?;
 
         var requirement_include_path = String.init(allocator);
-        requirement_include_path.writer().print("-I{s}{c}build", .{ requirement.root.init.?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
+        requirement_include_path.writer().print("-I{s}{c}build", .{ requirement.root.init_value.?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
         gcc_cmd.append(requirement_include_path.str()) catch unreachable;
     }
 
@@ -258,7 +258,7 @@ fn executable(self: *Package, obj_files: std.ArrayList([]const u8), packages: st
         const requirement = packages.get(requirement_name).?;
 
         var requirement_library_path = String.init(allocator);
-        requirement_library_path.writer().print("{s}{c}build", .{ requirement.root.init.?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
+        requirement_library_path.writer().print("{s}{c}build", .{ requirement.root.init_value.?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
         cmd.append("-L") catch unreachable;
         cmd.append(requirement_library_path.str()) catch unreachable;
 

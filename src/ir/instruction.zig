@@ -26,8 +26,6 @@ src1: ?*lval_.L_Value,
 src2: ?*lval_.L_Value,
 
 data: Data,
-next: ?*Self,
-prev: ?*Self,
 
 in_block: ?*Basic_Block,
 span: Span,
@@ -52,8 +50,6 @@ pub fn init(
     retval.src2 = src2;
     retval.uid = instruction_uid;
     retval.in_block = null;
-    retval.prev = null;
-    retval.next = null;
     retval.data = Data.none;
     retval.span = span;
     retval.allocator = allocator;
@@ -209,27 +205,12 @@ pub fn deinit(self: *Self) void {
     self.allocator.destroy(self);
 }
 
-pub fn get_tail(self: *Self) *Self {
-    var mut_self: *Self = self;
-    while (mut_self.next != null) : (mut_self = mut_self.next.?) {}
-    return mut_self;
-}
-
-/// Snips the Self linked list in two, with this Self being the end of the list, and the next Self (if any) being the head
-/// of the new linked list.
-pub fn snip(self: *Self) void {
-    if (self.next) |_| {
-        self.next.?.prev = null;
-        self.next = null;
-    }
-}
-
 pub fn pprint(self: Self, allocator: std.mem.Allocator) ![]const u8 {
     var out = String.init(allocator);
     defer out.deinit();
 
     switch (self.kind) {
-        .label => try out.writer().print("BB{}:\n", .{self.uid}),
+        .label => try out.writer().print("Label{}:\n", .{self.uid}),
         .load_int => {
             try out.writer().print("    {} := {}\n", .{ self.dest.?, self.data.int });
         },
@@ -408,43 +389,6 @@ fn print_lval_list(
             try writer.print(", ", .{});
         }
     }
-}
-
-/// This function is O(n) in terms of Self between start and stop
-pub fn get_latest_def_after(start_at_instr: *Self, symbol: *Symbol, stop_at_instr: ?*Self) ?*Self {
-    var maybe_instr: ?*Self = start_at_instr;
-    var retval: ?*Self = null;
-    while (maybe_instr != null and maybe_instr != stop_at_instr) : (maybe_instr = maybe_instr.?.next) {
-        var instr: *Self = maybe_instr.?;
-        if (instr.dest != null and instr.dest.?.* == .select and instr.dest.?.extract_symbver().symbol == symbol) {
-            return null;
-        } else if (instr.dest != null and instr.dest.?.* == .index and instr.dest.?.extract_symbver().symbol == symbol) {
-            return null;
-        } else if (instr.dest != null and instr.dest.?.* == .symbver and instr.dest.?.symbver.symbol == symbol) {
-            retval = instr;
-        } else if (instr.kind == .mut_addr_of and instr.src1.?.extract_symbver().symbol == symbol) {
-            retval = null;
-        }
-    }
-    return retval;
-}
-
-// This function is O(n)
-pub fn any_def_after(start_at_instr: *Self, symbol: *Symbol, stop_at_instr: ?*Self) ?*Self {
-    var maybe_instr: ?*Self = start_at_instr;
-    while (maybe_instr != null and maybe_instr != stop_at_instr) : (maybe_instr = maybe_instr.?.next) {
-        var instr: *Self = maybe_instr.?;
-        if (instr.dest != null and instr.dest.?.* == .select and instr.dest.?.extract_symbver().symbol == symbol) {
-            return instr;
-        } else if (instr.dest != null and instr.dest.?.* == .index and instr.dest.?.extract_symbver().symbol == symbol) {
-            return instr;
-        } else if (instr.kind == .mut_addr_of and instr.src1.?.extract_symbver().symbol == symbol) {
-            return instr;
-        } else if (instr.dest != null and instr.dest.?.* == .symbver and instr.dest.?.symbver.symbol == symbol) {
-            return instr;
-        }
-    }
-    return null;
 }
 
 pub const Kind = enum {
@@ -663,7 +607,7 @@ pub const Data = union(enum) {
     int: i128,
     float: f64,
     string_id: String_Idx,
-    cfg: ?*CFG, // Used by the interpreter to know how much space to leave for a CFGs locals
+    cfg: ?*CFG, // Used by the interpreter to know how much space to leave for a CFGs locals TODO: Fix!
     string: []const u8,
     symbol: *Symbol,
     lval_list: std.ArrayList(*lval_.L_Value),

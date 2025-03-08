@@ -132,8 +132,7 @@ pub fn clear_visited_BBs(
 /// Fills in a the `symbvers` list with the symbol versions which are used in the Self
 pub fn collect_generated_symbvers(self: *Self) void {
     for (self.basic_blocks.items) |bb| {
-        var maybe_instr = bb.instr_head;
-        while (maybe_instr) |instr| : (maybe_instr = instr.next) {
+        for (bb.instructions.items) |instr| {
             if (instr.dest != null and
                 instr.dest.?.extract_symbver().find_symbol_version_set(&self.parameters) == null)
             {
@@ -143,103 +142,66 @@ pub fn collect_generated_symbvers(self: *Self) void {
     }
 }
 
-/// Appends an Instruction instruction to the end of a Self's temporary instruction list
-pub fn append_instruction(self: *Self, instr: *Instruction) void {
-    if (self.instr_head == null) {
-        self.instr_head = instr;
-    } else if (self.instr_tail == null) {
-        self.instr_head.?.next = instr;
-        self.instr_tail = instr;
-        self.instr_tail.?.prev = self.instr_head;
-    } else {
-        self.instr_tail.?.next = instr;
-        instr.prev = self.instr_tail;
-        self.instr_tail = instr;
-    }
-}
-
 /// Converts the list of Instruction to a web of BB's
-/// Also versions Instruction dest's if they are symbvers. This versioning should persist and should not be wiped.
-pub fn basic_block_from_instructions(self: *Self, maybe_instr: ?*Instruction, allocator: std.mem.Allocator) ?*Basic_Block {
-    // FIXME: High Cyclo
-    if (maybe_instr == null) {
+///
+/// ### Parameters
+/// - `self`: The CFG to fill the basic blocks for
+/// - `instructions`: The list of instructions to convert to basic blocks
+/// - `start_index`: The index into the instructions list to start the basic block at
+/// - `allocator`: The allocator to use for the basic blocks
+pub fn basic_block_from_instructions(self: *Self, instructions: std.ArrayList(*Instruction), start_index: ?usize, allocator: std.mem.Allocator) ?*Basic_Block {
+    if (instructions.items.len == 0 or start_index == null) {
         return null;
-    } else if (maybe_instr.?.in_block) |in_block| {
+    } else if (instructions.items[start_index.?].in_block) |in_block| {
         return in_block;
     }
-    var retval: *Basic_Block = Basic_Block.init(allocator);
-    self.basic_blocks.append(retval) catch unreachable; // TODO: If you just accept a list, you don't even need this function to be in Self!
-    retval.instr_head = maybe_instr;
-    var _maybe_instr = maybe_instr;
-    while (_maybe_instr) |instr| : (_maybe_instr = instr.next) {
-        // TODO: Too long
-        instr.in_block = retval;
 
+    // Create block without instructions yet
+    var block = Basic_Block.init(allocator);
+    self.basic_blocks.append(block) catch unreachable;
+
+    // Identify the end of the block
+    var end_index: usize = start_index.?;
+    while (end_index < instructions.items.len) {
+        const instr = instructions.items[end_index];
+        end_index += 1;
+        instr.in_block = block;
         if (instr.kind == .label) {
-            // If you find a label declaration, end this block and jump to new block
-            retval.has_branch = false;
-            retval.next = self.basic_block_from_instructions(instr.next, allocator);
-            instr.snip();
+            // Fallthrough to next basic block
+            const next_block = self.basic_block_from_instructions(instructions, end_index, allocator);
+            block.terminator = .{ .unconditional = next_block };
             break;
         } else if (instr.kind == .jump) {
-            // If you find a jump, end this block and start new block
-            retval.has_branch = false;
-            if (instr.data == .branch) {
-                if (instr.data.branch) |branch| {
-                    retval.next = self.basic_block_from_instructions(branch.next, allocator);
-                } else {
-                    retval.next = self.basic_block_from_instructions(null, allocator);
-                }
-            } else {
-                retval.next = null;
-            }
-            instr.snip();
+            // Unconditional jump to other block
+            const branch_next = instr.data.branch;
+            const bb_index = if (branch_next != null) std.mem.indexOfScalar(*Instruction, instructions.items, branch_next.?).? + 1 else null;
+            const next_block = self.basic_block_from_instructions(instructions, bb_index, allocator);
+            block.terminator = .{ .unconditional = next_block };
             break;
         } else if (instr.kind == .panic) {
-            // If you find a panic, end this block with null jump and start new block
-            retval.has_branch = false;
-            retval.next = null;
-            retval.has_panic = true;
-            if (instr.next != null and instr.next.?.next != null) {
-                instr.next.?.next.?.prev = null;
-                instr.next.?.next = null;
-            }
+            // Block ends in a panic
+            end_index += 1; // panics are kept as an instruction because they store the error message
+            block.terminator = .panic;
             break;
         } else if (instr.kind == .branch_if_false) {
-            // If you find a branch, end this block, start both blocks
-            retval.has_branch = true;
-            var branch_next: ?*Instruction = null; // = instr.data.branch.next;
-            // Since instr->branch->next may get nullifued by calling this function on instr->next
-            if (instr.data.branch) |branch| {
-                branch_next = branch.next;
-            } else {
-                branch_next = null;
-            }
-            retval.next = self.basic_block_from_instructions(instr.next, allocator);
-            retval.branch = self.basic_block_from_instructions(branch_next, allocator);
-            retval.condition = instr.src1;
-            instr.snip();
+            // Branch only if condition is false else fallthrough
+            const branch_next = instr.data.branch;
+            const false_target_index = if (branch_next != null) std.mem.indexOfScalar(*Instruction, instructions.items, branch_next.?).? + 1 else null;
+            const next_block = self.basic_block_from_instructions(instructions, end_index, allocator);
+            const branch_block = self.basic_block_from_instructions(instructions, false_target_index, allocator);
+            block.terminator = .{ .conditional = .{
+                .condition = instr.src1.?,
+                .true_target = next_block,
+                .false_target = branch_block,
+            } };
             break;
         }
     }
-    return retval;
-}
 
-/// Removes the last instruction from each basic-block of a Self.
-pub fn remove_last_instruction(
-    cfg: *Self,
-) void {
-    for (cfg.basic_blocks.items) |bb| {
-        if (bb.instr_head == null) {
-            continue;
-        } else if (bb.instr_head.?.next == null) {
-            bb.instr_head = null;
-        } else {
-            var maybe_instr: ?*Instruction = bb.instr_head;
-            while (maybe_instr.?.next != null) : (maybe_instr = maybe_instr.?.next) {}
-            maybe_instr.?.prev.?.next = null;
-        }
-    }
+    // Assign instructions to the block
+    block.instructions.appendSlice(instructions.items[start_index.? .. end_index - 1]) catch unreachable;
+
+    return block;
 }
 
 pub fn calculate_usage(cfg: *Self) void {
@@ -253,8 +215,7 @@ pub fn calculate_usage(cfg: *Self) void {
 
     for (cfg.basic_blocks.items) |bb| {
         // Clear all used flags
-        var maybe_instr: ?*Instruction = bb.instr_head;
-        while (maybe_instr) |instr| : (maybe_instr = instr.next) {
+        for (bb.instructions.items) |instr| {
             if (instr.dest != null) {
                 instr.dest.?.reset_usage();
             }
@@ -263,8 +224,7 @@ pub fn calculate_usage(cfg: *Self) void {
 
     for (cfg.basic_blocks.items) |bb| {
         // Go through and see if each symbol is used
-        var maybe_instr = bb.instr_head;
-        while (maybe_instr) |instr| : (maybe_instr = instr.next) {
+        for (bb.instructions.items) |instr| {
             if (instr.dest != null and instr.dest.?.* != .symbver) {
                 instr.dest.?.calculate_lval_usage();
             }
@@ -293,9 +253,9 @@ pub fn calculate_usage(cfg: *Self) void {
         }
 
         // Conditions are used
-        if (bb.has_branch) {
-            bb.condition.?.extract_symbver().uses += 1;
-            bb.condition.?.extract_symbver().symbol.uses += 1;
+        if (bb.terminator == .conditional) {
+            bb.terminator.conditional.condition.extract_symbver().uses += 1;
+            bb.terminator.conditional.condition.extract_symbver().symbol.uses += 1;
         }
     }
 }
@@ -304,8 +264,7 @@ pub fn calculate_definitions(cfg: *Self) void {
     // FIXME: High Cyclo
     for (cfg.basic_blocks.items) |bb| {
         // Reset all reachable symbol verison counts to 0
-        var maybe_instr: ?*Instruction = bb.instr_head;
-        while (maybe_instr) |instr| : (maybe_instr = instr.next) {
+        for (bb.instructions.items) |instr| {
             reset_defs(instr.dest);
             reset_defs(instr.src1);
             reset_defs(instr.src2);
@@ -327,8 +286,7 @@ pub fn calculate_definitions(cfg: *Self) void {
 
     for (cfg.basic_blocks.items) |bb| {
         // Go through sum up each definition
-        var maybe_instr: ?*Instruction = bb.instr_head;
-        while (maybe_instr) |instr| : (maybe_instr = instr.next) {
+        for (bb.instructions.items) |instr| {
             if (instr.dest != null) {
                 var symbver = instr.dest.?.extract_symbver();
                 symbver.def = instr;

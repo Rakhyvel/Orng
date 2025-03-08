@@ -100,6 +100,10 @@ pub fn get_scope(compiler: *Compiler_Context) !*Scope {
     return prelude.?;
 }
 
+pub fn deinit() void {
+    prelude = null;
+}
+
 fn create_prelude(compiler: *Compiler_Context) !void {
     // Create ASTs for primitives
     anyptr_type = create_anyptr_type_primitive(compiler.allocator());
@@ -407,8 +411,8 @@ fn create_prelude(compiler: *Compiler_Context) !void {
         compiler,
     );
 
-    package_type = module.top_level_scope().lookup("Package", .{}).found.init.?;
-    _ = module.top_level_scope().lookup("Requirement", .{}).found.init.?;
+    package_type = module.top_level_scope().lookup("Package", .{}).found.init_value.?;
+    _ = module.top_level_scope().lookup("Requirement", .{}).found.init_value.?;
     addr_package_type = ast_.AST.create_addr_of(package_type.token(), package_type, false, false, compiler.allocator());
 }
 

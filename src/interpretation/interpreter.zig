@@ -446,7 +446,7 @@ pub fn extract_ast(self: *Self, address: i64, _type: *ast_.AST, span: Span) erro
         .identifier => {
             const info = primitives_.info_from_name(_type.token().data);
             if (info == null) {
-                return try self.extract_ast(address, _type.symbol().?.init.?, span);
+                return try self.extract_ast(address, _type.symbol().?.init_value.?, span);
             }
             switch (info.?.type_kind) {
                 .type => {

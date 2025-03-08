@@ -9,7 +9,7 @@ const errs_ = @import("../util/errors.zig");
 const Interpreter_Context = @import("../interpretation/interpreter.zig");
 const ir_validate_ = @import("../semantic/ir-validate.zig");
 const Instruction = @import("../ir/instruction.zig");
-const lower_ = @import("../ir/lower.zig");
+const Lower_Context = @import("../ir/lower.zig");
 const offsets_ = @import("../hierarchy/offsets.zig");
 const optimizations_ = @import("../ir/optimizations.zig");
 const pipeline_ = @import("../util/pipeline.zig");
@@ -306,8 +306,7 @@ pub const Module = struct {
             }
 
             for (cfg.basic_blocks.items) |bb| {
-                var maybe_instr = bb.instr_head;
-                while (maybe_instr) |instr| : (maybe_instr = instr.next) {
+                for (bb.instructions.items) |instr| {
                     if (instr.dest != null) {
                         _ = self.type_set.add(instr.dest.?.get_expanded_type(), allocator);
                         _ = self.type_set.add(instr.dest.?.extract_symbver().symbol.expanded_type.?, allocator);
@@ -409,34 +408,37 @@ pub const Module = struct {
             label.uid = bb.uid;
             self.instructions.append(label) catch unreachable;
 
-            var maybe_instr = bb.instr_head;
-            while (maybe_instr) |instr| : (maybe_instr = instr.next) {
+            for (bb.instructions.items) |instr| {
                 self.instructions.append(instr) catch unreachable;
             }
 
-            if (bb.has_branch) {
-                if (bb.next) |next| {
-                    work_queue.append(next) catch unreachable;
-                }
-                if (bb.branch) |branch| {
-                    work_queue.append(branch) catch unreachable;
-                }
-                self.instructions.append(Instruction.init_branch_addr(
-                    bb.condition.?,
-                    bb.next,
-                    bb.branch,
-                    Span.phony,
-                    self.allocator,
-                )) catch unreachable;
-            } else {
-                if (bb.next) |next| {
-                    work_queue.append(next) catch unreachable;
-                }
-                self.instructions.append(Instruction.init_jump_addr(
-                    bb.next,
-                    Span.phony,
-                    self.allocator,
-                )) catch unreachable;
+            switch (bb.terminator) {
+                .unconditional => {
+                    if (bb.terminator.unconditional) |next| {
+                        work_queue.append(next) catch unreachable;
+                    }
+                    self.instructions.append(Instruction.init_jump_addr(
+                        bb.terminator.unconditional,
+                        Span.phony,
+                        self.allocator,
+                    )) catch unreachable;
+                },
+                .conditional => {
+                    if (bb.terminator.conditional.true_target) |next| {
+                        work_queue.append(next) catch unreachable;
+                    }
+                    if (bb.terminator.conditional.false_target) |branch| {
+                        work_queue.append(branch) catch unreachable;
+                    }
+                    self.instructions.append(Instruction.init_branch_addr(
+                        bb.terminator.conditional.condition,
+                        bb.terminator.conditional.true_target,
+                        bb.terminator.conditional.false_target,
+                        Span.phony,
+                        self.allocator,
+                    )) catch unreachable;
+                },
+                .panic => {},
             }
         }
         return first_bb.offset.?;
@@ -486,7 +488,7 @@ pub const Module = struct {
     /// Returns the scope that contains this module's top-level definitions
     /// TODO: Remove from module, pass around as needed
     pub fn top_level_scope(self: *Module) *Scope {
-        return self.symbol.init.?.scope().?;
+        return self.symbol.init_value.?.scope().?;
     }
 
     pub fn print_instructions(self: *Module) void {
@@ -502,7 +504,7 @@ pub fn get_cfg(
     caller: ?*CFG,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) lower_.Lower_Errors!*CFG {
+) Lower_Context.Lower_Errors!*CFG {
     std.debug.assert(symbol.kind == .@"fn" or symbol.kind == .@"comptime");
     std.debug.assert(symbol.validation_state == .valid);
     if (symbol.init_validation_state == .validating) {
@@ -515,7 +517,8 @@ pub fn get_cfg(
     if (symbol.cfg == null) {
         symbol.cfg = CFG.init(symbol, caller, allocator);
         // TODO: These should be steps in a pipeline
-        try lower_.lower_AST_into_cfg(symbol.cfg.?, errors, allocator);
+        var lower_context = Lower_Context.init(symbol.cfg.?, errors, allocator);
+        try lower_context.lower_AST_into_cfg();
         try ir_validate_.validate_cfg(symbol.cfg.?, errors);
         try optimizations_.optimize(symbol.cfg.?, errors, allocator);
         symbol.cfg.?.collect_generated_symbvers();

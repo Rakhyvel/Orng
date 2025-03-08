@@ -159,6 +159,6 @@ fn resolve_import(self: Self, ast: *ast_.AST) walker_.Error!*Symbol {
             else => std.debug.panic("compiler error: this shouldn't be reachable\n", .{}),
         };
     }
-    self.module.local_imported_modules.put(import_symbol.init.?.module.module, void{}) catch unreachable;
+    self.module.local_imported_modules.put(import_symbol.init_value.?.module.module, void{}) catch unreachable;
     return import_symbol;
 }

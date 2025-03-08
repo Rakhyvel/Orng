@@ -21,13 +21,13 @@ pub fn package_find(compiler: *Compiler_Context, interpreter: *Interpreter_Conte
     const required_package_paths = [_][]const u8{ current_package, package_path };
     const required_package_path = std.fs.path.join(compiler.allocator(), &required_package_paths) catch unreachable;
 
-    const package_buffer = compiler.allocator().alloc(u8, std.fs.MAX_PATH_BYTES) catch unreachable;
+    const package_buffer = compiler.allocator().alloc(u8, std.fs.max_path_bytes) catch unreachable;
     const package_absolute_path = std.fs.cwd().realpath(required_package_path, package_buffer) catch return error.CompileError;
 
     const package_build_paths = [_][]const u8{ package_absolute_path, "build.orng" };
     const package_build_path = std.fs.path.join(compiler.allocator(), &package_build_paths) catch unreachable;
 
-    const path_buffer = compiler.allocator().alloc(u8, std.fs.MAX_PATH_BYTES) catch unreachable;
+    const path_buffer = compiler.allocator().alloc(u8, std.fs.max_path_bytes) catch unreachable;
     const package_build_absolute_path = std.fs.cwd().realpath(package_build_path, path_buffer) catch return error.CompileError;
 
     // Compile the package's `build.orng` file

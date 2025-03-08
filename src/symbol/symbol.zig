@@ -34,7 +34,7 @@ name: []const u8,
 span: Span,
 _type: *ast_.AST,
 expanded_type: ?*ast_.AST,
-init: ?*ast_.AST,
+init_value: ?*ast_.AST,
 kind: Kind,
 cfg: ?*CFG,
 decl: ?*ast_.AST,
@@ -71,7 +71,7 @@ pub fn init(
     retval.span = span;
     retval._type = _type;
     retval.expanded_type = null;
-    retval.init = _init;
+    retval.init_value = _init;
     retval.decl = decl;
     retval.is_alias = if (decl != null and decl.?.* == .decl) decl.?.decl.is_alias else false;
     retval.aliases = 0;

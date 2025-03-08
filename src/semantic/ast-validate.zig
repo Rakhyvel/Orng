@@ -102,20 +102,20 @@ pub fn validate_symbol(symbol: *Symbol, compiler: *Compiler_Context) Validate_Er
                     return error.CompileError;
                 },
                 // Allow these inits to be non-comptime, since they're interpreted at comptime anyway
-                .@"fn", .@"comptime", .@"const" => symbol.init.?.common().ok_for_comptime = true,
+                .@"fn", .@"comptime", .@"const" => symbol.init_value.?.common().ok_for_comptime = true,
                 else => {},
             }
         }
         const expected: ?*ast_.AST = if (symbol.kind == .@"fn" or symbol.kind == .@"comptime") symbol._type.rhs() else symbol._type;
         // std.debug.print("validating init for: {s}\n", .{symbol.name});
-        if (symbol.init) |init| {
+        if (symbol.init_value) |init| {
             // might be null for parameters
-            symbol.init = validate_AST(init, expected, compiler);
+            symbol.init_value = validate_AST(init, expected, compiler);
         }
         // std.debug.print("init for: {s}: {?}\n", .{ symbol.name, symbol.init });
         if (symbol.kind == .trait) {
             try validate_trait(symbol, compiler);
-        } else if (symbol.init != null and symbol.init.?.* == .poison) {
+        } else if (symbol.init_value != null and symbol.init_value.?.* == .poison) {
             symbol.validation_state = .invalid;
             symbol.init_validation_state = .invalid;
             return error.CompileError;
@@ -1533,15 +1533,15 @@ fn assert_none_poisoned(value: anytype) Validate_Error_Enum!void {
             }
         }
     } else switch (@typeInfo(T)) {
-        .Struct => |info| {
+        .@"struct" => |info| {
             inline for (info.fields) |f| {
                 try assert_none_poisoned(@field(value, f.name));
             }
         },
-        .Optional => if (value != null and value.?.* == .poison) return error.CompileError,
-        .Pointer => |info| switch (info.size) {
-            .One => if (value.* == .poison) return error.CompileError,
-            .Slice => for (value) |f| {
+        .optional => if (value != null and value.?.* == .poison) return error.CompileError,
+        .pointer => |info| switch (info.size) {
+            .one => if (value.* == .poison) return error.CompileError,
+            .slice => for (value) |f| {
                 try assert_none_poisoned(f);
             },
             else => unreachable,

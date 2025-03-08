@@ -69,7 +69,7 @@ fn resolve_access_symbol(self: Self, lhs: *Symbol, rhs: *ast_.AST, scope: *Scope
         else => std.debug.panic("unsupported: {}\n", .{lhs.kind}),
 
         .module => {
-            const module_lookup_res = lhs.init.?.scope().?.lookup(
+            const module_lookup_res = lhs.init_value.?.scope().?.lookup(
                 rhs.token().data,
                 .{},
             );
@@ -81,7 +81,7 @@ fn resolve_access_symbol(self: Self, lhs: *Symbol, rhs: *ast_.AST, scope: *Scope
                             .span = rhs.token().span,
                             .identifier = rhs.token().data,
                             .name = "module",
-                            .group = lhs.init.?,
+                            .group = lhs.init_value.?,
                         },
                     });
                     return error.CompileError;
@@ -116,17 +116,17 @@ fn resolve_access_symbol(self: Self, lhs: *Symbol, rhs: *ast_.AST, scope: *Scope
         },
 
         .import_inner => {
-            return try self.resolve_access_symbol(try self.resolve_qualified_name(lhs.init.?), rhs, scope);
+            return try self.resolve_access_symbol(try self.resolve_qualified_name(lhs.init_value.?), rhs, scope);
         },
 
         .@"const" => {
-            access_result = scope.lookup_impl_member(lhs.init.?, rhs.token().data);
+            access_result = scope.lookup_impl_member(lhs.init_value.?, rhs.token().data);
             if (access_result == null) {
                 self.compiler.errors.add_error(errs_.Error{
                     .type_not_impl_method = .{
                         .span = rhs.token().span,
                         .method_name = rhs.token().data,
-                        ._type = lhs.init.?,
+                        ._type = lhs.init_value.?,
                     },
                 });
                 return error.CompileError;

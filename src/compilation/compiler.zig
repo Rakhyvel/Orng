@@ -63,7 +63,7 @@ pub fn allocator(self: *Self) std.mem.Allocator {
 
 pub fn compile_build_file(self: *Self, absolute_path: []const u8) Error!*CFG {
     const build_module = try self.compile_module(absolute_path, "build", false);
-    return build_module.init.?.scope().?.lookup("build", .{}).found.cfg.?;
+    return build_module.init_value.?.scope().?.lookup("build", .{}).found.cfg.?;
 }
 
 /// Compiles a module from a file
@@ -137,7 +137,7 @@ pub fn output_modules(self: *Self) !void {
     // Start from root module, of each package, DFS through imports and generate
     for (self.packages.keys()) |package_name| {
         const package = self.lookup_package(package_name).?;
-        const module = package.root.init.?.module.module;
+        const module = package.root.init_value.?.module.module;
 
         const package_path = module.get_package_abs_path();
         const build_paths = [_][]const u8{ package_path, "build" };

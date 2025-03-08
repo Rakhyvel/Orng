@@ -574,20 +574,30 @@ fn output_basic_block(
         }
 
         // Output Instruction instructions for the basic-block
-        var maybe_instr = bb.instr_head;
-        while (maybe_instr) |instr| : (maybe_instr = instr.next) {
+        for (bb.instructions.items) |instr| {
             try output_instruction(instr, writer);
         }
 
-        if (!bb.has_panic) {
-            if (bb.has_branch) {
+        switch (bb.terminator) {
+            .unconditional => {
+                if (bb.terminator.unconditional) |next| {
+                    if (!next.visited) {
+                        bb_queue.append(next) catch unreachable;
+                        next.visited = true;
+                    }
+                    try writer.print("    goto BB{};\n", .{next.uid});
+                } else {
+                    try output_return(return_symbol, writer);
+                }
+            },
+            .conditional => {
                 // Generate the if
                 try writer.print("    if (", .{});
-                try output_rvalue(bb.condition.?, HIGHEST_PRECEDENCE, writer);
+                try output_rvalue(bb.terminator.conditional.condition, HIGHEST_PRECEDENCE, writer);
                 try writer.print(") {{\n", .{});
 
                 // Generate the `next` BB
-                if (bb.next) |next| {
+                if (bb.terminator.conditional.true_target) |next| {
                     try writer.print("        goto BB{};\n    }}", .{next.uid});
                     if (!next.visited) {
                         bb_queue.append(next) catch unreachable;
@@ -600,7 +610,7 @@ fn output_basic_block(
                 }
 
                 // Generate the `branch` BB if it isn't the next one up
-                if (bb.branch) |branch| {
+                if (bb.terminator.conditional.false_target) |branch| {
                     if (!branch.visited) {
                         bb_queue.append(branch) catch unreachable;
                         branch.visited = true;
@@ -611,17 +621,8 @@ fn output_basic_block(
                     try output_return(return_symbol, writer);
                     try writer.print("    }}\n", .{});
                 }
-            } else {
-                if (bb.next) |next| {
-                    if (!next.visited) {
-                        bb_queue.append(next) catch unreachable;
-                        next.visited = true;
-                    }
-                    try writer.print("    goto BB{};\n", .{next.uid});
-                } else {
-                    try output_return(return_symbol, writer);
-                }
-            }
+            },
+            .panic => {},
         }
     }
 }

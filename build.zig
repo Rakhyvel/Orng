@@ -2,7 +2,7 @@ const std = @import("std");
 
 // Have to live on the edge because of ZLS >:-(
 pub fn build(b: *std.Build) void {
-    const target = b.host;
+    const target = b.graph.host;
     const optimize = b.standardOptimizeOption(.{});
 
     executable(b, optimize, target, "orng-test", "src/test.zig", "orng-test", "Runs the integration tests");

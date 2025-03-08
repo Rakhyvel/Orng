@@ -2,6 +2,7 @@ const std = @import("std");
 const Compiler_Context = @import("compilation/compiler.zig");
 const exec = @import("util/exec.zig").exec;
 const module_ = @import("hierarchy/module.zig");
+const primitives_ = @import("hierarchy/primitives.zig");
 const Read_File = @import("lexer/read_file.zig");
 const String = @import("zig-string/zig-string.zig").String;
 const term_ = @import("util/term.zig");
@@ -96,10 +97,8 @@ fn integrate_test_file(filename: []const u8, coverage: bool) bool {
     const absolute_filename = std.fs.cwd().realpathAlloc(allocator, filename) catch unreachable;
     // Try to compile Orng (make sure no errors)
     var debug_alloc = std.heap.GeneralPurposeAllocator(.{ .never_unmap = true, .safety = true }){};
-    errdefer {
-        _ = debug_alloc.deinit();
-    }
     var compiler = Compiler_Context.init(debug_alloc.allocator()) catch unreachable;
+    defer primitives_.deinit();
     var contents = Read_File.init(compiler.allocator()).run(absolute_filename) catch unreachable;
     const new_line_idx = until_newline(contents);
     if (new_line_idx < 3) {
@@ -181,11 +180,9 @@ fn negative_test_file(filename: []const u8, coverage: bool) bool {
 
     const absolute_filename = std.fs.cwd().realpathAlloc(allocator, filename) catch unreachable;
     // Try to compile Orng (make sure no errors)
-    var debug_alloc = std.heap.GeneralPurposeAllocator(.{ .never_unmap = true, .safety = true }){};
-    errdefer {
-        _ = debug_alloc.deinit();
-    }
+    var debug_alloc = std.heap.GeneralPurposeAllocator(.{ .never_unmap = false, .safety = true }){};
     var compiler = Compiler_Context.init(debug_alloc.allocator()) catch unreachable;
+    defer primitives_.deinit();
 
     // Try to compile Orng (make sure YES errors)
     _ = module_.Module.compile(absolute_filename, "main", false, compiler) catch |err| {
@@ -267,13 +264,11 @@ fn fuzz_tests() !void { // TODO: Uninfer error
 
             std.debug.print("{}: {s}\n", .{ i, program_text });
             // Feed to Orng compiler (specifying fuzz tokens) to compile to fuzz-get_std_out().c
-            var debug_alloc = std.heap.GeneralPurposeAllocator(.{ .never_unmap = true, .safety = true }){};
-            errdefer {
-                _ = debug_alloc.deinit();
-            }
+            var debug_alloc = std.heap.GeneralPurposeAllocator(.{ .never_unmap = false, .safety = true }){};
             var arena_alloc = std.heap.ArenaAllocator.init(debug_alloc.allocator());
             errdefer arena_alloc.deinit();
             var compiler = Compiler_Context.init(arena_alloc.allocator()) catch unreachable;
+            defer primitives_.deinit();
             defer compiler.deinit();
             var lines = std.ArrayList([]const u8).init(allocator);
             defer lines.deinit();

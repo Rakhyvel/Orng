@@ -48,11 +48,11 @@ fn ProcessResult(comptime PipelineType: type, comptime InitialType: type, compti
 
     const Step_Type = fields[i].type;
     const RunFnType = @TypeOf(Step_Type.run);
-    const fn_info = @typeInfo(RunFnType).Fn;
+    const fn_info = @typeInfo(RunFnType).@"fn";
     // Get the return type, extracting from error union if needed
     const return_type = fn_info.return_type.?;
     return switch (@typeInfo(return_type)) {
-        .ErrorUnion => |eu| eu.payload,
+        .error_union => |eu| eu.payload,
         else => return_type,
     };
 }

@@ -40,8 +40,7 @@ fn propagate(cfg: *CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) err
         var def_map = std.AutoArrayHashMap(*Symbol_Version, ?*Instruction).init(allocator);
         defer def_map.deinit();
 
-        var maybe_instr = bb.instr_head;
-        while (maybe_instr) |instr| : (maybe_instr = instr.next) {
+        for (bb.instructions.items) |instr| {
             // Walk through Instruction in BB, update map of src1 and src2 defs
             const src1_def: ?*Instruction = if (instr.src1 != null and instr.src1.?.* == .symbver) def_map.get(instr.src1.?.symbver) orelse null else null;
             const src2_def: ?*Instruction = if (instr.src2 != null and instr.src2.?.* == .symbver) def_map.get(instr.src2.?.symbver) orelse null else null;
@@ -56,11 +55,12 @@ fn propagate(cfg: *CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) err
                 def_map.put(instr.dest.?.symbver, instr) catch unreachable;
             }
         }
-        if (bb.has_branch and bb.condition.?.* == .symbver) {
-            const cond_def: ?*Instruction = def_map.get(bb.condition.?.symbver) orelse null;
-            bb.condition.?.symbver.def = cond_def;
-            if (cond_def != null and cond_def.?.kind == .copy) {
-                bb.condition = cond_def.?.src1;
+        bb.remove_marked_instrs();
+        if (bb.terminator == .conditional and bb.terminator.conditional.condition.* == .symbver) {
+            const cond_def: ?*Instruction = def_map.get(bb.terminator.conditional.condition.symbver) orelse null;
+            bb.terminator.conditional.condition.symbver.def = cond_def;
+            if (cond_def != null and cond_def.?.kind == .copy and cond_def.?.src1 != null) {
+                bb.terminator.conditional.condition = cond_def.?.src1.?;
                 retval = true;
             }
         }
@@ -79,14 +79,14 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
             const src1_def_is_ast = src1_def != null and src1_def.?.kind == .load_AST;
             if (instr.src1 == null or (instr.src1.?.expanded_type_sizeof() == 0 and !src1_def_is_ast)) {
                 logfln("unit-copy elimination {?}", .{instr.src1.?.expanded_type_sizeof()});
-                instr.in_block.?.remove_instruction(instr);
+                instr.removed = true; // Mark for deletion in a later pass
             } else if (instr.dest.?.* == .symbver and
                 instr.src1.?.* == .symbver and
                 instr.dest.?.symbver.symbol == instr.src1.?.symbver.symbol and
                 src1_def != null)
             {
                 log("self-copy elimination");
-                instr.in_block.?.remove_instruction(instr);
+                instr.removed = true; // Mark for deletion in a later pass
                 retval = true;
             } else {
                 logfln("copy-propagation {?}", .{src1_def});
@@ -460,7 +460,7 @@ fn copy_of_prop(instr: *Instruction, src: *?*lval_.L_Value, src_def: ?*Instructi
         (src_def.?.dest.?.* != .symbver or src_def.?.src1.?.extract_symbver() != src_def.?.dest.?.extract_symbver()) // prevent self-copy
     ) {
         // Find recent version of what src's definition copies
-        const src_def_redefinition = src_def.?.next.?.any_def_after(src_def.?.src1.?.symbver.symbol, instr);
+        const src_def_redefinition = src_def.?.in_block.?.any_def_after(src_def.?, src_def.?.src1.?.symbver.symbol, instr);
         if (src_def_redefinition == null) {
             // there is no re-definition in between src's definition and this Instruction, safe to copy-propagate
             logfln("copy-of propagation: {?} => {?} {}", .{ src, src_def.?.src1, instr });
@@ -539,8 +539,7 @@ fn remove_unused_defs(cfg: *CFG) bool {
     cfg.calculate_definitions();
 
     for (cfg.basic_blocks.items) |bb| {
-        var maybe_instr: ?*Instruction = bb.instr_head;
-        while (maybe_instr) |instr| : (maybe_instr = instr.next) {
+        for (bb.instructions.items) |instr| {
             if (instr.dest != null and
                 !instr.removed and
                 instr.dest.?.* == .symbver and
@@ -548,16 +547,15 @@ fn remove_unused_defs(cfg: *CFG) bool {
                 instr.dest.?.symbver.symbol.uses == 0 and
                 instr.dest.?.symbver.symbol != cfg.return_symbol)
             {
-                if (debug) {
-                    std.debug.print("removing: {}", .{instr});
-                }
+                logfln("removing: {}", .{instr});
                 if (instr.kind != .call and instr.kind != .invoke) {
                     // Calls and invokes may have side-effects, do not remove them!
-                    bb.remove_instruction(instr);
+                    instr.removed = true;
                     retval = true;
                 }
             }
         }
+        bb.remove_marked_instrs();
     }
 
     return retval;
@@ -584,46 +582,27 @@ fn bb_optimizations(cfg: *CFG, allocator: std.mem.Allocator) bool {
     for (cfg.basic_blocks.items) |bb| {
         // TODO: Too long
         // Adopt basic blocks with only one incoming block
-        if (bb.next != null and bb.instr_head != null and !bb.has_branch and bb.next.?.number_predecessors == 1) {
+        if (bb.terminator == .unconditional and !bb.empty() and bb.terminator.unconditional != null and bb.terminator.unconditional.?.number_predecessors == 1) {
             var log_msg = String.init(allocator);
             defer log_msg.deinit();
-            log_msg.writer().print("adopt BB{} into BB{}", .{ bb.next.?.uid, bb.uid }) catch unreachable;
+            log_msg.writer().print("adopt BB{} into BB{}", .{ bb.terminator.unconditional.?.uid, bb.uid }) catch unreachable;
             defer log_optimization_pass(log_msg.str(), cfg);
-            var end: *Instruction = bb.instr_head.?.get_tail();
-
-            // Join next block at the end of this block
-            end.next = bb.next.?.instr_head;
-            if (bb.next.?.instr_head != null) {
-                bb.next.?.instr_head.?.prev = end;
-            }
-
-            // Copy basic block end conditions
-            bb.has_branch = bb.next.?.has_branch;
-            bb.branch = bb.next.?.branch;
-            bb.condition = bb.next.?.condition;
-
-            var maybe_child: ?*Instruction = bb.next.?.instr_head;
-            while (maybe_child) |child| : (maybe_child = child.next) {
-                child.in_block = bb;
-            }
-
-            // Remove the next block
-            cfg.remove_basic_block(bb.next.?);
-            bb.next = bb.next.?.next;
+            cfg.remove_basic_block(bb.terminator.unconditional.?);
+            bb.merge_with(bb.terminator.unconditional.?);
             retval = true;
             break;
         }
 
-        if (bb.has_branch and bb.condition.?.* == .symbver) {
-            const latest_condition = bb.condition.?.symbver.def; // This is set by `propagate()`
+        if (bb.terminator == .conditional and bb.terminator.conditional.condition.* == .symbver) {
+            const latest_condition = bb.terminator.conditional.condition.symbver.def; // This is set by `propagate()`
             // Convert constant true/false branches to jumps
             if (latest_condition != null and latest_condition.?.kind == .load_int) {
                 defer log_optimization_pass("convert constant true/false to jumps", cfg);
-                bb.has_branch = false;
-                if (bb.condition.?.symbver.def.?.data.int == 0) {
-                    bb.next = bb.branch;
+                if (bb.terminator.conditional.condition.symbver.def.?.data.int == 0) {
+                    bb.terminator = .{ .unconditional = bb.terminator.conditional.false_target };
+                } else {
+                    bb.terminator = .{ .unconditional = bb.terminator.conditional.true_target };
                 }
-                bb.branch = null;
                 retval = true;
             }
             // Flip labels if branch condition is negation, plunge negation
@@ -631,10 +610,10 @@ fn bb_optimizations(cfg: *CFG, allocator: std.mem.Allocator) bool {
                 latest_condition.?.src1.?.symbver.def != null // prevents a loop if a function parameter (which are without a def) is neg'd
             ) {
                 defer log_optimization_pass("flip not condition", cfg);
-                const old_branch = bb.branch.?;
-                bb.branch = bb.next;
-                bb.next = old_branch;
-                bb.condition = latest_condition.?.src1;
+                const old_branch = bb.terminator.conditional.false_target;
+                bb.terminator.conditional.false_target = bb.terminator.conditional.true_target;
+                bb.terminator.conditional.true_target = old_branch;
+                bb.terminator.conditional.condition = latest_condition.?.src1.?;
                 retval = true;
             }
         }
@@ -649,63 +628,67 @@ fn bb_optimizations(cfg: *CFG, allocator: std.mem.Allocator) bool {
         // with:
         //   BB1():
         //       jump BB3()
-        if (bb.next) |next_bb| {
-            if (next_bb.instr_head == null and
-                !next_bb.has_branch and
+        if (bb.terminator == .unconditional and bb.terminator.unconditional != null) {
+            const next_bb = bb.terminator.unconditional.?;
+            if (next_bb.empty() and
+                next_bb.terminator == .unconditional and
                 next_bb != bb and
-                next_bb.next != bb and
-                (next_bb.next == null or next_bb.next.?.next != next_bb))
+                next_bb.terminator.unconditional != bb and
+                (next_bb.terminator.unconditional == null or (next_bb.terminator.unconditional.?.terminator == .unconditional and next_bb.terminator.unconditional.?.terminator.unconditional != next_bb)))
             {
                 var s = String.init(allocator);
                 s.writer().print("remove jump chain BB{}", .{next_bb.uid}) catch unreachable;
                 defer s.deinit();
                 defer log_optimization_pass(s.str(), cfg);
-                bb.next = next_bb.next;
+                bb.terminator.unconditional = next_bb.terminator.unconditional;
+                retval = true;
+            }
+        } // TODO: Generalize and do for unconditional jumps too
+
+        if (bb.terminator == .conditional and bb.terminator.conditional.false_target != null) {
+            const branch = bb.terminator.conditional.false_target.?;
+            if (branch.empty() and branch.terminator == .unconditional) {
+                bb.terminator.conditional.false_target = branch.terminator.unconditional;
                 retval = true;
             }
         }
 
-        if (bb.branch) |branch| {
-            if (branch.instr_head == null and !branch.has_branch) {
-                bb.branch = branch.next;
-                retval = true;
-            }
-        }
-
-        if (bb.has_branch and bb.branch == bb.next) {
-            bb.has_branch = false;
+        // If a conditional branch has the same target for both true and false, convert to unconditional
+        if (bb.terminator == .conditional and bb.terminator.conditional.true_target == bb.terminator.conditional.false_target) {
+            bb.terminator = .{ .unconditional = bb.terminator.conditional.true_target };
             retval = true;
         }
 
         // If next is a branch that depends on a known arugment
-        if (bb.next) |next| {
-            if (next.has_branch and next.instr_head == null and next.condition.?.* == .symbver) {
+        if (bb.terminator == .unconditional and bb.terminator.unconditional != null) {
+            const next = bb.terminator.unconditional.?;
+            if (next.terminator == .conditional and next.empty() and next.terminator.conditional.condition.* == .symbver) {
                 defer log_optimization_pass("next depends on known argument", cfg);
-                const def = bb.get_latest_def(next.condition.?, null);
+                const def = bb.get_latest_def(next.terminator.conditional.condition, null);
                 if (def != null and def.?.kind == .load_int) {
                     if (def.?.data.int == 0) {
-                        bb.next = next.branch;
+                        bb.terminator.unconditional = next.terminator.conditional.false_target;
                     } else {
-                        bb.next = next.next;
+                        bb.terminator.unconditional = next.terminator.conditional.true_target;
                     }
                 }
             }
         }
 
         // If branch is a branch that depends on a known arugment
-        if (bb.has_branch and
-            bb.branch != null and
-            bb.branch.?.has_branch and
-            bb.branch.?.instr_head == null and
-            bb.branch.?.condition.?.* == .symbver)
+        if (bb.terminator == .conditional and
+            bb.terminator.conditional.false_target != null and
+            bb.terminator.conditional.false_target.?.terminator == .conditional and
+            bb.terminator.conditional.false_target.?.empty() and
+            bb.terminator.conditional.false_target.?.terminator.conditional.condition.* == .symbver)
         {
             defer log_optimization_pass("branch depends on known argument", cfg);
-            const def = bb.get_latest_def(bb.branch.?.condition.?, null);
+            const def = bb.get_latest_def(bb.terminator.conditional.false_target.?.terminator.conditional.condition, null);
             if (def != null and def.?.kind == .load_int) {
                 if (def.?.data.int == 0) {
-                    bb.branch = bb.branch.?.branch;
+                    bb.terminator.conditional.false_target = bb.terminator.conditional.false_target.?.terminator.conditional.false_target;
                 } else {
-                    bb.branch = bb.branch.?.next;
+                    bb.terminator.conditional.false_target = bb.terminator.conditional.false_target.?.terminator.conditional.true_target;
                 }
             }
         }
@@ -713,9 +696,11 @@ fn bb_optimizations(cfg: *CFG, allocator: std.mem.Allocator) bool {
 
     // Rebase block graph if jump chain
     if (cfg.block_graph_head) |head| {
-        if (head.instr_head == null and !head.has_branch and head != cfg.block_graph_head) {
+        // TODO: For this optimization to truly be effective, we'll need to see that `head` is not apart of its precedessor set
+        // It's not a very important optimization though, totally cosmetic
+        if (head.empty() and head.terminator == .unconditional and head.terminator.unconditional != head and head.number_predecessors == 0) {
             defer log_optimization_pass("rebase block", cfg);
-            cfg.block_graph_head = head.next;
+            cfg.block_graph_head = head.terminator.unconditional;
             retval = true;
         }
     }
@@ -728,6 +713,7 @@ fn log_optimization_pass(msg: []const u8, cfg: *CFG) void {
     if (debug) {
         std.debug.print("[OPTIMIZATION] {s}\n", .{msg});
         if (cfg.block_graph_head) |block_head| {
+            cfg.clear_visited_BBs();
             block_head.pprint();
             cfg.clear_visited_BBs();
             log("\n\n");

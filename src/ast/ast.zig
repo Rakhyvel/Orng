@@ -2292,8 +2292,8 @@ pub const AST = union(enum) {
 
     /// Expands an ast one level if it is an identifier
     pub fn expand_identifier(self: *AST) *AST {
-        if ((self.* == .identifier or self.* == .access) and self.symbol().?.init != null) {
-            const init = self.symbol().?.init.?;
+        if ((self.* == .identifier or self.* == .access) and self.symbol().?.init_value != null) {
+            const init = self.symbol().?.init_value.?;
             return init;
         } else {
             return self;
@@ -2318,12 +2318,12 @@ pub const AST = union(enum) {
         switch (self.*) {
             .access, .identifier => {
                 const _symbol = self.symbol().?;
-                if (_symbol.init == self) {
+                if (_symbol.init_value == self) {
                     return self;
-                } else if (_symbol.kind == .@"extern" and _symbol.init == null) {
+                } else if (_symbol.kind == .@"extern" and _symbol.init_value == null) {
                     return self;
                 } else {
-                    return _symbol.init.?.expand_type(allocator);
+                    return _symbol.init_value.?.expand_type(allocator);
                 }
             },
             .product => {
@@ -2778,9 +2778,9 @@ pub const AST = union(enum) {
     fn sizeof_internal(self: *AST) i64 {
         switch (self.*) {
             .identifier => {
-                if (self.symbol() != null and self.symbol().?.init != null and self.symbol().?.init.?.* != .identifier) {
-                    return self.symbol().?.init.?.sizeof();
-                } else if (self.symbol() != null and self.symbol().?.init == null and self.symbol().?.kind == .@"extern") {
+                if (self.symbol() != null and self.symbol().?.init_value != null and self.symbol().?.init_value.?.* != .identifier) {
+                    return self.symbol().?.init_value.?.sizeof();
+                } else if (self.symbol() != null and self.symbol().?.init_value == null and self.symbol().?.kind == .@"extern") {
                     return 4;
                 } else {
                     return primitives_.info_from_name(self.token().data).?.size;
@@ -2836,7 +2836,7 @@ pub const AST = union(enum) {
     /// Non-memoized slow-path of alignment calculation.
     fn alignof_internal(self: *AST) i64 {
         switch (self.*) {
-            .identifier => if (self.symbol() != null and self.symbol().?.init == null and self.symbol().?.kind == .@"extern") {
+            .identifier => if (self.symbol() != null and self.symbol().?.init_value == null and self.symbol().?.kind == .@"extern") {
                 return 4;
             } else {
                 return primitives_.info_from_name(self.token().data).?._align;

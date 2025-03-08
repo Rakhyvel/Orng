@@ -21,8 +21,7 @@ pub fn validate_cfg(cfg: *CFG, errors: *errs_.Errors) error{CompileError}!void {
     }
 
     for (cfg.basic_blocks.items) |bb| {
-        var maybe_instr: ?*Instruction = bb.instr_head;
-        while (maybe_instr) |instr| : (maybe_instr = instr.next) {
+        for (bb.instructions.items) |instr| {
             if (instr.dest != null and // has a dest symbol to test
                 instr.dest.?.* == .symbver and // dest is symbver
                 !instr.dest.?.symbver.symbol.is_temp and // dest symbver's symbol isn't temporary
