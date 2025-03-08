@@ -4,6 +4,7 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const Basic_Block = @import("../ir/basic-block.zig");
 const CFG = @import("../ir/cfg.zig");
+const cfg_builder_ = @import("../ir/cfg_builder.zig");
 const errs_ = @import("../util/errors.zig");
 const Instruction = @import("../ir/instruction.zig");
 const lval_ = @import("lval.zig");
@@ -645,7 +646,7 @@ fn lval_from_symbol_cfg(
     caller: *CFG,
     span: Span,
 ) Lower_Errors!*lval_.L_Value {
-    const callee_cfg = try module_.get_cfg(symbol, caller, self.errors, self.allocator);
+    const callee_cfg = try cfg_builder_.get_cfg(symbol, caller, self.errors, self.allocator);
     callee_cfg.needed_at_runtime = callee_cfg.needed_at_runtime or (caller.symbol.scope.inner_function.?.kind == .@"fn" or
         caller.symbol.scope.inner_function.?.kind == .trait);
     const lval = self.create_temp_lvalue(symbol._type);

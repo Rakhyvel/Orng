@@ -14,7 +14,7 @@ const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
-const validate_AST = @import("ast-validate.zig").validate_AST;
+const validate_AST = @import("ast_validate.zig").validate_AST;
 
 const Validate_Error_Enum = error{ LexerError, ParseError, CompileError };
 

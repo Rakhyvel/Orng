@@ -7,7 +7,7 @@ const errs_ = @import("../util/errors.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const Span = @import("../util/span.zig");
 const poison_ = @import("../ast/poison.zig");
-const validate_AST = @import("ast-validate.zig").validate_AST;
+const validate_AST = @import("ast_validate.zig").validate_AST;
 const typing_ = @import("typing.zig");
 
 const Validate_Error_Enum = error{ LexerError, ParseError, CompileError };

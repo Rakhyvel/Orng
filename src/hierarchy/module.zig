@@ -5,6 +5,7 @@ const ast_ = @import("../ast/ast.zig");
 const args_ = @import("../semantic/args.zig");
 const Basic_Block = @import("../ir/basic-block.zig");
 const CFG = @import("../ir/cfg.zig");
+const cfg_builder_ = @import("../ir/cfg_builder.zig");
 const codegen_ = @import("../codegen/codegen.zig");
 const Compiler_Context = @import("../compilation/compiler.zig");
 const errs_ = @import("../util/errors.zig");
@@ -234,7 +235,7 @@ pub const Module = struct {
                 continue;
             }
             // Instruction translation
-            const cfg = try get_cfg(symbol, null, &compiler.errors, compiler.allocator());
+            const cfg = try cfg_builder_.get_cfg(symbol, null, &compiler.errors, compiler.allocator());
             self.collect_cfgs(cfg);
 
             if (need_entry and std.mem.eql(u8, key, entry_name.?)) {
@@ -291,7 +292,7 @@ pub const Module = struct {
         for (self.impls.items) |impl| {
             for (impl.impl.method_defs.items) |def| {
                 const symbol = def.symbol().?;
-                const cfg = try get_cfg(symbol, null, &compiler.errors, compiler.allocator());
+                const cfg = try cfg_builder_.get_cfg(symbol, null, &compiler.errors, compiler.allocator());
                 self.collect_cfgs(cfg);
                 cfg.needed_at_runtime = true;
             }
@@ -499,150 +500,3 @@ pub const Module = struct {
         }
     }
 };
-
-// TODO: Move to own file
-pub fn get_cfg(
-    symbol: *Symbol,
-    caller: ?*CFG,
-    errors: *errs_.Errors,
-    allocator: std.mem.Allocator,
-) Lower_Context.Lower_Errors!*CFG {
-    std.debug.assert(symbol.kind == .@"fn" or symbol.kind == .@"comptime");
-    std.debug.assert(symbol.validation_state == .valid);
-    if (symbol.init_validation_state == .validating) {
-        errors.add_error(errs_.Error{ .recursive_definition = .{
-            .span = symbol.span,
-            .symbol_name = symbol.name,
-        } });
-        return error.CompileError;
-    }
-    if (symbol.cfg == null) {
-        symbol.cfg = CFG.init(symbol, caller, allocator);
-        // TODO: These should be steps in a pipeline
-        var lower_context = Lower_Context.init(symbol.cfg.?, errors, allocator);
-        try lower_context.lower_AST_into_cfg();
-        try cfg_validate_.validate_cfg(symbol.cfg.?, errors);
-        try optimizations_.optimize(symbol.cfg.?, errors, allocator);
-        symbol.cfg.?.collect_generated_symbvers();
-        symbol.cfg.?.locals_size = offsets_.calculate_offsets(symbol);
-    }
-    return symbol.cfg.?;
-}
-
-/// Stamps out a new function declaration along with a fully built and validated symbol tree, and decorated identifiers.
-///
-/// ## Returns:
-/// An identifier AST, decorated with the stamped out anonymous function.
-/// TODO: Move to compiler
-pub fn stamp(
-    template_ast: *ast_.AST,
-    args: *std.ArrayList(*ast_.AST),
-    call_span: Span,
-    scope: *Scope,
-    compiler: *Compiler_Context,
-) !*ast_.AST {
-    std.debug.assert(template_ast.* == .template);
-    if (template_ast.template.memo == null) {
-        // Clone out a new fn decl AST, with a new name
-        const fn_decl = template_ast.template.decl.clone(compiler.allocator());
-        fn_decl.fn_decl.remove_const_params();
-        fn_decl.fn_decl.name = null; // make function anonymous
-
-        // Create a new symbol and scope for the new fn decl
-        const fn_symbol = try Symbol_Tree.create_function_symbol(
-            fn_decl,
-            scope,
-            &compiler.errors,
-            compiler.allocator(),
-        );
-        try Symbol_Tree.put_symbol(fn_symbol, fn_symbol.scope, &compiler.errors);
-        fn_decl.set_symbol(fn_symbol);
-
-        const domain = Symbol_Tree.extract_domain(template_ast.template.decl.children().*, compiler.allocator());
-        args.* = try args_.default_args(args.*, domain, &compiler.errors, compiler.allocator());
-        _ = try args_.validate_args_arity(.function, args, domain, false, call_span, &compiler.errors);
-
-        // Go through each comptime arg, evaluate it, and store it in a list along with it's position
-        // Combines the arg value and the position in the args/params list
-        var const_decls = std.ArrayList(*ast_.AST).init(compiler.allocator());
-        defer const_decls.deinit();
-        for (template_ast.template.decl.fn_decl._params.items, args.items) |param, arg| {
-            if (param.decl.pattern.pattern_symbol.kind == .@"const") {
-                const decl = ast_.AST.create_decl(
-                    param.token(),
-                    param.decl.pattern,
-                    param.decl.type,
-                    arg, // TODO: Comptime eval this
-                    true,
-                    compiler.allocator(),
-                );
-                const_decls.append(decl) catch unreachable;
-            }
-        }
-
-        // Define each constant parameter in the fn decl's scope
-        try walker_.walk_asts(&const_decls, Symbol_Tree.new(scope, &compiler.errors, compiler.allocator()));
-
-        // Decorate identifiers, validate
-        const decorate_context = Decorate.new(scope, &compiler.errors, compiler.allocator());
-        const decorate_access_context = Decorate_Access.new(scope, &compiler.errors, compiler);
-        for (const_decls.items) |decl| {
-            try walker_.walk_ast(decl, decorate_context);
-            try walker_.walk_ast(decl, decorate_access_context);
-        }
-        try walker_.walk_ast(fn_decl, decorate_context);
-        try walker_.walk_ast(fn_decl, decorate_access_context);
-        try scope_validate_.validate(fn_symbol.scope, compiler);
-
-        // Memoize symbol
-        template_ast.template.memo = fn_symbol;
-    }
-
-    const identifier = ast_.AST.create_identifier(Token.init_simple(template_ast.template.memo.?.name), compiler.allocator());
-    identifier.set_symbol(template_ast.template.memo);
-    return identifier;
-}
-
-/// Relatively light-weight way to interpret an AST.
-///
-/// - `ast`: AST to interpret
-/// - `ret_type`: Expected return type of the AST after interpretation
-/// - `scope`: Scope context to interpret the AST within
-/// - `errors`: Error managing context, to output errors to
-/// - `allocator`: Allocator to use for interpretation
-///
-/// TODO: Move to compiler
-///
-/// Errors out either during AST-Instruction lowering, or interpretation.
-pub fn interpret(
-    ast: *ast_.AST,
-    ret_type: *ast_.AST,
-    scope: *Scope,
-    compiler: *Compiler_Context,
-) !*ast_.AST {
-    const symbol: *Symbol = (try Symbol_Tree.create_temp_comptime_symbol(
-        ast,
-        ret_type,
-        scope,
-        &compiler.errors,
-        compiler.allocator(),
-    )).assert_symbol_valid().assert_init_valid();
-
-    // Get the cfg from the symbol, and embed into the module
-    const module = symbol.scope.module.?;
-    const cfg = try get_cfg(symbol, null, &compiler.errors, compiler.allocator());
-    defer cfg.deinit(); // Remove the cfg so that it isn't output
-
-    const idx = module.emplace_cfg(cfg);
-    defer module.pop_cfg(idx); // Remove the cfg so that it isn't output
-
-    // Create a context and interpret
-    var context = Interpreter_Context.init(&compiler.errors, compiler.allocator());
-    context.set_entry_point(cfg, ret_type);
-    defer context.deinit();
-    context.load_module(module);
-    try context.run(compiler);
-
-    // Extract the retval
-    return try context.extract_ast(0, ret_type, ast.token().span);
-}

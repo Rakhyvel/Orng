@@ -1,6 +1,6 @@
 //! This file contains the semantic validation logic for modules.
 
-const validate_AST = @import("ast-validate.zig").validate_AST;
+const validate_AST = @import("ast_validate.zig").validate_AST;
 const Compiler_Context = @import("../compilation/compiler.zig");
 const module_ = @import("../hierarchy/module.zig");
 const poison_ = @import("../ast/poison.zig");

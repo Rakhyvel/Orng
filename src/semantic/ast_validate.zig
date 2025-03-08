@@ -3,14 +3,17 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const args_ = @import("args.zig");
+const cfg_builder_ = @import("../ir/cfg_builder.zig");
 const Compiler_Context = @import("../compilation/compiler.zig");
 const defaults_ = @import("defaults.zig");
 const errs_ = @import("../util/errors.zig");
+const interpret = @import("interpret.zig").interpret;
 const Interpreter_Context = @import("../interpretation/interpreter.zig");
 const module_ = @import("../hierarchy/module.zig");
 const poison_ = @import("../ast/poison.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const Span = @import("../util/span.zig");
+const stamp = @import("stamp.zig").stamp;
 const Token = @import("../lexer/token.zig");
 const typing_ = @import("typing.zig");
 const validate_symbol_ = @import("symbol_validate.zig");
@@ -240,7 +243,7 @@ fn validate_AST_internal(
 
             // Get the cfg from the symbol, and embed into the module
             const module = ast.symbol().?.scope.module.?;
-            const cfg = try module_.get_cfg(ast.symbol().?, null, &compiler.errors, compiler.allocator());
+            const cfg = try cfg_builder_.get_cfg(ast.symbol().?, null, &compiler.errors, compiler.allocator());
             defer cfg.deinit(); // Remove the cfg so that it isn't output
 
             const idx = module.emplace_cfg(cfg);
@@ -343,7 +346,7 @@ fn validate_AST_internal(
                 const template_decl = template_symbol.decl.?;
                 // ast should remain a call, but the lhs and rhs should change
                 // use the const parameters from the rhs to choose which lhs to use, or if a new lhs needs to be stamped out
-                const stamped_fn_identifier = try module_.stamp(template_decl, ast.children(), ast.token().span, template_symbol.scope, compiler);
+                const stamped_fn_identifier = try stamp(template_decl, ast.children(), ast.token().span, template_symbol.scope, compiler);
                 ast.set_lhs(stamped_fn_identifier);
                 remove_const_args(template_decl.template.decl.fn_decl._params, ast.children());
             }
@@ -381,7 +384,7 @@ fn validate_AST_internal(
                 try typing_.checked_types_match(expected.?, primitives_.type_type, &compiler.errors))
             {
                 const scope = ast.lhs().symbol().?.scope;
-                ast.call.common._expanded_type = try module_.interpret(ast, primitives_.type_type, scope, compiler);
+                ast.call.common._expanded_type = try interpret(ast, primitives_.type_type, scope, compiler);
             }
             return ast;
         },
