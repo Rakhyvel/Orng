@@ -1,13 +1,15 @@
 const std = @import("std");
-const ast_validate_ = @import("../semantic/ast-validate.zig");
+const scope_validate_ = @import("../semantic/scope_validate.zig");
+const module_validate_ = @import("../semantic/module_validate.zig");
 const ast_ = @import("../ast/ast.zig");
+const args_ = @import("../semantic/args.zig");
 const Basic_Block = @import("../ir/basic-block.zig");
 const CFG = @import("../ir/cfg.zig");
 const codegen_ = @import("../codegen/codegen.zig");
 const Compiler_Context = @import("../compilation/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const Interpreter_Context = @import("../interpretation/interpreter.zig");
-const ir_validate_ = @import("../semantic/ir-validate.zig");
+const cfg_validate_ = @import("../semantic/cfg_validate.zig");
 const Instruction = @import("../ir/instruction.zig");
 const Lower_Context = @import("../ir/lower.zig");
 const offsets_ = @import("../hierarchy/offsets.zig");
@@ -215,7 +217,7 @@ pub const Module = struct {
             Apply_Ast_Walk(Decorate_Access).init(Decorate_Access.new(file_root, &compiler.errors, compiler)),
         });
         // Perform checks and collections on the module
-        try ast_validate_.validate_module(module, compiler);
+        try module_validate_.validate(module, compiler);
         module.collect_traits_and_impls(module.top_level_scope());
         try module.add_all_cfgs(entry_name, compiler);
         try module.collect_impl_cfgs(compiler);
@@ -519,7 +521,7 @@ pub fn get_cfg(
         // TODO: These should be steps in a pipeline
         var lower_context = Lower_Context.init(symbol.cfg.?, errors, allocator);
         try lower_context.lower_AST_into_cfg();
-        try ir_validate_.validate_cfg(symbol.cfg.?, errors);
+        try cfg_validate_.validate_cfg(symbol.cfg.?, errors);
         try optimizations_.optimize(symbol.cfg.?, errors, allocator);
         symbol.cfg.?.collect_generated_symbvers();
         symbol.cfg.?.locals_size = offsets_.calculate_offsets(symbol);
@@ -557,8 +559,8 @@ pub fn stamp(
         fn_decl.set_symbol(fn_symbol);
 
         const domain = Symbol_Tree.extract_domain(template_ast.template.decl.children().*, compiler.allocator());
-        args.* = try ast_validate_.default_args(args.*, domain, &compiler.errors, compiler.allocator());
-        _ = try ast_validate_.validate_args_arity(.function, args, domain, false, call_span, &compiler.errors);
+        args.* = try args_.default_args(args.*, domain, &compiler.errors, compiler.allocator());
+        _ = try args_.validate_args_arity(.function, args, domain, false, call_span, &compiler.errors);
 
         // Go through each comptime arg, evaluate it, and store it in a list along with it's position
         // Combines the arg value and the position in the args/params list
@@ -590,7 +592,7 @@ pub fn stamp(
         }
         try walker_.walk_ast(fn_decl, decorate_context);
         try walker_.walk_ast(fn_decl, decorate_access_context);
-        try ast_validate_.validate_scope(fn_symbol.scope, compiler);
+        try scope_validate_.validate(fn_symbol.scope, compiler);
 
         // Memoize symbol
         template_ast.template.memo = fn_symbol;

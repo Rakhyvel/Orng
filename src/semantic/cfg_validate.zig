@@ -1,4 +1,5 @@
-// This file validates a CFG of Instruction. It checks for things like unused symbols, symbols marked `mut` that are never mutated, etc.
+//! This file validates a CFG of Instruction. It checks for things like unused symbols, symbols marked `mut` that are
+//! never mutated, etc.
 
 const std = @import("std");
 const CFG = @import("../ir/cfg.zig");
