@@ -1,5 +1,6 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
+const errs_ = @import("../util/errors.zig");
 const Symbol = @import("symbol.zig");
 const module_ = @import("../hierarchy/module.zig");
 
@@ -161,5 +162,27 @@ pub fn pprint(self: *Self) void {
     for (self.symbols.keys()) |name| {
         const symbol = self.symbols.get(name).?;
         std.debug.print("  {s} {s}\n", .{ @tagName(symbol.kind), name });
+    }
+}
+
+pub fn put_symbol(scope: *Self, symbol: *Symbol, errors: *errs_.Errors) error{CompileError}!void {
+    const res = scope.lookup(symbol.name, .{});
+    switch (res) {
+        .found => {
+            const first = res.found;
+            errors.add_error(errs_.Error{ .redefinition = .{
+                .first_defined_span = first.span,
+                .redefined_span = symbol.span,
+                .name = symbol.name,
+            } });
+            return error.CompileError;
+        },
+        else => scope.symbols.put(symbol.name, symbol) catch unreachable,
+    }
+}
+
+pub fn put_all_symbols(scope: *Self, symbols: *std.ArrayList(*Symbol), errors: *errs_.Errors) error{CompileError}!void {
+    for (symbols.items) |symbol| {
+        try scope.put_symbol(symbol, errors);
     }
 }

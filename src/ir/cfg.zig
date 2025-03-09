@@ -10,10 +10,9 @@ const Symbol_Version = @import("symbol_version.zig");
 
 const Self = @This();
 
-/// Temporary, flat instruction list before the BBs are created
-/// TODO: Linked Instruction list
-instr_head: ?*Instruction,
-instr_tail: ?*Instruction,
+// bp offset of a frame's retval address
+pub const retval_offset: i64 = -3 * @sizeOf(i64);
+pub const locals_starting_offset = 8;
 
 /// Initial basic block in the basic block graph
 block_graph_head: ?*Basic_Block,
@@ -66,8 +65,6 @@ pub fn init(
         return cfg;
     }
     var retval = allocator.create(Self) catch unreachable;
-    retval.instr_head = null;
-    retval.instr_tail = null;
     retval.block_graph_head = null;
     retval.basic_blocks = std.ArrayList(*Basic_Block).init(allocator);
     retval.children = std.ArrayList(*Self).init(allocator);

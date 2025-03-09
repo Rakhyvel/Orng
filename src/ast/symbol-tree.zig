@@ -63,7 +63,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 self.errors,
                 self.allocator,
             );
-            try put_all_symbols(&ast.decl.symbols, self.scope, self.errors);
+            try self.scope.put_all_symbols(&ast.decl.symbols, self.errors);
         },
 
         // Create a symbol for this function
@@ -94,12 +94,12 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                     .memo = null,
                 } };
                 const symbol = try create_template_symbol(ast, self.scope, self.allocator);
-                try put_symbol(symbol, self.scope, self.errors);
+                try self.scope.put_symbol(symbol, self.errors);
                 ast.set_symbol(symbol);
             } else {
                 // Normal function declaration
                 const symbol = try create_function_symbol(ast, self.scope, self.errors, self.allocator);
-                try put_symbol(symbol, self.scope, self.errors);
+                try self.scope.put_symbol(symbol, self.errors);
                 ast.set_symbol(symbol);
             }
 
@@ -116,7 +116,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             new_self.scope = Scope.init(self.scope, self.allocator);
             ast.set_scope(new_self.scope);
             const symbol = try create_trait_symbol(ast, self.scope, self.allocator);
-            try put_symbol(symbol, self.scope, self.errors);
+            try self.scope.put_symbol(symbol, self.errors);
             ast.set_symbol(symbol);
 
             const self_type_decl = ast_.AST.create_decl(
@@ -189,7 +189,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             } else {
                 // Impl method decl
                 const symbol = try create_method_symbol(ast, self.scope, self.errors, self.allocator);
-                try put_symbol(symbol, self.scope, self.errors);
+                try self.scope.put_symbol(symbol, self.errors);
                 ast.set_symbol(symbol);
                 return null; // NOTE: DO NOT WALK CHILDREN!
             }
@@ -264,28 +264,6 @@ fn in_function_check(ast: *ast_.AST, scope: *Scope, errors: *errs_.Errors) Error
         return error.CompileError;
     } else {
         return scope.inner_function.?;
-    }
-}
-
-pub fn put_symbol(symbol: *Symbol, scope: *Scope, errors: *errs_.Errors) Error!void {
-    const res = scope.lookup(symbol.name, .{});
-    switch (res) {
-        .found => {
-            const first = res.found;
-            errors.add_error(errs_.Error{ .redefinition = .{
-                .first_defined_span = first.span,
-                .redefined_span = symbol.span,
-                .name = symbol.name,
-            } });
-            return error.CompileError;
-        },
-        else => scope.symbols.put(symbol.name, symbol) catch unreachable,
-    }
-}
-
-fn put_all_symbols(symbols: *std.ArrayList(*Symbol), scope: *Scope, errors: *errs_.Errors) Error!void {
-    for (symbols.items) |symbol| {
-        try put_symbol(symbol, scope, errors);
     }
 }
 
@@ -374,7 +352,7 @@ fn create_match_pattern_symbol(match: *ast_.AST, scope: *Scope, errors: *errs_.E
         for (symbols.items) |symbol| {
             symbol.defined = true;
         }
-        try put_all_symbols(&symbols, new_scope, errors);
+        try new_scope.put_all_symbols(&symbols, errors);
         try walk_.walk_ast(mapping.rhs(), Self.new(new_scope, errors, allocator));
     }
 }
@@ -648,7 +626,7 @@ fn create_method_symbol(
             .let,
             allocator,
         );
-        try put_symbol(receiver_symbol, fn_scope, errors);
+        try fn_scope.put_symbol(receiver_symbol, errors);
         ast.method_decl.param_symbols.append(receiver_symbol) catch unreachable;
 
         if (ast.method_decl.receiver.?.receiver.kind == .value) {

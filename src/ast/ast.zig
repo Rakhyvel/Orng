@@ -8,7 +8,7 @@
 
 const std = @import("std");
 const module_ = @import("../hierarchy/module.zig");
-const offsets_ = @import("../hierarchy/offsets.zig");
+const alignment_ = @import("../util/alignment.zig");
 const poison_ = @import("poison.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const String = @import("../zig-string/zig-string.zig").String;
@@ -304,7 +304,7 @@ pub const AST = union(enum) {
                     continue;
                 }
                 offset += item.sizeof();
-                offset = offsets_.next_alignment(offset, self._terms.items[i + 1].alignof());
+                offset = alignment_.next_alignment(offset, self._terms.items[i + 1].alignof());
             }
             return offset;
         }
@@ -2790,7 +2790,7 @@ pub const AST = union(enum) {
             .product => {
                 var total_size: i64 = 0;
                 for (self.children().items) |child| {
-                    total_size = offsets_.next_alignment(total_size, child.alignof());
+                    total_size = alignment_.next_alignment(total_size, child.alignof());
                     total_size += child.sizeof();
                 }
                 return total_size;
@@ -2801,7 +2801,7 @@ pub const AST = union(enum) {
                 for (self.children().items) |child| {
                     max_size = @max(max_size, child.sizeof());
                 }
-                return offsets_.next_alignment(max_size, 8) + 8;
+                return alignment_.next_alignment(max_size, 8) + 8;
             },
             .untagged_sum_type => {
                 std.debug.assert(self.expr().* == .sum_type);

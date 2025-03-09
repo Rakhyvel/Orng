@@ -397,7 +397,7 @@ fn create_prelude(compiler: *Compiler_Context) !void {
         compiler.allocator(),
     );
     module.symbol = symbol;
-    try Symbol_Tree.put_symbol(symbol, prelude.?, &compiler.errors);
+    try prelude.?.put_symbol(symbol, &compiler.errors);
 
     var env_map = std.process.getEnvMap(compiler.allocator()) catch unreachable;
     defer env_map.deinit();

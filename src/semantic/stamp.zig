@@ -36,7 +36,7 @@ pub fn stamp(
             &compiler.errors,
             compiler.allocator(),
         );
-        try Symbol_Tree.put_symbol(fn_symbol, fn_symbol.scope, &compiler.errors);
+        try fn_symbol.scope.put_symbol(fn_symbol, &compiler.errors);
         fn_decl.set_symbol(fn_symbol);
 
         const domain = Symbol_Tree.extract_domain(template_ast.template.decl.children().*, compiler.allocator());

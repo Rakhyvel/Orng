@@ -8,7 +8,7 @@ const Instruction = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
 const module_ = @import("../hierarchy/module.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
-const offsets_ = @import("../hierarchy/offsets.zig");
+const alignment_ = @import("../util/alignment.zig");
 const Token = @import("../lexer/token.zig");
 const Span = @import("../util/span.zig");
 const Symbol = @import("../symbol/symbol.zig");
@@ -79,7 +79,7 @@ pub fn set_entry_point(
     entry: *CFG,
     ret_type: *ast_.AST,
 ) void {
-    const frame_address = offsets_.next_alignment(ret_type.sizeof(), 8);
+    const frame_address = alignment_.next_alignment(ret_type.sizeof(), 8);
     const module = entry.symbol.scope.module.?;
 
     self.stack_pointer = (5 * @sizeOf(i64)) + frame_address + entry.locals_size.?;
@@ -380,7 +380,7 @@ pub fn call(self: *Self, function_symbol: *Symbol, retval_place: *lval_.L_Value,
     self.call_depth += 1;
     // Save old stack pointer
     const old_sp = self.stack_pointer;
-    self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8); // align stack pointer to 8 before pushing args
+    self.stack_pointer = alignment_.next_alignment(self.stack_pointer, 8); // align stack pointer to 8 before pushing args
 
     // push args in reverse order
     var i: i64 = @as(i64, @intCast(args_list.items.len)) - 1;
@@ -388,10 +388,10 @@ pub fn call(self: *Self, function_symbol: *Symbol, retval_place: *lval_.L_Value,
         const arg = args_list.items[@as(usize, @intCast(i))];
         const size = arg.get_expanded_type().sizeof();
         const alignof = arg.expanded_type_alignof();
-        self.stack_pointer = offsets_.next_alignment(self.stack_pointer, alignof);
+        self.stack_pointer = alignment_.next_alignment(self.stack_pointer, alignof);
         try self.push_move(try self.effective_address(arg), size);
     }
-    self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8);
+    self.stack_pointer = alignment_.next_alignment(self.stack_pointer, 8);
 
     // Setup next stackframe
     try self.push_int(8, try self.effective_address(retval_place)); // push return-value address
@@ -644,7 +644,7 @@ fn move_lval_list(
     std.debug.assert(dest >= 0);
     var cursor = dest;
     for (list.items) |lval| {
-        cursor = offsets_.next_alignment(cursor, lval.expanded_type_alignof());
+        cursor = alignment_.next_alignment(cursor, lval.expanded_type_alignof());
         const src = try self.effective_address(lval);
         const len = lval.expanded_type_sizeof();
         // std.debug.print("dest:0x{X} src:0x{X} len:0x{X}\n", .{ cursor, src, len });
@@ -686,7 +686,7 @@ fn effective_address(self: *Self, lval: *lval_.L_Value) error{CompileError}!i64 
                 //     retval := val
                 // and replace with:
                 //     retval^ := val
-                return self.load(i64, self.base_pointer + offsets_.retval_offset);
+                return self.load(i64, self.base_pointer + CFG.retval_offset);
             } else if (lval.symbver.symbol.offset == null) {
                 // If this is triggered for a temporary or a constant, you didn't offset it correctly
                 if (lval.symbver.def != null) {

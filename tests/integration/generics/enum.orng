@@ -1,0 +1,18 @@
+// 316
+
+fn getval(const n: Int) -> Int { 
+    const My_Sum = (a | b | c)
+    let mut x: My_Sum = .a
+    if n == 16 {
+        x = .b
+    }
+    match x {
+        .a => 0
+        .b => 316
+        .c => 3
+    }
+}
+
+fn main() -> Int {
+    getval(16)
+}

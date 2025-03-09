@@ -13,7 +13,7 @@ const Interpreter_Context = @import("../interpretation/interpreter.zig");
 const cfg_validate_ = @import("../semantic/cfg_validate.zig");
 const Instruction = @import("../ir/instruction.zig");
 const Lower_Context = @import("../ir/lower.zig");
-const offsets_ = @import("../hierarchy/offsets.zig");
+const alignment_ = @import("../util/alignment.zig");
 const optimizations_ = @import("../ir/optimizations.zig");
 const pipeline_ = @import("../util/pipeline.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
@@ -171,7 +171,7 @@ pub const Module = struct {
             compiler.allocator(),
         );
         module.symbol = symbol;
-        try Symbol_Tree.put_symbol(symbol, compiler.prelude, &compiler.errors);
+        try compiler.prelude.put_symbol(symbol, &compiler.errors);
         file_root.module = module;
 
         try fill_contents(in_name, entry_name, file_root, module, fuzz_tokens, compiler);
