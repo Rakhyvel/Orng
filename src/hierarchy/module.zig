@@ -319,41 +319,6 @@ pub const Module = struct {
         }
     }
 
-    /// Takes in a statically correct symbol tree, writes it out to a file
-    /// TODO: Codegen Context that has this method instead
-    pub fn output(self: *Module, build_path: []const u8, local_modules: *std.ArrayList(*Module), allocator: std.mem.Allocator) !void {
-        if (self.visited) {
-            return;
-        }
-        self.visited = true;
-
-        local_modules.append(self) catch unreachable;
-
-        var output_c_filename = String.init(allocator);
-        defer output_c_filename.deinit();
-        var output_h_filename = String.init(allocator);
-        defer output_h_filename.deinit();
-        output_c_filename.writer().print("{s}-{s}.c", .{ self.package_name, self.name }) catch unreachable;
-        output_h_filename.writer().print("{s}-{s}.h", .{ self.package_name, self.name }) catch unreachable;
-        const out_c_paths = [_][]const u8{ build_path, output_c_filename.str() };
-        const out_h_paths = [_][]const u8{ build_path, output_h_filename.str() };
-        const out_c_path = std.fs.path.join(allocator, &out_c_paths) catch unreachable;
-        const out_h_path = std.fs.path.join(allocator, &out_h_paths) catch unreachable;
-
-        var output_c_file = std.fs.createFileAbsolute(out_c_path, .{}) catch unreachable;
-        defer output_c_file.close();
-        var output_h_file = std.fs.createFileAbsolute(out_h_path, .{}) catch unreachable;
-        defer output_h_file.close();
-
-        codegen_.generate(self, output_c_file.writer(), output_h_file.writer()) catch unreachable;
-
-        for (self.local_imported_modules.keys()) |child| {
-            if (std.mem.eql(u8, child.package_name, self.package_name)) {
-                try child.output(build_path, local_modules, allocator);
-            }
-        }
-    }
-
     /// Flattens all CFG's instructions to the module's list of instructions, recursively.
     ///
     /// This also then adds the CFG to the list of CFGs in this module.

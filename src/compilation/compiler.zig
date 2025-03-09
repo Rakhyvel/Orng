@@ -133,23 +133,6 @@ pub fn set_package_root(self: *Self, package_name: []const u8, root: *Symbol) vo
     package.root = root;
 }
 
-pub fn output_modules(self: *Self) !void {
-    // Start from root module, of each package, DFS through imports and generate
-    for (self.packages.keys()) |package_name| {
-        const package = self.lookup_package(package_name).?;
-        const module = package.root.init_value.?.module.module;
-
-        const package_path = module.get_package_abs_path();
-        const build_paths = [_][]const u8{ package_path, "build" };
-        const build_path = std.fs.path.join(self.allocator(), &build_paths) catch unreachable;
-        std.fs.deleteTreeAbsolute(build_path) catch unreachable;
-        std.fs.makeDirAbsolute(build_path) catch unreachable;
-
-        // std.debug.print("  generating: {s}...\n", .{module.name});
-        try module.output(build_path, &package.local_modules, self.allocator());
-    }
-}
-
 pub fn propagate_include_directories(self: *Self, root_package_name: []const u8) void {
     const package = self.packages.get(root_package_name).?;
     package.append_include_dir(self.packages, &package.include_directories);

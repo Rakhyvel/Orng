@@ -1,5 +1,6 @@
 const std = @import("std");
 const Compiler_Context = @import("compilation/compiler.zig");
+const Codegen_Context = @import("codegen/codegen.zig");
 const exec = @import("util/exec.zig").exec;
 const module_ = @import("hierarchy/module.zig");
 const primitives_ = @import("hierarchy/primitives.zig");
@@ -118,7 +119,7 @@ fn integrate_test_file(filename: []const u8, coverage: bool) bool {
     compiler.register_package(module.package_name, module.get_package_abs_path(), false);
     compiler.set_package_root(module.package_name, module.symbol);
 
-    compiler.output_modules() catch unreachable;
+    Codegen_Context.output_modules(compiler) catch unreachable;
 
     compiler.lookup_package(module.package_name).?.include_directories.put(std.fs.path.dirname(absolute_filename).?, void{}) catch unreachable;
 
@@ -304,7 +305,7 @@ fn fuzz_tests() !void { // TODO: Uninfer error
             // var _local_modules = std.ArrayList(*module_.Module).init(allocator);
             // defer _local_modules.deinit();
             // module.output(&_local_modules, output_file.writer())
-            compiler.output_modules() catch {
+            Codegen_Context.output_modules(compiler) catch {
                 failed += 1;
                 try term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out());
                 try get_std_out().print("Orng Compiler crashed with input above!\n", .{});

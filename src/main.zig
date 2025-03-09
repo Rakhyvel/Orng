@@ -1,6 +1,7 @@
 const std = @import("std");
 const ast_ = @import("ast/ast.zig");
 const Compiler_Context = @import("compilation/compiler.zig");
+const Codegen_Context = @import("codegen/codegen.zig");
 const errs_ = @import("util/errors.zig");
 const Interpreter_Context = @import("interpretation/interpreter.zig");
 const primitives_ = @import("hierarchy/primitives.zig");
@@ -99,7 +100,7 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     const package_name = std.fs.path.basename(cwd);
     _ = try make_package(package_dag, package_name, compiler, &interpreter, cwd, "main");
 
-    try compiler.output_modules();
+    try Codegen_Context.output_modules(compiler);
 
     compiler.propagate_include_directories(package_name);
     try compiler.compile_c(package_name, false);
