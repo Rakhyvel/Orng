@@ -40,7 +40,7 @@ pub fn interpret(
 
     // Get the cfg from the symbol, and embed into the module
     const module = symbol.scope.module.?;
-    const intered_strings = compiler.lookup_interned_string_set(module.absolute_path).?;
+    const intered_strings = compiler.lookup_interned_string_set(module.uid).?;
     const cfg = try cfg_builder_.get_cfg(symbol, null, intered_strings, &compiler.errors, compiler.allocator());
     defer cfg.deinit(); // Remove the cfg so that it isn't output
 
@@ -55,5 +55,5 @@ pub fn interpret(
     try context.run(compiler);
 
     // Extract the retval
-    return try context.extract_ast(0, ret_type, ast.token().span, intered_strings);
+    return try context.extract_ast(0, ret_type, ast.token().span, &compiler.module_interned_strings);
 }

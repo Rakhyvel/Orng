@@ -20,14 +20,13 @@ pub fn output_modules(compiler: *Compiler_Context) !void {
 
         // std.debug.print("  generating: {s}...\n", .{module.name});
 
-        const interned_strings = compiler.lookup_interned_string_set(module.absolute_path).?;
-        try output(module, interned_strings, build_path, &package.local_modules, compiler.allocator());
+        try output(module, &compiler.module_interned_strings, build_path, &package.local_modules, compiler.allocator());
     }
 }
 
 /// Takes in a statically correct symbol tree, writes it out to a file
 /// TODO: Codegen Context that has this method instead
-fn output(module: *Module, interned_strings: *Interned_String_Set, build_path: []const u8, local_modules: *std.ArrayList(*Module), allocator: std.mem.Allocator) !void {
+fn output(module: *Module, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set), build_path: []const u8, local_modules: *std.ArrayList(*Module), allocator: std.mem.Allocator) !void {
     if (module.visited) {
         return;
     }
@@ -43,7 +42,7 @@ fn output(module: *Module, interned_strings: *Interned_String_Set, build_path: [
     var output_h_file = std.fs.createFileAbsolute(out_h_path, .{}) catch unreachable;
     defer output_h_file.close();
     var header_emitter = Header_Emitter.init(module, output_h_file.writer());
-    try header_emitter.generate();
+    header_emitter.generate() catch return error.CompileError;
 
     var output_c_filename = String.init(allocator);
     defer output_c_filename.deinit();
@@ -52,12 +51,12 @@ fn output(module: *Module, interned_strings: *Interned_String_Set, build_path: [
     const out_c_path = std.fs.path.join(allocator, &out_c_paths) catch unreachable;
     var output_c_file = std.fs.createFileAbsolute(out_c_path, .{}) catch unreachable;
     defer output_c_file.close();
-    var source_emitter = Source_Emitter.init(module, interned_strings, output_c_file.writer());
-    try source_emitter.generate();
+    var source_emitter = Source_Emitter.init(module, module_interned_strings, output_c_file.writer());
+    source_emitter.generate() catch return error.CompileError;
 
     for (module.local_imported_modules.keys()) |child| {
         if (std.mem.eql(u8, child.package_name, module.package_name)) {
-            try output(child, interned_strings, build_path, local_modules, allocator);
+            try output(child, module_interned_strings, build_path, local_modules, allocator);
         }
     }
 }

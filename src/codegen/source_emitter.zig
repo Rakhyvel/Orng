@@ -21,18 +21,18 @@ const Self = @This();
 const HIGHEST_PRECEDENCE = 100;
 
 module: *module_.Module,
-interned_strings: *Interned_String_Set,
+module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set),
 emitter: Emitter,
 writer: Writer,
 
 pub const CodeGen_Error = std.fs.File.WriteError;
 const Writer = std.fs.File.Writer;
 
-pub fn init(module: *module_.Module, interned_strings: *Interned_String_Set, writer: Writer) Self {
+pub fn init(module: *module_.Module, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set), writer: Writer) Self {
     const emitter = Emitter.init(module, writer);
     return Self{
         .module = module,
-        .interned_strings = interned_strings,
+        .module_interned_strings = module_interned_strings,
         .emitter = emitter,
         .writer = writer,
     };
@@ -56,23 +56,24 @@ pub fn generate(self: *Self) CodeGen_Error!void {
 
 /// Outputs the interned strings declarations
 fn output_interned_strings(self: *Self) CodeGen_Error!void {
-    if (self.interned_strings.items().len > 0) {
+    const interned_strings = self.module_interned_strings.get(self.module.uid).?;
+    if (interned_strings.items().len > 0) {
         // Do not output header comment if there are no interned strings!
         try self.writer.print("/* Interned Strings */\n", .{});
     }
 
     // Output each string in the string hash map
-    for (0..self.interned_strings.items().len) |i| {
+    for (0..interned_strings.items().len) |i| {
         try self.writer.print("static char* string_{} = \"", .{i});
         // Print each byte in the string in hex format
-        const str = self.interned_strings.items()[i];
+        const str = interned_strings.items()[i];
         for (str) |byte| {
             try self.writer.print("\\x{X:0>2}", .{byte});
         }
         try self.writer.print("\";\n", .{});
     }
 
-    if (self.interned_strings.items().len > 0) {
+    if (interned_strings.items().len > 0) {
         // Do not output this newline if there are no interned strings!
         try self.writer.print("\n", .{});
     }
@@ -320,9 +321,10 @@ fn output_instruction_post_check(self: *Self, instr: *Instruction) CodeGen_Error
         },
         .load_string => {
             try self.output_var_assign_cast(instr.dest.?, instr.dest.?.get_expanded_type());
+            const interned_strings = self.module_interned_strings.get(instr.data.string_id.module_uid).?;
             try self.writer.print("{{(uint8_t*)string_{}, {}}};\n", .{
                 instr.data.string_id.string_idx,
-                self.interned_strings.items()[instr.data.string_id.string_idx].len,
+                interned_strings.items()[instr.data.string_id.string_idx].len,
             });
         },
         .load_struct => {

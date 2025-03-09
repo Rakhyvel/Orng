@@ -331,15 +331,15 @@ inline fn execute_instruction(self: *Self, instr: *Instruction, compiler: *Compi
             {
                 const method_name = symbol.name;
                 if (std.mem.eql(u8, method_name, "find")) {
-                    const interned_strings = compiler.lookup_interned_string_set(self.modules.get(0).?.absolute_path).?;
+                    const interned_strings = compiler.lookup_interned_string_set(self.modules.get(0).?.uid).?;
                     const arg: *lval_.L_Value = instr.data.lval_list.items[@as(usize, @intCast(0))];
-                    const path_ast = try self.extract_ast(try self.effective_address(arg), primitives_.string_type, instr.span, interned_strings);
+                    const path_ast = try self.extract_ast(try self.effective_address(arg), primitives_.string_type, instr.span, &compiler.module_interned_strings);
                     const current_module_path = (self.curr_module() catch unreachable).absolute_path;
                     const ret_addr = try self.effective_address(instr.dest.?);
                     if (builtin_.package_find(compiler, self, current_module_path, path_ast.string.data)) |package_info| {
                         const adrs = package_info.package_adrs;
                         // Store the directory of the package inside the package struct before returning
-                        const dir_string = interned_strings.add(package_info.package_dirname);
+                        const dir_string = interned_strings.add(package_info.package_dirname, self.modules.get(0).?.uid);
                         const dir_offset = primitives_.package_type.product.get_offset_field("dir", self.allocator);
                         self.memory.store(Interned_String_Set.String_Idx, adrs + dir_offset, dir_string);
                         // Store the address of the package in the retval
@@ -442,14 +442,14 @@ pub fn alloc(self: *Self, nbytes: i64, align_to: i64) error{CompileError}!usize 
 }
 
 /// Extracts an AST value from a specified memory address in interpreter's memory, based on the given AST type.
-pub fn extract_ast(self: *Self, address: i64, _type: *ast_.AST, span: Span, interned_strings: ?*Interned_String_Set) error{CompileError}!*ast_.AST {
+pub fn extract_ast(self: *Self, address: i64, _type: *ast_.AST, span: Span, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set)) error{CompileError}!*ast_.AST {
     // FIXME: High Cyclo
     std.debug.assert(address >= 0);
     switch (_type.*) {
         .identifier => {
             const info = primitives_.info_from_name(_type.token().data);
             if (info == null) {
-                return try self.extract_ast(address, _type.symbol().?.init_value.?, span, interned_strings);
+                return try self.extract_ast(address, _type.symbol().?.init_value.?, span, module_interned_strings);
             }
             switch (info.?.type_kind) {
                 .type => {
@@ -461,10 +461,9 @@ pub fn extract_ast(self: *Self, address: i64, _type: *ast_.AST, span: Span, inte
                     }
                 },
                 .string => {
-                    if (interned_strings == null) {
-                        return self.interpreter_panic("interned strings set is null", .{});
-                    }
                     const idx = self.memory.load(Interned_String_Set.String_Idx, address);
+                    const interned_strings = module_interned_strings.get(idx.module_uid);
+                    std.debug.assert(idx.module_uid == interned_strings.?.uid);
                     const string = interned_strings.?.items()[idx.string_idx];
                     return ast_.AST.create_string(Token.init_simple("\""), string, self.allocator);
                 },
@@ -535,7 +534,7 @@ pub fn extract_ast(self: *Self, address: i64, _type: *ast_.AST, span: Span, inte
             retval.set_pos(@as(usize, @intCast(tag)));
             retval.sum_value.base = _type;
             const proper_term: *ast_.AST = _type.children().items[@as(usize, @intCast(tag))];
-            retval.sum_value.init = try self.extract_ast(address, proper_term, span, interned_strings);
+            retval.sum_value.init = try self.extract_ast(address, proper_term, span, module_interned_strings);
             return retval;
         },
         .product => {
@@ -545,7 +544,7 @@ pub fn extract_ast(self: *Self, address: i64, _type: *ast_.AST, span: Span, inte
                 // std.debug.print("term:{}\n", .{i});
                 const offset = _type.product.get_offset(i, self.allocator);
                 // std.debug.print("offset:{}\n", .{offset});
-                const extracted_term = try self.extract_ast(address + offset, term, span, interned_strings);
+                const extracted_term = try self.extract_ast(address + offset, term, span, module_interned_strings);
                 // std.debug.print("extracted_term:{}\n", .{extracted_term});
                 value_terms.append(extracted_term) catch unreachable;
             }
@@ -558,7 +557,7 @@ pub fn extract_ast(self: *Self, address: i64, _type: *ast_.AST, span: Span, inte
             } });
             return error.CompileError;
         },
-        .annotation => return try self.extract_ast(address, _type.annotation.type, span, interned_strings),
+        .annotation => return try self.extract_ast(address, _type.annotation.type, span, module_interned_strings),
         else => std.debug.panic("interpreter error: unimplemented extract_ast() for: AST.{s}\n", .{@tagName(_type.*)}),
     }
 }

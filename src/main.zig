@@ -94,7 +94,7 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     defer interpreter.deinit();
 
     // Extract the retval
-    const package_dag = try interpreter.extract_ast(0, primitives_.package_type, Span.phony, null);
+    const package_dag = try interpreter.extract_ast(0, primitives_.package_type, Span.phony, &compiler.module_interned_strings);
     const cwd_buffer = compiler.allocator().alloc(u8, std.fs.max_path_bytes) catch unreachable;
     const cwd = std.fs.cwd().realpath(".", cwd_buffer) catch unreachable;
     const package_name = std.fs.path.basename(cwd);
@@ -189,7 +189,7 @@ fn make_package(
         const required_package_name: []const u8 = requirement.children().items[0].string.data;
         const required_package_addr: i64 = @intCast(requirement.children().items[1].int.data);
         const requirement_name = requirement.get_field(primitives_.package_type, "root").string.data;
-        const required_package = try interpreter.extract_ast(required_package_addr, primitives_.package_type, Span.phony);
+        const required_package = try interpreter.extract_ast(required_package_addr, primitives_.package_type, Span.phony, &compiler.module_interned_strings);
         const required_package_dir = required_package.get_field(primitives_.package_type, "dir").string.data;
 
         const new_working_directory_buffer = compiler.allocator().alloc(u8, std.fs.max_path_bytes) catch unreachable;

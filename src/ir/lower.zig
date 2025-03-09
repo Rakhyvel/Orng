@@ -151,7 +151,7 @@ fn lower_AST_inner(
             return temp;
         },
         .string => {
-            const id: Interned_String_Set.String_Idx = self.interned_strings.add(ast.string.data);
+            const id: Interned_String_Set.String_Idx = self.interned_strings.add(ast.string.data, self.cfg.symbol.scope.module.?.uid);
             const temp = self.create_temp_lvalue(ast.typeof(self.allocator));
             self.instructions.append(Instruction.init_string(temp, id, ast.token().span, self.allocator)) catch unreachable;
             return temp;

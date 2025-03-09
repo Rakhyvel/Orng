@@ -17,7 +17,8 @@ pub fn init(uid: u32, allocator: std.mem.Allocator) Self {
     };
 }
 
-pub fn add(self: *Self, str: []const u8) String_Idx {
+pub fn add(self: *Self, str: []const u8, uid: u32) String_Idx {
+    std.debug.assert(uid == self.uid);
     for (0..self.interned_strings.items.len) |i| {
         const item = self.interned_strings.items[i];
         if (std.mem.eql(u8, item, str)) {

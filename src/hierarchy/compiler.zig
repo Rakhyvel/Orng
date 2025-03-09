@@ -30,7 +30,7 @@ prelude: *Scope,
 modules: std.StringArrayHashMap(*Symbol),
 
 /// Maps module absolute paths to the interned string set for that module
-module_interned_strings: std.StringArrayHashMap(*Interned_String_Set),
+module_interned_strings: std.AutoArrayHashMap(u32, *Interned_String_Set),
 
 // Maps package names to their root module
 packages: std.StringArrayHashMap(*Package),
@@ -42,7 +42,7 @@ pub fn init(alloc: std.mem.Allocator) Error!*Self {
 
     poison_.init_structures(retval.allocator());
     retval.errors = errs_.Errors.init(retval.allocator());
-    retval.module_interned_strings = std.StringArrayHashMap(*Interned_String_Set).init(retval.allocator());
+    retval.module_interned_strings = std.AutoArrayHashMap(u32, *Interned_String_Set).init(retval.allocator());
     retval.modules = std.StringArrayHashMap(*Symbol).init(retval.allocator());
     retval.packages = std.StringArrayHashMap(*Package).init(retval.allocator());
     retval.prelude = primitives_.get_scope(retval) catch {
@@ -114,14 +114,14 @@ pub fn module_scope(self: *Self, absolute_path: []const u8) ?*Scope {
     return module_symbol.init_value.?.scope();
 }
 
-pub fn register_interned_string_set(self: *Self, module_uid: u32, absolute_path: []const u8) void {
+pub fn register_interned_string_set(self: *Self, module_uid: u32) void {
     const interned_strings = self.allocator().create(Interned_String_Set) catch unreachable;
     interned_strings.* = Interned_String_Set.init(module_uid, self.allocator());
-    self.module_interned_strings.put(absolute_path, interned_strings) catch unreachable;
+    self.module_interned_strings.put(module_uid, interned_strings) catch unreachable;
 }
 
-pub fn lookup_interned_string_set(self: *Self, absolute_path: []const u8) ?*Interned_String_Set {
-    return self.module_interned_strings.get(absolute_path);
+pub fn lookup_interned_string_set(self: *Self, module_uid: u32) ?*Interned_String_Set {
+    return self.module_interned_strings.get(module_uid);
 }
 
 pub fn lookup_package(self: *Self, package_name: []const u8) ?*Package {

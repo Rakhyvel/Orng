@@ -193,7 +193,7 @@ pub const Module = struct {
         fuzz_tokens: bool,
         compiler: *Compiler_Context,
     ) Module_Errors!void {
-        compiler.register_interned_string_set(module.uid, module.absolute_path);
+        compiler.register_interned_string_set(module.uid);
         compiler.modules.put(module.absolute_path, module_symbol) catch unreachable;
 
         // Setup and run the front-end pipeline
@@ -229,7 +229,7 @@ pub const Module = struct {
             }
 
             // Instruction translation
-            const interned_strings = compiler.lookup_interned_string_set(self.absolute_path).?;
+            const interned_strings = compiler.lookup_interned_string_set(self.uid).?;
             const cfg = try cfg_builder_.get_cfg(symbol, null, interned_strings, &compiler.errors, compiler.allocator());
             self.collect_cfgs(cfg);
 
@@ -287,7 +287,7 @@ pub const Module = struct {
         for (self.impls.items) |impl| {
             for (impl.impl.method_defs.items) |def| {
                 const symbol = def.symbol().?;
-                const interned_strings = compiler.lookup_interned_string_set(self.absolute_path).?;
+                const interned_strings = compiler.lookup_interned_string_set(self.uid).?;
                 const cfg = try cfg_builder_.get_cfg(symbol, null, interned_strings, &compiler.errors, compiler.allocator());
                 self.collect_cfgs(cfg);
                 cfg.needed_at_runtime = true;
