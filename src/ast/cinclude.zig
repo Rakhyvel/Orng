@@ -6,13 +6,13 @@ const ast_ = @import("../ast/ast.zig");
 const module_ = @import("../hierarchy/module.zig");
 const walker_ = @import("../ast/walker.zig");
 
-module: *module_.Module,
+cincludes: *std.ArrayList(*ast_.AST),
 
 const Self = @This();
 
 /// Creates a new Cinclude walker
-pub fn new(module: *module_.Module) Self {
-    return Self{ .module = module };
+pub fn new(cincludes: *std.ArrayList(*ast_.AST)) Self {
+    return Self{ .cincludes = cincludes };
 }
 
 /// Walks the AST and collects cincludes into the module
@@ -20,7 +20,7 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
     _ = asts;
     _ = idx;
     if (ast.* == .cinclude) {
-        self.module.cincludes.append(ast.expr()) catch unreachable;
+        self.cincludes.append(ast.expr()) catch unreachable;
     }
 
     return 0;

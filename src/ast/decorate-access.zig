@@ -30,6 +30,8 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
     }
 }
 
+/// Takes in an AST and returns the symbol that it refers to. This requires looking up modules and packages, and so the
+/// compiler instance is required.
 fn resolve_qualified_name(self: Self, ast: *ast_.AST) walk_.Error!*Symbol {
     if ((ast.* == .identifier or ast.* == .pattern_symbol) and ast.symbol().?.kind == .import) {
         const this_module = ast.symbol().?.scope.module.?;

@@ -124,7 +124,7 @@ pub fn register_package(self: *Self, package_name: []const u8, package_absolute_
 
 pub fn make_package_requirement_link(self: *Self, package_name: []const u8, requirement_name: []const u8) void {
     const package = self.lookup_package(package_name).?;
-    const requirement = self.packages.get(requirement_name).?;
+    const requirement = self.lookup_package(requirement_name).?;
     package.requirements.put(requirement_name, requirement.root) catch unreachable;
 }
 
@@ -134,10 +134,10 @@ pub fn set_package_root(self: *Self, package_name: []const u8, root: *Symbol) vo
 }
 
 pub fn propagate_include_directories(self: *Self, root_package_name: []const u8) void {
-    const package = self.packages.get(root_package_name).?;
+    const package = self.lookup_package(root_package_name).?;
     package.append_include_dir(self.packages, &package.include_directories);
 }
 
 pub fn compile_c(self: *Self, root_package_name: []const u8, extra_flags: bool) !void {
-    try self.packages.get(root_package_name).?.compile_c(self.packages, extra_flags, self.allocator());
+    try self.lookup_package(root_package_name).?.compile_c(self.packages, extra_flags, self.allocator());
 }
