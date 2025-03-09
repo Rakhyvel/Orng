@@ -10,7 +10,7 @@ const validate_scope_ = @import("scope_validate.zig");
 const Validate_Error_Enum = error{ LexerError, ParseError, CompileError };
 
 pub fn validate(module: *module_.Module, compiler: *Compiler_Context) Validate_Error_Enum!void {
-    try validate_scope_.validate(module.top_level_scope(), compiler);
+    try validate_scope_.validate(compiler.module_scope(module.absolute_path).?, compiler);
     for (0..module.cincludes.items.len) |i| {
         module.cincludes.items[i] = validate_AST(module.cincludes.items[i], primitives_.string_type, compiler);
     }

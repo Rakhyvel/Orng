@@ -115,9 +115,10 @@ fn integrate_test_file(filename: []const u8, coverage: bool) bool {
         }
         return false;
     };
+    const module_symbol = compiler.lookup_module(module.absolute_path).?;
 
     compiler.register_package(module.package_name, module.get_package_abs_path(), false);
-    compiler.set_package_root(module.package_name, module.symbol);
+    compiler.set_package_root(module.package_name, module_symbol);
 
     Codegen_Context.output_modules(compiler) catch unreachable;
 

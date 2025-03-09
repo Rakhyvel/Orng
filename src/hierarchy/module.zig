@@ -92,17 +92,13 @@ pub const Module = struct {
     /// List of all impls defined in this module. Used by codegen to output the vtable implementations.
     impls: std.ArrayList(*ast_.AST),
 
-    /// The symbol that represents this module. Mainly used to get the scope for the module
-    /// TODO: Make this better
-    symbol: *Symbol,
-
     /// Whether or not this module has been visited in a graph traversal
     visited: bool,
 
     /// Allocator for the module
     allocator: std.mem.Allocator,
 
-    pub fn init(name: []const u8, absolute_path: []const u8, symbol: *Symbol, allocator: std.mem.Allocator) *Module {
+    pub fn init(name: []const u8, absolute_path: []const u8, allocator: std.mem.Allocator) *Module {
         var retval = allocator.create(Module) catch unreachable;
         retval.uid = module_uids;
         module_uids += 1;
@@ -110,7 +106,6 @@ pub const Module = struct {
         std.debug.assert(std.fs.path.isAbsolute(absolute_path));
         retval.absolute_path = absolute_path;
         retval.package_name = std.fs.path.basename(std.fs.path.dirname(absolute_path).?);
-        retval.symbol = symbol;
         retval.allocator = allocator;
         retval.local_imported_modules = std.AutoArrayHashMap(*Module, void).init(allocator);
         retval.cincludes = std.ArrayList(*ast_.AST).init(allocator);
@@ -149,7 +144,7 @@ pub const Module = struct {
 
         // Create the symbol for this module
         var file_root = Scope.init(compiler.prelude, compiler.allocator());
-        var module = Module.init(short_name, in_name, undefined, compiler.allocator());
+        const module = Module.init(short_name, in_name, compiler.allocator());
         file_root.module = module;
         const symbol = Symbol.init(
             compiler.prelude,
@@ -166,12 +161,10 @@ pub const Module = struct {
             .module,
             compiler.allocator(),
         );
-        module.symbol = symbol;
         try compiler.prelude.put_symbol(symbol, &compiler.errors);
         file_root.module = module;
 
-        try fill_contents(in_name, entry_name, file_root, module, fuzz_tokens, compiler);
-        // module.top_level_scope().pprint();
+        try fill_contents(in_name, entry_name, file_root, module, symbol, fuzz_tokens, compiler);
 
         return module;
     }
@@ -196,10 +189,13 @@ pub const Module = struct {
         entry_name: ?[]const u8,
         file_root: *Scope,
         module: *Module,
+        module_symbol: *Symbol,
         fuzz_tokens: bool,
         compiler: *Compiler_Context,
     ) Module_Errors!void {
         compiler.register_interned_string_set(module.uid, module.absolute_path);
+        compiler.modules.put(module.absolute_path, module_symbol) catch unreachable;
+
         // Setup and run the front-end pipeline
         _ = try pipeline_.run(in_name, .{
             Read_File.init(compiler.allocator()),
@@ -216,7 +212,7 @@ pub const Module = struct {
         });
         // Perform checks and collections on the module
         try module_validate_.validate(module, compiler);
-        module.collect_traits_and_impls(module.top_level_scope());
+        module.collect_traits_and_impls(compiler.module_scope(module.absolute_path).?);
         try module.add_all_cfgs(entry_name, compiler);
         try module.collect_impl_cfgs(compiler);
         module.collect_trait_types(compiler.allocator());
@@ -226,8 +222,8 @@ pub const Module = struct {
     fn add_all_cfgs(self: *Module, entry_name: ?[]const u8, compiler: *Compiler_Context) Module_Errors!void {
         var found_entry = false;
         const need_entry = entry_name != null;
-        for (self.top_level_scope().symbols.keys()) |key| {
-            const symbol: *Symbol = self.top_level_scope().symbols.get(key).?;
+        for (compiler.module_scope(self.absolute_path).?.symbols.keys()) |key| {
+            const symbol: *Symbol = compiler.module_scope(self.absolute_path).?.symbols.get(key).?;
             if (symbol.kind != .@"fn") {
                 continue;
             }
@@ -437,12 +433,6 @@ pub const Module = struct {
 
     pub fn pop_cfg(self: *Module, idx: i64) void {
         _ = self.cfgs.orderedRemove(@as(usize, @intCast(idx)));
-    }
-
-    /// Returns the scope that contains this module's top-level definitions
-    /// TODO: Remove from module, pass around as needed
-    pub fn top_level_scope(self: *Module) *Scope {
-        return self.symbol.init_value.?.scope().?;
     }
 
     pub fn print_instructions(self: *Module) void {

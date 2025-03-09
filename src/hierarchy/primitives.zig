@@ -380,7 +380,7 @@ fn create_prelude(compiler: *Compiler_Context) !void {
     defer errors.deinit();
     errdefer errors.print_errors();
 
-    var module = module_.Module.init("prelude", "/prelude/prelude.orng", undefined, compiler.allocator());
+    const module = module_.Module.init("prelude", "/prelude/prelude.orng", compiler.allocator());
     const symbol = Symbol.init(
         compiler.prelude,
         "prelude",
@@ -396,7 +396,6 @@ fn create_prelude(compiler: *Compiler_Context) !void {
         .module,
         compiler.allocator(),
     );
-    module.symbol = symbol;
     try prelude.?.put_symbol(symbol, &compiler.errors);
 
     var env_map = std.process.getEnvMap(compiler.allocator()) catch unreachable;
@@ -407,12 +406,13 @@ fn create_prelude(compiler: *Compiler_Context) !void {
         null,
         prelude.?,
         module,
+        symbol,
         false,
         compiler,
     );
 
-    package_type = module.top_level_scope().lookup("Package", .{}).found.init_value.?;
-    _ = module.top_level_scope().lookup("Requirement", .{}).found.init_value.?;
+    package_type = compiler.module_scope(module.absolute_path).?.lookup("Package", .{}).found.init_value.?;
+    _ = compiler.module_scope(module.absolute_path).?.lookup("Requirement", .{}).found.init_value.?;
     addr_package_type = ast_.AST.create_addr_of(package_type.token(), package_type, false, false, compiler.allocator());
 }
 

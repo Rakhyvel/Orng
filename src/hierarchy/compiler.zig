@@ -43,13 +43,13 @@ pub fn init(alloc: std.mem.Allocator) Error!*Self {
     poison_.init_structures(retval.allocator());
     retval.errors = errs_.Errors.init(retval.allocator());
     retval.module_interned_strings = std.StringArrayHashMap(*Interned_String_Set).init(retval.allocator());
+    retval.modules = std.StringArrayHashMap(*Symbol).init(retval.allocator());
+    retval.packages = std.StringArrayHashMap(*Package).init(retval.allocator());
     retval.prelude = primitives_.get_scope(retval) catch {
         // Prelude compilation can sometimes fail :(
         retval.errors.print_errors();
         return error.CompileError;
     };
-    retval.modules = std.StringArrayHashMap(*Symbol).init(retval.allocator());
-    retval.packages = std.StringArrayHashMap(*Package).init(retval.allocator());
 
     return retval;
 }
@@ -101,13 +101,17 @@ pub fn compile_module(
             },
         }
     };
-    self.modules.put(absolute_path, module.symbol) catch unreachable;
 
-    return module.symbol;
+    return self.lookup_module(module.absolute_path).?;
 }
 
 pub fn lookup_module(self: *Self, absolute_path: []const u8) ?*Symbol {
     return self.modules.get(absolute_path);
+}
+
+pub fn module_scope(self: *Self, absolute_path: []const u8) ?*Scope {
+    const module_symbol = self.lookup_module(absolute_path) orelse return null;
+    return module_symbol.init_value.?.scope();
 }
 
 pub fn register_interned_string_set(self: *Self, module_uid: u32, absolute_path: []const u8) void {
