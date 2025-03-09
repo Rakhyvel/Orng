@@ -1,4 +1,5 @@
 const std = @import("std");
+const Module_Iterator = @import("../util/dfs.zig").Dfs_Iterator(*Module);
 const String = @import("../zig-string/zig-string.zig").String;
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const Interned_String_Set = @import("../ir/interned_string_set.zig");
@@ -18,20 +19,16 @@ pub fn output_modules(compiler: *Compiler_Context) !void {
         std.fs.deleteTreeAbsolute(build_path) catch unreachable;
         std.fs.makeDirAbsolute(build_path) catch unreachable;
 
-        // std.debug.print("  generating: {s}...\n", .{module.name});
-
-        try output(module, &compiler.module_interned_strings, build_path, &package.local_modules, compiler.allocator());
+        var dfs_iter: Module_Iterator = Module_Iterator.init(module, compiler.allocator());
+        defer dfs_iter.deinit();
+        while (dfs_iter.next()) |next_module| {
+            try output(next_module, &compiler.module_interned_strings, build_path, &package.local_modules, compiler.allocator());
+        }
     }
 }
 
 /// Takes in a statically correct symbol tree, writes it out to a file
-/// TODO: Codegen Context that has this method instead
 fn output(module: *Module, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set), build_path: []const u8, local_modules: *std.ArrayList(*Module), allocator: std.mem.Allocator) !void {
-    if (module.visited) {
-        return;
-    }
-    module.visited = true;
-
     local_modules.append(module) catch unreachable;
 
     var output_h_filename = String.init(allocator);

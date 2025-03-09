@@ -92,9 +92,6 @@ pub const Module = struct {
     /// List of all impls defined in this module. Used by codegen to output the vtable implementations.
     impls: std.ArrayList(*ast_.AST),
 
-    /// Whether or not this module has been visited in a graph traversal
-    visited: bool,
-
     /// Allocator for the module
     allocator: std.mem.Allocator,
 
@@ -114,7 +111,6 @@ pub const Module = struct {
         retval.impls = std.ArrayList(*ast_.AST).init(allocator);
         retval.cfgs = std.ArrayList(*CFG).init(allocator);
         retval.type_set = Type_Set.init(allocator);
-        retval.visited = false;
         retval.entry = null;
         return retval;
     }
@@ -433,6 +429,10 @@ pub const Module = struct {
 
     pub fn pop_cfg(self: *Module, idx: i64) void {
         _ = self.cfgs.orderedRemove(@as(usize, @intCast(idx)));
+    }
+
+    pub fn get_adjacent(self: *Module) []*Module {
+        return self.local_imported_modules.keys();
     }
 
     pub fn print_instructions(self: *Module) void {
