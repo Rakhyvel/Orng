@@ -6,6 +6,7 @@ const ast_ = @import("../ast/ast.zig");
 const Basic_Block = @import("../ir/basic-block.zig");
 const CFG = @import("../ir/cfg.zig");
 const Emitter = @import("emitter.zig");
+const Interned_String_Set = @import("../ir/interned_string_set.zig");
 const Instruction = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
@@ -20,15 +21,21 @@ const Self = @This();
 const HIGHEST_PRECEDENCE = 100;
 
 module: *module_.Module,
+interned_strings: *Interned_String_Set,
 emitter: Emitter,
 writer: Writer,
 
 pub const CodeGen_Error = std.fs.File.WriteError;
 const Writer = std.fs.File.Writer;
 
-pub fn init(module: *module_.Module, writer: Writer) Self {
+pub fn init(module: *module_.Module, interned_strings: *Interned_String_Set, writer: Writer) Self {
     const emitter = Emitter.init(module, writer);
-    return Self{ .module = module, .emitter = emitter, .writer = writer };
+    return Self{
+        .module = module,
+        .interned_strings = interned_strings,
+        .emitter = emitter,
+        .writer = writer,
+    };
 }
 
 /// Generates C code for the provided Orng module and writes it to the given writer.
@@ -49,23 +56,23 @@ pub fn generate(self: *Self) CodeGen_Error!void {
 
 /// Outputs the interned strings declarations
 fn output_interned_strings(self: *Self) CodeGen_Error!void {
-    if (self.module.interned_strings.items.len > 0) {
+    if (self.interned_strings.items().len > 0) {
         // Do not output header comment if there are no interned strings!
         try self.writer.print("/* Interned Strings */\n", .{});
     }
 
     // Output each string in the string hash map
-    for (0..self.module.interned_strings.items.len) |i| {
+    for (0..self.interned_strings.items().len) |i| {
         try self.writer.print("static char* string_{} = \"", .{i});
         // Print each byte in the string in hex format
-        const str = self.module.interned_strings.items[i];
+        const str = self.interned_strings.items()[i];
         for (str) |byte| {
             try self.writer.print("\\x{X:0>2}", .{byte});
         }
         try self.writer.print("\";\n", .{});
     }
 
-    if (self.module.interned_strings.items.len > 0) {
+    if (self.interned_strings.items().len > 0) {
         // Do not output this newline if there are no interned strings!
         try self.writer.print("\n", .{});
     }
@@ -315,7 +322,7 @@ fn output_instruction_post_check(self: *Self, instr: *Instruction) CodeGen_Error
             try self.output_var_assign_cast(instr.dest.?, instr.dest.?.get_expanded_type());
             try self.writer.print("{{(uint8_t*)string_{}, {}}};\n", .{
                 instr.data.string_id.string_idx,
-                self.module.interned_strings.items[instr.data.string_id.string_idx].len,
+                self.interned_strings.items()[instr.data.string_id.string_idx].len,
             });
         },
         .load_struct => {

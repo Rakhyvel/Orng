@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
-const Compiler_Context = @import("../compilation/compiler.zig");
+const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");

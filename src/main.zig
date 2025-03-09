@@ -1,6 +1,6 @@
 const std = @import("std");
 const ast_ = @import("ast/ast.zig");
-const Compiler_Context = @import("compilation/compiler.zig");
+const Compiler_Context = @import("hierarchy/compiler.zig");
 const Codegen_Context = @import("codegen/codegen.zig");
 const errs_ = @import("util/errors.zig");
 const Interpreter_Context = @import("interpretation/interpreter.zig");
@@ -94,7 +94,7 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     defer interpreter.deinit();
 
     // Extract the retval
-    const package_dag = try interpreter.extract_ast(0, primitives_.package_type, Span.phony);
+    const package_dag = try interpreter.extract_ast(0, primitives_.package_type, Span.phony, null);
     const cwd_buffer = compiler.allocator().alloc(u8, std.fs.max_path_bytes) catch unreachable;
     const cwd = std.fs.cwd().realpath(".", cwd_buffer) catch unreachable;
     const package_name = std.fs.path.basename(cwd);

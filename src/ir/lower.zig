@@ -6,6 +6,7 @@ const Basic_Block = @import("../ir/basic-block.zig");
 const CFG = @import("../ir/cfg.zig");
 const cfg_builder_ = @import("../ir/cfg_builder.zig");
 const errs_ = @import("../util/errors.zig");
+const Interned_String_Set = @import("../ir/interned_string_set.zig");
 const Instruction = @import("../ir/instruction.zig");
 const lval_ = @import("lval.zig");
 const module_ = @import("../hierarchy/module.zig");
@@ -20,6 +21,7 @@ pub const Lower_Errors = error{CompileError};
 const Self = @This();
 
 instructions: std.ArrayList(*Instruction),
+interned_strings: *Interned_String_Set,
 errors: *errs_.Errors,
 allocator: std.mem.Allocator,
 cfg: *CFG,
@@ -34,9 +36,10 @@ const Labels = struct {
     const null_labels: Labels = .{ .return_label = null, .break_label = null, .continue_label = null, .error_label = null };
 };
 
-pub fn init(cfg: *CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) Self {
+pub fn init(cfg: *CFG, interned_strings: *Interned_String_Set, errors: *errs_.Errors, allocator: std.mem.Allocator) Self {
     return Self{
         .instructions = std.ArrayList(*Instruction).init(allocator),
+        .interned_strings = interned_strings,
         .errors = errors,
         .allocator = allocator,
         .cfg = cfg,
@@ -148,8 +151,7 @@ fn lower_AST_inner(
             return temp;
         },
         .string => {
-            const module = self.cfg.symbol.scope.module.?;
-            const id: Instruction.String_Idx = module.interned_string_set_add(ast.string.data);
+            const id: Interned_String_Set.String_Idx = self.interned_strings.add(ast.string.data);
             const temp = self.create_temp_lvalue(ast.typeof(self.allocator));
             self.instructions.append(Instruction.init_string(temp, id, ast.token().span, self.allocator)) catch unreachable;
             return temp;
@@ -646,7 +648,7 @@ fn lval_from_symbol_cfg(
     caller: *CFG,
     span: Span,
 ) Lower_Errors!*lval_.L_Value {
-    const callee_cfg = try cfg_builder_.get_cfg(symbol, caller, self.errors, self.allocator);
+    const callee_cfg = try cfg_builder_.get_cfg(symbol, caller, self.interned_strings, self.errors, self.allocator);
     callee_cfg.needed_at_runtime = callee_cfg.needed_at_runtime or (caller.symbol.scope.inner_function.?.kind == .@"fn" or
         caller.symbol.scope.inner_function.?.kind == .trait);
     const lval = self.create_temp_lvalue(symbol._type);

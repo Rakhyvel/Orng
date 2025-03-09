@@ -1,5 +1,5 @@
 const std = @import("std");
-const Compiler_Context = @import("../compilation/compiler.zig");
+const Compiler_Context = @import("../hierarchy/compiler.zig");
 const Interpreter_Context = @import("../interpretation/interpreter.zig");
 const lval_ = @import("../ir/lval.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");

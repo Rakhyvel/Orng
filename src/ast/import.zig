@@ -3,7 +3,7 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
-const Compiler_Context = @import("../compilation/compiler.zig");
+const Compiler_Context = @import("../hierarchy/compiler.zig");
 const Module = @import("../hierarchy/module.zig").Module;
 const primitives_ = @import("../hierarchy/primitives.zig");
 const String = @import("../zig-string/zig-string.zig").String;

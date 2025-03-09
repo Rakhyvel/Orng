@@ -7,7 +7,7 @@ const Basic_Block = @import("../ir/basic-block.zig");
 const CFG = @import("../ir/cfg.zig");
 const cfg_builder_ = @import("../ir/cfg_builder.zig");
 const codegen_ = @import("../codegen/codegen.zig");
-const Compiler_Context = @import("../compilation/compiler.zig");
+const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const Interpreter_Context = @import("../interpretation/interpreter.zig");
 const cfg_validate_ = @import("../semantic/cfg_validate.zig");
@@ -92,9 +92,6 @@ pub const Module = struct {
     /// List of all impls defined in this module. Used by codegen to output the vtable implementations.
     impls: std.ArrayList(*ast_.AST),
 
-    /// Interned strings. Used by codegen to output the interned strings for this module.
-    interned_strings: std.ArrayList([]const u8),
-
     /// The symbol that represents this module. Mainly used to get the scope for the module
     /// TODO: Make this better
     symbol: *Symbol,
@@ -113,7 +110,6 @@ pub const Module = struct {
         std.debug.assert(std.fs.path.isAbsolute(absolute_path));
         retval.absolute_path = absolute_path;
         retval.package_name = std.fs.path.basename(std.fs.path.dirname(absolute_path).?);
-        retval.interned_strings = std.ArrayList([]const u8).init(allocator);
         retval.symbol = symbol;
         retval.allocator = allocator;
         retval.local_imported_modules = std.AutoArrayHashMap(*Module, void).init(allocator);
@@ -203,6 +199,7 @@ pub const Module = struct {
         fuzz_tokens: bool,
         compiler: *Compiler_Context,
     ) Module_Errors!void {
+        compiler.register_interned_string_set(module.uid, module.absolute_path);
         // Setup and run the front-end pipeline
         _ = try pipeline_.run(in_name, .{
             Read_File.init(compiler.allocator()),
@@ -234,8 +231,10 @@ pub const Module = struct {
             if (symbol.kind != .@"fn") {
                 continue;
             }
+
             // Instruction translation
-            const cfg = try cfg_builder_.get_cfg(symbol, null, &compiler.errors, compiler.allocator());
+            const interned_strings = compiler.lookup_interned_string_set(self.absolute_path).?;
+            const cfg = try cfg_builder_.get_cfg(symbol, null, interned_strings, &compiler.errors, compiler.allocator());
             self.collect_cfgs(cfg);
 
             if (need_entry and std.mem.eql(u8, key, entry_name.?)) {
@@ -292,7 +291,8 @@ pub const Module = struct {
         for (self.impls.items) |impl| {
             for (impl.impl.method_defs.items) |def| {
                 const symbol = def.symbol().?;
-                const cfg = try cfg_builder_.get_cfg(symbol, null, &compiler.errors, compiler.allocator());
+                const interned_strings = compiler.lookup_interned_string_set(self.absolute_path).?;
+                const cfg = try cfg_builder_.get_cfg(symbol, null, interned_strings, &compiler.errors, compiler.allocator());
                 self.collect_cfgs(cfg);
                 cfg.needed_at_runtime = true;
             }
@@ -437,20 +437,6 @@ pub const Module = struct {
 
     pub fn pop_cfg(self: *Module, idx: i64) void {
         _ = self.cfgs.orderedRemove(@as(usize, @intCast(idx)));
-    }
-
-    // TODO: Interned String Set type that takes module uid
-    pub fn interned_string_set_add(self: *Module, str: []const u8) Instruction.String_Idx {
-        for (0..self.interned_strings.items.len) |i| {
-            const item = self.interned_strings.items[i];
-            if (std.mem.eql(u8, item, str)) {
-                return .{ .module_uid = self.uid, .string_idx = @as(u32, @intCast(i)) };
-            }
-        }
-        // sanitized_str must not be in set, add it
-        const idx: u32 = @intCast(self.interned_strings.items.len);
-        self.interned_strings.append(str) catch unreachable;
-        return .{ .module_uid = self.uid, .string_idx = idx };
     }
 
     /// Returns the scope that contains this module's top-level definitions

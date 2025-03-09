@@ -5,6 +5,7 @@ const alignment_ = @import("../util/alignment.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const CFG = @import("../ir/cfg.zig");
 const errs_ = @import("../util/errors.zig");
+const Interned_String_Set = @import("../ir/interned_string_set.zig");
 const Lower_Context = @import("../ir/lower.zig");
 const cfg_validate_ = @import("../semantic/cfg_validate.zig");
 const optimizations_ = @import("../ir/optimizations.zig");
@@ -12,6 +13,7 @@ const optimizations_ = @import("../ir/optimizations.zig");
 pub fn get_cfg(
     symbol: *Symbol,
     caller: ?*CFG,
+    interned_strings: *Interned_String_Set,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Lower_Context.Lower_Errors!*CFG {
@@ -26,7 +28,7 @@ pub fn get_cfg(
     }
     if (symbol.cfg == null) {
         symbol.cfg = CFG.init(symbol, caller, allocator);
-        var lower_context = Lower_Context.init(symbol.cfg.?, errors, allocator);
+        var lower_context = Lower_Context.init(symbol.cfg.?, interned_strings, errors, allocator);
         try lower_context.lower_AST_into_cfg();
         try cfg_validate_.validate_cfg(symbol.cfg.?, errors);
         try optimizations_.optimize(symbol.cfg.?, errors, allocator);

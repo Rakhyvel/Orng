@@ -2,7 +2,7 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const args_ = @import("../semantic/args.zig");
 const cfg_builder_ = @import("../ir/cfg_builder.zig");
-const Compiler_Context = @import("../compilation/compiler.zig");
+const Compiler_Context = @import("../hierarchy/compiler.zig");
 const Interpreter_Context = @import("../interpretation/interpreter.zig");
 const Decorate = @import("../ast/decorate.zig");
 const Decorate_Access = @import("../ast/decorate-access.zig");
@@ -40,7 +40,8 @@ pub fn interpret(
 
     // Get the cfg from the symbol, and embed into the module
     const module = symbol.scope.module.?;
-    const cfg = try cfg_builder_.get_cfg(symbol, null, &compiler.errors, compiler.allocator());
+    const intered_strings = compiler.lookup_interned_string_set(module.absolute_path).?;
+    const cfg = try cfg_builder_.get_cfg(symbol, null, intered_strings, &compiler.errors, compiler.allocator());
     defer cfg.deinit(); // Remove the cfg so that it isn't output
 
     const idx = module.emplace_cfg(cfg);
@@ -54,5 +55,5 @@ pub fn interpret(
     try context.run(compiler);
 
     // Extract the retval
-    return try context.extract_ast(0, ret_type, ast.token().span);
+    return try context.extract_ast(0, ret_type, ast.token().span, intered_strings);
 }

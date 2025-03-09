@@ -1,6 +1,6 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
-const Compiler_Context = @import("../compilation/compiler.zig");
+const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const module_ = @import("../hierarchy/module.zig");
 const Span = @import("../util/span.zig");

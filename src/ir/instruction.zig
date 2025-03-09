@@ -5,14 +5,10 @@ const CFG = @import("../ir/cfg.zig");
 const lval_ = @import("../ir/lval.zig");
 const Span = @import("../util/span.zig");
 const String = @import("../zig-string/zig-string.zig").String;
+const String_Idx = @import("../ir/interned_string_set.zig").String_Idx;
 const Symbol = @import("../symbol/symbol.zig");
 
 const Self = @This();
-
-pub const String_Idx: type = struct { // TODO: Move to interned string set file
-    module_uid: u32,
-    string_idx: u32,
-};
 
 pub const Index: type = u32;
 

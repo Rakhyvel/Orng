@@ -1,5 +1,5 @@
 const std = @import("std");
-const Compiler_Context = @import("compilation/compiler.zig");
+const Compiler_Context = @import("hierarchy/compiler.zig");
 const Codegen_Context = @import("codegen/codegen.zig");
 const exec = @import("util/exec.zig").exec;
 const module_ = @import("hierarchy/module.zig");
