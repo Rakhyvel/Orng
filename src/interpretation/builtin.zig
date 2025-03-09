@@ -11,8 +11,6 @@ const Error: type = error{
     FileNotFound,
 };
 
-pub fn module_path() []const u8 {}
-
 /// Implements the Package::find method at build-time. Takes in a string representing the name of
 /// the package in the Orng cache, and returns an AST representing the package.
 pub fn package_find(compiler: *Compiler_Context, interpreter: *Interpreter_Context, current_module_path: []const u8, package_path: []const u8) Error!struct { package_adrs: i64, package_dirname: []const u8 } {

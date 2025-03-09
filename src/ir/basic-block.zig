@@ -259,9 +259,7 @@ pub fn count_predecessors(self: *Self) void {
     }
 }
 
-pub fn mark_instructions_as_removed(
-    self: *Self,
-) void {
+pub fn mark_instructions_as_removed(self: *Self) void {
     for (self.instructions.items) |instr| {
         instr.removed = true;
     }

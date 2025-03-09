@@ -84,13 +84,6 @@ pub fn lower_AST_into_cfg(self: *Self) Lower_Errors!void {
     }
 }
 
-/// Removes the last instruction from each basic-block.
-fn remove_last_instruction(bbs: *std.ArrayList(*Basic_Block)) void {
-    for (bbs.items) |bb| {
-        bb.remove_last_instruction();
-    }
-}
-
 fn lower_AST(self: *Self, ast: *ast_.AST, labels: Labels) Lower_Errors!?*lval_.L_Value {
     const retval = self.lower_AST_inner(ast, labels);
     // std.debug.print("{}\n", .{ast});
