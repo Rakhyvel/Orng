@@ -46,7 +46,7 @@ pub fn generate(self: *Self) CodeGen_Error!void {
         \\#include "{s}-{s}.h"
         \\
         \\
-    , .{ self.module.package_name, self.module.name });
+    , .{ self.module.package_name, self.module.name() });
 
     try self.output_interned_strings();
     try self.output_impls();

@@ -151,7 +151,7 @@ pub fn output_symbol(self: *Self, symbol: *Symbol) CodeGen_Error!void {
     if (symbol.kind == .@"extern") {
         try self.writer.print("{s}", .{symbol.kind.@"extern".c_name.?.string.data});
     } else if (symbol.decl != null and symbol.decl.?.* != .receiver and symbol.decl.?.top_level()) {
-        try self.writer.print("p{s}_m{s}_{}_{s}", .{ symbol.scope.module.?.package_name, symbol.scope.module.?.name, symbol.scope.uid, symbol.name });
+        try self.writer.print("p{s}_m{s}_{}_{s}", .{ symbol.scope.module.?.package_name, symbol.scope.module.?.name(), symbol.scope.uid, symbol.name });
     } else {
         try self.writer.print("_{}_{s}", .{ symbol.scope.uid, symbol.name });
     }

@@ -33,7 +33,7 @@ fn output(module: *Module, module_interned_strings: *const std.AutoArrayHashMap(
 
     var output_h_filename = String.init(allocator);
     defer output_h_filename.deinit();
-    output_h_filename.writer().print("{s}-{s}.h", .{ module.package_name, module.name }) catch unreachable;
+    output_h_filename.writer().print("{s}-{s}.h", .{ module.package_name, module.name() }) catch unreachable;
     const out_h_paths = [_][]const u8{ build_path, output_h_filename.str() };
     const out_h_path = std.fs.path.join(allocator, &out_h_paths) catch unreachable;
     var output_h_file = std.fs.createFileAbsolute(out_h_path, .{}) catch unreachable;
@@ -43,7 +43,7 @@ fn output(module: *Module, module_interned_strings: *const std.AutoArrayHashMap(
 
     var output_c_filename = String.init(allocator);
     defer output_c_filename.deinit();
-    output_c_filename.writer().print("{s}-{s}.c", .{ module.package_name, module.name }) catch unreachable;
+    output_c_filename.writer().print("{s}-{s}.c", .{ module.package_name, module.name() }) catch unreachable;
     const out_c_paths = [_][]const u8{ build_path, output_c_filename.str() };
     const out_c_path = std.fs.path.join(allocator, &out_c_paths) catch unreachable;
     var output_c_file = std.fs.createFileAbsolute(out_c_path, .{}) catch unreachable;

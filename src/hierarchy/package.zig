@@ -52,11 +52,11 @@ pub fn compile_c(self: *Package, packages: std.StringArrayHashMap(*Package), ext
             std.fs.path.sep,
             std.fs.path.sep,
             self.name,
-            local_module.name,
+            local_module.name(),
         }) catch unreachable;
 
         var o_file = String.init(allocator);
-        o_file.writer().print("{s}.o", .{local_module.name}) catch unreachable;
+        o_file.writer().print("{s}.o", .{local_module.name()}) catch unreachable;
         obj_files.append(o_file.str()) catch unreachable;
 
         try self.gcc(c_file.str(), o_file.str(), packages, extra_flags, allocator);

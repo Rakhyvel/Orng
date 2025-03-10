@@ -57,9 +57,6 @@ pub const Module = struct {
     // A unique identifier for this Orng module
     uid: Module_UID,
 
-    // Name of the module
-    name: []const u8,
-
     // Absolute path of the module
     absolute_path: []const u8,
 
@@ -96,11 +93,10 @@ pub const Module = struct {
     /// Allocator for the module
     allocator: std.mem.Allocator,
 
-    pub fn init(name: []const u8, absolute_path: []const u8, allocator: std.mem.Allocator) *Module {
+    pub fn init(absolute_path: []const u8, allocator: std.mem.Allocator) *Module {
         var retval = allocator.create(Module) catch unreachable;
         retval.uid = module_uids;
         module_uids += 1;
-        retval.name = name;
         std.debug.assert(std.fs.path.isAbsolute(absolute_path));
         retval.absolute_path = absolute_path;
         retval.package_name = std.fs.path.basename(std.fs.path.dirname(absolute_path).?);
@@ -118,38 +114,22 @@ pub const Module = struct {
 
     // TODO: Move to compiler context
     pub fn compile(
-        in_name: []const u8,
+        absolute_path: []const u8,
         entry_name: ?[]const u8,
         fuzz_tokens: bool,
         compiler: *Compiler_Context,
     ) Module_Errors!*Module {
-        // Construct the name
-        var i: usize = 0;
-        while (i < in_name.len and in_name[i] != '.') : (i += 1) {}
-        const full_name: []const u8 = in_name[0..i];
-        i = full_name.len - 1;
-        while (i >= 1 and full_name[i] != std.fs.path.sep) : (i -= 1) {}
-        const short_name: []const u8 = full_name[i + 1 ..];
-
-        if (!module_name_is_good(short_name)) {
-            compiler.errors.add_error(errs_.Error{ .symbol_error = .{
-                .problem = "has an improper module name",
-                .span = Span{ .filename = in_name, .col = 0, .line_number = 0, .line_text = "" },
-                .name = short_name,
-            } });
-        }
-
         // Create the symbol for this module
         var file_root = Scope.init(compiler.prelude, compiler.allocator());
-        const module = Module.init(short_name, in_name, compiler.allocator());
+        const module = Module.init(absolute_path, compiler.allocator());
         file_root.module = module;
         const symbol = Symbol.init(
             compiler.prelude,
-            short_name,
-            Span{ .col = 1, .line_number = 1, .filename = in_name, .line_text = "" },
+            module.name(),
+            Span{ .col = 1, .line_number = 1, .filename = absolute_path, .line_text = "" },
             primitives_.unit_type,
             ast_.AST.create_module(
-                Token.init_simple(short_name),
+                Token.init_simple(module.name()),
                 file_root,
                 module,
                 compiler.allocator(),
@@ -161,24 +141,19 @@ pub const Module = struct {
         try compiler.prelude.put_symbol(symbol, &compiler.errors);
         file_root.module = module;
 
-        try fill_contents(in_name, entry_name, file_root, module, symbol, fuzz_tokens, compiler);
+        try fill_contents(absolute_path, entry_name, file_root, module, symbol, fuzz_tokens, compiler);
 
         return module;
     }
 
-    fn module_name_is_good(module_name: []const u8) bool {
-        if (module_name.len == 0) {
-            return false;
-        }
-        if (!std.ascii.isLower(module_name[0])) {
-            return false;
-        }
-        for (module_name) |c| {
-            if (!std.ascii.isAlphanumeric(c) and c != '_') {
-                return false;
-            }
-        }
-        return true;
+    pub fn name(self: *Module) []const u8 {
+        var i: usize = 0;
+        while (i < self.absolute_path.len and self.absolute_path[i] != '.') : (i += 1) {}
+        const full_name: []const u8 = self.absolute_path[0..i];
+        i = full_name.len - 1;
+        while (i >= 1 and full_name[i] != std.fs.path.sep) : (i -= 1) {}
+        const short_name: []const u8 = full_name[i + 1 ..];
+        return short_name;
     }
 
     pub fn fill_contents(

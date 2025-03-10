@@ -45,7 +45,7 @@ pub fn generate(self: *Self) CodeGen_Error!void {
         \\#include "debug.inc"
         \\
         \\
-    , .{ self.module.package_name, self.module.name });
+    , .{ self.module.package_name, self.module.name() });
 
     try self.output_includes();
     try self.output_forward_typedefs();
@@ -69,7 +69,7 @@ fn output_includes(self: *Self) CodeGen_Error!void {
 
     if (self.module.local_imported_modules.keys().len != 0) {
         for (self.module.local_imported_modules.keys()) |module| {
-            try self.writer.print("#include \"{s}-{s}.h\"\n", .{ module.package_name, module.name });
+            try self.writer.print("#include \"{s}-{s}.h\"\n", .{ module.package_name, module.name() });
         }
         try self.writer.print("\n", .{});
     }
