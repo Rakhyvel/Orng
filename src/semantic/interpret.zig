@@ -44,7 +44,7 @@ pub fn interpret(
     const cfg = try cfg_builder_.get_cfg(symbol, null, intered_strings, &compiler.errors, compiler.allocator());
     defer cfg.deinit(); // Remove the cfg so that it isn't output
 
-    const idx = module.emplace_cfg(cfg);
+    const idx = cfg.emplace_cfg(&module.cfgs, &module.instructions);
     defer module.pop_cfg(idx); // Remove the cfg so that it isn't output
 
     // Create a context and interpret

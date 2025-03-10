@@ -343,6 +343,111 @@ fn index_of_basic_block(self: *Self, bb: *Basic_Block) usize {
     }
 }
 
+/// Flattens all CFG's instructions to the module's list of instructions, recursively.
+///
+/// This also then adds the CFG to the list of CFGs in this module.
+///
+/// Also sets the `offset` flag of a CFG, which is the address in the instructions list that the
+/// instructions for the CFG start.
+///
+/// Returns the index in the cfg in the cfgs list.
+pub fn emplace_cfg(self: *Self, cfgs: *std.ArrayList(*Self), instructions_list: *std.ArrayList(*Instruction)) i64 {
+    const len = @as(i64, @intCast(cfgs.items.len));
+    if (self.offset != null) {
+        // Already visited, do nothing
+        return len;
+    } else if (self.block_graph_head == null) {
+        // CFG doesn't have any real instructions. Insert phony BB.
+        self.offset = self.append_phony_block(instructions_list);
+        cfgs.append(self) catch unreachable;
+    } else {
+        // Normal CFG with instructions, append BBs to instructions list, recursively append children
+        self.offset = self.append_basic_block(self.block_graph_head.?, instructions_list);
+        cfgs.append(self) catch unreachable;
+
+        for (self.children.items) |child| {
+            _ = child.emplace_cfg(cfgs, instructions_list);
+        }
+    }
+    return len;
+}
+
+/// Appends the instructions in a BasicBlock to the module's instructions.
+/// Returns the offset of the basic block
+fn append_basic_block(self: *Self, first_bb: *Basic_Block, instructions_list: *std.ArrayList(*Instruction)) Instruction.Index {
+    var work_queue = std.ArrayList(*Basic_Block).init(self.allocator);
+    defer work_queue.deinit();
+    work_queue.append(first_bb) catch unreachable;
+
+    while (work_queue.items.len > 0) {
+        // TODO: Too long
+        var bb = work_queue.orderedRemove(0); // Youch! Does this really have to be ordered?
+
+        if (bb.offset != null) {
+            continue;
+        }
+
+        bb.offset = @as(Instruction.Index, @intCast(instructions_list.items.len));
+        var label = Instruction.init_label(self, Span.phony, self.allocator);
+        label.uid = bb.uid;
+        instructions_list.append(label) catch unreachable;
+
+        for (bb.instructions.items) |instr| {
+            instructions_list.append(instr) catch unreachable;
+        }
+
+        switch (bb.terminator) {
+            .unconditional => {
+                if (bb.terminator.unconditional) |next| {
+                    work_queue.append(next) catch unreachable;
+                }
+                instructions_list.append(Instruction.init_jump_addr(
+                    bb.terminator.unconditional,
+                    Span.phony,
+                    self.allocator,
+                )) catch unreachable;
+            },
+            .conditional => {
+                if (bb.terminator.conditional.true_target) |next| {
+                    work_queue.append(next) catch unreachable;
+                }
+                if (bb.terminator.conditional.false_target) |branch| {
+                    work_queue.append(branch) catch unreachable;
+                }
+                instructions_list.append(Instruction.init_branch_addr(
+                    bb.terminator.conditional.condition,
+                    bb.terminator.conditional.true_target,
+                    bb.terminator.conditional.false_target,
+                    Span.phony,
+                    self.allocator,
+                )) catch unreachable;
+            },
+            .panic => {},
+        }
+    }
+    return first_bb.offset.?;
+}
+
+/// This function inserts a label and a return instruction. It is needed for functions which do not have
+/// instructions. The label is needed so that codegen_ can know there is a new function, and the return
+/// instruction is for interpreting so that jumping to the function won't jump to some random function.
+fn append_phony_block(self: *Self, instructions_list: *std.ArrayList(*Instruction)) Instruction.Index {
+    const offset = @as(Instruction.Index, @intCast(instructions_list.items.len));
+    // Append a label which has a back-reference to the CFG
+    instructions_list.append(Instruction.init_label(
+        self,
+        Span.phony,
+        self.allocator,
+    )) catch unreachable;
+    // Append a return instruction (a jump to null)
+    instructions_list.append(Instruction.init_jump_addr(
+        null,
+        Span.phony,
+        self.allocator,
+    )) catch unreachable;
+    return offset;
+}
+
 pub fn get_adjacent(self: *Self) []*Self {
     return self.children.items;
 }
