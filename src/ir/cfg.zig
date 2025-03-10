@@ -1,7 +1,9 @@
 //! This file contains the definition of a Control Flow Graph (Self) data structure.
 
 const std = @import("std");
+const alignment_ = @import("../util/alignment.zig");
 const Basic_Block = @import("../ir/basic-block.zig");
+const Cfg_Iterator = @import("../util/dfs.zig").Dfs_Iterator(*Self);
 const Instruction = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
 const Span = @import("../util/span.zig");
@@ -21,8 +23,7 @@ block_graph_head: ?*Basic_Block,
 basic_blocks: std.ArrayList(*Basic_Block),
 
 /// All other functions called by this function
-/// TODO: Remove for LCOM4
-children: std.ArrayList(*Self),
+children: std.AutoArrayHashMap(*Self, void),
 
 /// All symbol versions that are parameters to the function this Self defines
 /// TODO: Make this it's own type, in it's own file, with `put` and `get` methods
@@ -55,18 +56,15 @@ locals_size: ?i64,
 allocator: std.mem.Allocator,
 
 /// Initializes a Self
-pub fn init(
-    symbol: *Symbol,
-    caller: ?*Self,
-    allocator: std.mem.Allocator,
-) *Self {
+pub fn init(symbol: *Symbol, caller: ?*Self, allocator: std.mem.Allocator) *Self {
+    _ = caller;
     if (symbol.cfg) |cfg| {
         return cfg;
     }
     var retval = allocator.create(Self) catch unreachable;
     retval.block_graph_head = null;
     retval.basic_blocks = std.ArrayList(*Basic_Block).init(allocator);
-    retval.children = std.ArrayList(*Self).init(allocator);
+    retval.children = std.AutoArrayHashMap(*Self, void).init(allocator);
     retval.symbvers = std.ArrayList(*Symbol_Version).init(allocator);
     retval.parameters = std.ArrayList(*Symbol_Version).init(allocator);
     retval.symbol = symbol;
@@ -87,10 +85,6 @@ pub fn init(
     retval.allocator = allocator;
     symbol.cfg = retval;
 
-    if (caller) |caller_node| {
-        caller_node.children.append(retval) catch unreachable;
-    }
-
     return retval;
 }
 
@@ -109,6 +103,17 @@ pub fn deinit(self: *Self) void {
     self.parameters.deinit();
 
     self.allocator.destroy(self);
+}
+
+pub fn assert_needed_at_runtime(self: *Self) void {
+    if (self.needed_at_runtime) {
+        return;
+    }
+    self.needed_at_runtime = true;
+
+    for (self.children.keys()) |child| {
+        child.assert_needed_at_runtime();
+    }
 }
 
 /// Sets the `visited` flag for all basic-blocks in this Self to false.
@@ -365,10 +370,11 @@ pub fn emplace_cfg(self: *Self, cfgs: *std.ArrayList(*Self), instructions_list: 
         self.offset = self.append_basic_block(self.block_graph_head.?, instructions_list);
         cfgs.append(self) catch unreachable;
 
-        for (self.children.items) |child| {
+        for (self.children.keys()) |child| {
             _ = child.emplace_cfg(cfgs, instructions_list);
         }
     }
+    self.locals_size = self.calculate_offsets();
     return len;
 }
 
@@ -449,5 +455,99 @@ fn append_phony_block(self: *Self, instructions_list: *std.ArrayList(*Instructio
 }
 
 pub fn get_adjacent(self: *Self) []*Self {
-    return self.children.items;
+    return self.children.keys();
+}
+
+/// Fills in a CFG's local offsets
+///
+/// ## The Orng interpreter calling convention
+/// (stack grows up btw, lmao)
+/// ```
+///       |         |
+/// sp -> |         |
+///       | ------- | \
+///       | local 2 |  |
+///       | ------- |  |
+///       | local 1 |  |
+/// bp -> | ret-adr |  | - callee stack frame
+///    -8 | prev-bp |  |
+///   -16 | prev-sp |  |
+///   -24 | &retval |  | \
+///       | ------- |  |  |
+///       | - pad - |  |  |
+///       | ------- |  |  |
+///   -28 | arg 1   |  |  |
+///       | arg 2   |  |  |
+///   -30 | arg 2   | /   | - caller stack frame
+///       | - pad - |     |
+///   -32 | arg 3   |     |
+///       | - pad - |     |
+///       | local 2 |     |
+/// ```
+///
+/// - Entry (caller)
+///   * (save sp, will be pushed later)
+///   - push args in reverse order
+///   - push address to return-value slot
+///   - `call` instruction
+///     * push pre-arg sp
+///     * push bp
+///     * push ret-addr
+///     * bp := sp
+///   - sp += n  (allocate space for locals)
+///
+/// - Exit (callee)
+///   - sp := bp   (deallocate locals)
+///   - `ret` instruction
+///     * ip := pop  (set ip to ret-addr)
+///     * bp := pop  (set bp to prev-bp)
+///     * sp := pop  (deallocate all params)
+///
+/// There is padding before, in between, and after parameters, locals, and tuple fields so that each
+/// location is aligned to a multiple of it's size in bytes.
+pub fn calculate_offsets(self: *Self) i64 //< Number of bytes used for locals by the function.
+{
+    self.return_symbol.offset = null; // return value is set using an out-parameter
+
+    // Calculate parameters offsets, descending from retval address offset
+    var phony_sp: i64 = 0;
+    if (self.symbol.decl.?.* == .fn_decl or self.symbol.decl.?.* == .method_decl) {
+        const param_symbols = if (self.symbol.decl.?.* == .fn_decl)
+            self.symbol.decl.?.fn_decl.param_symbols.items
+        else
+            self.symbol.decl.?.method_decl.param_symbols.items;
+        // Go through params, as if we were pushing them
+        var i: i64 = @as(i64, @intCast(param_symbols.len)) - 1;
+        while (i >= 0) : (i -= 1) {
+            var param: *Symbol = param_symbols[@as(usize, @intCast(i))];
+            const size = param.expanded_type.?.sizeof();
+            const alignof = param.expanded_type.?.alignof();
+            phony_sp = alignment_.next_alignment(phony_sp, alignof);
+            param.offset = phony_sp;
+            phony_sp += size;
+        }
+
+        // Push a "header" word of alignment 8. Pretend this has the offset of the header. Adjust the offsets
+        // set before accordingly
+        const header = alignment_.next_alignment(phony_sp, 8);
+        // Have to do this stupid round-a-bout way because we don't know how much padding to include after the
+        // parameters until we get the offsets of each parameter.
+        for (param_symbols) |param| {
+            param.offset.? -= header - retval_offset;
+        }
+    }
+
+    // Calculate locals offsets, ascending from local starting offset
+    var local_offsets: i64 = locals_starting_offset;
+    for (self.symbvers.items) |symbver| {
+        if (symbver.symbol.offset == null and !std.mem.eql(u8, symbver.symbol.name, "$retval")) {
+            local_offsets = alignment_.next_alignment(local_offsets, symbver.symbol.expanded_type.?.alignof());
+            symbver.symbol.offset = local_offsets;
+            local_offsets += @as(i64, @intCast(symbver.symbol.expanded_type.?.sizeof()));
+        }
+    }
+    local_offsets = alignment_.next_alignment(local_offsets, 8);
+
+    // The total number of bytes used for locals
+    return local_offsets - locals_starting_offset;
 }

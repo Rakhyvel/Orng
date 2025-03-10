@@ -186,6 +186,9 @@ pub const Module = struct {
         try module_validate_.validate(module, compiler);
         module.collect_traits_and_impls(compiler.module_scope(module.absolute_path).?);
         try module.add_all_cfgs(entry_name, compiler);
+        if (module.entry) |entry| {
+            entry.assert_needed_at_runtime();
+        }
         try module.collect_impl_cfgs(compiler);
         module.collect_trait_types(compiler.allocator());
         module.collect_cfg_types(compiler.allocator());
@@ -207,7 +210,6 @@ pub const Module = struct {
 
             if (need_entry and std.mem.eql(u8, key, entry_name.?)) {
                 self.entry = cfg;
-                self.entry.?.needed_at_runtime = true;
                 found_entry = true;
             }
         }
@@ -254,9 +256,9 @@ pub const Module = struct {
             for (impl.impl.method_defs.items) |def| {
                 const symbol = def.symbol().?;
                 const interned_strings = compiler.lookup_interned_string_set(self.uid).?;
-                const cfg = try cfg_builder_.get_cfg(symbol, null, interned_strings, &compiler.errors, compiler.allocator());
+                const cfg = (try cfg_builder_.get_cfg(symbol, null, interned_strings, &compiler.errors, compiler.allocator()));
+                cfg.assert_needed_at_runtime();
                 self.collect_cfgs(cfg);
-                cfg.needed_at_runtime = true;
             }
         }
     }

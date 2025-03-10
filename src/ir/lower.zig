@@ -159,7 +159,7 @@ fn lower_AST_inner(
                 return error.CompileError;
             }
             if (symbol.kind == .@"fn") {
-                return try self.lval_from_symbol_cfg(symbol, self.cfg, ast.token().span);
+                return try self.lval_from_symbol_cfg(symbol, ast.token().span);
             } else if (symbol.expanded_type.?.types_match(primitives_.type_type)) {
                 return self.lval_from_ast(ast);
             } else if (symbol.kind == .@"const") {
@@ -169,7 +169,7 @@ fn lower_AST_inner(
                 return src;
             }
         },
-        .pattern_symbol => return try self.lval_from_symbol_cfg(ast.symbol().?, self.cfg, ast.token().span),
+        .pattern_symbol => return try self.lval_from_symbol_cfg(ast.symbol().?, ast.token().span),
         .true => return self.lval_from_int(1, ast.typeof(self.allocator), ast.token().span),
         .false => return self.lval_from_int(0, ast.typeof(self.allocator), ast.token().span),
         // Unary operators
@@ -295,7 +295,7 @@ fn lower_AST_inner(
             const instr = Instruction.init_invoke(temp, ast.invoke.method_decl.?, lval_list, dyn_value, ast.token().span, self.allocator);
             if (ast.invoke.method_decl.?.symbol() != null) {
                 // Fine if symbol is null, for invokes on trait objects.
-                instr.data.invoke.method_decl_lval = try self.lval_from_symbol_cfg(ast.invoke.method_decl.?.symbol().?, self.cfg, ast.token().span);
+                instr.data.invoke.method_decl_lval = try self.lval_from_symbol_cfg(ast.invoke.method_decl.?.symbol().?, ast.token().span);
             }
             self.instructions.append(Instruction.init_stack_push(ast.token().span, self.allocator)) catch unreachable;
             self.instructions.append(instr) catch unreachable;
@@ -575,7 +575,7 @@ fn lower_AST_inner(
             }
             return self.lval_from_unit_value(ast);
         },
-        .fn_decl => return try self.lval_from_symbol_cfg(ast.symbol().?, self.cfg, ast.token().span),
+        .fn_decl => return try self.lval_from_symbol_cfg(ast.symbol().?, ast.token().span),
         .@"errdefer", .@"defer" => return self.lval_from_unit_value(ast),
         .@"continue" => {
             self.instructions.append(Instruction.init_jump(labels.continue_label, ast.token().span, self.allocator)) catch unreachable;
@@ -638,12 +638,10 @@ fn lval_from_int(
 fn lval_from_symbol_cfg(
     self: *Self,
     symbol: *Symbol,
-    caller: *CFG,
     span: Span,
 ) Lower_Errors!*lval_.L_Value {
-    const callee_cfg = try cfg_builder_.get_cfg(symbol, caller, self.interned_strings, self.errors, self.allocator);
-    callee_cfg.needed_at_runtime = callee_cfg.needed_at_runtime or (caller.symbol.scope.inner_function.?.kind == .@"fn" or
-        caller.symbol.scope.inner_function.?.kind == .trait);
+    const callee = try cfg_builder_.get_cfg(symbol, self.cfg, self.interned_strings, self.errors, self.allocator);
+    self.cfg.children.put(callee, {}) catch unreachable;
     const lval = self.create_temp_lvalue(symbol._type);
     var instr = Instruction.init(.load_symbol, lval, null, null, span, self.allocator);
     instr.data = Instruction.Data{ .symbol = symbol };
