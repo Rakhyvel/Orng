@@ -8,6 +8,7 @@
 const std = @import("std");
 const Instruction = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
+const Span = @import("../util/span.zig");
 const Symbol = @import("../symbol/symbol.zig");
 
 const Self = @This();
@@ -29,6 +30,8 @@ terminator: union(enum) {
     },
     panic,
 },
+/// List of instructions that have been marked to be removed from this block
+marked_instrs: std.AutoArrayHashMap(*Instruction, void),
 /// List of the instructions that have been removed from this block, used for deinitialization.
 removed_instrs: std.ArrayList(*Instruction),
 /// Whether or not this block has been visited in a traversal.
@@ -47,6 +50,7 @@ pub fn init(allocator: std.mem.Allocator) *Self {
     retval.instructions = std.ArrayList(*Instruction).init(allocator); // Starts off undefined, set by CFG's basic_block_from_instructions function
     retval.terminator = .panic;
     retval.offset = null;
+    retval.marked_instrs = std.AutoArrayHashMap(*Instruction, void).init(allocator);
     retval.removed_instrs = std.ArrayList(*Instruction).init(allocator);
     retval.uid = uid_counter;
     uid_counter += 1;
@@ -127,35 +131,28 @@ pub fn first_instruction(self: *Self) *Instruction {
     return self.instructions.items[0];
 }
 
-pub fn remove_last_instruction(self: *Self) void {
-    if (self.empty()) {
-        return;
-    }
-    const last_instr = self.instructions.items[self.instructions.items.len - 1];
-    self.remove_instruction(last_instr);
+pub fn mark_for_removal(self: *Self, instr: *Instruction) void {
+    self.marked_instrs.put(instr, void{}) catch unreachable;
 }
 
-/// Removes an instruction from a basic-block
-pub fn remove_instruction(self: *Self, instr: *Instruction) void {
-    std.debug.assert(instr.in_block == self); // Can't remove instr from random blocks! It's gotta belong to this block!
-    std.debug.assert(!instr.removed); // Can't remove an instruction twice!
-    std.debug.assert(!self.empty()); // Can't remove an instruction from an empty block!
-
-    instr.removed = true;
-    const idx = std.mem.indexOfScalar(*Instruction, self.instructions.items, instr).?;
-    _ = self.instructions.orderedRemove(idx);
+pub fn mark_all_instructions_as_removed(self: *Self) void {
+    for (self.instructions.items) |instr| {
+        self.mark_for_removal(instr);
+    }
 }
 
 pub fn remove_marked_instrs(self: *Self) void {
     var i: usize = 0;
     while (i < self.instructions.items.len) {
         const instr = self.instructions.items[i];
-        if (instr.removed) {
-            _ = self.instructions.orderedRemove(i);
+        if (self.marked_instrs.contains(instr)) {
+            const removed = self.instructions.orderedRemove(i);
+            self.removed_instrs.append(removed) catch unreachable;
         } else {
             i += 1;
         }
     }
+    self.marked_instrs.clearRetainingCapacity();
 }
 
 /// Appends the instructions of the other basic block to this one, and copies the terminator. The other basic-block is
@@ -259,8 +256,39 @@ pub fn count_predecessors(self: *Self) void {
     }
 }
 
-pub fn mark_instructions_as_removed(self: *Self) void {
+pub fn set_offset(self: *Self, instructions_list: *std.ArrayList(*Instruction), work_queue: *std.ArrayList(*Self)) void {
+    self.offset = @as(Instruction.Index, @intCast(instructions_list.items.len)) -| 1;
+
     for (self.instructions.items) |instr| {
-        instr.removed = true;
+        instructions_list.append(instr) catch unreachable;
+    }
+
+    switch (self.terminator) {
+        .unconditional => {
+            if (self.terminator.unconditional) |next| {
+                work_queue.append(next) catch unreachable;
+            }
+            instructions_list.append(Instruction.init_jump_addr(
+                self.terminator.unconditional,
+                Span.phony,
+                self.allocator,
+            )) catch unreachable;
+        },
+        .conditional => {
+            if (self.terminator.conditional.true_target) |next| {
+                work_queue.append(next) catch unreachable;
+            }
+            if (self.terminator.conditional.false_target) |branch| {
+                work_queue.append(branch) catch unreachable;
+            }
+            instructions_list.append(Instruction.init_branch_addr(
+                self.terminator.conditional.condition,
+                self.terminator.conditional.true_target,
+                self.terminator.conditional.false_target,
+                Span.phony,
+                self.allocator,
+            )) catch unreachable;
+        },
+        .panic => {},
     }
 }

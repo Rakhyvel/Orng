@@ -386,50 +386,17 @@ fn append_basic_block(self: *Self, first_bb: *Basic_Block, instructions_list: *s
     work_queue.append(first_bb) catch unreachable;
 
     while (work_queue.items.len > 0) {
-        // TODO: Too long
         var bb = work_queue.orderedRemove(0); // Youch! Does this really have to be ordered?
 
         if (bb.offset != null) {
             continue;
         }
 
-        bb.offset = @as(Instruction.Index, @intCast(instructions_list.items.len));
         var label = Instruction.init_label(self, Span.phony, self.allocator);
         label.uid = bb.uid;
         instructions_list.append(label) catch unreachable;
 
-        for (bb.instructions.items) |instr| {
-            instructions_list.append(instr) catch unreachable;
-        }
-
-        switch (bb.terminator) {
-            .unconditional => {
-                if (bb.terminator.unconditional) |next| {
-                    work_queue.append(next) catch unreachable;
-                }
-                instructions_list.append(Instruction.init_jump_addr(
-                    bb.terminator.unconditional,
-                    Span.phony,
-                    self.allocator,
-                )) catch unreachable;
-            },
-            .conditional => {
-                if (bb.terminator.conditional.true_target) |next| {
-                    work_queue.append(next) catch unreachable;
-                }
-                if (bb.terminator.conditional.false_target) |branch| {
-                    work_queue.append(branch) catch unreachable;
-                }
-                instructions_list.append(Instruction.init_branch_addr(
-                    bb.terminator.conditional.condition,
-                    bb.terminator.conditional.true_target,
-                    bb.terminator.conditional.false_target,
-                    Span.phony,
-                    self.allocator,
-                )) catch unreachable;
-            },
-            .panic => {},
-        }
+        bb.set_offset(instructions_list, &work_queue);
     }
     return first_bb.offset.?;
 }

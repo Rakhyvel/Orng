@@ -643,8 +643,7 @@ fn lval_from_symbol_cfg(
     const callee = try cfg_builder_.get_cfg(symbol, self.cfg, self.interned_strings, self.errors, self.allocator);
     self.cfg.children.put(callee, {}) catch unreachable;
     const lval = self.create_temp_lvalue(symbol._type);
-    var instr = Instruction.init(.load_symbol, lval, null, null, span, self.allocator);
-    instr.data = Instruction.Data{ .symbol = symbol };
+    const instr = Instruction.init_symbol(lval, symbol, span, self.allocator);
     self.instructions.append(instr) catch unreachable;
     return lval;
 }
@@ -885,9 +884,7 @@ fn generate_assign(
     } else {
         // Get L_Value tree, create a `copy` Instruction of L_Value tree and rhs
         const lval = try self.lower_AST(lhs, labels);
-        var instr = Instruction.init(.copy, null, rhs, null, lhs.token().span, self.allocator);
-        instr.dest = lval;
-        instr.safe = true;
+        const instr = Instruction.init(.copy, lval, rhs, null, lhs.token().span, self.allocator);
         self.instructions.append(instr) catch unreachable;
     }
 }

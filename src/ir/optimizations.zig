@@ -4,7 +4,6 @@ const CFG = @import("../ir/cfg.zig");
 const errs_ = @import("../util/errors.zig");
 const Instruction = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
-const primitives_ = @import("../hierarchy/primitives.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Span = @import("../util/span.zig");
 const Symbol_Version = @import("symbol_version.zig");
@@ -79,32 +78,32 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
             const src1_def_is_ast = src1_def != null and src1_def.?.kind == .load_AST;
             if (instr.src1 == null or (instr.src1.?.expanded_type_sizeof() == 0 and !src1_def_is_ast)) {
                 logfln("unit-copy elimination {?}", .{instr.src1.?.expanded_type_sizeof()});
-                instr.removed = true; // Mark for deletion in a later pass
+                instr.in_block.?.mark_for_removal(instr); // Mark for deletion in a later pass
             } else if (instr.dest.?.* == .symbver and
                 instr.src1.?.* == .symbver and
                 instr.dest.?.symbver.symbol == instr.src1.?.symbver.symbol and
                 src1_def != null)
             {
                 log("self-copy elimination");
-                instr.removed = true; // Mark for deletion in a later pass
+                instr.in_block.?.mark_for_removal(instr); // Mark for deletion in a later pass
                 retval = true;
             } else {
                 logfln("copy-propagation {?}", .{src1_def});
-                retval = try copy_prop(instr, src1_def, .load_int, errors) or // TODO: Check if data fits int type bounds!
-                    try copy_prop(instr, src1_def, .load_float, errors) or
-                    try copy_prop(instr, src1_def, .load_string, errors) or
-                    (instr.src1.?.* == .symbver and instr.src1.?.symbver.uses == 1 and try copy_prop(instr, src1_def, .load_struct, errors)) or
-                    try copy_prop(instr, src1_def, .load_union, errors) or
-                    try copy_prop(instr, src1_def, .load_symbol, errors) or
-                    try copy_prop(instr, src1_def, .load_AST, errors) or
-                    (try copy_prop(instr, src1_def, .copy, errors) and instr.src1 != src1_def.?.src1.?) or
-                    try copy_prop(instr, src1_def, .addr_of, errors) or
-                    try copy_prop(instr, src1_def, .mut_addr_of, errors) or
-                    try copy_prop(instr, src1_def, .add_int, errors) or try copy_prop(instr, src1_def, .add_float, errors) or
-                    try copy_prop(instr, src1_def, .sub_int, errors) or try copy_prop(instr, src1_def, .sub_float, errors) or
-                    try copy_prop(instr, src1_def, .mult_int, errors) or try copy_prop(instr, src1_def, .mult_float, errors) or
-                    try copy_prop(instr, src1_def, .div_int, errors) or try copy_prop(instr, src1_def, .div_float, errors) or
-                    try copy_prop(instr, src1_def, .mod, errors);
+                retval = try instr.copy_prop(src1_def, .load_int, errors) or // TODO: Check if data fits int type bounds!
+                    try instr.copy_prop(src1_def, .load_float, errors) or
+                    try instr.copy_prop(src1_def, .load_string, errors) or
+                    (instr.src1.?.* == .symbver and instr.src1.?.symbver.uses == 1 and try instr.copy_prop(src1_def, .load_struct, errors)) or
+                    try instr.copy_prop(src1_def, .load_union, errors) or
+                    try instr.copy_prop(src1_def, .load_symbol, errors) or
+                    try instr.copy_prop(src1_def, .load_AST, errors) or
+                    (try instr.copy_prop(src1_def, .copy, errors) and instr.src1 != src1_def.?.src1.?) or
+                    try instr.copy_prop(src1_def, .addr_of, errors) or
+                    try instr.copy_prop(src1_def, .mut_addr_of, errors) or
+                    try instr.copy_prop(src1_def, .add_int, errors) or try instr.copy_prop(src1_def, .add_float, errors) or
+                    try instr.copy_prop(src1_def, .sub_int, errors) or try instr.copy_prop(src1_def, .sub_float, errors) or
+                    try instr.copy_prop(src1_def, .mult_int, errors) or try instr.copy_prop(src1_def, .mult_float, errors) or
+                    try instr.copy_prop(src1_def, .div_int, errors) or try instr.copy_prop(src1_def, .div_float, errors) or
+                    try instr.copy_prop(src1_def, .mod, errors);
                 // DO NOT IMPLEMENT .call => propagation
             }
         },
@@ -112,7 +111,7 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
         .not => {
             if (src1_def != null and src1_def.?.kind == .load_int) {
                 log("not; known int value");
-                try convert_to_load(instr, .load_int, .{ .int = if (src1_def.?.data.int == 0) 1 else 0 }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = if (src1_def.?.data.int == 0) 1 else 0 }, errors);
                 retval = true;
             }
         },
@@ -120,7 +119,7 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
         .negate_int => {
             if (src1_def != null and src1_def.?.kind == .load_int) {
                 log("negate_int; known value");
-                try convert_to_load(instr, .load_int, .{ .int = -src1_def.?.data.int }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = -src1_def.?.data.int }, errors);
                 retval = true;
             }
         },
@@ -128,7 +127,7 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
         .negate_float => {
             if (src1_def != null and src1_def.?.kind == .load_float) {
                 log("negate_float; known value");
-                try convert_to_load(instr, .load_float, .{ .float = -src1_def.?.data.float }, errors);
+                try instr.convert_to_load(.load_float, .{ .float = -src1_def.?.data.float }, errors);
                 retval = true;
             }
         },
@@ -136,11 +135,11 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
         .equal => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("equal; known int,int value");
-                try convert_to_load(instr, .load_int, .{ .int = if (src1_def.?.data.int == src2_def.?.data.int) 1 else 0 }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = if (src1_def.?.data.int == src2_def.?.data.int) 1 else 0 }, errors);
                 retval = true;
             } else if (src1_def != null and src2_def != null and src1_def.?.kind == .load_float and src2_def.?.kind == .load_float) {
                 log("equal; known float,float value");
-                try convert_to_load(instr, .load_int, .{ .int = if (src1_def.?.data.float == src2_def.?.data.float) 1 else 0 }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = if (src1_def.?.data.float == src2_def.?.data.float) 1 else 0 }, errors);
                 retval = true;
             } else if (instr.src1.?.* == .symbver and
                 instr.src2.?.* == .symbver and
@@ -150,7 +149,7 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
                 // `x == x => true (where x is NOT floating-point type)`
                 // NOTE: Cannot do `x == x  ==> true` optimization for floats, `NaN == NaN` is false!
                 log("equal; self inequality");
-                try convert_to_load(instr, .load_int, .{ .int = 1 }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = 1 }, errors);
                 retval = true;
             }
         },
@@ -158,16 +157,16 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
         .not_equal => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("not_equal; known int,int value");
-                try convert_to_load(instr, .load_int, .{ .int = if (src1_def.?.data.int != src2_def.?.data.int) 1 else 0 }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = if (src1_def.?.data.int != src2_def.?.data.int) 1 else 0 }, errors);
                 retval = true;
             } else if (src1_def != null and src2_def != null and src1_def.?.kind == .load_float and src2_def.?.kind == .load_float) {
                 log("not_equal; known float,float value");
-                try convert_to_load(instr, .load_int, .{ .int = if (src1_def.?.data.float != src2_def.?.data.float) 1 else 0 }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = if (src1_def.?.data.float != src2_def.?.data.float) 1 else 0 }, errors);
                 retval = true;
             } else if (instr.src1.?.* == .symbver and instr.src2.?.* == .symbver and instr.src1.?.symbver.symbol == instr.src2.?.symbver.symbol) {
                 // `x != x` => `false`
                 log("not_equal; self inequality");
-                try convert_to_load(instr, .load_int, .{ .int = 0 }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = 0 }, errors);
                 retval = true;
             }
         },
@@ -175,12 +174,12 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
         .greater_int => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("greater_int; known int,int value");
-                try convert_to_load(instr, .load_int, .{ .int = if (src1_def.?.data.int > src2_def.?.data.int) 1 else 0 }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = if (src1_def.?.data.int > src2_def.?.data.int) 1 else 0 }, errors);
                 retval = true;
             } else if (instr.src1.?.* == .symbver and instr.src2.?.* == .symbver and instr.src1.?.symbver.symbol == instr.src2.?.symbver.symbol) {
                 // `x > x` => `false`
                 log("greater_int; self compare");
-                try convert_to_load(instr, .load_int, .{ .int = 0 }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = 0 }, errors);
                 retval = true;
             }
         },
@@ -188,12 +187,12 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
         .greater_float => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_float and src2_def.?.kind == .load_float) {
                 log("greater_float; known float,float value");
-                try convert_to_load(instr, .load_int, .{ .int = if (src1_def.?.data.float > src2_def.?.data.float) 1 else 0 }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = if (src1_def.?.data.float > src2_def.?.data.float) 1 else 0 }, errors);
                 retval = true;
             } else if (instr.src1.?.* == .symbver and instr.src2.?.* == .symbver and instr.src1.?.symbver.symbol == instr.src2.?.symbver.symbol) {
                 // `x > x` => `false`
                 log("greater_float; self compare");
-                try convert_to_load(instr, .load_int, .{ .int = 0 }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = 0 }, errors);
                 retval = true;
             }
         },
@@ -201,12 +200,12 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
         .lesser_int => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("lesser_int; known int,int value");
-                try convert_to_load(instr, .load_int, .{ .int = if (src1_def.?.data.int < src2_def.?.data.int) 1 else 0 }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = if (src1_def.?.data.int < src2_def.?.data.int) 1 else 0 }, errors);
                 retval = true;
             } else if (instr.src1.?.* == .symbver and instr.src2.?.* == .symbver and instr.src1.?.symbver.symbol == instr.src2.?.symbver.symbol) {
                 // `x < x` => `false`
                 log("lesser_int; self compare");
-                try convert_to_load(instr, .load_int, .{ .int = 0 }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = 0 }, errors);
                 retval = true;
             }
         },
@@ -214,12 +213,12 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
         .lesser_float => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_float and src2_def.?.kind == .load_float) {
                 log("lesser_float; known int,int value");
-                try convert_to_load(instr, .load_int, .{ .int = if (src1_def.?.data.float < src2_def.?.data.float) 1 else 0 }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = if (src1_def.?.data.float < src2_def.?.data.float) 1 else 0 }, errors);
                 retval = true;
             } else if (instr.src1.?.* == .symbver and instr.src2.?.* == .symbver and instr.src1.?.symbver.symbol == instr.src2.?.symbver.symbol) {
                 // `x < x` => `false`
                 log("lesser_float; self compare");
-                try convert_to_load(instr, .load_int, .{ .int = 0 }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = 0 }, errors);
                 retval = true;
             }
         },
@@ -227,12 +226,12 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
         .greater_equal_int => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("greater_equal_int; known int,int value");
-                try convert_to_load(instr, .load_int, .{ .int = if (src1_def.?.data.int >= src2_def.?.data.int) 1 else 0 }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = if (src1_def.?.data.int >= src2_def.?.data.int) 1 else 0 }, errors);
                 retval = true;
             } else if (instr.src1.?.* == .symbver and instr.src2.?.* == .symbver and instr.src1.?.symbver.symbol == instr.src2.?.symbver.symbol) {
                 // `x >= x` => `true`
                 log("greater_equal_int; self compare");
-                try convert_to_load(instr, .load_int, .{ .int = 1 }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = 1 }, errors);
                 retval = true;
             }
         },
@@ -240,7 +239,7 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
         .greater_equal_float => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_float and src2_def.?.kind == .load_float) {
                 log("greater_equal_float; known float,float value");
-                try convert_to_load(instr, .load_int, .{ .int = if (src1_def.?.data.float >= src2_def.?.data.float) 1 else 0 }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = if (src1_def.?.data.float >= src2_def.?.data.float) 1 else 0 }, errors);
                 retval = true;
             }
             // NOTE: Cannot do `x >= x  ==> true` optimization for floats, `NaN >= NaN` is false!
@@ -249,12 +248,12 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
         .lesser_equal_int => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("lesser_equal_int; known int,int value");
-                try convert_to_load(instr, .load_int, .{ .int = if (src1_def.?.data.int <= src2_def.?.data.int) 1 else 0 }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = if (src1_def.?.data.int <= src2_def.?.data.int) 1 else 0 }, errors);
                 retval = true;
             } else if (instr.src1.?.* == .symbver and instr.src2.?.* == .symbver and instr.src1.?.symbver.symbol == instr.src2.?.symbver.symbol) {
                 // `x <= x` => `true`
                 log("lesser_equal_int; self compare");
-                try convert_to_load(instr, .load_int, .{ .int = 1 }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = 1 }, errors);
                 retval = true;
             }
         },
@@ -262,7 +261,7 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
         .lesser_equal_float => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_float and src2_def.?.kind == .load_float) {
                 log("lesser_equal_float; known float,float value");
-                try convert_to_load(instr, .load_int, .{ .int = if (src1_def.?.data.float <= src2_def.?.data.float) 1 else 0 }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = if (src1_def.?.data.float <= src2_def.?.data.float) 1 else 0 }, errors);
                 retval = true;
             }
             // NOTE: Cannot do `x <= x  ==> true` optimization, `NaN <= NaN` is false!
@@ -271,15 +270,15 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
         .add_int => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("add_int; known int,int value");
-                try convert_to_load(instr, .load_int, try src1_def.?.data.add_int_overflow(src2_def.?.data), errors);
+                try instr.convert_to_load(.load_int, try src1_def.?.data.add_int_overflow(src2_def.?.data), errors);
                 retval = true;
             } else if (src1_def != null and src1_def.?.kind == .load_int and src1_def.?.data.int == 0) {
                 log("add_int; add 0 lhs");
-                convert_to_unop(instr, instr.src2.?, .copy);
+                instr.convert_to_unop(instr.src2.?, .copy);
                 retval = true;
             } else if (src2_def != null and src2_def.?.kind == .load_int and src2_def.?.data.int == 0) {
                 log("add_int; add 0 rhs");
-                convert_to_unop(instr, instr.src1.?, .copy);
+                instr.convert_to_unop(instr.src1.?, .copy);
                 retval = true;
             }
         },
@@ -287,15 +286,15 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
         .add_float => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_float and src2_def.?.kind == .load_float) {
                 log("add_float; known float,float value");
-                try convert_to_load(instr, .load_float, .{ .float = src1_def.?.data.float + src2_def.?.data.float }, errors);
+                try instr.convert_to_load(.load_float, .{ .float = src1_def.?.data.float + src2_def.?.data.float }, errors);
                 retval = true;
             } else if (src1_def != null and src1_def.?.kind == .load_float and src1_def.?.data.float == 0.0) {
                 log("add_float; add 0.0 lhs");
-                convert_to_unop(instr, instr.src2.?, .copy);
+                instr.convert_to_unop(instr.src2.?, .copy);
                 retval = true;
             } else if (src2_def != null and src2_def.?.kind == .load_float and src2_def.?.data.float == 0.0) {
                 log("add_float; add 0.0 rhs");
-                convert_to_unop(instr, instr.src1.?, .copy);
+                instr.convert_to_unop(instr.src1.?, .copy);
                 retval = true;
             }
         },
@@ -303,15 +302,15 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
         .sub_int => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("sub; known int,int value");
-                try convert_to_load(instr, .load_int, try src1_def.?.data.sub_int_overflow(src2_def.?.data), errors);
+                try instr.convert_to_load(.load_int, try src1_def.?.data.sub_int_overflow(src2_def.?.data), errors);
                 retval = true;
             } else if (src1_def != null and src1_def.?.kind == .load_int and src1_def.?.data.int == 0) {
                 log("sub; sub 0 lhs");
-                convert_to_unop(instr, instr.src2.?, .negate_int);
+                instr.convert_to_unop(instr.src2.?, .negate_int);
                 retval = true;
             } else if (src2_def != null and src2_def.?.kind == .load_int and src2_def.?.data.int == 0) {
                 log("sub; sub 0 rhs");
-                convert_to_unop(instr, instr.src1.?, .copy);
+                instr.convert_to_unop(instr.src1.?, .copy);
                 retval = true;
             }
         },
@@ -319,15 +318,15 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
         .sub_float => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_float and src2_def.?.kind == .load_float) {
                 log("sub; known float,float value");
-                try convert_to_load(instr, .load_float, .{ .float = src1_def.?.data.float - src2_def.?.data.float }, errors);
+                try instr.convert_to_load(.load_float, .{ .float = src1_def.?.data.float - src2_def.?.data.float }, errors);
                 retval = true;
             } else if (src1_def != null and src1_def.?.kind == .load_float and src1_def.?.data.float == 0.0) {
                 log("sub; sub 0.0 lhs");
-                convert_to_unop(instr, instr.src2.?, .negate_float);
+                instr.convert_to_unop(instr.src2.?, .negate_float);
                 retval = true;
             } else if (src2_def != null and src2_def.?.kind == .load_float and src2_def.?.data.float == 0.0) {
                 log("sub; sub 0.0 rhs");
-                convert_to_unop(instr, instr.src1.?, .copy);
+                instr.convert_to_unop(instr.src1.?, .copy);
                 retval = true;
             }
         },
@@ -335,21 +334,21 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
         .mult_int => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("mult_int; known int,int value");
-                try convert_to_load(instr, .load_int, try src1_def.?.data.mult_int_overflow(src2_def.?.data), errors);
+                try instr.convert_to_load(.load_int, try src1_def.?.data.mult_int_overflow(src2_def.?.data), errors);
                 retval = true;
             } else if (src1_def != null and src1_def.?.kind == .load_int and src1_def.?.data.int == 1) {
                 log("mult; mult 1 lhs");
-                convert_to_unop(instr, instr.src2.?, .copy);
+                instr.convert_to_unop(instr.src2.?, .copy);
                 retval = true;
             } else if (src2_def != null and src2_def.?.kind == .load_int and src2_def.?.data.int == 1) {
                 log("mult; mult 1 rhs");
-                convert_to_unop(instr, instr.src1.?, .copy);
+                instr.convert_to_unop(instr.src1.?, .copy);
                 retval = true;
             } else if ((src1_def != null and src1_def.?.kind == .load_int and src1_def.?.data.int == 0) or
                 (src2_def != null and src2_def.?.kind == .load_int and src2_def.?.data.int == 0))
             {
                 log("mult; mult 0 lhs int");
-                try convert_to_load(instr, .load_int, .{ .int = 0 }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = 0 }, errors);
                 retval = true;
             }
         },
@@ -357,21 +356,21 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
         .mult_float => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_float and src2_def.?.kind == .load_float) {
                 log("mult_float; known float,float value");
-                try convert_to_load(instr, .load_float, .{ .float = src1_def.?.data.float * src2_def.?.data.float }, errors);
+                try instr.convert_to_load(.load_float, .{ .float = src1_def.?.data.float * src2_def.?.data.float }, errors);
                 retval = true;
             } else if (src1_def != null and src1_def.?.kind == .load_float and src1_def.?.data.float == 1.0) {
                 log("mult; mult 1.0 lhs");
-                convert_to_unop(instr, instr.src2.?, .copy);
+                instr.convert_to_unop(instr.src2.?, .copy);
                 retval = true;
             } else if (src2_def != null and src2_def.?.kind == .load_float and src2_def.?.data.float == 1.0) {
                 log("mult; mult 1.0 rhs");
-                convert_to_unop(instr, instr.src1.?, .copy);
+                instr.convert_to_unop(instr.src1.?, .copy);
                 retval = true;
             } else if ((src1_def != null and src1_def.?.kind == .load_float and src1_def.?.data.float == 0.0) or
                 (src2_def != null and src2_def.?.kind == .load_float and src2_def.?.data.float == 0.0))
             {
                 log("mult; mult 0.0 lhs float");
-                try convert_to_load(instr, .load_float, .{ .float = 0.0 }, errors);
+                try instr.convert_to_load(.load_float, .{ .float = 0.0 }, errors);
                 retval = true;
             }
         },
@@ -380,11 +379,11 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
             try divide_by_zero_check(src2_def, errors); // Static check; divide by zero
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("div_int; known int value");
-                try convert_to_load(instr, .load_int, .{ .int = @divTrunc(src1_def.?.data.int, src2_def.?.data.int) }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = @divTrunc(src1_def.?.data.int, src2_def.?.data.int) }, errors);
                 retval = true;
             } else if (src2_def != null and src2_def.?.kind == .load_int and src2_def.?.data.int == 1) {
                 log("div; div 1 rhs");
-                convert_to_unop(instr, instr.src1.?, .copy);
+                instr.convert_to_unop(instr.src1.?, .copy);
                 retval = true;
             }
         },
@@ -393,11 +392,11 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
             try divide_by_zero_check(src2_def, errors); // Static check; divide by zero
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_float and src2_def.?.kind == .load_float) {
                 log("div_float; known float value");
-                try convert_to_load(instr, .load_float, .{ .float = src1_def.?.data.float / src2_def.?.data.float }, errors);
+                try instr.convert_to_load(.load_float, .{ .float = src1_def.?.data.float / src2_def.?.data.float }, errors);
                 retval = true;
             } else if (src2_def != null and src2_def.?.kind == .load_float and src2_def.?.data.float == 1.0) {
                 log("div; div 1.0 rhs");
-                convert_to_unop(instr, instr.src1.?, .copy);
+                instr.convert_to_unop(instr.src1.?, .copy);
                 retval = true;
             }
         },
@@ -406,13 +405,13 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
             try divide_by_zero_check(src2_def, errors); // Static check; divide by zero
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("mod; known int value");
-                try convert_to_load(instr, .load_int, .{ .int = @rem(src1_def.?.data.int, src2_def.?.data.int) }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = @rem(src1_def.?.data.int, src2_def.?.data.int) }, errors);
                 retval = true;
             } else if ((src1_def != null and src1_def.?.kind == .load_int and src1_def.?.data.int == 0) or
                 (src2_def != null and src2_def.?.kind == .load_int and src2_def.?.data.int == 1))
             {
                 log("mod; mod 0 lhs");
-                try convert_to_load(instr, .load_int, .{ .int = 0 }, errors);
+                try instr.convert_to_load(.load_int, .{ .int = 0 }, errors);
                 retval = true;
             }
         },
@@ -420,7 +419,7 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
         .get_tag => {
             if (src1_def != null and src1_def.?.kind == .load_union) {
                 log("get_tag; known tag");
-                try convert_to_load(instr, .load_int, .{ .int = src1_def.?.data.int }, errors); // Copy the src's tag (in data.int)
+                try instr.convert_to_load(.load_int, .{ .int = src1_def.?.data.int }, errors); // Copy the src's tag (in data.int)
                 retval = true;
             }
         },
@@ -428,86 +427,10 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
         else => {},
     }
 
-    retval = copy_of_prop(instr, &instr.src1, src1_def) or retval;
-    retval = copy_of_prop(instr, &instr.src2, src2_def) or retval;
+    retval = instr.copy_of_prop(&instr.src1, src1_def) or retval;
+    retval = instr.copy_of_prop(&instr.src2, src2_def) or retval;
 
     return retval;
-}
-
-fn copy_prop(instr: *Instruction, src1_def: ?*Instruction, kind: Instruction.Kind, errors: *errs_.Errors) error{CompileError}!bool {
-    if (src1_def != null and src1_def.?.kind == kind) {
-        if (kind == .load_int) {
-            try assert_fits(src1_def.?.data.int, instr.dest.?.get_expanded_type(), instr.span, errors);
-        }
-        instr.kind = kind;
-        instr.data = src1_def.?.data;
-        instr.span = src1_def.?.span;
-        instr.src2 = src1_def.?.src2;
-        instr.src1 = src1_def.?.src1;
-        return true;
-    } else {
-        return false;
-    }
-}
-
-/// Determines if a source value can be safely replaced by its definition in the Instruction and updates the source if possible,
-/// modifying src when propagation is performed.
-fn copy_of_prop(instr: *Instruction, src: *?*lval_.L_Value, src_def: ?*Instruction) bool {
-    if (instr.kind != .addr_of and instr.kind != .mut_addr_of and // instr is not an address, this could mess with aliasing
-        src_def != null and // src has a definition
-        src_def.?.kind == .copy and // src's definition is a copy of something
-        src_def.?.src1.?.* == .symbver and // src's copy definition is of a plain symbver
-        (src_def.?.dest.?.* != .symbver or src_def.?.src1.?.extract_symbver() != src_def.?.dest.?.extract_symbver()) // prevent self-copy
-    ) {
-        // Find recent version of what src's definition copies
-        const src_def_redefinition = src_def.?.in_block.?.any_def_after(src_def.?, src_def.?.src1.?.symbver.symbol, instr);
-        if (src_def_redefinition == null) {
-            // there is no re-definition in between src's definition and this Instruction, safe to copy-propagate
-            logfln("copy-of propagation: {?} => {?} {}", .{ src, src_def.?.src1, instr });
-            src.* = src_def.?.src1;
-            return true;
-        } else {
-            // there was another definition in between src's definition, cannot copy-propagate.
-            // the redefinition is likely junk, too. ex: `x[3] = 4` <= here we cannot just replace `x` with `4`.
-            return false;
-        }
-    } else {
-        // src's definition isn't in a good shape to look up re-definitions. Cannot do copy-propagation.
-        return false;
-    }
-}
-
-/// Checks if a value fits within the bounds of a given type and reports an overflow error if it does not, modifying the
-/// error list.
-fn assert_fits(val: i128, _type: *ast_.AST, span: Span, errors: *errs_.Errors) error{CompileError}!void {
-    const bounds = primitives_.bounds_from_ast(_type);
-    if (bounds != null and (val < bounds.?.lower or val > bounds.?.upper)) {
-        errors.add_error(errs_.Error{ .integer_out_of_bounds = .{
-            .span = span,
-            .expected = _type,
-            .value = val,
-        } });
-        return error.CompileError;
-    }
-}
-
-/// Converts a non-load Instruction to a load Instruction, with data. Performs bounds checking for load_int destination Instruction Kinds.
-fn convert_to_load(instr: *Instruction, kind: Instruction.Kind, data: Instruction.Data, errors: *errs_.Errors) error{CompileError}!void {
-    if (kind == .load_int) {
-        try assert_fits(data.int, instr.dest.?.get_expanded_type(), instr.span, errors);
-    }
-    instr.kind = kind;
-    instr.data = data;
-    instr.src1 = null;
-    instr.src2 = null;
-}
-
-/// Converts a non-unop Instruction to an unop Instruction.
-fn convert_to_unop(instr: *Instruction, src1: *lval_.L_Value, kind: Instruction.Kind) void {
-    instr.kind = kind;
-    instr.data = .none;
-    instr.src1 = src1;
-    instr.src2 = null;
 }
 
 /// Checks if a div_int, div_float, or mod Instruction divides by zero
@@ -531,7 +454,6 @@ fn divide_by_zero_check(instr: ?*Instruction, errors: *errs_.Errors) error{Compi
 
 /// Removes unused definitions from the CFG, skipping calls and invokes (to avoid removing instructions with side
 /// effects). Returns true if any instructions were removed.
-/// TODO: Move to ssa file/namespace, along with the other use/def stuff
 fn remove_unused_defs(cfg: *CFG) bool {
     var retval = false;
 
@@ -541,16 +463,14 @@ fn remove_unused_defs(cfg: *CFG) bool {
     for (cfg.basic_blocks.items) |bb| {
         for (bb.instructions.items) |instr| {
             if (instr.dest != null and
-                !instr.removed and
                 instr.dest.?.* == .symbver and
                 instr.dest.?.symbver.uses == 0 and
                 instr.dest.?.symbver.symbol.uses == 0 and
                 instr.dest.?.symbver.symbol != cfg.return_symbol)
             {
                 logfln("removing: {}", .{instr});
-                if (instr.kind != .call and instr.kind != .invoke) {
-                    // Calls and invokes may have side-effects, do not remove them!
-                    instr.removed = true;
+                if (instr.kind != .call and instr.kind != .invoke) { // Calls and invokes may have side-effects, do not remove them!
+                    instr.in_block.?.mark_for_removal(instr);
                     retval = true;
                 }
             }
@@ -574,7 +494,7 @@ fn bb_optimizations(cfg: *CFG, allocator: std.mem.Allocator) bool {
         if (bb.number_predecessors == 0) {
             defer log_optimization_pass("remove unused block", cfg);
             cfg.remove_basic_block(bb);
-            bb.mark_instructions_as_removed();
+            bb.mark_all_instructions_as_removed();
             return true; // Perhaps mark these and remove them in a sweep pass?
         }
     }
