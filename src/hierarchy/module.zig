@@ -6,6 +6,7 @@ const args_ = @import("../semantic/args.zig");
 const Basic_Block = @import("../ir/basic-block.zig");
 const CFG = @import("../ir/cfg.zig");
 const cfg_builder_ = @import("../ir/cfg_builder.zig");
+const Cfg_Iterator = @import("../util/dfs.zig").Dfs_Iterator(*CFG);
 const codegen_ = @import("../codegen/codegen.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
@@ -247,16 +248,10 @@ pub const Module = struct {
 
     /// This allows us to pick up anon and inner CFGs that wouldn't be exposed to the module's scope
     fn collect_cfgs(self: *Module, cfg: *CFG) void {
-        if (cfg.visited) {
-            return;
-        }
-        cfg.visited = true;
-
-        cfg.collect_generated_symbvers();
-        _ = self.emplace_cfg(cfg);
-
-        for (cfg.children.items) |child| {
-            self.collect_cfgs(child);
+        var cfg_dfs_iter = Cfg_Iterator.init(cfg, self.allocator);
+        while (cfg_dfs_iter.next()) |next_cfg| {
+            next_cfg.collect_generated_symbvers();
+            _ = self.emplace_cfg(next_cfg);
         }
     }
 

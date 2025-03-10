@@ -70,7 +70,7 @@ pub fn lower_AST_into_cfg(self: *Self) Lower_Errors!void {
         std.debug.print("\n", .{});
     }
 
-    self.cfg.block_graph_head = self.cfg.basic_block_from_instructions(self.instructions, 0, self.allocator);
+    self.cfg.block_graph_head = self.cfg.basic_block_from_instructions(self.instructions, 0);
 
     if (false) {
         // Print out the basic blocks

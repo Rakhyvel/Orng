@@ -21,6 +21,7 @@ block_graph_head: ?*Basic_Block,
 basic_blocks: std.ArrayList(*Basic_Block),
 
 /// All other functions called by this function
+/// TODO: Remove for LCOM4
 children: std.ArrayList(*Self),
 
 /// All symbol versions that are parameters to the function this Self defines
@@ -34,23 +35,21 @@ symbvers: std.ArrayList(*Symbol_Version),
 /// The function that this Self represents
 symbol: *Symbol,
 
-/// How many temporary variables are used in this Self. Used to generate unique names for temporaries.
-number_temps: usize,
-
 /// The symbol that is used to store the return value of this function
 return_symbol: *Symbol,
 
-/// Whether or not this Self is visited
-visited: bool,
-
 /// When true, Self is called from a runtime-context at least once, and should be generated
 /// Set in the lowering stage when runtime access is needed
+/// TODO: Remove for LCOM4
 needed_at_runtime: bool,
 
 /// Address in the first instruction of this Self
 /// Used for Instruction interpretation
+/// TODO: Remove for LCOM4
 offset: ?Instruction.Index,
+
 /// Number of bytes required in order to store the local variables of the function
+/// TODO: Remove for LCOM4
 locals_size: ?i64,
 
 allocator: std.mem.Allocator,
@@ -71,7 +70,6 @@ pub fn init(
     retval.symbvers = std.ArrayList(*Symbol_Version).init(allocator);
     retval.parameters = std.ArrayList(*Symbol_Version).init(allocator);
     retval.symbol = symbol;
-    retval.number_temps = 0;
     retval.return_symbol = Symbol.init(
         symbol.scope,
         "$retval",
@@ -83,7 +81,6 @@ pub fn init(
         allocator,
     );
     retval.return_symbol.expanded_type = retval.return_symbol._type.expand_type(allocator);
-    retval.visited = false;
     retval.needed_at_runtime = false;
     retval.offset = null;
     retval.locals_size = null;
@@ -118,9 +115,7 @@ pub fn deinit(self: *Self) void {
 ///
 /// BBs aren't trees, so `defer self.visited = false` won't work
 /// Use this function instead
-pub fn clear_visited_BBs(
-    self: *Self,
-) void {
+pub fn clear_visited_BBs(self: *Self) void {
     for (self.basic_blocks.items) |bb| {
         bb.visited = false;
     }
@@ -146,7 +141,7 @@ pub fn collect_generated_symbvers(self: *Self) void {
 /// - `instructions`: The list of instructions to convert to basic blocks
 /// - `start_index`: The index into the instructions list to start the basic block at
 /// - `allocator`: The allocator to use for the basic blocks
-pub fn basic_block_from_instructions(self: *Self, instructions: std.ArrayList(*Instruction), start_index: ?usize, allocator: std.mem.Allocator) ?*Basic_Block {
+pub fn basic_block_from_instructions(self: *Self, instructions: std.ArrayList(*Instruction), start_index: ?usize) ?*Basic_Block {
     if (instructions.items.len == 0 or start_index == null) {
         return null;
     } else if (instructions.items[start_index.?].in_block) |in_block| {
@@ -154,7 +149,7 @@ pub fn basic_block_from_instructions(self: *Self, instructions: std.ArrayList(*I
     }
 
     // Create block without instructions yet
-    var block = Basic_Block.init(allocator);
+    var block = Basic_Block.init(self.allocator);
     self.basic_blocks.append(block) catch unreachable;
 
     // Identify the end of the block
@@ -165,14 +160,14 @@ pub fn basic_block_from_instructions(self: *Self, instructions: std.ArrayList(*I
         instr.in_block = block;
         if (instr.kind == .label) {
             // Fallthrough to next basic block
-            const next_block = self.basic_block_from_instructions(instructions, end_index, allocator);
+            const next_block = self.basic_block_from_instructions(instructions, end_index);
             block.terminator = .{ .unconditional = next_block };
             break;
         } else if (instr.kind == .jump) {
             // Unconditional jump to other block
             const branch_next = instr.data.branch;
             const bb_index = if (branch_next != null) std.mem.indexOfScalar(*Instruction, instructions.items, branch_next.?).? + 1 else null;
-            const next_block = self.basic_block_from_instructions(instructions, bb_index, allocator);
+            const next_block = self.basic_block_from_instructions(instructions, bb_index);
             block.terminator = .{ .unconditional = next_block };
             break;
         } else if (instr.kind == .panic) {
@@ -184,8 +179,8 @@ pub fn basic_block_from_instructions(self: *Self, instructions: std.ArrayList(*I
             // Branch only if condition is false else fallthrough
             const branch_next = instr.data.branch;
             const false_target_index = if (branch_next != null) std.mem.indexOfScalar(*Instruction, instructions.items, branch_next.?).? + 1 else null;
-            const next_block = self.basic_block_from_instructions(instructions, end_index, allocator);
-            const branch_block = self.basic_block_from_instructions(instructions, false_target_index, allocator);
+            const next_block = self.basic_block_from_instructions(instructions, end_index);
+            const branch_block = self.basic_block_from_instructions(instructions, false_target_index);
             block.terminator = .{ .conditional = .{
                 .condition = instr.src1.?,
                 .true_target = next_block,
@@ -201,16 +196,16 @@ pub fn basic_block_from_instructions(self: *Self, instructions: std.ArrayList(*I
     return block;
 }
 
-pub fn calculate_usage(cfg: *Self) void {
+pub fn calculate_usage(self: *Self) void {
     // FIXME: High Cyclo
-    if (cfg.symbol.decl.?.* == .fn_decl or cfg.symbol.decl.?.* == .method_decl) {
-        const param_symbols = if (cfg.symbol.decl.?.* == .fn_decl) cfg.symbol.decl.?.fn_decl.param_symbols else cfg.symbol.decl.?.method_decl.param_symbols;
+    if (self.symbol.decl.?.* == .fn_decl or self.symbol.decl.?.* == .method_decl) {
+        const param_symbols = if (self.symbol.decl.?.* == .fn_decl) self.symbol.decl.?.fn_decl.param_symbols else self.symbol.decl.?.method_decl.param_symbols;
         for (param_symbols.items) |param_symbol| {
             param_symbol.uses = 0;
         }
     }
 
-    for (cfg.basic_blocks.items) |bb| {
+    for (self.basic_blocks.items) |bb| {
         // Clear all used flags
         for (bb.instructions.items) |instr| {
             if (instr.dest != null) {
@@ -219,7 +214,7 @@ pub fn calculate_usage(cfg: *Self) void {
         }
     }
 
-    for (cfg.basic_blocks.items) |bb| {
+    for (self.basic_blocks.items) |bb| {
         // Go through and see if each symbol is used
         for (bb.instructions.items) |instr| {
             if (instr.dest != null and instr.dest.?.* != .symbver) {
@@ -257,9 +252,9 @@ pub fn calculate_usage(cfg: *Self) void {
     }
 }
 
-pub fn calculate_definitions(cfg: *Self) void {
+pub fn calculate_definitions(self: *Self) void {
     // FIXME: High Cyclo
-    for (cfg.basic_blocks.items) |bb| {
+    for (self.basic_blocks.items) |bb| {
         // Reset all reachable symbol verison counts to 0
         for (bb.instructions.items) |instr| {
             reset_defs(instr.dest);
@@ -278,10 +273,10 @@ pub fn calculate_definitions(cfg: *Self) void {
                 }
             }
         }
-        cfg.return_symbol.defs = 0;
+        self.return_symbol.defs = 0;
     }
 
-    for (cfg.basic_blocks.items) |bb| {
+    for (self.basic_blocks.items) |bb| {
         // Go through sum up each definition
         for (bb.instructions.items) |instr| {
             if (instr.dest != null) {
@@ -322,31 +317,32 @@ pub fn reset_defs(maybe_lval: ?*lval_.L_Value) void {
     }
 }
 
-pub fn count_bb_predecessors(cfg: *Self) void {
+pub fn count_bb_predecessors(self: *Self) void {
     // Reset all basic block predecessors to 0
-    for (cfg.basic_blocks.items) |bb| {
+    for (self.basic_blocks.items) |bb| {
         bb.number_predecessors = 0;
     }
-    cfg.clear_visited_BBs();
-    if (cfg.block_graph_head) |head| {
+    self.clear_visited_BBs();
+    if (self.block_graph_head) |head| {
         // start predecessor count walk at head
         head.count_predecessors();
     }
 }
 
-pub fn remove_basic_block(cfg: *Self, bb: *Basic_Block) void {
-    _ = cfg.basic_blocks.swapRemove(cfg.index_of_basic_block(bb));
+pub fn remove_basic_block(self: *Self, bb: *Basic_Block) void {
+    _ = self.basic_blocks.swapRemove(self.index_of_basic_block(bb));
 }
 
-fn index_of_basic_block(
-    cfg: *Self,
-    bb: *Basic_Block,
-) usize {
-    for (0..cfg.basic_blocks.items.len) |i| {
-        if (bb == cfg.basic_blocks.items[i]) {
+fn index_of_basic_block(self: *Self, bb: *Basic_Block) usize {
+    for (0..self.basic_blocks.items.len) |i| {
+        if (bb == self.basic_blocks.items[i]) {
             return i;
         }
     } else {
         unreachable;
     }
+}
+
+pub fn get_adjacent(self: *Self) []*Self {
+    return self.children.items;
 }
