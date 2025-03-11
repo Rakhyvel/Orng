@@ -381,9 +381,9 @@ fn create_prelude(compiler: *Compiler_Context) !void {
     defer errors.deinit();
     errdefer errors.print_errors();
 
-    const prelude_abs_path = String.init_with_contents("/prelude") catch unreachable;
-    prelude_abs_path.writer().print("{c}prelude.orng", .{std.fs.path.sep});
-    const module = module_.Module.init(prelude_abs_path.toOwned(), compiler.allocator());
+    var prelude_abs_path = String.init_with_contents(compiler.allocator(), "/prelude") catch unreachable;
+    prelude_abs_path.writer().print("{c}prelude.orng", .{std.fs.path.sep}) catch unreachable;
+    const module = module_.Module.init((prelude_abs_path.toOwned() catch unreachable).?, compiler.allocator());
     const symbol = Symbol.init(
         compiler.prelude,
         "prelude",
