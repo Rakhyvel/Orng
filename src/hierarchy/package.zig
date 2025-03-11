@@ -1,16 +1,16 @@
-const module_ = @import("../hierarchy/module.zig");
 const std = @import("std");
+const module_ = @import("../hierarchy/module.zig");
 const String = @import("../zig-string/zig-string.zig").String;
-const symbol_ = @import("../symbol/symbol.zig");
+const Symbol = @import("../symbol/symbol.zig");
 
 const Package = @This();
 
 name: []const u8,
 absolute_path: []const u8,
 output_absolute_path: []const u8,
-root: *symbol_.Symbol,
+root: *Symbol,
 local_modules: std.ArrayList(*module_.Module),
-requirements: std.StringArrayHashMap(*symbol_.Symbol),
+requirements: std.StringArrayHashMap(*Symbol),
 include_directories: std.StringArrayHashMap(void),
 library_directories: std.StringArrayHashMap(void),
 libraries: std.StringArrayHashMap(void),
@@ -21,7 +21,7 @@ pub fn new(allocator: std.mem.Allocator, package_absolute_path: []const u8, is_s
     const package = allocator.create(Package) catch unreachable;
     package.root = undefined; // filled in later
     package.output_absolute_path = undefined; // filled in when the output binary is created
-    package.requirements = std.StringArrayHashMap(*symbol_.Symbol).init(allocator);
+    package.requirements = std.StringArrayHashMap(*Symbol).init(allocator);
     package.include_directories = std.StringArrayHashMap(void).init(allocator);
     package.library_directories = std.StringArrayHashMap(void).init(allocator);
     package.libraries = std.StringArrayHashMap(void).init(allocator);
@@ -52,11 +52,11 @@ pub fn compile_c(self: *Package, packages: std.StringArrayHashMap(*Package), ext
             std.fs.path.sep,
             std.fs.path.sep,
             self.name,
-            local_module.name,
+            local_module.name(),
         }) catch unreachable;
 
         var o_file = String.init(allocator);
-        o_file.writer().print("{s}.o", .{local_module.name}) catch unreachable;
+        o_file.writer().print("{s}.o", .{local_module.name()}) catch unreachable;
         obj_files.append(o_file.str()) catch unreachable;
 
         try self.gcc(c_file.str(), o_file.str(), packages, extra_flags, allocator);
@@ -144,7 +144,7 @@ fn gcc(
         const requirement = packages.get(requirement_name).?;
 
         var requirement_include_path = String.init(allocator);
-        requirement_include_path.writer().print("-I{s}{c}build", .{ requirement.root.init.?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
+        requirement_include_path.writer().print("-I{s}{c}build", .{ requirement.root.init_value.?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
         gcc_cmd.append(requirement_include_path.str()) catch unreachable;
     }
 
@@ -258,7 +258,7 @@ fn executable(self: *Package, obj_files: std.ArrayList([]const u8), packages: st
         const requirement = packages.get(requirement_name).?;
 
         var requirement_library_path = String.init(allocator);
-        requirement_library_path.writer().print("{s}{c}build", .{ requirement.root.init.?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
+        requirement_library_path.writer().print("{s}{c}build", .{ requirement.root.init_value.?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
         cmd.append("-L") catch unreachable;
         cmd.append(requirement_library_path.str()) catch unreachable;
 

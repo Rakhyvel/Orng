@@ -1,12 +1,14 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
-const compiler_ = @import("../compilation/compiler.zig");
+const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const module_ = @import("../hierarchy/module.zig");
-const span_ = @import("../util/span.zig");
-const symbol_ = @import("../symbol/symbol.zig");
+const Span = @import("../util/span.zig");
+const Scope = @import("../symbol/scope.zig");
+const String = @import("../zig-string/zig-string.zig").String;
+const Symbol = @import("../symbol/symbol.zig");
 const Symbol_Tree = @import("../ast/symbol-tree.zig");
-const token_ = @import("../lexer/token.zig");
+const Token = @import("../lexer/token.zig");
 
 // TODO: Think about how to remove these public variables. They're only variable because they need to be constructed later.
 pub var anyptr_type: *ast_.AST = undefined;
@@ -33,14 +35,11 @@ pub var word16_type: *ast_.AST = undefined;
 pub var word32_type: *ast_.AST = undefined;
 pub var word64_type: *ast_.AST = undefined;
 
-pub var blackhole: *symbol_.Symbol = undefined;
+pub var blackhole: *Symbol = undefined;
 
 pub const Primitive_Info = struct {
-    name: []const u8,
     c_name: []const u8,
     bounds: ?Bounds,
-    ast: *ast_.AST,
-    symbol: *symbol_.Symbol,
     type_class: Type_Class,
     type_kind: Type_Kind,
     default_value: ?*ast_.AST,
@@ -94,15 +93,19 @@ pub const Type_Kind = enum {
 var primitives: std.StringArrayHashMap(Primitive_Info) = undefined;
 
 // The prelude should only be created once per compilation. _ALL_ packages and modules are within this one prelude scope.
-var prelude: ?*symbol_.Scope = null;
-pub fn get_scope(compiler: *compiler_.Context) !*symbol_.Scope {
+var prelude: ?*Scope = null;
+pub fn get_scope(compiler: *Compiler_Context) !*Scope {
     if (prelude == null) {
         try create_prelude(compiler);
     }
     return prelude.?;
 }
 
-fn create_prelude(compiler: *compiler_.Context) !void {
+pub fn deinit() void {
+    prelude = null;
+}
+
+fn create_prelude(compiler: *Compiler_Context) !void {
     // Create ASTs for primitives
     anyptr_type = create_anyptr_type_primitive(compiler.allocator());
     bool_type = create_primitive_identifier("Bool", compiler.allocator());
@@ -128,7 +131,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
     byte_slice_type = ast_.AST.create_slice_type(byte_type, false, compiler.allocator()).assert_ast_valid();
 
     // Create prelude scope
-    prelude = symbol_.Scope.init(null, "", compiler.allocator());
+    prelude = Scope.init(null, compiler.allocator());
 
     // Create Symbols for primitives
     _ = create_prelude_symbol("String", type_type, byte_slice_type, compiler.allocator());
@@ -139,20 +142,20 @@ fn create_prelude(compiler: *compiler_.Context) !void {
     // Setup default values
     // These have to be all different AST nodes because they then represent different types
     // The types are created later, and then the represents field is set after that
-    const default_bool = ast_.AST.create_false(token_.Token.init_simple("false"), compiler.allocator());
-    const default_char = ast_.AST.create_char(token_.Token.init_simple("'\\\\0'"), compiler.allocator());
-    const default_float32 = ast_.AST.create_float(token_.Token.init_simple("0.0"), 0.0, compiler.allocator());
-    const default_float64 = ast_.AST.create_float(token_.Token.init_simple("0.0"), 0.0, compiler.allocator());
+    const default_bool = ast_.AST.create_false(Token.init_simple("false"), compiler.allocator());
+    const default_char = ast_.AST.create_char(Token.init_simple("'\\\\0'"), compiler.allocator());
+    const default_float32 = ast_.AST.create_float(Token.init_simple("0.0"), 0.0, compiler.allocator());
+    const default_float64 = ast_.AST.create_float(Token.init_simple("0.0"), 0.0, compiler.allocator());
     // TODO: De-duplicate the following
-    const default_int8 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, compiler.allocator());
-    const default_int16 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, compiler.allocator());
-    const default_int32 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, compiler.allocator());
-    const default_int64 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, compiler.allocator());
-    const default_word8 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, compiler.allocator());
-    const default_word16 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, compiler.allocator());
-    const default_word32 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, compiler.allocator());
-    const default_word64 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, compiler.allocator());
-    const default_string = ast_.AST.create_string(token_.Token.init_simple("\"\""), "", compiler.allocator());
+    const default_int8 = ast_.AST.create_int(Token.init_simple("0"), 0, compiler.allocator());
+    const default_int16 = ast_.AST.create_int(Token.init_simple("0"), 0, compiler.allocator());
+    const default_int32 = ast_.AST.create_int(Token.init_simple("0"), 0, compiler.allocator());
+    const default_int64 = ast_.AST.create_int(Token.init_simple("0"), 0, compiler.allocator());
+    const default_word8 = ast_.AST.create_int(Token.init_simple("0"), 0, compiler.allocator());
+    const default_word16 = ast_.AST.create_int(Token.init_simple("0"), 0, compiler.allocator());
+    const default_word32 = ast_.AST.create_int(Token.init_simple("0"), 0, compiler.allocator());
+    const default_word64 = ast_.AST.create_int(Token.init_simple("0"), 0, compiler.allocator());
+    const default_string = ast_.AST.create_string(Token.init_simple("\"\""), "", compiler.allocator());
 
     // Setup primitive map
     primitives = std.StringArrayHashMap(Primitive_Info).init(compiler.allocator());
@@ -378,14 +381,16 @@ fn create_prelude(compiler: *compiler_.Context) !void {
     defer errors.deinit();
     errdefer errors.print_errors();
 
-    var module = module_.Module.init("prelude", "/prelude/prelude.orng", undefined, compiler.allocator());
-    const symbol = symbol_.Symbol.init(
+    var prelude_abs_path = String.init_with_contents(compiler.allocator(), "/prelude") catch unreachable;
+    prelude_abs_path.writer().print("{c}prelude.orng", .{std.fs.path.sep}) catch unreachable;
+    const module = module_.Module.init((prelude_abs_path.toOwned() catch unreachable).?, compiler.allocator());
+    const symbol = Symbol.init(
         compiler.prelude,
         "prelude",
-        span_.Span{ .col = 1, .line_number = 1, .filename = "prelude", .line_text = "" },
+        Span{ .col = 1, .line_number = 1, .filename = "prelude", .line_text = "" },
         unit_type,
         ast_.AST.create_module(
-            token_.Token.init_simple("prelude"),
+            Token.init_simple("prelude"),
             prelude.?,
             module,
             compiler.allocator(),
@@ -394,8 +399,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         .module,
         compiler.allocator(),
     );
-    module.symbol = symbol;
-    try Symbol_Tree.put_symbol(symbol, prelude.?, &compiler.errors);
+    try prelude.?.put_symbol(symbol, &compiler.errors);
 
     var env_map = std.process.getEnvMap(compiler.allocator()) catch unreachable;
     defer env_map.deinit();
@@ -405,36 +409,37 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         null,
         prelude.?,
         module,
+        symbol,
         false,
         compiler,
     );
 
-    package_type = module.top_level_scope().lookup("Package", .{}).found.init.?;
-    _ = module.top_level_scope().lookup("Requirement", .{}).found.init.?;
+    package_type = compiler.module_scope(module.absolute_path).?.lookup("Package", .{}).found.init_value.?;
+    _ = compiler.module_scope(module.absolute_path).?.lookup("Requirement", .{}).found.init_value.?;
     addr_package_type = ast_.AST.create_addr_of(package_type.token(), package_type, false, false, compiler.allocator());
 }
 
 fn create_primitive_identifier(name: []const u8, allocator: std.mem.Allocator) *ast_.AST {
-    return ast_.AST.create_identifier(token_.Token.init_simple(name), allocator).assert_ast_valid();
+    return ast_.AST.create_identifier(Token.init_simple(name), allocator).assert_ast_valid();
 }
 
 fn create_unit_type(allocator: std.mem.Allocator) *ast_.AST {
-    return ast_.AST.create_unit_type(token_.Token.init_simple("("), allocator).assert_ast_valid();
+    return ast_.AST.create_unit_type(Token.init_simple("("), allocator).assert_ast_valid();
 }
 
 fn create_anyptr_type_primitive(allocator: std.mem.Allocator) *ast_.AST {
-    return ast_.AST.create_anyptr_type(token_.Token.init_simple("anyptr_type"), allocator).assert_ast_valid();
+    return ast_.AST.create_anyptr_type(Token.init_simple("anyptr_type"), allocator).assert_ast_valid();
 }
 
 fn create_unit_value(allocator: std.mem.Allocator) *ast_.AST {
-    return ast_.AST.create_unit_value(token_.Token.init_simple("{"), allocator).assert_ast_valid();
+    return ast_.AST.create_unit_value(Token.init_simple("{"), allocator).assert_ast_valid();
 }
 
-fn create_prelude_symbol(name: []const u8, _type: *ast_.AST, init: *ast_.AST, allocator: std.mem.Allocator) *symbol_.Symbol {
-    var symbol = symbol_.Symbol.init(
+fn create_prelude_symbol(name: []const u8, _type: *ast_.AST, init: *ast_.AST, allocator: std.mem.Allocator) *Symbol {
+    var symbol = Symbol.init(
         prelude.?,
         name,
-        span_.phony_span,
+        Span.phony,
         _type,
         init,
         null,
@@ -460,7 +465,7 @@ fn create_info(
     allocator: std.mem.Allocator,
 ) void {
     const symbol_lookup_res = prelude.?.lookup(name, .{});
-    var symbol: *symbol_.Symbol = undefined;
+    var symbol: *Symbol = undefined;
     if (symbol_lookup_res == .found) {
         symbol = symbol_lookup_res.found;
     } else {
@@ -468,11 +473,8 @@ fn create_info(
     }
     _ast.set_symbol(symbol);
     primitives.put(name, Primitive_Info{
-        .name = name,
         .bounds = bounds,
         .c_name = c_name,
-        .ast = _ast,
-        .symbol = symbol,
         .type_class = type_class,
         .type_kind = type_kind,
         .default_value = default_value,

@@ -1,6 +1,6 @@
 const std = @import("std");
 const errs_ = @import("../util/errors.zig");
-const span_ = @import("../util/span.zig");
+const Span = @import("../util/span.zig");
 
 const Self: type = @This();
 lines: std.ArrayList([]const u8),
@@ -20,7 +20,7 @@ pub fn run(self: *Self, contents: []const u8) error{LexerError}!std.ArrayList([]
     var start: usize = 0;
     if (contents.len == 0) {
         self.errors.add_error(errs_.Error{ .basic = .{
-            .span = span_.phony_span,
+            .span = Span.phony,
             .msg = "file is empty",
         } });
         return error.LexerError;

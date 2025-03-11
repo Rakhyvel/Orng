@@ -2,9 +2,10 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
-const ir_ = @import("../ir/instruction.zig");
-const symbol_ = @import("../symbol/symbol.zig");
+const Instruction = @import("../ir/instruction.zig");
+const Symbol = @import("../symbol/symbol.zig");
 const String = @import("../zig-string/zig-string.zig").String;
+const Symbol_Version = @import("symbol_version.zig");
 
 /// Represents different forms of l-values in an l-value tree.
 ///
@@ -77,7 +78,7 @@ pub const L_Value = union(enum) {
         return retval;
     }
 
-    pub fn create_unversioned_symbver(symbol: *symbol_.Symbol, allocator: std.mem.Allocator) *L_Value {
+    pub fn create_unversioned_symbver(symbol: *Symbol, allocator: std.mem.Allocator) *L_Value {
         const retval = L_Value.create_symbver(Symbol_Version.create_unversioned(symbol, allocator), allocator);
         return retval;
     }
@@ -210,7 +211,7 @@ pub const L_Value = union(enum) {
 
     pub fn get_expanded_type(self: *L_Value) *ast_.AST {
         switch (self.*) {
-            .symbver => return self.symbver.symbol.expanded_type.?,
+            .symbver => return self.symbver.get_expanded_type(),
             .dereference => return self.dereference.expanded_type,
             .index => return self.index.expanded_type,
             .select => return self.select.expanded_type,
@@ -220,7 +221,7 @@ pub const L_Value = union(enum) {
 
     pub fn lval_precedence(self: *L_Value) i64 {
         return switch (self.*) {
-            .symbver => ir_.Kind.precedence(ir_.Kind.load_symbol),
+            .symbver => Instruction.Kind.precedence(Instruction.Kind.load_symbol),
             .dereference => 2,
             .index => 2,
             .select => 1,
@@ -230,10 +231,7 @@ pub const L_Value = union(enum) {
 
     pub fn reset_usage(lval: *L_Value) void {
         switch (lval.*) {
-            .symbver => {
-                lval.symbver.uses = 0;
-                lval.symbver.symbol.uses = 0;
-            },
+            .symbver => lval.symbver.reset_usage(),
             .dereference => lval.dereference.expr.reset_usage(),
             .index => {
                 lval.index.lhs.reset_usage();
@@ -252,121 +250,24 @@ pub const L_Value = union(enum) {
         }
     }
 
-    pub fn calculate_lval_usage(lval: *L_Value) void {
+    pub fn increment_usage(lval: *L_Value) void {
         switch (lval.*) {
-            .symbver => {
-                lval.symbver.uses += 1;
-                lval.symbver.symbol.uses += 1;
-            },
-            .dereference => lval.dereference.expr.calculate_lval_usage(),
+            .symbver => lval.symbver.increment_usage(),
+            .dereference => lval.dereference.expr.increment_usage(),
             .index => {
-                lval.index.lhs.calculate_lval_usage();
-                lval.index.rhs.calculate_lval_usage();
+                lval.index.lhs.increment_usage();
+                lval.index.rhs.increment_usage();
                 if (lval.index.length != null) {
-                    lval.index.length.?.calculate_lval_usage();
+                    lval.index.length.?.increment_usage();
                 }
             },
             .select => {
-                lval.select.lhs.calculate_lval_usage();
+                lval.select.lhs.increment_usage();
                 if (lval.select.tag != null) {
-                    lval.select.tag.?.calculate_lval_usage();
+                    lval.select.tag.?.increment_usage();
                 }
             },
             .raw_address => std.debug.panic("compiler error: raw addresses do not have usage", .{}),
         }
-    }
-};
-
-pub const Symbol_Version = struct {
-    symbol: *symbol_.Symbol,
-    def: ?*ir_.Instruction,
-
-    uses: usize = 0,
-
-    allocator: std.mem.Allocator,
-
-    pub fn create_unversioned(symbol: *symbol_.Symbol, allocator: std.mem.Allocator) *Symbol_Version {
-        var retval = allocator.create(Symbol_Version) catch unreachable;
-        retval.symbol = symbol;
-        retval.uses = 0;
-        retval.def = null;
-        retval.allocator = allocator;
-        return retval;
-    }
-
-    pub fn deinit(self: *Symbol_Version) void {
-        _ = self;
-        // self.allocator.destroy(self); // TODO: Bwuh?!
-    }
-
-    fn pprint(self: ?*Symbol_Version) void {
-        if (self) |symbver| {
-            var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-            defer arena.deinit();
-            var out = String.init(arena.allocator());
-            defer out.deinit();
-
-            out.writer().print("{s}", .{symbver.symbol.name}) catch unreachable;
-            std.debug.print("{s:<10}", .{out.str()});
-        } else {
-            std.debug.print("<null>    ", .{});
-        }
-    }
-
-    pub fn format(self: Symbol_Version, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-        _ = options;
-        _ = fmt;
-        var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-        defer arena.deinit();
-        var out = String.init(arena.allocator());
-        defer out.deinit();
-
-        writer.print("{s}", .{self.symbol.name}) catch unreachable;
-        // try writer.print("{s:<10}", .{out.str()});
-    }
-
-    /// Finds the last definition of a Symbol_Version in a given range of an Instruction linked-list
-    pub fn find_version(self: *Symbol_Version, instr: ?*ir_.Instruction, stop: ?*ir_.Instruction) *Symbol_Version {
-        var retval: *Symbol_Version = self;
-        var maybe_instr = instr;
-        // Go through Instruction linked-list, stop at `stop` Instruction, if it's not null.
-        while (maybe_instr != null and maybe_instr != stop) : (maybe_instr = maybe_instr.?.next) {
-            if (maybe_instr.?.dest != null and // instr dest exists
-                maybe_instr.?.dest.?.* == .symbver and // instr dest is a symbver lvalue
-                maybe_instr.?.dest.?.symbver.symbol == self.symbol // instr dest symbver symbol is this symbol
-            ) {
-                // remember this symbver, but keep looking to find the very latest until `stop`
-                retval = maybe_instr.?.dest.?.symbver;
-            }
-        }
-        return retval;
-    }
-
-    /// Finds a Symbol Version in a Symbol Version set, or null if not found.
-    ///
-    /// Two Symbol Versions are considered equivalent if they refer to the same Symbol.
-    pub fn find_symbol_version_set(
-        self: *Symbol_Version,
-        set: *std.ArrayList(*Symbol_Version),
-    ) ?*Symbol_Version {
-        // Go through the set's symbvers
-        for (set.items) |symbver| {
-            if (symbver.symbol == self.symbol) {
-                // Set element symbver has the same symbol as the symbver we're looking for
-                // Return it
-                return symbver;
-            }
-        }
-        return null;
-    }
-
-    pub fn put_symbol_version_set(self: *Symbol_Version, set: *std.ArrayList(*Symbol_Version)) bool {
-        for (set.items) |v| {
-            if (v.symbol == self.symbol) {
-                return false;
-            }
-        }
-        set.append(self) catch unreachable;
-        return true;
     }
 };

@@ -1,578 +1,518 @@
-// This file contains the definition of a Control Flow Graph (CFG) data structure.
-// TODO: Create Instruction list, which gets converted to a BB graph
-//   * `pub using namespace @import("ssa.zig");` for ['propagate_arguments', 'collect_generated_symbvers', 'count_bb_predecessors', 'fill_parent_args', 'calculate_phi_params_and_args', 'clear_visited_BBs']
-//   * `pub using namespace @import("use-def-analysis.zig");` for ['calculate_versions', 'calculate_usage']
+//! This file contains the definition of a Control Flow Graph (Self) data structure.
 
 const std = @import("std");
-const basic_block_ = @import("../ir/basic-block.zig");
-const ir_ = @import("../ir/instruction.zig");
+const alignment_ = @import("../util/alignment.zig");
+const Basic_Block = @import("../ir/basic-block.zig");
+const Cfg_Iterator = @import("../util/dfs.zig").Dfs_Iterator(*Self);
+const Instruction = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
-const module_ = @import("../hierarchy/module.zig");
-const offsets_ = @import("../hierarchy/offsets.zig");
-const span_ = @import("../util/span.zig");
-const symbol_ = @import("../symbol/symbol.zig");
+const Span = @import("../util/span.zig");
+const Symbol = @import("../symbol/symbol.zig");
+const Symbol_Version = @import("symbol_version.zig");
 
-pub const CFG = struct {
-    /// Temporary, flat instruction list before the BBs are created
-    instr_head: ?*ir_.Instruction,
-    instr_tail: ?*ir_.Instruction,
+const Self = @This();
 
-    /// Initial basic block in the basic block graph
-    block_graph_head: ?*basic_block_.Basic_Block,
+// bp offset of a frame's retval address
+pub const retval_offset: i64 = -3 * @sizeOf(i64);
+pub const locals_starting_offset = 8;
 
-    /// Flat list of all basic blocks
-    basic_blocks: std.ArrayList(*basic_block_.Basic_Block),
+/// Initial basic block in the basic block graph
+block_graph_head: ?*Basic_Block,
 
-    /// All other functions called by this function
-    children: std.ArrayList(*CFG),
+/// Flat list of all basic blocks
+basic_blocks: std.ArrayList(*Basic_Block),
 
-    /// All symbol versions that are parameters to the function this CFG defines
-    /// TODO: Make this it's own type, in it's own file, with `put` and `get` methods
-    parameters: std.ArrayList(*lval_.Symbol_Version),
+/// All other functions called by this function
+children: std.AutoArrayHashMap(*Self, void),
 
-    /// All symbol versions that are used. Should be filled in after optimizations.
-    /// TODO: Make this it's own type, in it's own file, with `put` and `get` methods
-    symbvers: std.ArrayList(*lval_.Symbol_Version),
+/// All symbol versions that are parameters to the function this Self defines
+/// TODO: Make this it's own type, in it's own file, with `put` and `get` methods
+parameters: std.ArrayList(*Symbol_Version),
 
-    /// The function that this CFG represents
-    symbol: *symbol_.Symbol,
+/// All symbol versions that are used. Should be filled in after optimizations.
+/// TODO: Make this it's own type, in it's own file, with `put` and `get` methods
+symbvers: std.ArrayList(*Symbol_Version),
 
-    /// The module that this CFG belongs to
-    module: *module_.Module,
+/// The function that this Self represents
+symbol: *Symbol,
 
-    number_temps: usize,
+/// The symbol that is used to store the return value of this function
+return_symbol: *Symbol,
 
-    return_symbol: *symbol_.Symbol,
+/// When true, Self is called from a runtime-context at least once, and should be generated
+/// Set in the lowering stage when runtime access is needed
+/// TODO: Remove for LCOM4
+needed_at_runtime: bool,
 
-    /// Whether or not this CFG is visited
-    visited: bool,
+/// Address in the first instruction of this Self
+/// Used for Instruction interpretation
+/// TODO: Remove for LCOM4
+offset: ?Instruction.Index,
 
-    /// When true, CFG is called from a runtime-context at least once, and should be generated
-    /// Set in the lowering stage when runtime access is needed
-    needed_at_runtime: bool,
+/// Number of bytes required in order to store the local variables of the function
+/// TODO: Remove for LCOM4
+locals_size: ?i64,
 
-    /// Address in the first instruction of this CFG
-    /// Used for Instruction interpretation
-    offset: ?offsets_.Instruction_Idx,
-    /// Number of bytes required in order to store the local variables of the function
-    locals_size: ?i64,
+allocator: std.mem.Allocator,
 
-    allocator: std.mem.Allocator,
+/// Initializes a Self
+pub fn init(symbol: *Symbol, caller: ?*Self, allocator: std.mem.Allocator) *Self {
+    _ = caller;
+    if (symbol.cfg) |cfg| {
+        return cfg;
+    }
+    var retval = allocator.create(Self) catch unreachable;
+    retval.block_graph_head = null;
+    retval.basic_blocks = std.ArrayList(*Basic_Block).init(allocator);
+    retval.children = std.AutoArrayHashMap(*Self, void).init(allocator);
+    retval.symbvers = std.ArrayList(*Symbol_Version).init(allocator);
+    retval.parameters = std.ArrayList(*Symbol_Version).init(allocator);
+    retval.symbol = symbol;
+    retval.return_symbol = Symbol.init(
+        symbol.scope,
+        "$retval",
+        Span.phony,
+        symbol._type.rhs(),
+        undefined,
+        null,
+        .mut,
+        allocator,
+    );
+    retval.return_symbol.expanded_type = retval.return_symbol._type.expand_type(allocator);
+    retval.needed_at_runtime = false;
+    retval.offset = null;
+    retval.locals_size = null;
+    retval.allocator = allocator;
+    symbol.cfg = retval;
 
-    /// Initializes a CFG
-    pub fn init(
-        symbol: *symbol_.Symbol,
-        caller: ?*CFG,
-        allocator: std.mem.Allocator,
-    ) *CFG {
-        if (symbol.cfg) |cfg| {
-            return cfg;
+    return retval;
+}
+
+/// Deinitializes a Self
+pub fn deinit(self: *Self) void {
+    for (self.basic_blocks.items) |bb| {
+        bb.deinit();
+    }
+    self.basic_blocks.deinit();
+
+    self.symbvers.deinit();
+
+    for (self.parameters.items) |param| {
+        param.deinit();
+    }
+    self.parameters.deinit();
+
+    self.allocator.destroy(self);
+}
+
+pub fn assert_needed_at_runtime(self: *Self) void {
+    if (self.needed_at_runtime) {
+        return;
+    }
+    self.needed_at_runtime = true;
+
+    for (self.children.keys()) |child| {
+        child.assert_needed_at_runtime();
+    }
+}
+
+/// Sets the `visited` flag for all basic-blocks in this Self to false.
+///
+/// BBs aren't trees, so `defer self.visited = false` won't work
+/// Use this function instead
+pub fn clear_visited_BBs(self: *Self) void {
+    for (self.basic_blocks.items) |bb| {
+        bb.visited = false;
+    }
+}
+
+/// Fills in a the `symbvers` list with the symbol versions which are used in the Self
+pub fn collect_generated_symbvers(self: *Self) void {
+    for (self.basic_blocks.items) |bb| {
+        for (bb.instructions.items) |instr| {
+            if (instr.dest != null and
+                instr.dest.?.extract_symbver().find_symbol_version_set(&self.parameters) == null)
+            {
+                _ = instr.dest.?.extract_symbver().put_symbol_version_set(&self.symbvers);
+            }
         }
-        var retval = allocator.create(CFG) catch unreachable;
-        retval.instr_head = null;
-        retval.instr_tail = null;
-        retval.block_graph_head = null;
-        retval.basic_blocks = std.ArrayList(*basic_block_.Basic_Block).init(allocator);
-        retval.children = std.ArrayList(*CFG).init(allocator);
-        retval.symbvers = std.ArrayList(*lval_.Symbol_Version).init(allocator);
-        retval.parameters = std.ArrayList(*lval_.Symbol_Version).init(allocator);
-        retval.symbol = symbol;
-        retval.number_temps = 0;
-        retval.return_symbol = symbol_.Symbol.init(
-            symbol.scope,
-            "$retval",
-            span_.phony_span,
-            symbol._type.rhs(),
-            undefined,
-            null,
-            .mut,
-            allocator,
-        );
-        retval.return_symbol.expanded_type = retval.return_symbol._type.expand_type(allocator);
-        retval.visited = false;
-        retval.needed_at_runtime = false;
-        retval.offset = null;
-        retval.locals_size = null;
-        retval.allocator = allocator;
-        symbol.cfg = retval;
+    }
+}
 
-        if (caller) |caller_node| {
-            caller_node.children.append(retval) catch unreachable;
-        }
-
-        return retval;
+/// Converts the list of Instruction to a web of BB's
+///
+/// ### Parameters
+/// - `self`: The CFG to fill the basic blocks for
+/// - `instructions`: The list of instructions to convert to basic blocks
+/// - `start_index`: The index into the instructions list to start the basic block at
+/// - `allocator`: The allocator to use for the basic blocks
+pub fn basic_block_from_instructions(self: *Self, instructions: std.ArrayList(*Instruction), start_index: ?usize) ?*Basic_Block {
+    if (instructions.items.len == 0 or start_index == null) {
+        return null;
+    } else if (instructions.items[start_index.?].in_block) |in_block| {
+        return in_block;
     }
 
-    /// Deinitializes a CFG
-    pub fn deinit(self: *CFG) void {
-        for (self.basic_blocks.items) |bb| {
-            bb.deinit();
+    // Create block without instructions yet
+    var block = Basic_Block.init(self.allocator);
+    self.basic_blocks.append(block) catch unreachable;
+
+    // Identify the end of the block
+    var end_index: usize = start_index.?;
+    while (end_index < instructions.items.len) {
+        const instr = instructions.items[end_index];
+        end_index += 1;
+        instr.in_block = block;
+        if (instr.kind == .label) {
+            // Fallthrough to next basic block
+            const next_block = self.basic_block_from_instructions(instructions, end_index);
+            block.terminator = .{ .unconditional = next_block };
+            break;
+        } else if (instr.kind == .jump) {
+            // Unconditional jump to other block
+            const branch_next = instr.data.branch;
+            const bb_index = if (branch_next != null) std.mem.indexOfScalar(*Instruction, instructions.items, branch_next.?).? + 1 else null;
+            const next_block = self.basic_block_from_instructions(instructions, bb_index);
+            block.terminator = .{ .unconditional = next_block };
+            break;
+        } else if (instr.kind == .panic) {
+            // Block ends in a panic
+            end_index += 1; // panics are kept as an instruction because they store the error message
+            block.terminator = .panic;
+            break;
+        } else if (instr.kind == .branch_if_false) {
+            // Branch only if condition is false else fallthrough
+            const branch_next = instr.data.branch;
+            const false_target_index = if (branch_next != null) std.mem.indexOfScalar(*Instruction, instructions.items, branch_next.?).? + 1 else null;
+            const next_block = self.basic_block_from_instructions(instructions, end_index);
+            const branch_block = self.basic_block_from_instructions(instructions, false_target_index);
+            block.terminator = .{ .conditional = .{
+                .condition = instr.src1.?,
+                .true_target = next_block,
+                .false_target = branch_block,
+            } };
+            break;
         }
-        self.basic_blocks.deinit();
-
-        self.symbvers.deinit();
-
-        for (self.parameters.items) |param| {
-            param.deinit();
-        }
-        self.parameters.deinit();
-
-        self.allocator.destroy(self);
     }
 
-    /// Sets the `visited` flag for all basic-blocks in this CFG to false.
-    ///
-    /// BBs aren't trees, so `defer self.visited = false` won't work
-    /// Use this function instead
-    pub fn clear_visited_BBs(
-        self: *CFG,
-    ) void {
-        for (self.basic_blocks.items) |bb| {
-            bb.visited = false;
+    // Assign instructions to the block
+    block.instructions.appendSlice(instructions.items[start_index.? .. end_index - 1]) catch unreachable;
+
+    return block;
+}
+
+pub fn calculate_usage(self: *Self) void {
+    // FIXME: High Cyclo
+    if (self.symbol.decl.?.* == .fn_decl or self.symbol.decl.?.* == .method_decl) {
+        const param_symbols = if (self.symbol.decl.?.* == .fn_decl) self.symbol.decl.?.fn_decl.param_symbols else self.symbol.decl.?.method_decl.param_symbols;
+        for (param_symbols.items) |param_symbol| {
+            param_symbol.uses = 0;
         }
     }
 
-    /// Fills in a the `symbvers` list with the symbol versions which are used in the CFG
-    pub fn collect_generated_symbvers(self: *CFG) void {
-        for (self.basic_blocks.items) |bb| {
-            var maybe_instr = bb.instr_head;
-            while (maybe_instr) |instr| : (maybe_instr = instr.next) {
-                if (instr.dest != null and
-                    instr.dest.?.extract_symbver().find_symbol_version_set(&self.parameters) == null)
-                {
-                    _ = instr.dest.?.extract_symbver().put_symbol_version_set(&self.symbvers);
-                }
+    for (self.basic_blocks.items) |bb| {
+        // Clear all used flags
+        for (bb.instructions.items) |instr| {
+            if (instr.dest != null) {
+                instr.dest.?.reset_usage();
             }
         }
     }
 
-    /// Appends an Instruction instruction to the end of a CFG's temporary instruction list
-    pub fn append_instruction(self: *CFG, instr: *ir_.Instruction) void {
-        if (self.instr_head == null) {
-            self.instr_head = instr;
-        } else if (self.instr_tail == null) {
-            self.instr_head.?.next = instr;
-            self.instr_tail = instr;
-            self.instr_tail.?.prev = self.instr_head;
-        } else {
-            self.instr_tail.?.next = instr;
-            instr.prev = self.instr_tail;
-            self.instr_tail = instr;
-        }
-    }
-
-    /// Converts the list of Instruction to a web of BB's
-    /// Also versions Instruction dest's if they are symbvers. This versioning should persist and should not be wiped.
-    pub fn basic_block_from_instructions(self: *CFG, maybe_instr: ?*ir_.Instruction, allocator: std.mem.Allocator) ?*basic_block_.Basic_Block {
-        // FIXME: High Cyclo
-        if (maybe_instr == null) {
-            return null;
-        } else if (maybe_instr.?.in_block) |in_block| {
-            return in_block;
-        }
-        var retval: *basic_block_.Basic_Block = basic_block_.Basic_Block.init(allocator);
-        self.basic_blocks.append(retval) catch unreachable; // TODO: If you just accept a list, you don't even need this function to be in CFG!
-        retval.instr_head = maybe_instr;
-        var _maybe_instr = maybe_instr;
-        while (_maybe_instr) |instr| : (_maybe_instr = instr.next) {
-            // TODO: Too long
-            instr.in_block = retval;
-
-            if (instr.kind == .label) {
-                // If you find a label declaration, end this block and jump to new block
-                retval.has_branch = false;
-                retval.next = self.basic_block_from_instructions(instr.next, allocator);
-                instr.snip();
-                break;
-            } else if (instr.kind == .jump) {
-                // If you find a jump, end this block and start new block
-                retval.has_branch = false;
-                if (instr.data == .branch) {
-                    if (instr.data.branch) |branch| {
-                        retval.next = self.basic_block_from_instructions(branch.next, allocator);
-                    } else {
-                        retval.next = self.basic_block_from_instructions(null, allocator);
-                    }
-                } else {
-                    retval.next = null;
-                }
-                instr.snip();
-                break;
-            } else if (instr.kind == .panic) {
-                // If you find a panic, end this block with null jump and start new block
-                retval.has_branch = false;
-                retval.next = null;
-                retval.has_panic = true;
-                if (instr.next != null and instr.next.?.next != null) {
-                    instr.next.?.next.?.prev = null;
-                    instr.next.?.next = null;
-                }
-                break;
-            } else if (instr.kind == .branch_if_false) {
-                // If you find a branch, end this block, start both blocks
-                retval.has_branch = true;
-                var branch_next: ?*ir_.Instruction = null; // = instr.data.branch.next;
-                // Since instr->branch->next may get nullifued by calling this function on instr->next
-                if (instr.data.branch) |branch| {
-                    branch_next = branch.next;
-                } else {
-                    branch_next = null;
-                }
-                retval.next = self.basic_block_from_instructions(instr.next, allocator);
-                retval.branch = self.basic_block_from_instructions(branch_next, allocator);
-                retval.condition = instr.src1;
-                instr.snip();
-                break;
+    for (self.basic_blocks.items) |bb| {
+        // Go through and see if each symbol is used
+        for (bb.instructions.items) |instr| {
+            if (instr.dest != null and instr.dest.?.* != .symbver) {
+                instr.dest.?.increment_usage();
             }
-        }
-        return retval;
-    }
-
-    /// Removes the last instruction from each basic-block of a CFG.
-    pub fn remove_last_instruction(
-        cfg: *CFG,
-    ) void {
-        for (cfg.basic_blocks.items) |bb| {
-            if (bb.instr_head == null) {
-                continue;
-            } else if (bb.instr_head.?.next == null) {
-                bb.instr_head = null;
-            } else {
-                var maybe_instr: ?*ir_.Instruction = bb.instr_head;
-                while (maybe_instr.?.next != null) : (maybe_instr = maybe_instr.?.next) {}
-                maybe_instr.?.prev.?.next = null;
+            if (instr.src1 != null) {
+                instr.src1.?.increment_usage();
             }
-        }
-    }
-
-    /// Calculates phi parameters and arguments for each basic block in the CFG.
-    ///
-    /// Determines the symbol versions that:
-    /// - Need to be requested as phi parameters,
-    /// - Need to be passed to children basic-blocks as phi arguments
-    pub fn calculate_phi_params_and_args(self: *CFG, allocator: std.mem.Allocator) void {
-        // FIXME: High Cyclo
-        // clear arguments
-        for (self.basic_blocks.items) |bb| {
-            bb.parameters.clearRetainingCapacity();
-            bb.next_arguments.clearRetainingCapacity();
-            bb.branch_arguments.clearRetainingCapacity();
-
-            // Parameters are symbols used by Instruction without a definition for the symbol before the Instruction
-            var maybe_instr: ?*ir_.Instruction = bb.instr_head;
-            while (maybe_instr) |instr| : (maybe_instr = instr.next) {
-                if (instr.dest != null and instr.dest.?.* != .symbver) {
-                    // Recursively version L_Value symbvers, if they are not a leaf symbver.
-                    version_lvalue(instr.dest.?, bb, instr, &bb.parameters);
-                }
-                if (instr.src1 != null) {
-                    // If src1 version is not null, and is not defined in this BB, request it as a parameter
-                    version_lvalue(instr.src1.?, bb, instr, &bb.parameters);
-                }
-                if (instr.src2 != null) {
-                    // If src2 version is not null, and is not defined in this BB, request it as a parameter
-                    version_lvalue(instr.src2.?, bb, instr, &bb.parameters);
-                }
-                if (instr.data == .lval_list) {
-                    // Do the same as above for each symbver in a symbver list, if there is one
-                    for (instr.data.lval_list.items) |lval| {
-                        version_lvalue(lval, bb, instr, &bb.parameters);
-                    }
-                }
-                if (instr.data == .invoke) {
-                    if (instr.data.invoke.dyn_value != null) {
-                        version_lvalue(instr.data.invoke.dyn_value.?, bb, instr, &bb.parameters);
-                    }
-                    if (instr.data.invoke.method_decl_lval != null and !instr.data.invoke.method_decl.method_decl.is_virtual) {
-                        version_lvalue(instr.data.invoke.method_decl_lval.?, bb, instr, &bb.parameters);
-                    }
-                    // Do the same as above for each symbver in a symbver list, if there is one
-                    for (instr.data.invoke.lval_list.items) |lval| {
-                        version_lvalue(lval, bb, instr, &bb.parameters);
-                    }
+            if (instr.src2 != null) {
+                instr.src2.?.increment_usage();
+            }
+            if (instr.data == .lval_list) {
+                for (instr.data.lval_list.items) |lval| {
+                    lval.increment_usage();
                 }
             }
-
-            if (bb.has_branch) {
-                // Do the same as above for the condition of a branch, if there is one
-                version_lvalue(bb.condition.?, bb, null, &bb.parameters);
-            }
-        }
-
-        // Find phi arguments
-        self.clear_visited_BBs();
-        var i: usize = 0;
-        while (self.propagate_arguments(self.block_graph_head orelse return, allocator)) {
-            self.clear_visited_BBs();
-            i += 1;
-        }
-        self.clear_visited_BBs();
-    }
-
-    /// Recursively versions an L_Value in a basic-block. If no version can be found, adds symbol-version to
-    /// the basic-block's requested phi parameters.
-    fn version_lvalue(
-        lval: *lval_.L_Value,
-        bb: *basic_block_.Basic_Block,
-        instr: ?*ir_.Instruction,
-        parameters: *std.ArrayList(*lval_.Symbol_Version),
-    ) void {
-        switch (lval.*) {
-            .symbver => {
-                var retval = lval.symbver.find_version(bb.instr_head, instr);
-                _ = retval.put_symbol_version_set(parameters);
-                lval.symbver = retval;
-            },
-            .dereference => version_lvalue(lval.dereference.expr, bb, instr, parameters),
-            .index => {
-                version_lvalue(lval.index.rhs, bb, instr, parameters);
-                version_lvalue(lval.index.lhs, bb, instr, parameters);
-                if (lval.index.length != null) { // index is bounded, version bound lval
-                    version_lvalue(lval.index.length.?, bb, instr, parameters);
+            if (instr.data == .invoke) {
+                if (instr.data.invoke.dyn_value != null) {
+                    instr.data.invoke.dyn_value.?.increment_usage();
                 }
-            },
-            .select => {
-                version_lvalue(lval.select.lhs, bb, instr, parameters);
-                if (lval.select.tag != null) { // select is a sum-select, version expected tag
-                    version_lvalue(lval.select.tag.?, bb, instr, parameters);
+                if (instr.data.invoke.method_decl_lval != null and !instr.data.invoke.method_decl.method_decl.is_virtual) {
+                    instr.data.invoke.method_decl_lval.?.increment_usage();
                 }
-            },
-            .raw_address => std.debug.panic("compiler error: raw addresses cannot be versioned", .{}),
-        }
-    }
-
-    /// Propagates children basic-block phi parameters up to their parent's arguments sets. Also checks that
-    /// arguments are defined in parent basic-blocks, and if not, bubbles the arguments up to the parent's
-    /// parameter set, too.
-    fn propagate_arguments(self: *CFG, bb: *basic_block_.Basic_Block, allocator: std.mem.Allocator) bool {
-        var retval: bool = false;
-        if (bb.visited) {
-            return false;
-        }
-        bb.visited = true;
-
-        if (bb.next != null) { // Have the next block request parameters
-            retval = self.propagate_arguments(bb.next.?, allocator) or retval;
-            retval = request_undefined_args(bb.next.?, bb, allocator) or retval;
-            retval = fill_parent_args(bb.next.?, bb, &bb.next_arguments) or retval;
-        }
-        if (bb.has_branch and bb.branch != null) { // Have the branch block request parameters
-            retval = self.propagate_arguments(bb.branch.?, allocator) or retval;
-            retval = request_undefined_args(bb.branch.?, bb, allocator) or retval;
-            retval = fill_parent_args(bb.branch.?, bb, &bb.branch_arguments) or retval;
-        }
-
-        return retval;
-    }
-
-    /// Checks each parameter symbver of the child basic-block. If the symbver is not defined in the parent
-    /// basic-block, requests symbver as a parameter for the parent basic-block.
-    fn request_undefined_args(
-        child_bb: *basic_block_.Basic_Block,
-        parent_bb: *basic_block_.Basic_Block,
-        allocator: std.mem.Allocator,
-    ) bool {
-        for (child_bb.parameters.items) |parameter| {
-            var symbver = parameter.find_version(parent_bb.instr_head, null); // search the entire parent bb for the last definition of `parameter`
-
-            if (symbver == parameter) {
-                // Could not find parameter def in the parent block, require it as a parameter for the parent block
-                const parent_param = parameter.find_symbol_version_set(&parent_bb.parameters);
-                if (parent_param != null) {
-                    // was already in parent block's parameters
-                    // still make sure to add `symbver` to args set later on
-                    //
-                    // DO NOT try to simplify this logic by adding symbver to the parameter set no matter what
-                    // we need to add an BRAND NEW UNVERSIONED symbver to the parameter set, adding it no mater what would be wasteful
-                    symbver = parent_param.?;
-                } else {
-                    // was not already in parent block's parameters
-                    // add the symbver to the parent block's parameters
-                    symbver = lval_.Symbol_Version.create_unversioned(parameter.symbol, allocator);
-                    _ = symbver.put_symbol_version_set(&parent_bb.parameters);
-                }
-            } // else found in this block already, no need to request as parameter
-        }
-        return false;
-    }
-
-    /// Fills the parent basic-block's argument set based on the child-block's parameters
-    fn fill_parent_args(
-        child_bb: *basic_block_.Basic_Block,
-        parent_bb: *basic_block_.Basic_Block, // TODO: Accept parent instr head
-        parent_args: *std.ArrayList(*lval_.Symbol_Version), // This is separate from parent_bb because it could either be `branch` or `child` args
-    ) bool {
-        var retval = false;
-
-        // Add each parameter symbver of the child basic-block's parameter set to the parent basic-block's arguments
-        for (child_bb.parameters.items) |parameter| {
-            var symbver = parameter.find_version(parent_bb.instr_head, null); // search the entire parent bb for the last definition of `parameter`
-            retval = symbver.put_symbol_version_set(parent_args) or retval;
-        }
-
-        return retval;
-    }
-
-    pub fn calculate_usage(cfg: *CFG) void {
-        // FIXME: High Cyclo
-        if (cfg.symbol.decl.?.* == .fn_decl or cfg.symbol.decl.?.* == .method_decl) {
-            const param_symbols = if (cfg.symbol.decl.?.* == .fn_decl) cfg.symbol.decl.?.fn_decl.param_symbols else cfg.symbol.decl.?.method_decl.param_symbols;
-            for (param_symbols.items) |param_symbol| {
-                param_symbol.uses = 0;
-            }
-        }
-
-        for (cfg.basic_blocks.items) |bb| {
-            // Clear all used flags
-            var maybe_instr: ?*ir_.Instruction = bb.instr_head;
-            while (maybe_instr) |instr| : (maybe_instr = instr.next) {
-                if (instr.dest != null) {
-                    instr.dest.?.reset_usage();
+                for (instr.data.invoke.lval_list.items) |lval| {
+                    lval.increment_usage();
                 }
             }
         }
 
-        for (cfg.basic_blocks.items) |bb| {
-            // Arguments are default used
-            for (bb.next_arguments.items) |symbver| {
-                symbver.uses += 1;
-            }
-            for (bb.branch_arguments.items) |symbver| {
-                symbver.uses += 1;
-            }
+        // Conditions are used
+        if (bb.terminator == .conditional) {
+            bb.terminator.conditional.condition.extract_symbver().uses += 1;
+            bb.terminator.conditional.condition.extract_symbver().symbol.uses += 1;
+        }
+    }
+}
 
-            // Go through and see if each symbol is used
-            var maybe_instr = bb.instr_head;
-            while (maybe_instr) |instr| : (maybe_instr = instr.next) {
-                if (instr.dest != null and instr.dest.?.* != .symbver) {
-                    instr.dest.?.calculate_lval_usage();
-                }
-                if (instr.src1 != null) {
-                    instr.src1.?.calculate_lval_usage();
-                }
-                if (instr.src2 != null) {
-                    instr.src2.?.calculate_lval_usage();
-                }
-                if (instr.data == .lval_list) {
-                    for (instr.data.lval_list.items) |lval| {
-                        lval.calculate_lval_usage();
-                    }
-                }
-                if (instr.data == .invoke) {
-                    if (instr.data.invoke.dyn_value != null) {
-                        instr.data.invoke.dyn_value.?.calculate_lval_usage();
-                    }
-                    if (instr.data.invoke.method_decl_lval != null and !instr.data.invoke.method_decl.method_decl.is_virtual) {
-                        instr.data.invoke.method_decl_lval.?.calculate_lval_usage();
-                    }
-                    for (instr.data.invoke.lval_list.items) |lval| {
-                        lval.calculate_lval_usage();
-                    }
+pub fn calculate_definitions(self: *Self) void {
+    // FIXME: High Cyclo
+    for (self.basic_blocks.items) |bb| {
+        // Reset all reachable symbol verison counts to 0
+        for (bb.instructions.items) |instr| {
+            reset_defs(instr.dest);
+            reset_defs(instr.src1);
+            reset_defs(instr.src2);
+            if (instr.data == .lval_list) {
+                for (instr.data.lval_list.items) |lval| {
+                    reset_defs(lval);
                 }
             }
+            if (instr.data == .invoke) {
+                reset_defs(instr.data.invoke.dyn_value);
+                reset_defs(instr.data.invoke.method_decl_lval);
+                for (instr.data.invoke.lval_list.items) |lval| {
+                    reset_defs(lval);
+                }
+            }
+        }
+        self.return_symbol.defs = 0;
+    }
 
-            // Conditions are used
-            if (bb.has_branch) {
-                bb.condition.?.extract_symbver().uses += 1;
-                bb.condition.?.extract_symbver().symbol.uses += 1;
+    for (self.basic_blocks.items) |bb| {
+        // Go through sum up each definition
+        for (bb.instructions.items) |instr| {
+            if (instr.dest != null) {
+                var symbver = instr.dest.?.extract_symbver();
+                symbver.set_def(instr);
+            }
+            if (instr.dest != null) {
+                instr.dest.?.extract_symbver().symbol.roots += 1;
+            }
+            if (instr.kind == .mut_addr_of) {
+                instr.src1.?.extract_symbver().symbol.aliases += 1;
             }
         }
     }
+}
 
-    pub fn calculate_definitions(cfg: *CFG) void {
-        // FIXME: High Cyclo
-        for (cfg.basic_blocks.items) |bb| {
-            // Reset all reachable symbol verison counts to 0
-            var maybe_instr: ?*ir_.Instruction = bb.instr_head;
-            while (maybe_instr) |instr| : (maybe_instr = instr.next) {
-                reset_defs(instr.dest);
-                reset_defs(instr.src1);
-                reset_defs(instr.src2);
-                if (instr.data == .lval_list) {
-                    for (instr.data.lval_list.items) |lval| {
-                        reset_defs(lval);
-                    }
-                }
-                if (instr.data == .invoke) {
-                    reset_defs(instr.data.invoke.dyn_value);
-                    reset_defs(instr.data.invoke.method_decl_lval);
-                    for (instr.data.invoke.lval_list.items) |lval| {
-                        reset_defs(lval);
-                    }
-                }
-            }
-            cfg.return_symbol.defs = 0;
+pub fn reset_defs(maybe_lval: ?*lval_.L_Value) void {
+    if (maybe_lval == null) {
+        return;
+    }
+
+    switch (maybe_lval.?.*) {
+        .symbver => {
+            maybe_lval.?.symbver.symbol.defs = 0;
+        },
+        .dereference => reset_defs(maybe_lval.?.dereference.expr),
+        .index => {
+            reset_defs(maybe_lval.?.index.length);
+            reset_defs(maybe_lval.?.index.lhs);
+            reset_defs(maybe_lval.?.index.rhs);
+        },
+        .select => {
+            reset_defs(maybe_lval.?.select.tag);
+            reset_defs(maybe_lval.?.select.lhs);
+        },
+        .raw_address => std.debug.panic("compiler error: undefined reset_defs for raw_address", .{}),
+    }
+}
+
+pub fn count_bb_predecessors(self: *Self) void {
+    // Reset all basic block predecessors to 0
+    for (self.basic_blocks.items) |bb| {
+        bb.number_predecessors = 0;
+    }
+    self.clear_visited_BBs();
+    if (self.block_graph_head) |head| {
+        // start predecessor count walk at head
+        head.count_predecessors();
+    }
+}
+
+pub fn remove_basic_block(self: *Self, bb: *Basic_Block) void {
+    _ = self.basic_blocks.swapRemove(self.index_of_basic_block(bb));
+}
+
+fn index_of_basic_block(self: *Self, bb: *Basic_Block) usize {
+    for (0..self.basic_blocks.items.len) |i| {
+        if (bb == self.basic_blocks.items[i]) {
+            return i;
+        }
+    } else {
+        unreachable;
+    }
+}
+
+/// Flattens all CFG's instructions to the module's list of instructions, recursively.
+///
+/// This also then adds the CFG to the list of CFGs in this module.
+///
+/// Also sets the `offset` flag of a CFG, which is the address in the instructions list that the
+/// instructions for the CFG start.
+///
+/// Returns the index in the cfg in the cfgs list.
+pub fn emplace_cfg(self: *Self, cfgs: *std.ArrayList(*Self), instructions_list: *std.ArrayList(*Instruction)) i64 {
+    const len = @as(i64, @intCast(cfgs.items.len));
+    if (self.offset != null) {
+        // Already visited, do nothing
+        return len;
+    } else if (self.block_graph_head == null) {
+        // CFG doesn't have any real instructions. Insert phony BB.
+        self.offset = self.append_phony_block(instructions_list);
+        cfgs.append(self) catch unreachable;
+    } else {
+        // Normal CFG with instructions, append BBs to instructions list, recursively append children
+        self.offset = self.append_basic_block(self.block_graph_head.?, instructions_list);
+        cfgs.append(self) catch unreachable;
+
+        for (self.children.keys()) |child| {
+            _ = child.emplace_cfg(cfgs, instructions_list);
+        }
+    }
+    self.locals_size = self.calculate_offsets();
+    return len;
+}
+
+/// Appends the instructions in a BasicBlock to the module's instructions.
+/// Returns the offset of the basic block
+fn append_basic_block(self: *Self, first_bb: *Basic_Block, instructions_list: *std.ArrayList(*Instruction)) Instruction.Index {
+    var work_queue = std.ArrayList(*Basic_Block).init(self.allocator);
+    defer work_queue.deinit();
+    work_queue.append(first_bb) catch unreachable;
+
+    while (work_queue.items.len > 0) {
+        var bb = work_queue.orderedRemove(0); // Youch! Does this really have to be ordered?
+
+        if (bb.offset != null) {
+            continue;
         }
 
-        for (cfg.basic_blocks.items) |bb| {
-            // Go through sum up each definition
-            var maybe_instr: ?*ir_.Instruction = bb.instr_head;
-            while (maybe_instr) |instr| : (maybe_instr = instr.next) {
-                if (instr.dest != null) {
-                    var symbver = instr.dest.?.extract_symbver();
-                    symbver.def = instr;
-                    symbver.symbol.defs += 1;
-                }
-                if (instr.dest != null) {
-                    instr.dest.?.extract_symbver().symbol.roots += 1;
-                }
-                if (instr.kind == .mut_addr_of) {
-                    instr.src1.?.extract_symbver().symbol.aliases += 1;
-                }
-            }
+        var label = Instruction.init_label(self, Span.phony, self.allocator);
+        label.uid = bb.uid;
+        instructions_list.append(label) catch unreachable;
+
+        bb.set_offset(instructions_list, &work_queue);
+    }
+    return first_bb.offset.?;
+}
+
+/// This function inserts a label and a return instruction. It is needed for functions which do not have
+/// instructions. The label is needed so that codegen_ can know there is a new function, and the return
+/// instruction is for interpreting so that jumping to the function won't jump to some random function.
+fn append_phony_block(self: *Self, instructions_list: *std.ArrayList(*Instruction)) Instruction.Index {
+    const offset = @as(Instruction.Index, @intCast(instructions_list.items.len));
+    // Append a label which has a back-reference to the CFG
+    instructions_list.append(Instruction.init_label(
+        self,
+        Span.phony,
+        self.allocator,
+    )) catch unreachable;
+    // Append a return instruction (a jump to null)
+    instructions_list.append(Instruction.init_jump_addr(
+        null,
+        Span.phony,
+        self.allocator,
+    )) catch unreachable;
+    return offset;
+}
+
+pub fn get_adjacent(self: *Self) []*Self {
+    return self.children.keys();
+}
+
+/// Fills in a CFG's local offsets
+///
+/// ## The Orng interpreter calling convention
+/// (stack grows up btw, lmao)
+/// ```
+///       |         |
+/// sp -> |         |
+///       | ------- | \
+///       | local 2 |  |
+///       | ------- |  |
+///       | local 1 |  |
+/// bp -> | ret-adr |  | - callee stack frame
+///    -8 | prev-bp |  |
+///   -16 | prev-sp |  |
+///   -24 | &retval |  | \
+///       | ------- |  |  |
+///       | - pad - |  |  |
+///       | ------- |  |  |
+///   -28 | arg 1   |  |  |
+///       | arg 2   |  |  |
+///   -30 | arg 2   | /   | - caller stack frame
+///       | - pad - |     |
+///   -32 | arg 3   |     |
+///       | - pad - |     |
+///       | local 2 |     |
+/// ```
+///
+/// - Entry (caller)
+///   * (save sp, will be pushed later)
+///   - push args in reverse order
+///   - push address to return-value slot
+///   - `call` instruction
+///     * push pre-arg sp
+///     * push bp
+///     * push ret-addr
+///     * bp := sp
+///   - sp += n  (allocate space for locals)
+///
+/// - Exit (callee)
+///   - sp := bp   (deallocate locals)
+///   - `ret` instruction
+///     * ip := pop  (set ip to ret-addr)
+///     * bp := pop  (set bp to prev-bp)
+///     * sp := pop  (deallocate all params)
+///
+/// There is padding before, in between, and after parameters, locals, and tuple fields so that each
+/// location is aligned to a multiple of it's size in bytes.
+pub fn calculate_offsets(self: *Self) i64 //< Number of bytes used for locals by the function.
+{
+    self.return_symbol.offset = null; // return value is set using an out-parameter
+
+    // Calculate parameters offsets, descending from retval address offset
+    var phony_sp: i64 = 0;
+    if (self.symbol.decl.?.* == .fn_decl or self.symbol.decl.?.* == .method_decl) {
+        const param_symbols = if (self.symbol.decl.?.* == .fn_decl)
+            self.symbol.decl.?.fn_decl.param_symbols.items
+        else
+            self.symbol.decl.?.method_decl.param_symbols.items;
+        // Go through params, as if we were pushing them
+        var i: i64 = @as(i64, @intCast(param_symbols.len)) - 1;
+        while (i >= 0) : (i -= 1) {
+            var param: *Symbol = param_symbols[@as(usize, @intCast(i))];
+            const size = param.expanded_type.?.sizeof();
+            const alignof = param.expanded_type.?.alignof();
+            phony_sp = alignment_.next_alignment(phony_sp, alignof);
+            param.offset = phony_sp;
+            phony_sp += size;
+        }
+
+        // Push a "header" word of alignment 8. Pretend this has the offset of the header. Adjust the offsets
+        // set before accordingly
+        const header = alignment_.next_alignment(phony_sp, 8);
+        // Have to do this stupid round-a-bout way because we don't know how much padding to include after the
+        // parameters until we get the offsets of each parameter.
+        for (param_symbols) |param| {
+            param.offset.? -= header - retval_offset;
         }
     }
 
-    pub fn reset_defs(maybe_lval: ?*lval_.L_Value) void {
-        if (maybe_lval == null) {
-            return;
-        }
-
-        switch (maybe_lval.?.*) {
-            .symbver => {
-                maybe_lval.?.symbver.symbol.defs = 0;
-            },
-            .dereference => reset_defs(maybe_lval.?.dereference.expr),
-            .index => {
-                reset_defs(maybe_lval.?.index.length);
-                reset_defs(maybe_lval.?.index.lhs);
-                reset_defs(maybe_lval.?.index.rhs);
-            },
-            .select => {
-                reset_defs(maybe_lval.?.select.tag);
-                reset_defs(maybe_lval.?.select.lhs);
-            },
-            .raw_address => std.debug.panic("compiler error: undefined reset_defs for raw_address", .{}),
+    // Calculate locals offsets, ascending from local starting offset
+    var local_offsets: i64 = locals_starting_offset;
+    for (self.symbvers.items) |symbver| {
+        if (symbver.symbol.offset == null and !std.mem.eql(u8, symbver.symbol.name, "$retval")) {
+            local_offsets = alignment_.next_alignment(local_offsets, symbver.symbol.expanded_type.?.alignof());
+            local_offsets += symbver.symbol.set_offset(local_offsets);
         }
     }
+    local_offsets = alignment_.next_alignment(local_offsets, 8);
 
-    pub fn count_bb_predecessors(cfg: *CFG) void {
-        // Reset all basic block predecessors to 0
-        for (cfg.basic_blocks.items) |bb| {
-            bb.number_predecessors = 0;
-        }
-        cfg.clear_visited_BBs();
-        if (cfg.block_graph_head) |head| {
-            // start predecessor count walk at head
-            head.count_predecessors();
-        }
-    }
-
-    pub fn remove_basic_block(cfg: *CFG, bb: *basic_block_.Basic_Block) void {
-        _ = cfg.basic_blocks.swapRemove(cfg.index_of_basic_block(bb));
-        bb.removed = true;
-    }
-
-    fn index_of_basic_block(
-        cfg: *CFG,
-        bb: *basic_block_.Basic_Block,
-    ) usize {
-        for (0..cfg.basic_blocks.items.len) |i| {
-            if (bb == cfg.basic_blocks.items[i]) {
-                return i;
-            }
-        } else {
-            unreachable;
-        }
-    }
-};
+    // The total number of bytes used for locals
+    return local_offsets - locals_starting_offset;
+}

@@ -1,7 +1,9 @@
 const std = @import("std");
-const span_ = @import("../util/span.zig");
+const Span = @import("../util/span.zig");
 
-pub const Token_Kind = enum(u32) {
+const Self = @This();
+
+pub const Kind = enum(u32) {
     // Literals
     identifier,
     dec_int,
@@ -109,7 +111,7 @@ pub const Token_Kind = enum(u32) {
     // (yes, this is needed in Zig)
     len,
 
-    pub fn is_end_token(self: Token_Kind) bool {
+    pub fn is_end_token(self: Kind) bool {
         for (end_tokens) |kind| {
             if (self == kind) {
                 return true;
@@ -118,7 +120,7 @@ pub const Token_Kind = enum(u32) {
         return false;
     }
 
-    pub fn repr(kind: Token_Kind) ?[]const u8 {
+    pub fn repr(kind: Kind) ?[]const u8 {
         return switch (kind) {
             .bin_int,
             .char,
@@ -226,12 +228,12 @@ pub const Token_Kind = enum(u32) {
         };
     }
 
-    pub fn from_string(data: []const u8) Token_Kind {
+    pub fn from_string(data: []const u8) Kind {
         var ix: usize = 0;
-        const num_ctors = @intFromEnum(Token_Kind.len);
+        const num_ctors = @intFromEnum(Kind.len);
 
         while (ix < num_ctors) : (ix += 1) {
-            const kind: Token_Kind = @enumFromInt(ix);
+            const kind: Kind = @enumFromInt(ix);
             const repr_kind: ?[]const u8 = kind.repr();
             if (repr_kind) |_repr| {
                 if (std.mem.eql(u8, data, _repr)) {
@@ -240,10 +242,10 @@ pub const Token_Kind = enum(u32) {
                 }
             }
         }
-        return Token_Kind.identifier;
+        return Kind.identifier;
     }
 
-    const end_tokens = [_]Token_Kind{
+    const end_tokens = [_]Kind{
         .identifier,
         .self,
         .dec_int,
@@ -267,28 +269,26 @@ pub const Token_Kind = enum(u32) {
     };
 };
 
-pub const Token = struct {
-    // What kind of token this is
-    kind: Token_Kind,
-    // Non-owning slice into the contents of the source file the text data for this token comes from
-    data: []const u8,
-    span: span_.Span,
+// What kind of token this is
+kind: Kind,
+// Non-owning slice into the contents of the source file the text data for this token comes from
+data: []const u8,
+span: Span,
 
-    pub fn init(data: []const u8, kind: ?Token_Kind, filename: []const u8, line_text: []const u8, line_number: usize, col: usize) Token {
-        return .{ .data = data, .kind = kind orelse Token_Kind.from_string(data), .span = span_.Span{
-            .filename = filename,
-            .line_text = line_text,
-            .line_number = line_number,
-            .col = col,
-        } };
-    }
+pub fn init(data: []const u8, kind: ?Kind, filename: []const u8, line_text: []const u8, line_number: usize, col: usize) Self {
+    return .{ .data = data, .kind = kind orelse Kind.from_string(data), .span = Span{
+        .filename = filename,
+        .line_text = line_text,
+        .line_number = line_number,
+        .col = col,
+    } };
+}
 
-    // Used to create a simple, anonymous identifier token
-    pub fn init_simple(data: []const u8) Token {
-        return Token.init(data, .identifier, "", "", 0, 0);
-    }
+// Used to create a simple, anonymous identifier token
+pub fn init_simple(data: []const u8) Self {
+    return Self.init(data, .identifier, "", "", 0, 0);
+}
 
-    pub fn pprint(self: *Token) void {
-        std.debug.print("Token {{line: {:03}, kind: {s}, data: {s}}}\n", .{ self.span.line_number, self.repr(), self.data });
-    }
-};
+pub fn pprint(self: *Self) void {
+    std.debug.print("Token {{line: {:03}, kind: {s}, data: {s}}}\n", .{ self.span.line_number, self.repr(), self.data });
+}

@@ -3,16 +3,16 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const errs_ = @import("../util/errors.zig");
-const symbol_ = @import("../symbol/symbol.zig");
+const Scope = @import("../symbol/scope.zig");
 const walk_ = @import("../ast/walker.zig");
 
-scope: *symbol_.Scope,
+scope: *Scope,
 errors: *errs_.Errors,
 allocator: std.mem.Allocator,
 
 const Self = @This();
 
-pub fn new(scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Self {
+pub fn new(scope: *Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Self {
     return Self{
         .scope = scope,
         .errors = errors,
@@ -48,10 +48,8 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                     return error.CompileError;
                 },
             }
-            if (ast.symbol().?.kind != .import and !ast.symbol().?.defined) {
-                self.errors.add_error(errs_.Error{ .use_before_def = .{ .identifier = ast.token() } });
-                return error.CompileError;
-            }
+
+            try ast.symbol().?.err_if_undefined(self.errors);
 
             return self;
         },

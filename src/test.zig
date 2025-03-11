@@ -1,13 +1,11 @@
 const std = @import("std");
-const ast_ = @import("ast/ast.zig");
-const compiler_ = @import("compilation/compiler.zig");
-const errs_ = @import("util/errors.zig");
+const Compiler_Context = @import("hierarchy/compiler.zig");
+const Codegen_Context = @import("codegen/codegen.zig");
 const exec = @import("util/exec.zig").exec;
 const module_ = @import("hierarchy/module.zig");
 const primitives_ = @import("hierarchy/primitives.zig");
 const Read_File = @import("lexer/read_file.zig");
 const String = @import("zig-string/zig-string.zig").String;
-const symbol_ = @import("symbol/symbol.zig");
 const term_ = @import("util/term.zig");
 
 const allocator = std.heap.page_allocator;
@@ -100,10 +98,8 @@ fn integrate_test_file(filename: []const u8, coverage: bool) bool {
     const absolute_filename = std.fs.cwd().realpathAlloc(allocator, filename) catch unreachable;
     // Try to compile Orng (make sure no errors)
     var debug_alloc = std.heap.GeneralPurposeAllocator(.{ .never_unmap = true, .safety = true }){};
-    errdefer {
-        _ = debug_alloc.deinit();
-    }
-    var compiler = compiler_.Context.init(debug_alloc.allocator()) catch unreachable;
+    var compiler = Compiler_Context.init(debug_alloc.allocator()) catch unreachable;
+    defer primitives_.deinit();
     var contents = Read_File.init(compiler.allocator()).run(absolute_filename) catch unreachable;
     const new_line_idx = until_newline(contents);
     if (new_line_idx < 3) {
@@ -119,11 +115,12 @@ fn integrate_test_file(filename: []const u8, coverage: bool) bool {
         }
         return false;
     };
+    const module_symbol = compiler.lookup_module(module.absolute_path).?;
 
     compiler.register_package(module.package_name, module.get_package_abs_path(), false);
-    compiler.set_package_root(module.package_name, module.symbol);
+    compiler.set_package_root(module.package_name, module_symbol);
 
-    compiler.output_modules() catch unreachable;
+    Codegen_Context.output_modules(compiler) catch unreachable;
 
     compiler.lookup_package(module.package_name).?.include_directories.put(std.fs.path.dirname(absolute_filename).?, void{}) catch unreachable;
 
@@ -185,11 +182,9 @@ fn negative_test_file(filename: []const u8, coverage: bool) bool {
 
     const absolute_filename = std.fs.cwd().realpathAlloc(allocator, filename) catch unreachable;
     // Try to compile Orng (make sure no errors)
-    var debug_alloc = std.heap.GeneralPurposeAllocator(.{ .never_unmap = true, .safety = true }){};
-    errdefer {
-        _ = debug_alloc.deinit();
-    }
-    var compiler = compiler_.Context.init(debug_alloc.allocator()) catch unreachable;
+    var debug_alloc = std.heap.GeneralPurposeAllocator(.{ .never_unmap = false, .safety = true }){};
+    var compiler = Compiler_Context.init(debug_alloc.allocator()) catch unreachable;
+    defer primitives_.deinit();
 
     // Try to compile Orng (make sure YES errors)
     _ = module_.Module.compile(absolute_filename, "main", false, compiler) catch |err| {
@@ -229,7 +224,7 @@ fn negative_test_file(filename: []const u8, coverage: bool) bool {
 
     term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out()) catch unreachable;
     get_std_out().print("Negative test compiled without error.\n", .{}) catch unreachable;
-    return false;
+    unreachable;
 }
 
 /// Uses Dr. Proebsting's rdgen to create random Orng programs, feeds them to the compiler
@@ -271,13 +266,11 @@ fn fuzz_tests() !void { // TODO: Uninfer error
 
             std.debug.print("{}: {s}\n", .{ i, program_text });
             // Feed to Orng compiler (specifying fuzz tokens) to compile to fuzz-get_std_out().c
-            var debug_alloc = std.heap.GeneralPurposeAllocator(.{ .never_unmap = true, .safety = true }){};
-            errdefer {
-                _ = debug_alloc.deinit();
-            }
+            var debug_alloc = std.heap.GeneralPurposeAllocator(.{ .never_unmap = false, .safety = true }){};
             var arena_alloc = std.heap.ArenaAllocator.init(debug_alloc.allocator());
             errdefer arena_alloc.deinit();
-            var compiler = compiler_.Context.init(arena_alloc.allocator()) catch unreachable;
+            var compiler = Compiler_Context.init(arena_alloc.allocator()) catch unreachable;
+            defer primitives_.deinit();
             defer compiler.deinit();
             var lines = std.ArrayList([]const u8).init(allocator);
             defer lines.deinit();
@@ -313,7 +306,7 @@ fn fuzz_tests() !void { // TODO: Uninfer error
             // var _local_modules = std.ArrayList(*module_.Module).init(allocator);
             // defer _local_modules.deinit();
             // module.output(&_local_modules, output_file.writer())
-            compiler.output_modules() catch {
+            Codegen_Context.output_modules(compiler) catch {
                 failed += 1;
                 try term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out());
                 try get_std_out().print("Orng Compiler crashed with input above!\n", .{});

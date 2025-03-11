@@ -3,21 +3,33 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
-const compiler_ = @import("../compilation/compiler.zig");
-const module_ = @import("../hierarchy/module.zig");
+const Compiler_Context = @import("../hierarchy/compiler.zig");
+const Module = @import("../hierarchy/module.zig").Module;
 const primitives_ = @import("../hierarchy/primitives.zig");
 const String = @import("../zig-string/zig-string.zig").String;
-const symbol_ = @import("../symbol/symbol.zig");
-const token_ = @import("../lexer/token.zig");
+const Symbol = @import("../symbol/symbol.zig");
+const Token = @import("../lexer/token.zig");
 const walker_ = @import("../ast/walker.zig");
 
-module: *module_.Module,
-compiler: *compiler_.Context,
+package_path: []const u8,
+package_name: []const u8,
+local_imported_modules: *std.AutoArrayHashMap(*Module, void),
+compiler: *Compiler_Context,
 
 const Self = @This();
 
-pub fn new(compiler: *compiler_.Context, module: *module_.Module) Self {
-    return Self{ .compiler = compiler, .module = module };
+pub fn new(
+    compiler: *Compiler_Context,
+    package_path: []const u8,
+    package_name: []const u8,
+    local_imported_modules: *std.AutoArrayHashMap(*Module, void),
+) Self {
+    return Self{
+        .compiler = compiler,
+        .package_name = package_name,
+        .package_path = package_path,
+        .local_imported_modules = local_imported_modules,
+    };
 }
 
 var num_anons: usize = 0;
@@ -45,7 +57,7 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
             const common = ast_.AST_Common{ ._token = ast.token(), ._type = null };
             ast.* = ast_.AST{ .decl = .{
                 .common = common,
-                .symbols = std.ArrayList(*symbol_.Symbol).init(self.compiler.allocator()),
+                .symbols = std.ArrayList(*Symbol).init(self.compiler.allocator()),
                 .pattern = ast.import.pattern,
                 .type = primitives_.type_type,
                 .init = primitives_.unit_type,
@@ -84,7 +96,7 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
                     // Insert `const rhs = lhs::rhs`
                     const init = ast_.AST.create_access(
                         ast.token(),
-                        ast_.AST.create_identifier(token_.Token.init_simple(anon_names.items[i + 1]), self.compiler.allocator()),
+                        ast_.AST.create_identifier(Token.init_simple(anon_names.items[i + 1]), self.compiler.allocator()),
                         terms.items[i],
                         self.compiler.allocator(),
                     );
@@ -106,7 +118,7 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
                     const common = ast_.AST_Common{ ._token = ast.token(), ._type = null };
                     ast.* = ast_.AST{ .decl = .{
                         .common = common,
-                        .symbols = std.ArrayList(*symbol_.Symbol).init(self.compiler.allocator()),
+                        .symbols = std.ArrayList(*Symbol).init(self.compiler.allocator()),
                         .pattern = ast_.AST.create_pattern_symbol(
                             ast.token(),
                             .{ .import = .{ .real_name = term.token().data } },
@@ -130,22 +142,21 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
     return 0;
 }
 
-/// Given an import pattern symbol `ast`, resolve the module symbol that it refers to, potentially compiling it if necessary
-fn resolve_import(self: Self, ast: *ast_.AST) walker_.Error!*symbol_.Symbol {
+/// Given an import pattern symbol `ast`, resolve the module symbol that it refers to, potentially compiling it if
+/// necessary.
+fn resolve_import(self: Self, ast: *ast_.AST) walker_.Error!*Symbol {
     std.debug.assert(ast.* == .pattern_symbol and ast.pattern_symbol.kind == .import);
-    const package_path = std.fs.path.dirname(self.module.absolute_path).?;
-    const package_name = self.module.package_name;
     var import_filename = String.init(self.compiler.allocator());
     defer import_filename.deinit();
     const import_name = ast.pattern_symbol.kind.import.real_name;
     import_filename.writer().print("{s}.orng", .{import_name}) catch unreachable;
-    const import_file_paths = [_][]const u8{ package_path, import_filename.str() };
+    const import_file_paths = [_][]const u8{ self.package_path, import_filename.str() };
     const import_file_path = std.fs.path.join(self.compiler.allocator(), &import_file_paths) catch unreachable;
 
-    var import_symbol: *symbol_.Symbol = undefined;
-    if (self.compiler.packages.get(package_name) != null and self.compiler.packages.get(package_name).?.requirements.get(import_name) != null) {
+    var import_symbol: *Symbol = undefined;
+    if (self.compiler.lookup_package(self.package_name) != null and self.compiler.lookup_package_root_module(self.package_name, import_name) != null) {
         // Foreign import of a package
-        import_symbol = self.compiler.packages.get(package_name).?.requirements.get(import_name).?;
+        import_symbol = self.compiler.lookup_package_root_module(self.package_name, import_name).?;
     } else {
         // Local import of a module
         import_symbol = self.compiler.compile_module(import_file_path, null, false) catch |err| switch (err) {
@@ -159,6 +170,6 @@ fn resolve_import(self: Self, ast: *ast_.AST) walker_.Error!*symbol_.Symbol {
             else => std.debug.panic("compiler error: this shouldn't be reachable\n", .{}),
         };
     }
-    self.module.local_imported_modules.put(import_symbol.init.?.module.module, void{}) catch unreachable;
+    self.local_imported_modules.put(import_symbol.init_value.?.module.module, void{}) catch unreachable;
     return import_symbol;
 }

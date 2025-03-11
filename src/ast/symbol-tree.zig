@@ -5,20 +5,29 @@ const ast_ = @import("../ast/ast.zig");
 const errs_ = @import("../util/errors.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const String = @import("../zig-string/zig-string.zig").String;
-const symbol_ = @import("../symbol/symbol.zig");
-const token_ = @import("../lexer/token.zig");
+const Scope = @import("../symbol/scope.zig");
+const Symbol = @import("../symbol/symbol.zig");
+const Token = @import("../lexer/token.zig");
 const walk_ = @import("../ast/walker.zig");
 
-scope: *symbol_.Scope,
+scope: *Scope,
+in_loop: bool,
+is_param_scope: bool,
+defers: ?*std.ArrayList(*ast_.AST),
+errdefers: ?*std.ArrayList(*ast_.AST),
 errors: *errs_.Errors,
 allocator: std.mem.Allocator,
 
 const Self = @This();
 const Error = walk_.Error;
 
-pub fn new(scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Self {
+pub fn new(scope: *Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Self {
     return Self{
         .scope = scope,
+        .in_loop = false,
+        .is_param_scope = false,
+        .defers = null,
+        .errdefers = null,
         .errors = errors,
         .allocator = allocator,
     };
@@ -29,44 +38,49 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         else => {},
 
         // Capture scope
-        .access, .invoke, .addr_of => ast.set_scope(self.scope),
+        .access, .invoke, .addr_of, .@"comptime" => ast.set_scope(self.scope),
 
         // Check that AST is inside a loop
-        .@"break", .@"continue" => try in_loop_check(ast, self.scope, self.errors),
+        .@"break", .@"continue" => try self.in_loop_check(ast, self.errors),
 
         // Check that AST is inside a function
         .@"try", .@"return" => ast.set_symbol(try in_function_check(ast, self.scope, self.errors)),
 
-        // Add to scope's defers
-        .@"defer" => self.scope.defers.append(ast.statement()) catch unreachable,
-        .@"errdefer" => self.scope.errdefers.append(ast.statement()) catch unreachable,
-
-        // Create comptime symbol, place inside scope
-        .@"comptime" => {
-            const symbol = try create_temp_comptime_symbol(
-                ast.expr(),
-                null,
-                self.scope,
-                self.errors,
-                self.allocator,
-            );
-            try put_symbol(symbol, self.scope, self.errors); // Why? No one refers to it...
-            ast.set_symbol(symbol);
-
-            return null; // NOTE: DO NOT WALK CHILDREN!
+        // Add defers to scope
+        .@"defer" => if (self.defers) |defers| {
+            defers.append(ast.statement()) catch unreachable;
+        } else {
+            // TODO: an error
+        },
+        .@"errdefer" => if (self.errdefers) |errdefers| {
+            errdefers.append(ast.statement()) catch unreachable;
+        } else {
+            // TODO: an error
         },
 
         // Create a new scope, pass it to children
-        .@"if", .block, .match, .@"while", .@"for" => {
+        .@"if", .match, .@"while", .@"for" => {
             var new_self = self;
-            new_self.scope = symbol_.Scope.init(self.scope, "", self.allocator);
-            new_self.scope.in_loop = new_self.scope.in_loop or ast.* == .@"while" or ast.* == .@"for";
+            new_self.scope = Scope.init(self.scope, self.allocator);
+            new_self.in_loop = new_self.in_loop or ast.* == .@"while" or ast.* == .@"for";
+            ast.set_scope(new_self.scope);
+            return new_self;
+        },
+
+        // Create a new scope, set defers, pass it to children
+        .block => {
+            var new_self = self;
+            new_self.scope = Scope.init(self.scope, self.allocator);
+            new_self.defers = &ast.block.defers;
+            new_self.errdefers = &ast.block.errdefers;
+            new_self.in_loop = new_self.in_loop or ast.* == .@"while" or ast.* == .@"for";
             ast.set_scope(new_self.scope);
             return new_self;
         },
 
         // Create symbols (potentially >1) from pattern, put inside scope
-        .decl => {
+        .decl,
+        => {
             try create_symbol(
                 &ast.decl.symbols,
                 ast.decl.pattern,
@@ -77,7 +91,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 self.errors,
                 self.allocator,
             );
-            try put_all_symbols(&ast.decl.symbols, self.scope, self.errors);
+            try self.scope.put_all_symbols(&ast.decl.symbols, self.errors);
         },
 
         // Create a symbol for this function
@@ -108,12 +122,12 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                     .memo = null,
                 } };
                 const symbol = try create_template_symbol(ast, self.scope, self.allocator);
-                try put_symbol(symbol, self.scope, self.errors);
+                try self.scope.put_symbol(symbol, self.errors);
                 ast.set_symbol(symbol);
             } else {
                 // Normal function declaration
                 const symbol = try create_function_symbol(ast, self.scope, self.errors, self.allocator);
-                try put_symbol(symbol, self.scope, self.errors);
+                try self.scope.put_symbol(symbol, self.errors);
                 ast.set_symbol(symbol);
             }
 
@@ -127,16 +141,16 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 return null;
             }
             var new_self = self;
-            new_self.scope = symbol_.Scope.init(self.scope, "", self.allocator);
+            new_self.scope = Scope.init(self.scope, self.allocator);
             ast.set_scope(new_self.scope);
             const symbol = try create_trait_symbol(ast, self.scope, self.allocator);
-            try put_symbol(symbol, self.scope, self.errors);
+            try self.scope.put_symbol(symbol, self.errors);
             ast.set_symbol(symbol);
 
             const self_type_decl = ast_.AST.create_decl(
                 ast.token(),
                 ast_.AST.create_pattern_symbol(
-                    token_.Token.init_simple("Self"),
+                    Token.init_simple("Self"),
                     .@"const",
                     "Self",
                     self.allocator,
@@ -155,7 +169,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         .impl => {
             // Impls get there own scope, actually
             var new_self = self;
-            new_self.scope = symbol_.Scope.init(self.scope, "", self.allocator);
+            new_self.scope = Scope.init(self.scope, self.allocator);
             ast.set_scope(new_self.scope);
 
             if (ast.impl.trait == null) {
@@ -174,7 +188,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             const self_type_decl = ast_.AST.create_decl(
                 ast.token(),
                 ast_.AST.create_pattern_symbol(
-                    token_.Token.init_simple("Self"),
+                    Token.init_simple("Self"),
                     .@"const",
                     "Self",
                     self.allocator,
@@ -197,13 +211,13 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             } else if (ast.method_decl.init == null) {
                 // Trait method decl
                 var new_self = self;
-                new_self.scope = symbol_.Scope.init(self.scope, "", self.allocator);
+                new_self.scope = Scope.init(self.scope, self.allocator);
                 new_self.scope.function_depth = new_self.scope.function_depth + 1;
                 return new_self;
             } else {
                 // Impl method decl
                 const symbol = try create_method_symbol(ast, self.scope, self.errors, self.allocator);
-                try put_symbol(symbol, self.scope, self.errors);
+                try self.scope.put_symbol(symbol, self.errors);
                 ast.set_symbol(symbol);
                 return null; // NOTE: DO NOT WALK CHILDREN!
             }
@@ -234,7 +248,7 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
                 }
             }
 
-            if (!self.scope.is_param_scope and !ast.decl.prohibit_defaults and ast.decl.init == null) {
+            if (!self.is_param_scope and !ast.decl.prohibit_defaults and ast.decl.init == null) {
                 // If this isn't a parameter, and the init is null, set the init to the default value of the type
                 ast.decl.init = ast_.AST.create_default(
                     ast.token(),
@@ -252,8 +266,8 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
     }
 }
 
-fn in_loop_check(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors) Error!void {
-    if (!scope.in_loop) {
+fn in_loop_check(self: Self, ast: *ast_.AST, errors: *errs_.Errors) Error!void {
+    if (!self.in_loop) {
         errors.add_error(errs_.Error{ .not_inside_loop = .{
             .span = ast.token().span,
             .name = @tagName(ast.*),
@@ -263,7 +277,7 @@ fn in_loop_check(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors) E
 }
 
 /// Returns the inner symbol of a scope, or an error if one doesnt exist
-fn in_function_check(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors) Error!*symbol_.Symbol {
+fn in_function_check(ast: *ast_.AST, scope: *Scope, errors: *errs_.Errors) Error!*Symbol {
     if (scope.inner_function == null) {
         errors.add_error(errs_.Error{ .not_inside_function = .{
             .span = ast.token().span,
@@ -281,36 +295,14 @@ fn in_function_check(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Error
     }
 }
 
-pub fn put_symbol(symbol: *symbol_.Symbol, scope: *symbol_.Scope, errors: *errs_.Errors) Error!void {
-    const res = scope.lookup(symbol.name, .{});
-    switch (res) {
-        .found => {
-            const first = res.found;
-            errors.add_error(errs_.Error{ .redefinition = .{
-                .first_defined_span = first.span,
-                .redefined_span = symbol.span,
-                .name = symbol.name,
-            } });
-            return error.CompileError;
-        },
-        else => scope.symbols.put(symbol.name, symbol) catch unreachable,
-    }
-}
-
-fn put_all_symbols(symbols: *std.ArrayList(*symbol_.Symbol), scope: *symbol_.Scope, errors: *errs_.Errors) Error!void {
-    for (symbols.items) |symbol| {
-        try put_symbol(symbol, scope, errors);
-    }
-}
-
 /// Creates symbols from a given pattern, declaration, type, and initializer within the given scope.
 fn create_symbol(
-    symbols: *std.ArrayList(*symbol_.Symbol), // Mutable list that accumulates all the created symbols for a given scope, to be put() later.
+    symbols: *std.ArrayList(*Symbol), // Mutable list that accumulates all the created symbols for a given scope, to be put() later.
     pattern: *ast_.AST, // Represents the pattern being matched; processed recursively to create symbols.
     decl: ?*ast_.AST, // Potential decl AST to be given to symbols.
     _type: *ast_.AST, // Type of the current pattern.
     init: ?*ast_.AST, // The value being matched on. Null for function parameter symbols.
-    scope: *symbol_.Scope,
+    scope: *Scope,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Error!void {
@@ -334,10 +326,10 @@ fn create_symbol(
                 init
             else if (init != null)
                 // Wrap init in comptime if symbol is const and non-alias
-                try create_comptime_init(init.?, _type, scope, errors, allocator)
+                try create_comptime_init(init.?, scope, allocator)
             else
                 null;
-            const symbol = symbol_.Symbol.init(
+            const symbol = Symbol.init(
                 scope,
                 pattern.pattern_symbol.name,
                 pattern.token().span,
@@ -375,11 +367,11 @@ fn create_symbol(
 
 /// Creates and initializes pattern symbols for each mapping in a match expression, defining the symbols within the
 /// mapping's scope.
-fn create_match_pattern_symbol(match: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Error!void {
+fn create_match_pattern_symbol(match: *ast_.AST, scope: *Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Error!void {
     for (match.children().items) |mapping| {
-        const new_scope = symbol_.Scope.init(scope, "", allocator);
+        const new_scope = Scope.init(scope, allocator);
         mapping.set_scope(new_scope);
-        var symbols = std.ArrayList(*symbol_.Symbol).init(allocator);
+        var symbols = std.ArrayList(*Symbol).init(allocator);
         defer symbols.deinit();
         const match_expr = match.expr();
         const match_expr_token = match_expr.token();
@@ -388,17 +380,17 @@ fn create_match_pattern_symbol(match: *ast_.AST, scope: *symbol_.Scope, errors: 
         for (symbols.items) |symbol| {
             symbol.defined = true;
         }
-        try put_all_symbols(&symbols, new_scope, errors);
+        try new_scope.put_all_symbols(&symbols, errors);
         try walk_.walk_ast(mapping.rhs(), Self.new(new_scope, errors, allocator));
     }
 }
 
 pub fn create_function_symbol(
     ast: *ast_.AST,
-    scope: *symbol_.Scope,
+    scope: *Scope,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) Error!*symbol_.Symbol {
+) Error!*Symbol {
     // Calculate the domain type from the function paramter types
     const domain = extract_domain(ast.children().*, allocator);
 
@@ -411,12 +403,12 @@ pub fn create_function_symbol(
     );
 
     // Create the function scope
-    var fn_scope = symbol_.Scope.init(scope, "", allocator);
+    var fn_scope = Scope.init(scope, allocator);
     fn_scope.function_depth = scope.function_depth + 1;
-    fn_scope.is_param_scope = true;
 
     // Recurse parameters and init
-    const symbol_walk = Self.new(fn_scope, errors, allocator);
+    var symbol_walk = Self.new(fn_scope, errors, allocator);
+    symbol_walk.is_param_scope = true;
     try walk_.walk_asts(ast.children(), symbol_walk);
     try walk_.walk_ast(ast.fn_decl.ret_type, symbol_walk);
 
@@ -431,7 +423,6 @@ pub fn create_function_symbol(
         const key = key_set[i];
         var symbol = fn_scope.symbols.get(key).?;
         symbol.defined = true;
-        symbol.decld = true;
         symbol.param = true;
     }
 
@@ -442,7 +433,7 @@ pub fn create_function_symbol(
     } else {
         buf = next_anon_name("anon", allocator);
     }
-    const retval = symbol_.Symbol.init(
+    const retval = Symbol.init(
         fn_scope,
         buf,
         if (ast.fn_decl.name) |name| name.token().span else ast.token().span,
@@ -541,15 +532,11 @@ fn create_receiver_annot(receiver_addr: *ast_.AST, receiver: *ast_.AST, allocato
 /// Creates the comptime context symbol for `const` initializers
 fn create_comptime_init(
     old_init: *ast_.AST,
-    _type: *ast_.AST,
-    scope: *symbol_.Scope,
-    errors: *errs_.Errors,
+    scope: *Scope,
     allocator: std.mem.Allocator,
 ) Error!*ast_.AST {
     const retval = ast_.AST.create_comptime(old_init.token(), old_init, allocator);
-    const comptime_symbol = try create_temp_comptime_symbol(old_init, _type, scope, errors, allocator);
-    try put_symbol(comptime_symbol, scope, errors);
-    retval.set_symbol(comptime_symbol);
+    retval.set_scope(scope);
     return retval;
 }
 
@@ -557,10 +544,9 @@ fn create_comptime_init(
 pub fn create_temp_comptime_symbol(
     ast: *ast_.AST,
     rhs_type_hint: ?*ast_.AST,
-    scope: *symbol_.Scope,
-    errors: *errs_.Errors,
+    scope: *Scope,
     allocator: std.mem.Allocator,
-) Error!*symbol_.Symbol {
+) Error!*Symbol {
     // Create the function type. The rhs is a typeof node, since type expansion is done in a later time
     const lhs = primitives_.unit_type;
     const rhs = ast_.AST.create_type_of(ast.token(), ast, allocator);
@@ -568,7 +554,7 @@ pub fn create_temp_comptime_symbol(
 
     // Create the comptime scope
     // This is to prevent `comptime` expressions from using runtime variables
-    var comptime_scope = symbol_.Scope.init(scope, "", allocator);
+    var comptime_scope = Scope.init(scope, allocator);
     comptime_scope.function_depth = scope.function_depth + 1;
 
     // Choose name
@@ -576,7 +562,7 @@ pub fn create_temp_comptime_symbol(
     buf = next_anon_name("comptime", allocator);
 
     // Create the symbol
-    const retval = symbol_.Symbol.init(
+    const retval = Symbol.init(
         comptime_scope,
         buf,
         ast.token().span,
@@ -588,18 +574,16 @@ pub fn create_temp_comptime_symbol(
     );
     comptime_scope.inner_function = retval;
 
-    const symbol_walk = Self.new(comptime_scope, errors, allocator);
-    try walk_.walk_ast(ast, symbol_walk);
     return retval;
 }
 
 fn create_trait_symbol(
     ast: *ast_.AST,
-    scope: *symbol_.Scope,
+    scope: *Scope,
     allocator: std.mem.Allocator,
-) Error!*symbol_.Symbol {
+) Error!*Symbol {
     // Create the symbol
-    const retval = symbol_.Symbol.init(
+    const retval = Symbol.init(
         scope,
         ast.token().data,
         ast.token().span,
@@ -636,17 +620,17 @@ fn create_method_type(ast: *ast_.AST, allocator: std.mem.Allocator) *ast_.AST {
 
 fn create_method_symbol(
     ast: *ast_.AST,
-    scope: *symbol_.Scope,
+    scope: *Scope,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) Error!*symbol_.Symbol {
+) Error!*Symbol {
     const receiver_base_type: *ast_.AST = ast.method_decl.impl.?.impl._type;
 
     // Create the function type
     const _type = create_method_type(ast, allocator);
 
     // Create the function scope
-    var fn_scope = symbol_.Scope.init(scope, "", allocator);
+    var fn_scope = Scope.init(scope, allocator);
     fn_scope.function_depth = scope.function_depth + 1;
 
     // Recurse parameters and init
@@ -660,7 +644,7 @@ fn create_method_symbol(
         const recv_type = create_receiver_addr(receiver_base_type, ast.method_decl.receiver.?, allocator);
         recv_type.addr_of.anytptr = true;
         // value receiver, prepend a void* self_ptr parameter
-        const receiver_symbol = symbol_.Symbol.init(
+        const receiver_symbol = Symbol.init(
             fn_scope,
             if (ast.method_decl.receiver.?.receiver.kind == .value) "$self_ptr" else "self",
             ast.token().span,
@@ -670,16 +654,16 @@ fn create_method_symbol(
             .let,
             allocator,
         );
-        try put_symbol(receiver_symbol, fn_scope, errors);
+        try fn_scope.put_symbol(receiver_symbol, errors);
         ast.method_decl.param_symbols.append(receiver_symbol) catch unreachable;
 
         if (ast.method_decl.receiver.?.receiver.kind == .value) {
             const self_type = recv_type.expr();
-            const self_init = ast_.AST.create_dereference(ast.token(), ast_.AST.create_identifier(token_.Token.init_simple("$self_ptr"), allocator), allocator);
+            const self_init = ast_.AST.create_dereference(ast.token(), ast_.AST.create_identifier(Token.init_simple("$self_ptr"), allocator), allocator);
             const receiver_span = ast.method_decl.receiver.?.token().span;
             const self_decl = ast_.AST.create_decl(
                 ast.token(),
-                ast_.AST.create_pattern_symbol(token_.Token.init("self", .identifier, receiver_span.filename, receiver_span.line_text, receiver_span.line_number, receiver_span.col), .let, "self", allocator),
+                ast_.AST.create_pattern_symbol(Token.init("self", .identifier, receiver_span.filename, receiver_span.line_text, receiver_span.line_number, receiver_span.col), .let, "self", allocator),
                 self_type,
                 self_init,
                 false,
@@ -708,11 +692,10 @@ fn create_method_symbol(
         const key = key_set[i];
         var symbol = fn_scope.symbols.get(key).?;
         symbol.defined = true;
-        symbol.decld = true;
         symbol.param = true;
     }
 
-    const retval = symbol_.Symbol.init(
+    const retval = Symbol.init(
         fn_scope,
         ast.method_decl.name.token().data,
         ast.method_decl.name.token().span,
@@ -730,16 +713,16 @@ fn create_method_symbol(
 
 fn create_template_symbol(
     ast: *ast_.AST,
-    scope: *symbol_.Scope,
+    scope: *Scope,
     allocator: std.mem.Allocator,
-) Error!*symbol_.Symbol {
+) Error!*Symbol {
     var buf: []const u8 = undefined;
     if (ast.template.decl.fn_decl.name) |name| {
         buf = name.token().data;
     } else {
         buf = next_anon_name("", allocator);
     }
-    const retval = symbol_.Symbol.init(
+    const retval = Symbol.init(
         scope,
         buf,
         ast.template.decl.fn_decl.name.?.token().span,

@@ -2,194 +2,194 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
-const span_ = @import("../util/span.zig");
-const symbol_ = @import("../symbol/symbol.zig");
+const Span = @import("../util/span.zig");
+const Symbol = @import("../symbol/symbol.zig");
 const term_ = @import("term.zig");
-const token_ = @import("../lexer/token.zig");
+const Token = @import("../lexer/token.zig");
 
 pub const Error = union(enum) {
     // General errors
     basic: struct { // TODO: Add a fmt'd constructor for one of these in the Error struct
-        span: span_.Span,
+        span: Span,
         msg: []const u8,
     },
 
     // Lexer errors
     invalid_digit: struct {
-        span: span_.Span,
+        span: Span,
         digit: u8,
         base: []const u8,
     },
     invalid_escape: struct {
-        span: span_.Span,
+        span: Span,
         digit: u8,
     },
 
     // Parse errors
     expected_basic_token: struct {
         expected: []const u8,
-        got: token_.Token,
+        got: Token,
     },
     expected2token: struct {
-        expected: token_.Token_Kind,
-        got: token_.Token,
+        expected: Token.Kind,
+        got: Token,
     },
     missing_close: struct {
-        expected: token_.Token_Kind,
-        got: token_.Token,
-        open: token_.Token,
+        expected: Token.Kind,
+        got: Token,
+        open: Token,
     },
     comptime_known: struct {
-        span: span_.Span,
+        span: Span,
         what: []const u8, // what must be compile-time known?
     },
 
     // Symbol
     redefinition: struct {
-        first_defined_span: span_.Span,
-        redefined_span: span_.Span,
+        first_defined_span: Span,
+        redefined_span: Span,
         name: []const u8,
     },
     symbol_error: struct {
-        span: span_.Span,
-        context_span: ?span_.Span = null,
+        span: Span,
+        context_span: ?Span = null,
         name: []const u8,
         problem: []const u8,
         context_message: []const u8 = "",
     },
     discard_marked: struct {
-        span: span_.Span,
-        kind: symbol_.Symbol_Kind,
+        span: Span,
+        kind: Symbol.Kind,
     },
     not_inside_loop: struct {
-        span: span_.Span,
+        span: Span,
         name: []const u8,
     },
     not_inside_function: struct {
-        span: span_.Span,
+        span: Span,
         name: []const u8,
     },
     import_file_not_found: struct {
-        span: span_.Span,
+        span: Span,
         filename: []const u8,
     },
 
     // Traits
     reimpl: struct {
-        first_defined_span: span_.Span,
-        redefined_span: span_.Span,
+        first_defined_span: Span,
+        redefined_span: Span,
         name: ?[]const u8,
         _type: *ast_.AST,
     },
     type_not_impl_method: struct { // TODO: This should take in an enum to determine if the name is of a method or of a member
-        span: span_.Span,
+        span: Span,
         method_name: []const u8,
         _type: *ast_.AST,
     },
     type_not_impl_trait: struct {
-        span: span_.Span,
+        span: Span,
         trait_name: []const u8,
         _type: *ast_.AST,
     },
     method_not_in_trait: struct {
-        method_span: span_.Span,
+        method_span: Span,
         method_name: []const u8,
         trait_name: []const u8,
     },
     method_not_in_impl: struct {
-        impl_span: span_.Span,
-        method_span: span_.Span,
+        impl_span: Span,
+        method_span: Span,
         method_name: []const u8,
         trait_name: []const u8,
     },
     impl_receiver_mismatch: struct {
-        receiver_span: span_.Span,
+        receiver_span: Span,
         impl_receiver: ?ast_.Receiver_Kind,
         trait_receiver: ?ast_.Receiver_Kind,
         method_name: []const u8,
         trait_name: []const u8,
     },
     invoke_receiver_mismatch: struct {
-        receiver_span: span_.Span,
+        receiver_span: Span,
         method_receiver: ast_.Receiver_Kind,
         method_name: []const u8,
         lhs_type: *ast_.AST,
     },
     mismatch_method_param_arity: struct {
-        span: span_.Span,
+        span: Span,
         trait_arity: usize,
         impl_arity: usize,
         method_name: []const u8,
         trait_name: []const u8,
     },
     mismatch_method_type: struct {
-        span: span_.Span,
+        span: Span,
         trait_type: *ast_.AST,
         impl_type: *ast_.AST,
         method_name: []const u8,
         trait_name: []const u8,
     },
     mismatch_method_virtuality: struct {
-        span: span_.Span,
+        span: Span,
         trait_method_is_virtual: bool,
         impl_method_is_virtual: bool,
         method_name: []const u8,
         trait_name: []const u8,
     },
     trait_virtual_refers_to_self: struct {
-        span: span_.Span,
+        span: Span,
         method_name: []const u8,
         trait_name: []const u8,
     },
 
     // Typecheck
     unexpected_type: struct {
-        span: span_.Span,
+        span: Span,
         expected: *ast_.AST,
         got: *ast_.AST,
     },
     expected_builtin_typeclass: struct {
-        span: span_.Span,
+        span: Span,
         expected: []const u8, // name of the type class
         got: *ast_.AST,
     },
     duplicate: struct {
-        span: span_.Span,
+        span: Span,
         identifier: []const u8,
-        first: ?span_.Span, // printed get_std_err() as extra information
+        first: ?Span, // printed get_std_err() as extra information
     },
     member_not_in: struct {
-        span: span_.Span,
+        span: Span,
         identifier: []const u8,
         name: []const u8,
         group: *ast_.AST,
     },
     undeclared_identifier: struct {
-        identifier: token_.Token,
+        identifier: Token,
         expected: ?*ast_.AST,
     },
     comptime_access_runtime: struct {
-        identifier: token_.Token,
+        identifier: Token,
     },
     inner_fn_access_runtime: struct {
-        identifier: token_.Token,
+        identifier: Token,
     },
     use_before_def: struct {
-        identifier: token_.Token,
+        identifier: Token,
     },
     modify_immutable: struct {
-        identifier: token_.Token,
+        identifier: Token,
     },
     not_indexable: struct {
-        span: span_.Span,
+        span: Span,
         _type: *ast_.AST,
     },
     non_exhaustive_sum: struct {
-        span: span_.Span,
+        span: Span,
         forgotten: std.ArrayList(*ast_.AST),
     },
     mismatch_arity: struct {
-        span: span_.Span,
+        span: Span,
         takes: usize,
         given: usize,
         thing_name: []const u8,
@@ -197,31 +197,31 @@ pub const Error = union(enum) {
         given_name: []const u8,
     },
     no_default: struct {
-        span: span_.Span,
+        span: Span,
         _type: *ast_.AST,
     },
     wrong_from: struct {
-        span: span_.Span,
+        span: Span,
         operator: []const u8, // either "orelse" or "catch"
         from: []const u8, // either "optional" or "error"
         got: *ast_.AST, // What the type actually was
     },
     integer_out_of_bounds: struct {
-        span: span_.Span,
+        span: Span,
         expected: *ast_.AST,
         value: i128,
     },
     invalid_type: struct {
-        span: span_.Span,
+        span: Span,
         got: *ast_.AST,
     },
     recursive_definition: struct {
-        span: span_.Span,
+        span: Span,
         symbol_name: ?[]const u8,
     },
 
     // TODO: Add span() and get field like for AST
-    fn get_span(self: *const Error) ?span_.Span {
+    fn get_span(self: *const Error) ?Span {
         switch (self.*) {
             .basic => return self.basic.span,
 
@@ -608,11 +608,11 @@ pub const Errors = struct {
     }
 };
 
-fn print_note_label(maybe_span: ?span_.Span) void {
+fn print_note_label(maybe_span: ?Span) void {
     print_label(maybe_span, "note: ", .cyan);
 }
 
-fn print_epilude(maybe_span: ?span_.Span) void {
+fn print_epilude(maybe_span: ?Span) void {
     if (maybe_span) |old_span| {
         const span = old_span;
         if (span.line_number == 0) {
@@ -628,7 +628,7 @@ fn print_epilude(maybe_span: ?span_.Span) void {
     }
 }
 
-fn print_label(maybe_span: ?span_.Span, label: []const u8, color: term_.Color) void {
+fn print_label(maybe_span: ?Span, label: []const u8, color: term_.Color) void {
     if (maybe_span) |span| {
         if (span.line_number > 0 and span.col > 0) {
             get_std_err().print("{s}:{}:{}: ", .{ span.filename, span.line_number, span.col }) catch unreachable;

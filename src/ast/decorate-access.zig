@@ -2,19 +2,20 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
-const compiler_ = @import("../compilation/compiler.zig");
+const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const String = @import("../zig-string/zig-string.zig").String;
-const symbol_ = @import("../symbol/symbol.zig");
+const Scope = @import("../symbol/scope.zig");
+const Symbol = @import("../symbol/symbol.zig");
 const walk_ = @import("../ast/walker.zig");
 
-scope: *symbol_.Scope,
+scope: *Scope,
 errors: *errs_.Errors,
-compiler: *compiler_.Context,
+compiler: *Compiler_Context,
 
 const Self = @This();
 
-pub fn new(scope: *symbol_.Scope, errors: *errs_.Errors, compiler: *compiler_.Context) Self {
+pub fn new(scope: *Scope, errors: *errs_.Errors, compiler: *Compiler_Context) Self {
     return Self{ .scope = scope, .errors = errors, .compiler = compiler };
 }
 
@@ -29,7 +30,9 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
     }
 }
 
-fn resolve_qualified_name(self: Self, ast: *ast_.AST) walk_.Error!*symbol_.Symbol {
+/// Takes in an AST and returns the symbol that it refers to. This requires looking up modules and packages, and so the
+/// compiler instance is required.
+fn resolve_qualified_name(self: Self, ast: *ast_.AST) walk_.Error!*Symbol {
     if ((ast.* == .identifier or ast.* == .pattern_symbol) and ast.symbol().?.kind == .import) {
         const this_module = ast.symbol().?.scope.module.?;
         const curr_package_path = this_module.get_package_abs_path();
@@ -62,13 +65,13 @@ fn resolve_qualified_name(self: Self, ast: *ast_.AST) walk_.Error!*symbol_.Symbo
     }
 }
 
-fn resolve_access_symbol(self: Self, lhs: *symbol_.Symbol, rhs: *ast_.AST, scope: *symbol_.Scope) walk_.Error!*symbol_.Symbol {
+fn resolve_access_symbol(self: Self, lhs: *Symbol, rhs: *ast_.AST, scope: *Scope) walk_.Error!*Symbol {
     var access_result: ?*ast_.AST = null;
     switch (lhs.kind) {
         else => std.debug.panic("unsupported: {}\n", .{lhs.kind}),
 
         .module => {
-            const module_lookup_res = lhs.init.?.scope().?.lookup(
+            const module_lookup_res = lhs.init_value.?.scope().?.lookup(
                 rhs.token().data,
                 .{},
             );
@@ -80,7 +83,7 @@ fn resolve_access_symbol(self: Self, lhs: *symbol_.Symbol, rhs: *ast_.AST, scope
                             .span = rhs.token().span,
                             .identifier = rhs.token().data,
                             .name = "module",
-                            .group = lhs.init.?,
+                            .group = lhs.init_value.?,
                         },
                     });
                     return error.CompileError;
@@ -115,17 +118,17 @@ fn resolve_access_symbol(self: Self, lhs: *symbol_.Symbol, rhs: *ast_.AST, scope
         },
 
         .import_inner => {
-            return try self.resolve_access_symbol(try self.resolve_qualified_name(lhs.init.?), rhs, scope);
+            return try self.resolve_access_symbol(try self.resolve_qualified_name(lhs.init_value.?), rhs, scope);
         },
 
         .@"const" => {
-            access_result = scope.lookup_impl_member(lhs.init.?, rhs.token().data);
+            access_result = scope.lookup_impl_member(lhs.init_value.?, rhs.token().data);
             if (access_result == null) {
                 self.compiler.errors.add_error(errs_.Error{
                     .type_not_impl_method = .{
                         .span = rhs.token().span,
                         .method_name = rhs.token().data,
-                        ._type = lhs.init.?,
+                        ._type = lhs.init_value.?,
                     },
                 });
                 return error.CompileError;
