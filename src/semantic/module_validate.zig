@@ -28,6 +28,7 @@ pub fn validate(module: *module_.Module, compiler: *Compiler_Context) Validate_E
             .span = Span{ .filename = module.absolute_path, .col = 0, .line_number = 0, .line_text = "" },
             .name = module.name(),
         } });
+        return error.CompileError;
     }
 }
 

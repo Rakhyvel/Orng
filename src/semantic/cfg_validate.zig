@@ -16,8 +16,8 @@ pub fn validate_cfg(cfg: *CFG, errors: *errs_.Errors) error{CompileError}!void {
     if (cfg.symbol.decl.?.* == .fn_decl or cfg.symbol.decl.?.* == .method_decl) {
         const param_symbols = if (cfg.symbol.decl.?.* == .fn_decl) cfg.symbol.decl.?.fn_decl.param_symbols else cfg.symbol.decl.?.method_decl.param_symbols;
         for (param_symbols.items) |param_symbol| {
-            try err_if_unused(param_symbol, errors);
-            try err_if_var_not_mutated(param_symbol, errors);
+            try param_symbol.err_if_unused(errors);
+            try param_symbol.err_if_var_not_mutated(errors);
         }
     }
 
@@ -28,8 +28,8 @@ pub fn validate_cfg(cfg: *CFG, errors: *errs_.Errors) error{CompileError}!void {
                 !instr.dest.?.symbver.symbol.is_temp and // dest symbver's symbol isn't temporary
                 instr.dest.?.symbver.symbol != cfg.return_symbol // dest symbver's symbol isn't the function's return value
             ) {
-                try err_if_unused(instr.dest.?.symbver.symbol, errors);
-                try err_if_var_not_mutated(instr.dest.?.symbver.symbol, errors);
+                try instr.dest.?.symbver.symbol.err_if_unused(errors);
+                try instr.dest.?.symbver.symbol.err_if_var_not_mutated(errors);
             }
             try err_if_chain_undefd(instr.src1, errors, cfg.return_symbol, instr.span);
             try err_if_chain_undefd(instr.src2, errors, cfg.return_symbol, instr.span);
@@ -51,36 +51,14 @@ pub fn validate_cfg(cfg: *CFG, errors: *errs_.Errors) error{CompileError}!void {
     }
 }
 
-fn lvalue_is_symbol(symbol: *Symbol, return_symbol: *Symbol) bool {
-    return !symbol.is_temp and // isnt temporary
-        symbol != return_symbol // isnt the function's return value
-    ;
-}
-
-/// Throws an `error.CompileError` if a symbol is not used.
-fn err_if_unused(symbol: *Symbol, errors: *errs_.Errors) error{CompileError}!void {
-    if (symbol.kind != .@"const" and
-        symbol.uses == 0)
-    {
-        errors.add_error(errs_.Error{ .symbol_error = .{
-            .span = symbol.span,
-            .context_span = null,
-            .name = symbol.name,
-            .problem = "is never used",
-            .context_message = "",
-        } });
-        return error.CompileError;
-    }
-}
-
 fn err_if_chain_undefd(maybe_lval: ?*lval_.L_Value, errors: *errs_.Errors, return_symbol: *Symbol, use: Span) error{CompileError}!void {
     if (maybe_lval == null) {
         return;
     }
 
     switch (maybe_lval.?.*) {
-        .symbver => if (lvalue_is_symbol(maybe_lval.?.symbver.symbol, return_symbol)) {
-            try err_if_undefd(maybe_lval.?.symbver.symbol, errors, use);
+        .symbver => if (maybe_lval.?.symbver.symbol.lvalue_is_symbol(return_symbol)) {
+            try maybe_lval.?.symbver.symbol.err_if_undefd(errors, use);
         },
         .dereference => try err_if_chain_undefd(maybe_lval.?.dereference.expr, errors, return_symbol, use),
         .index => {
@@ -93,45 +71,6 @@ fn err_if_chain_undefd(maybe_lval: ?*lval_.L_Value, errors: *errs_.Errors, retur
             try err_if_chain_undefd(maybe_lval.?.select.lhs, errors, return_symbol, use);
         },
         .raw_address => std.debug.panic("compiler error: undefined err_if_chain_undefd for raw_address", .{}),
-    }
-}
-
-fn err_if_undefd(symbol: *Symbol, errors: *errs_.Errors, use: Span) error{CompileError}!void {
-    // std.debug.print("{s} uses:{} defs:{}\n", .{ symbol.name, symbol.uses, symbol.defs });
-    if (symbol.uses != 0 and // symbol has been used somewhere
-        symbol.defs == 0 and // symbol hasn't been defined anywhere
-        !symbol.param and // symbol isn't a parameter (these don't have defs!)
-        symbol.kind != .@"extern" // symbol isn't an extern (these also don't have defs!)
-    ) {
-        errors.add_error(errs_.Error{ .symbol_error = .{
-            .span = use,
-            .context_span = symbol.span,
-            .name = symbol.name,
-            .problem = "is never defined",
-            .context_message = "declared here",
-        } });
-        return error.CompileError;
-    }
-}
-
-/// Throws an `error.CompileError` if a symbol is marked `mut`, but is never mutated.
-///
-/// Symbols are mutated when:
-/// - They are the root of at least one Instruction's destination's L-Value tree, OR
-/// - They are aliased with `&mut`.
-fn err_if_var_not_mutated(symbol: *Symbol, errors: *errs_.Errors) error{CompileError}!void {
-    if (symbol.kind == .mut and
-        symbol.aliases == 0 and
-        symbol.roots == 0)
-    {
-        errors.add_error(errs_.Error{ .symbol_error = .{
-            .span = symbol.span,
-            .context_span = null,
-            .name = symbol.name,
-            .problem = "is marked `mut` but is never mutated",
-            .context_message = "",
-        } });
-        return error.CompileError;
     }
 }
 

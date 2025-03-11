@@ -511,12 +511,12 @@ fn lower_AST_inner(
             defer return_labels.deinit();
             var error_labels = std.ArrayList(*Instruction).init(self.allocator);
             defer error_labels.deinit();
-            for (ast.scope().?.defers.items) |_| {
+            for (ast.block.defers.items) |_| {
                 continue_labels.append(Instruction.init_label(self.cfg, ast.token().span, self.allocator)) catch unreachable;
                 break_labels.append(Instruction.init_label(self.cfg, ast.token().span, self.allocator)) catch unreachable;
                 return_labels.append(Instruction.init_label(self.cfg, ast.token().span, self.allocator)) catch unreachable;
             }
-            for (ast.scope().?.errdefers.items) |_| {
+            for (ast.block.errdefers.items) |_| {
                 error_labels.append(Instruction.init_label(self.cfg, ast.token().span, self.allocator)) catch unreachable;
             }
             const end_label = Instruction.init_label(self.cfg, ast.token().span, self.allocator);
@@ -547,16 +547,16 @@ fn lower_AST_inner(
                 self.wrap_error_return(_temp, ast.token().span, current_labels);
             }
 
-            try self.generate_defers(&ast.scope().?.defers, &continue_labels);
+            try self.generate_defers(&ast.block.defers, &continue_labels);
             self.instructions.append(Instruction.init_jump(end_label, ast.token().span, self.allocator)) catch unreachable;
 
-            try self.generate_defers(&ast.scope().?.defers, &break_labels);
+            try self.generate_defers(&ast.block.defers, &break_labels);
             self.instructions.append(Instruction.init_jump(labels.break_label, ast.token().span, self.allocator)) catch unreachable;
 
-            try self.generate_defers(&ast.scope().?.defers, &return_labels);
+            try self.generate_defers(&ast.block.defers, &return_labels);
             self.instructions.append(Instruction.init_jump(labels.return_label, ast.token().span, self.allocator)) catch unreachable;
 
-            try self.generate_defers(&ast.scope().?.errdefers, &error_labels);
+            try self.generate_defers(&ast.block.errdefers, &error_labels);
             self.instructions.append(Instruction.init_jump(labels.error_label, ast.token().span, self.allocator)) catch unreachable;
 
             self.instructions.append(end_label) catch unreachable;

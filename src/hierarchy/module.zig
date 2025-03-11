@@ -184,7 +184,7 @@ pub const Module = struct {
         });
         // Perform checks and collections on the module
         try module_validate_.validate(module, compiler);
-        module.collect_traits_and_impls(compiler.module_scope(module.absolute_path).?);
+        compiler.module_scope(module.absolute_path).?.collect_traits_and_impls(&module.traits, &module.impls);
         try module.add_all_cfgs(entry_name, compiler);
         if (module.entry) |entry| {
             entry.assert_needed_at_runtime();
@@ -229,17 +229,6 @@ pub const Module = struct {
         while (cfg_dfs_iter.next()) |next_cfg| {
             next_cfg.collect_generated_symbvers();
             _ = next_cfg.emplace_cfg(&self.cfgs, &self.instructions);
-        }
-    }
-
-    /// Collects traits and implementations from the specified scope and its children, appending them to the module's traits and impls
-    /// lists.
-    fn collect_traits_and_impls(self: *Module, scope: *Scope) void {
-        self.traits.appendSlice(scope.traits.items) catch unreachable;
-        self.impls.appendSlice(scope.impls.items) catch unreachable;
-
-        for (scope.children.items) |child| {
-            self.collect_traits_and_impls(child);
         }
     }
 

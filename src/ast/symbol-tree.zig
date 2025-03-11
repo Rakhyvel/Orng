@@ -11,6 +11,10 @@ const Token = @import("../lexer/token.zig");
 const walk_ = @import("../ast/walker.zig");
 
 scope: *Scope,
+in_loop: bool,
+is_param_scope: bool,
+defers: ?*std.ArrayList(*ast_.AST),
+errdefers: ?*std.ArrayList(*ast_.AST),
 errors: *errs_.Errors,
 allocator: std.mem.Allocator,
 
@@ -20,6 +24,10 @@ const Error = walk_.Error;
 pub fn new(scope: *Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Self {
     return Self{
         .scope = scope,
+        .in_loop = false,
+        .is_param_scope = false,
+        .defers = null,
+        .errdefers = null,
         .errors = errors,
         .allocator = allocator,
     };
@@ -33,26 +41,46 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         .access, .invoke, .addr_of, .@"comptime" => ast.set_scope(self.scope),
 
         // Check that AST is inside a loop
-        .@"break", .@"continue" => try in_loop_check(ast, self.scope, self.errors),
+        .@"break", .@"continue" => try self.in_loop_check(ast, self.errors),
 
         // Check that AST is inside a function
         .@"try", .@"return" => ast.set_symbol(try in_function_check(ast, self.scope, self.errors)),
 
         // Add defers to scope
-        .@"defer" => self.scope.defers.append(ast.statement()) catch unreachable,
-        .@"errdefer" => self.scope.errdefers.append(ast.statement()) catch unreachable,
+        .@"defer" => if (self.defers) |defers| {
+            defers.append(ast.statement()) catch unreachable;
+        } else {
+            // TODO: an error
+        },
+        .@"errdefer" => if (self.errdefers) |errdefers| {
+            errdefers.append(ast.statement()) catch unreachable;
+        } else {
+            // TODO: an error
+        },
 
         // Create a new scope, pass it to children
-        .@"if", .block, .match, .@"while", .@"for" => {
+        .@"if", .match, .@"while", .@"for" => {
             var new_self = self;
             new_self.scope = Scope.init(self.scope, self.allocator);
-            new_self.scope.in_loop = new_self.scope.in_loop or ast.* == .@"while" or ast.* == .@"for";
+            new_self.in_loop = new_self.in_loop or ast.* == .@"while" or ast.* == .@"for";
+            ast.set_scope(new_self.scope);
+            return new_self;
+        },
+
+        // Create a new scope, set defers, pass it to children
+        .block => {
+            var new_self = self;
+            new_self.scope = Scope.init(self.scope, self.allocator);
+            new_self.defers = &ast.block.defers;
+            new_self.errdefers = &ast.block.errdefers;
+            new_self.in_loop = new_self.in_loop or ast.* == .@"while" or ast.* == .@"for";
             ast.set_scope(new_self.scope);
             return new_self;
         },
 
         // Create symbols (potentially >1) from pattern, put inside scope
-        .decl => {
+        .decl,
+        => {
             try create_symbol(
                 &ast.decl.symbols,
                 ast.decl.pattern,
@@ -220,7 +248,7 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
                 }
             }
 
-            if (!self.scope.is_param_scope and !ast.decl.prohibit_defaults and ast.decl.init == null) {
+            if (!self.is_param_scope and !ast.decl.prohibit_defaults and ast.decl.init == null) {
                 // If this isn't a parameter, and the init is null, set the init to the default value of the type
                 ast.decl.init = ast_.AST.create_default(
                     ast.token(),
@@ -238,8 +266,8 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
     }
 }
 
-fn in_loop_check(ast: *ast_.AST, scope: *Scope, errors: *errs_.Errors) Error!void {
-    if (!scope.in_loop) {
+fn in_loop_check(self: Self, ast: *ast_.AST, errors: *errs_.Errors) Error!void {
+    if (!self.in_loop) {
         errors.add_error(errs_.Error{ .not_inside_loop = .{
             .span = ast.token().span,
             .name = @tagName(ast.*),
@@ -377,10 +405,10 @@ pub fn create_function_symbol(
     // Create the function scope
     var fn_scope = Scope.init(scope, allocator);
     fn_scope.function_depth = scope.function_depth + 1;
-    fn_scope.is_param_scope = true;
 
     // Recurse parameters and init
-    const symbol_walk = Self.new(fn_scope, errors, allocator);
+    var symbol_walk = Self.new(fn_scope, errors, allocator);
+    symbol_walk.is_param_scope = true;
     try walk_.walk_asts(ast.children(), symbol_walk);
     try walk_.walk_ast(ast.fn_decl.ret_type, symbol_walk);
 

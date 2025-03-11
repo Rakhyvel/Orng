@@ -224,7 +224,7 @@ fn negative_test_file(filename: []const u8, coverage: bool) bool {
 
     term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out()) catch unreachable;
     get_std_out().print("Negative test compiled without error.\n", .{}) catch unreachable;
-    return false;
+    unreachable;
 }
 
 /// Uses Dr. Proebsting's rdgen to create random Orng programs, feeds them to the compiler

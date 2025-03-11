@@ -324,31 +324,24 @@ inline fn execute_instruction(self: *Self, instr: *Instruction, compiler: *Compi
             const symbol: *Symbol = @ptrFromInt(symbol_int);
 
             // Intercept method calls to builtin methods
-            if (symbol.decl != null and
-                symbol.decl.?.* == .method_decl and
-                symbol.decl.?.method_decl.impl != null and
-                symbol.decl.?.method_decl.impl.?.impl._type.types_match(primitives_.package_type))
-            {
-                const method_name = symbol.name;
-                if (std.mem.eql(u8, method_name, "find")) {
-                    const interned_strings = compiler.lookup_interned_string_set(self.modules.get(0).?.uid).?;
-                    const arg: *lval_.L_Value = instr.data.lval_list.items[@as(usize, @intCast(0))];
-                    const path_ast = try self.extract_ast(try self.effective_address(arg), primitives_.string_type, instr.span, &compiler.module_interned_strings);
-                    const current_module_path = (self.curr_module() catch unreachable).absolute_path;
-                    const ret_addr = try self.effective_address(instr.dest.?);
-                    if (builtin_.package_find(compiler, self, current_module_path, path_ast.string.data)) |package_info| {
-                        const adrs = package_info.package_adrs;
-                        // Store the directory of the package inside the package struct before returning
-                        const dir_string = interned_strings.add(package_info.package_dirname, self.modules.get(0).?.uid);
-                        const dir_offset = primitives_.package_type.product.get_offset_field("dir", self.allocator);
-                        self.memory.store(Interned_String_Set.String_Idx, adrs + dir_offset, dir_string);
-                        // Store the address of the package in the retval
-                        self.memory.store_int(ret_addr, 8, adrs);
-                    } else |_| {
-                        return self.interpreter_panic("interpreter error: cannot find package\n", .{});
-                    }
-                    return;
+            if (symbol.represents_method(primitives_.package_type, "find")) {
+                const interned_strings = compiler.lookup_interned_string_set(self.modules.get(0).?.uid).?;
+                const arg: *lval_.L_Value = instr.data.lval_list.items[@as(usize, @intCast(0))];
+                const path_ast = try self.extract_ast(try self.effective_address(arg), primitives_.string_type, instr.span, &compiler.module_interned_strings);
+                const current_module_path = (self.curr_module() catch unreachable).absolute_path;
+                const ret_addr = try self.effective_address(instr.dest.?);
+                if (builtin_.package_find(compiler, self, current_module_path, path_ast.string.data)) |package_info| {
+                    const adrs = package_info.package_adrs;
+                    // Store the directory of the package inside the package struct before returning
+                    const dir_string = interned_strings.add(package_info.package_dirname, self.modules.get(0).?.uid);
+                    const dir_offset = primitives_.package_type.product.get_offset_field("dir", self.allocator);
+                    self.memory.store(Interned_String_Set.String_Idx, adrs + dir_offset, dir_string);
+                    // Store the address of the package in the retval
+                    self.memory.store_int(ret_addr, 8, adrs);
+                } else |_| {
+                    return self.interpreter_panic("interpreter error: cannot find package\n", .{});
                 }
+                return;
             }
 
             try self.call(symbol, instr.dest.?, instr.data.lval_list);

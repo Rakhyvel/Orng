@@ -19,11 +19,7 @@ module: ?*module_.Module, // Enclosing module
 uid: usize,
 
 function_depth: usize = 0,
-in_loop: bool = false,
-defers: std.ArrayList(*ast_.AST),
-errdefers: std.ArrayList(*ast_.AST),
 inner_function: ?*Symbol = null,
-is_param_scope: bool = false, // true when this scope encompases function parameters and externs. prohibits defaults from being generated
 
 pub fn init(parent: ?*Self, allocator: std.mem.Allocator) *Self {
     var retval = allocator.create(Self) catch unreachable;
@@ -33,17 +29,13 @@ pub fn init(parent: ?*Self, allocator: std.mem.Allocator) *Self {
     retval.traits = std.ArrayList(*ast_.AST).init(allocator);
     retval.impls = std.ArrayList(*ast_.AST).init(allocator);
     retval.uid = scope_UID;
-    retval.defers = std.ArrayList(*ast_.AST).init(allocator);
-    retval.errdefers = std.ArrayList(*ast_.AST).init(allocator);
     scope_UID += 1;
     if (parent) |_parent| {
         _parent.children.append(retval) catch unreachable;
-        retval.in_loop = _parent.in_loop;
         retval.function_depth = _parent.function_depth;
         retval.inner_function = _parent.inner_function;
         retval.module = _parent.module;
     } else {
-        retval.in_loop = false;
         retval.function_depth = 0;
         retval.inner_function = null;
         retval.module = null;
@@ -184,5 +176,14 @@ pub fn put_symbol(scope: *Self, symbol: *Symbol, errors: *errs_.Errors) error{Co
 pub fn put_all_symbols(scope: *Self, symbols: *std.ArrayList(*Symbol), errors: *errs_.Errors) error{CompileError}!void {
     for (symbols.items) |symbol| {
         try scope.put_symbol(symbol, errors);
+    }
+}
+
+pub fn collect_traits_and_impls(self: *Self, traits: *std.ArrayList(*ast_.AST), impls: *std.ArrayList(*ast_.AST)) void {
+    traits.appendSlice(self.traits.items) catch unreachable;
+    impls.appendSlice(self.impls.items) catch unreachable;
+
+    for (self.children.items) |child| {
+        child.collect_traits_and_impls(traits, impls);
     }
 }

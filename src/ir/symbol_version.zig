@@ -1,4 +1,5 @@
 const std = @import("std");
+const AST = @import("../ast/ast.zig").AST;
 const Symbol = @import("../symbol/symbol.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Instruction = @import("../ir/instruction.zig");
@@ -50,6 +51,27 @@ pub fn format(self: Self, comptime fmt: []const u8, options: std.fmt.FormatOptio
 
     writer.print("{s}", .{self.symbol.name}) catch unreachable;
     // try writer.print("{s:<10}", .{out.str()});
+}
+
+pub fn set_def(self: *Self, def: ?*Instruction) void {
+    self.def = def;
+    if (def) |_| {
+        self.symbol.defs += 1;
+    }
+}
+
+pub fn get_expanded_type(self: *Self) *AST {
+    return self.symbol.expanded_type.?;
+}
+
+pub fn reset_usage(self: *Self) void {
+    self.uses = 0;
+    self.symbol.uses = 0;
+}
+
+pub fn increment_usage(self: *Self) void {
+    self.uses += 1;
+    self.symbol.uses += 1;
 }
 
 /// Finds a Symbol Version in a Symbol Version set, or null if not found.

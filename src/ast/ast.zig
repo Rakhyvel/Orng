@@ -406,6 +406,8 @@ pub const AST = union(enum) {
         common: AST_Common,
         _scope: ?*Scope,
         _statements: std.ArrayList(*AST),
+        defers: std.ArrayList(*AST),
+        errdefers: std.ArrayList(*AST),
         final: ?*AST, // either `return`, `continue`, or `break`
     },
 
@@ -1180,6 +1182,8 @@ pub const AST = union(enum) {
                 .common = AST_Common{ ._token = _token, ._type = null },
                 ._scope = null,
                 ._statements = statements,
+                .defers = std.ArrayList(*AST).init(allocator),
+                .errdefers = std.ArrayList(*AST).init(allocator),
                 .final = final,
             } },
             allocator,
@@ -2910,10 +2914,10 @@ pub const AST = union(enum) {
         if (B.* == .anyptr_type and A.* == .addr_of) {
             return true;
         }
-        if (A.* == .identifier and A.symbol().?.is_alias and A != A.expand_identifier()) {
+        if (A.* == .identifier and A.symbol().?.is_alias() and A != A.expand_identifier()) {
             // If A is a type alias, expand
             return types_match(A.expand_identifier(), B);
-        } else if (B.* == .identifier and B.symbol().?.is_alias and B != B.expand_identifier()) {
+        } else if (B.* == .identifier and B.symbol().?.is_alias() and B != B.expand_identifier()) {
             // If B is a type alias, expand
             return types_match(A, B.expand_identifier());
         }

@@ -223,28 +223,28 @@ pub fn calculate_usage(self: *Self) void {
         // Go through and see if each symbol is used
         for (bb.instructions.items) |instr| {
             if (instr.dest != null and instr.dest.?.* != .symbver) {
-                instr.dest.?.calculate_lval_usage();
+                instr.dest.?.increment_usage();
             }
             if (instr.src1 != null) {
-                instr.src1.?.calculate_lval_usage();
+                instr.src1.?.increment_usage();
             }
             if (instr.src2 != null) {
-                instr.src2.?.calculate_lval_usage();
+                instr.src2.?.increment_usage();
             }
             if (instr.data == .lval_list) {
                 for (instr.data.lval_list.items) |lval| {
-                    lval.calculate_lval_usage();
+                    lval.increment_usage();
                 }
             }
             if (instr.data == .invoke) {
                 if (instr.data.invoke.dyn_value != null) {
-                    instr.data.invoke.dyn_value.?.calculate_lval_usage();
+                    instr.data.invoke.dyn_value.?.increment_usage();
                 }
                 if (instr.data.invoke.method_decl_lval != null and !instr.data.invoke.method_decl.method_decl.is_virtual) {
-                    instr.data.invoke.method_decl_lval.?.calculate_lval_usage();
+                    instr.data.invoke.method_decl_lval.?.increment_usage();
                 }
                 for (instr.data.invoke.lval_list.items) |lval| {
-                    lval.calculate_lval_usage();
+                    lval.increment_usage();
                 }
             }
         }
@@ -286,8 +286,7 @@ pub fn calculate_definitions(self: *Self) void {
         for (bb.instructions.items) |instr| {
             if (instr.dest != null) {
                 var symbver = instr.dest.?.extract_symbver();
-                symbver.def = instr;
-                symbver.symbol.defs += 1;
+                symbver.set_def(instr);
             }
             if (instr.dest != null) {
                 instr.dest.?.extract_symbver().symbol.roots += 1;
@@ -509,8 +508,7 @@ pub fn calculate_offsets(self: *Self) i64 //< Number of bytes used for locals by
     for (self.symbvers.items) |symbver| {
         if (symbver.symbol.offset == null and !std.mem.eql(u8, symbver.symbol.name, "$retval")) {
             local_offsets = alignment_.next_alignment(local_offsets, symbver.symbol.expanded_type.?.alignof());
-            symbver.symbol.offset = local_offsets;
-            local_offsets += @as(i64, @intCast(symbver.symbol.expanded_type.?.sizeof()));
+            local_offsets += symbver.symbol.set_offset(local_offsets);
         }
     }
     local_offsets = alignment_.next_alignment(local_offsets, 8);

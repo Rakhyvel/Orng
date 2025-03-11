@@ -57,7 +57,7 @@ fn propagate(cfg: *CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) err
         bb.remove_marked_instrs();
         if (bb.terminator == .conditional and bb.terminator.conditional.condition.* == .symbver) {
             const cond_def: ?*Instruction = def_map.get(bb.terminator.conditional.condition.symbver) orelse null;
-            bb.terminator.conditional.condition.symbver.def = cond_def;
+            bb.terminator.conditional.condition.symbver.set_def(cond_def);
             if (cond_def != null and cond_def.?.kind == .copy and cond_def.?.src1 != null) {
                 bb.terminator.conditional.condition = cond_def.?.src1.?;
                 retval = true;

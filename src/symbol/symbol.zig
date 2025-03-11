@@ -1,8 +1,10 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const CFG = @import("../ir/cfg.zig");
+const errs_ = @import("../util/errors.zig");
 const Scope = @import("../symbol/scope.zig");
 const Span = @import("../util/span.zig");
+const Token = @import("../lexer/token.zig");
 const validation_state_ = @import("../util/validation_state.zig");
 
 const Self = @This();
@@ -38,7 +40,6 @@ init_value: ?*ast_.AST,
 kind: Kind,
 cfg: ?*CFG,
 decl: ?*ast_.AST,
-is_alias: bool, // when this is true, this symbol is a type-alias, and should be expanded before use
 
 // Use-def
 aliases: u64 = 0, // How many times the symbol is taken as a mutable address
@@ -73,7 +74,6 @@ pub fn init(
     retval.expanded_type = null;
     retval.init_value = _init;
     retval.decl = decl;
-    retval.is_alias = if (decl != null and decl.?.* == .decl) decl.?.decl.is_alias else false;
     retval.aliases = 0;
     retval.roots = 0;
     retval.uses = 0;
@@ -98,4 +98,90 @@ pub fn assert_symbol_valid(self: *Self) *Self {
 pub fn assert_init_valid(self: *Self) *Self {
     self.init_validation_state = Symbol_Validation_State{ .valid = .{ .valid_form = self } };
     return self;
+}
+
+/// when this is true, this symbol is a type-alias, and should be expanded before use
+pub fn is_alias(self: *Self) bool {
+    return if (self.decl != null and self.decl.?.* == .decl) self.decl.?.decl.is_alias else false;
+}
+
+pub fn lvalue_is_symbol(self: *Self, return_symbol: *Self) bool {
+    return !self.is_temp and // isnt temporary
+        self != return_symbol // isnt the function's return value
+    ;
+}
+
+pub fn err_if_undefined(self: *Self, errors: *errs_.Errors) error{CompileError}!void {
+    if (self.kind != .import and !self.defined) {
+        errors.add_error(errs_.Error{ .use_before_def = .{ .identifier = Token.init_simple(self.name) } });
+        return error.CompileError;
+    }
+}
+
+/// Throws an `error.CompileError` if a symbol is not used.
+pub fn err_if_unused(self: *Self, errors: *errs_.Errors) error{CompileError}!void {
+    if (self.kind != .@"const" and
+        self.uses == 0)
+    {
+        errors.add_error(errs_.Error{ .symbol_error = .{
+            .span = self.span,
+            .context_span = null,
+            .name = self.name,
+            .problem = "is never used",
+            .context_message = "",
+        } });
+        return error.CompileError;
+    }
+}
+
+pub fn err_if_undefd(self: *Self, errors: *errs_.Errors, use: Span) error{CompileError}!void {
+    // std.debug.print("{s} uses:{} defs:{}\n", .{ symbol.name, symbol.uses, symbol.defs });
+    if (self.uses != 0 and // symbol has been used somewhere
+        self.defs == 0 and // symbol hasn't been defined anywhere
+        !self.param and // symbol isn't a parameter (these don't have defs!)
+        self.kind != .@"extern" // symbol isn't an extern (these also don't have defs!)
+    ) {
+        errors.add_error(errs_.Error{ .symbol_error = .{
+            .span = use,
+            .context_span = self.span,
+            .name = self.name,
+            .problem = "is never defined",
+            .context_message = "declared here",
+        } });
+        return error.CompileError;
+    }
+}
+
+/// Throws an `error.CompileError` if a symbol is marked `mut`, but is never mutated.
+///
+/// Symbols are mutated when:
+/// - They are the root of at least one Instruction's destination's L-Value tree, OR
+/// - They are aliased with `&mut`.
+pub fn err_if_var_not_mutated(self: *Self, errors: *errs_.Errors) error{CompileError}!void {
+    if (self.kind == .mut and
+        self.aliases == 0 and
+        self.roots == 0)
+    {
+        errors.add_error(errs_.Error{ .symbol_error = .{
+            .span = self.span,
+            .context_span = null,
+            .name = self.name,
+            .problem = "is marked `mut` but is never mutated",
+            .context_message = "",
+        } });
+        return error.CompileError;
+    }
+}
+
+pub fn set_offset(self: *Self, local_offsets: i64) i64 {
+    self.offset = local_offsets;
+    return @as(i64, @intCast(self.expanded_type.?.sizeof()));
+}
+
+pub fn represents_method(self: *Self, impl_for_type: *ast_.AST, method_name: []const u8) bool {
+    return self.decl != null and
+        self.decl.?.* == .method_decl and
+        self.decl.?.method_decl.impl != null and
+        self.decl.?.method_decl.impl.?.impl._type.types_match(impl_for_type) and
+        std.mem.eql(u8, self.name, method_name);
 }

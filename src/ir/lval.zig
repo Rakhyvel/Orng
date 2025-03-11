@@ -211,7 +211,7 @@ pub const L_Value = union(enum) {
 
     pub fn get_expanded_type(self: *L_Value) *ast_.AST {
         switch (self.*) {
-            .symbver => return self.symbver.symbol.expanded_type.?,
+            .symbver => return self.symbver.get_expanded_type(),
             .dereference => return self.dereference.expanded_type,
             .index => return self.index.expanded_type,
             .select => return self.select.expanded_type,
@@ -231,10 +231,7 @@ pub const L_Value = union(enum) {
 
     pub fn reset_usage(lval: *L_Value) void {
         switch (lval.*) {
-            .symbver => {
-                lval.symbver.uses = 0;
-                lval.symbver.symbol.uses = 0;
-            },
+            .symbver => lval.symbver.reset_usage(),
             .dereference => lval.dereference.expr.reset_usage(),
             .index => {
                 lval.index.lhs.reset_usage();
@@ -253,24 +250,21 @@ pub const L_Value = union(enum) {
         }
     }
 
-    pub fn calculate_lval_usage(lval: *L_Value) void {
+    pub fn increment_usage(lval: *L_Value) void {
         switch (lval.*) {
-            .symbver => {
-                lval.symbver.uses += 1;
-                lval.symbver.symbol.uses += 1;
-            },
-            .dereference => lval.dereference.expr.calculate_lval_usage(),
+            .symbver => lval.symbver.increment_usage(),
+            .dereference => lval.dereference.expr.increment_usage(),
             .index => {
-                lval.index.lhs.calculate_lval_usage();
-                lval.index.rhs.calculate_lval_usage();
+                lval.index.lhs.increment_usage();
+                lval.index.rhs.increment_usage();
                 if (lval.index.length != null) {
-                    lval.index.length.?.calculate_lval_usage();
+                    lval.index.length.?.increment_usage();
                 }
             },
             .select => {
-                lval.select.lhs.calculate_lval_usage();
+                lval.select.lhs.increment_usage();
                 if (lval.select.tag != null) {
-                    lval.select.tag.?.calculate_lval_usage();
+                    lval.select.tag.?.increment_usage();
                 }
             },
             .raw_address => std.debug.panic("compiler error: raw addresses do not have usage", .{}),
