@@ -5,6 +5,7 @@ const errs_ = @import("../util/errors.zig");
 const module_ = @import("../hierarchy/module.zig");
 const Span = @import("../util/span.zig");
 const Scope = @import("../symbol/scope.zig");
+const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
 const Symbol_Tree = @import("../ast/symbol-tree.zig");
 const Token = @import("../lexer/token.zig");
@@ -380,7 +381,9 @@ fn create_prelude(compiler: *Compiler_Context) !void {
     defer errors.deinit();
     errdefer errors.print_errors();
 
-    const module = module_.Module.init("/prelude/prelude.orng", compiler.allocator());
+    const prelude_abs_path = String.init_with_contents("/prelude") catch unreachable;
+    prelude_abs_path.writer().print("{c}prelude.orng", .{std.fs.path.sep});
+    const module = module_.Module.init(prelude_abs_path.toOwned(), compiler.allocator());
     const symbol = Symbol.init(
         compiler.prelude,
         "prelude",
