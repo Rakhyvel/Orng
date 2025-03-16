@@ -2547,6 +2547,9 @@ pub const AST = union(enum) {
                 }
                 try out.print(")", .{});
             },
+            .module => {
+                try out.print("{s}::{s}", .{ self.module.module.package_name, self.module.module.name() });
+            },
             else => std.debug.panic("compiler error: unimplemented or not a type: {s}", .{@tagName(self.*)}),
         }
     }

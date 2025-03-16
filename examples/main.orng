@@ -1,4 +1,5 @@
 import std::debug
+import std::ffi
 import externs
 
 fn main() -> () {
