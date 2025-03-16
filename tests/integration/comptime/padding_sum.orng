@@ -1,5 +1,5 @@
 // 258
-const My_Type = (x: Int8 |)
+const My_Type = (|x: Int8)
 
 fn main() -> Int {
     let a: My_Type
