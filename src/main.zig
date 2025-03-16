@@ -102,7 +102,7 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     try Codegen_Context.output_modules(compiler);
 
     compiler.propagate_include_directories(package_abs_path);
-    try compiler.compile_c(package_abs_path, false);
+    try compiler.compile(package_abs_path, false);
 
     std.debug.print("done\n", .{});
 

@@ -129,7 +129,7 @@ fn integrate_test_file(filename: []const u8, coverage: bool) bool {
         return false;
     }
 
-    compiler.compile_c(module.get_package_abs_path(), false) catch unreachable;
+    compiler.compile(module.get_package_abs_path(), false) catch unreachable;
 
     // execute (make sure no signals)
     var output_name = String.init(allocator);

@@ -168,7 +168,7 @@ pub fn propagate_include_directories(self: *Self, root_package_absolute_path: []
     package.append_include_dir(self.packages, &package.include_directories);
 }
 
-pub fn compile_c(self: *Self, root_package_absolute_path: []const u8, extra_flags: bool) !void {
+pub fn compile(self: *Self, root_package_absolute_path: []const u8, extra_flags: bool) !void {
     std.debug.assert(std.fs.path.isAbsolute(root_package_absolute_path));
-    try self.lookup_package(root_package_absolute_path).?.compile_c(self.packages, extra_flags, self.allocator());
+    try self.lookup_package(root_package_absolute_path).?.compile(self.packages, extra_flags, self.allocator());
 }

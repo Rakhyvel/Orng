@@ -34,7 +34,7 @@ pub fn new(allocator: std.mem.Allocator, package_absolute_path: []const u8, is_s
     return package;
 }
 
-pub fn compile_c(self: *Package, packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !void {
+pub fn compile(self: *Package, packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !void {
     if (self.visited) {
         return;
     }
@@ -45,9 +45,19 @@ pub fn compile_c(self: *Package, packages: std.StringArrayHashMap(*Package), ext
         const requirement_root_module = requirement_root_module_symbol.?.init_value.?.module.module;
         const requirement_root_abs_path = requirement_root_module.get_package_abs_path();
         const required_package = packages.get(requirement_root_abs_path).?;
-        try required_package.compile_c(packages, extra_flags, allocator);
+        try required_package.compile(packages, extra_flags, allocator);
     }
 
+    const obj_files = try self.compile_obj_files(packages, extra_flags, allocator);
+
+    if (self.is_static_lib) {
+        try self.ar(obj_files, allocator);
+    } else {
+        try self.executable(obj_files, packages, allocator);
+    }
+}
+
+fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !std.ArrayList([]const u8) {
     var obj_files = std.ArrayList([]const u8).init(allocator);
     for (self.local_modules.items) |local_module| {
         var c_file = String.init(allocator);
@@ -65,11 +75,7 @@ pub fn compile_c(self: *Package, packages: std.StringArrayHashMap(*Package), ext
 
         try self.gcc(c_file.str(), o_file.str(), packages, extra_flags, allocator);
     }
-    if (self.is_static_lib) {
-        try self.ar(obj_files, allocator);
-    } else {
-        try self.executable(obj_files, packages, allocator);
-    }
+    return obj_files;
 }
 
 pub fn append_include_dir(self: *Package, packages: std.StringArrayHashMap(*Package), include_dirs: *std.StringArrayHashMap(void)) void {
