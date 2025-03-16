@@ -152,7 +152,6 @@ pub fn make_package_requirement_link(self: *Self, package_absolute_path: []const
     std.debug.assert(std.fs.path.isAbsolute(package_absolute_path));
     std.debug.assert(std.fs.path.isAbsolute(requirement_absolute_path));
     const package = self.lookup_package(package_absolute_path).?;
-    std.debug.print("{s} {s}\n", .{ package_absolute_path, requirement_absolute_path });
     const requirement = self.lookup_package(requirement_absolute_path).?;
     package.requirements.put(requirement_name, requirement.root) catch unreachable;
 }
