@@ -73,7 +73,11 @@ fn package_find_git(compiler: *Compiler_Context, package_src: *AST) Error![]cons
     dirs.append(repo_dir) catch unreachable;
     dirs.append(std.fs.path.basename(url.string.data)) catch unreachable;
     if (subdir.string.data.len > 0) {
-        dirs.append(subdir.string.data) catch unreachable;
+        // This has to be done so that package absolute paths have one canonical representation, even on Windows
+        var subdir_string = String.init_with_contents(compiler.allocator(), subdir.string.data) catch unreachable;
+        const os_sep: [1]u8 = [1]u8{std.fs.path.sep};
+        _ = subdir_string.replace("/", &os_sep) catch unreachable;
+        dirs.append((subdir_string.toOwned() catch unreachable).?) catch unreachable;
     }
     return std.fs.path.join(compiler.allocator(), dirs.items) catch unreachable;
 }
