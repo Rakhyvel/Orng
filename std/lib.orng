@@ -1,4 +1,3 @@
 import debug
-import ffi
 
 const println = debug::println
