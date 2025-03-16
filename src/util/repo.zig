@@ -47,12 +47,22 @@ pub fn git_clone(repo_url: []const u8, allocator: std.mem.Allocator) Error!void 
 }
 
 fn ensure_packages_dir_exists(allocator: std.mem.Allocator) void {
-    const repo_dir = get_packages_dir(allocator);
-    var dir = std.fs.Dir.openDir(std.fs.cwd(), repo_dir, .{}) catch {
-        std.fs.makeDirAbsolute(repo_dir) catch unreachable;
-        return;
+    const orng_dir = get_orng_dir(allocator);
+    _ = std.fs.Dir.openDir(std.fs.cwd(), orng_dir, .{}) catch {
+        std.fs.makeDirAbsolute(orng_dir) catch unreachable;
     };
-    dir.close();
+    const repo_dir = get_packages_dir(allocator);
+    _ = std.fs.Dir.openDir(std.fs.cwd(), repo_dir, .{}) catch {
+        std.fs.makeDirAbsolute(repo_dir) catch unreachable;
+    };
+}
+
+pub fn get_orng_dir(allocator: std.mem.Allocator) []const u8 {
+    var env_map = std.process.getEnvMap(allocator) catch unreachable;
+    defer env_map.deinit();
+    const home_dir = env_map.get(if (builtin.target.os.tag == .windows) "USERPROFILE" else "HOME").?;
+    const root_file_paths = [_][]const u8{ home_dir, ".orng" };
+    return std.fs.path.join(allocator, &root_file_paths) catch unreachable;
 }
 
 pub fn get_packages_dir(allocator: std.mem.Allocator) []const u8 {
