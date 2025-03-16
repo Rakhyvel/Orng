@@ -10,6 +10,7 @@ absolute_path: []const u8,
 output_absolute_path: []const u8,
 root: *Symbol,
 local_modules: std.ArrayList(*module_.Module),
+/// Maps the names of required packages, relative to this package, to the symbol of their root module
 requirements: std.StringArrayHashMap(*Symbol),
 include_directories: std.StringArrayHashMap(void),
 library_directories: std.StringArrayHashMap(void),
@@ -40,7 +41,10 @@ pub fn compile_c(self: *Package, packages: std.StringArrayHashMap(*Package), ext
     self.visited = true;
 
     for (self.requirements.keys()) |requirement_name| {
-        const required_package = packages.get(requirement_name).?;
+        const requirement_root_module_symbol = self.requirements.get(requirement_name);
+        const requirement_root_module = requirement_root_module_symbol.?.init_value.?.module.module;
+        const requirement_root_abs_path = requirement_root_module.get_package_abs_path();
+        const required_package = packages.get(requirement_root_abs_path).?;
         try required_package.compile_c(packages, extra_flags, allocator);
     }
 
@@ -70,7 +74,10 @@ pub fn compile_c(self: *Package, packages: std.StringArrayHashMap(*Package), ext
 
 pub fn append_include_dir(self: *Package, packages: std.StringArrayHashMap(*Package), include_dirs: *std.StringArrayHashMap(void)) void {
     for (self.requirements.keys()) |requirement_name| {
-        const required_package = packages.get(requirement_name).?;
+        const requirement_root_module_symbol = self.requirements.get(requirement_name);
+        const requirement_root_module = requirement_root_module_symbol.?.init_value.?.module.module;
+        const requirement_root_abs_path = requirement_root_module.get_package_abs_path();
+        const required_package = packages.get(requirement_root_abs_path).?;
         required_package.append_include_dir(packages, &self.include_directories);
     }
     for (self.include_directories.keys()) |dir| {
@@ -141,10 +148,13 @@ fn gcc(
 
     // Add dependency include directories and libraries
     for (self.requirements.keys()) |requirement_name| {
-        const requirement = packages.get(requirement_name).?;
+        const requirement_root_module_symbol = self.requirements.get(requirement_name);
+        const requirement_root_module = requirement_root_module_symbol.?.init_value.?.module.module;
+        const requirement_root_abs_path = requirement_root_module.get_package_abs_path();
+        const required_package = packages.get(requirement_root_abs_path).?;
 
         var requirement_include_path = String.init(allocator);
-        requirement_include_path.writer().print("-I{s}{c}build", .{ requirement.root.init_value.?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
+        requirement_include_path.writer().print("-I{s}{c}build", .{ required_package.root.init_value.?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
         gcc_cmd.append(requirement_include_path.str()) catch unreachable;
     }
 
@@ -255,10 +265,13 @@ fn executable(self: *Package, obj_files: std.ArrayList([]const u8), packages: st
     cmd.appendSlice(obj_files.items) catch unreachable;
 
     for (self.requirements.keys()) |requirement_name| {
-        const requirement = packages.get(requirement_name).?;
+        const requirement_root_module_symbol = self.requirements.get(requirement_name);
+        const requirement_root_module = requirement_root_module_symbol.?.init_value.?.module.module;
+        const requirement_root_abs_path = requirement_root_module.get_package_abs_path();
+        const required_package = packages.get(requirement_root_abs_path).?;
 
         var requirement_library_path = String.init(allocator);
-        requirement_library_path.writer().print("{s}{c}build", .{ requirement.root.init_value.?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
+        requirement_library_path.writer().print("{s}{c}build", .{ required_package.root.init_value.?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
         cmd.append("-L") catch unreachable;
         cmd.append(requirement_library_path.str()) catch unreachable;
 
@@ -268,7 +281,7 @@ fn executable(self: *Package, obj_files: std.ArrayList([]const u8), packages: st
         }
 
         var requirement_library = String.init(allocator);
-        requirement_library.writer().print("-l{s}", .{requirement.name}) catch unreachable;
+        requirement_library.writer().print("-l{s}", .{required_package.name}) catch unreachable;
         cmd.append(requirement_library.str()) catch unreachable;
 
         for (self.libraries.keys()) |lib| {

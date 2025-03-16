@@ -1,4 +1,5 @@
 const std = @import("std");
+const AST = @import("../ast/ast.zig").AST;
 const CFG = @import("../ir/cfg.zig");
 const errs_ = @import("../util/errors.zig");
 const Interned_String_Set = @import("../ir/interned_string_set.zig");
@@ -120,41 +121,54 @@ pub fn register_interned_string_set(self: *Self, module_uid: u32) void {
     self.module_interned_strings.put(module_uid, interned_strings) catch unreachable;
 }
 
+pub fn get_builtin_type(self: *Self, name: []const u8) *AST {
+    const prelude_abs_path = self.prelude.module.?.absolute_path;
+    return self.module_scope(prelude_abs_path).?.lookup(name, .{}).found.init_value.?;
+}
+
 pub fn lookup_interned_string_set(self: *Self, module_uid: u32) ?*Interned_String_Set {
     return self.module_interned_strings.get(module_uid);
 }
 
-pub fn lookup_package(self: *Self, package_name: []const u8) ?*Package {
-    return self.packages.get(package_name);
+pub fn lookup_package(self: *Self, package_absolute_path: []const u8) ?*Package {
+    std.debug.assert(std.fs.path.isAbsolute(package_absolute_path));
+    return self.packages.get(package_absolute_path);
 }
 
-pub fn lookup_package_root_module(self: *Self, package_name: []const u8, requirement_name: []const u8) ?*Symbol {
-    return self.lookup_package(package_name).?.requirements.get(requirement_name);
+pub fn lookup_package_root_module(self: *Self, package_absolute_path: []const u8, requirement_name: []const u8) ?*Symbol {
+    std.debug.assert(std.fs.path.isAbsolute(package_absolute_path));
+    return self.lookup_package(package_absolute_path).?.requirements.get(requirement_name);
 }
 
-pub fn register_package(self: *Self, package_name: []const u8, package_absolute_path: []const u8, is_static_lib: bool) void {
-    if (self.lookup_package(package_name) == null) {
+pub fn register_package(self: *Self, package_absolute_path: []const u8, is_static_lib: bool) void {
+    std.debug.assert(std.fs.path.isAbsolute(package_absolute_path));
+    if (self.lookup_package(package_absolute_path) == null) {
         const package = Package.new(self.allocator(), package_absolute_path, is_static_lib);
-        self.packages.put(package_name, package) catch unreachable;
+        self.packages.put(package_absolute_path, package) catch unreachable;
     }
 }
 
-pub fn make_package_requirement_link(self: *Self, package_name: []const u8, requirement_name: []const u8) void {
-    const package = self.lookup_package(package_name).?;
-    const requirement = self.lookup_package(requirement_name).?;
+pub fn make_package_requirement_link(self: *Self, package_absolute_path: []const u8, requirement_name: []const u8, requirement_absolute_path: []const u8) void {
+    std.debug.assert(std.fs.path.isAbsolute(package_absolute_path));
+    std.debug.assert(std.fs.path.isAbsolute(requirement_absolute_path));
+    const package = self.lookup_package(package_absolute_path).?;
+    const requirement = self.lookup_package(requirement_absolute_path).?;
     package.requirements.put(requirement_name, requirement.root) catch unreachable;
 }
 
-pub fn set_package_root(self: *Self, package_name: []const u8, root: *Symbol) void {
-    const package = self.lookup_package(package_name).?;
+pub fn set_package_root(self: *Self, package_absolute_path: []const u8, root: *Symbol) void {
+    std.debug.assert(std.fs.path.isAbsolute(package_absolute_path));
+    const package = self.lookup_package(package_absolute_path).?;
     package.root = root;
 }
 
-pub fn propagate_include_directories(self: *Self, root_package_name: []const u8) void {
-    const package = self.lookup_package(root_package_name).?;
+pub fn propagate_include_directories(self: *Self, root_package_absolute_path: []const u8) void {
+    std.debug.assert(std.fs.path.isAbsolute(root_package_absolute_path));
+    const package = self.lookup_package(root_package_absolute_path).?;
     package.append_include_dir(self.packages, &package.include_directories);
 }
 
-pub fn compile_c(self: *Self, root_package_name: []const u8, extra_flags: bool) !void {
-    try self.lookup_package(root_package_name).?.compile_c(self.packages, extra_flags, self.allocator());
+pub fn compile_c(self: *Self, root_package_absolute_path: []const u8, extra_flags: bool) !void {
+    std.debug.assert(std.fs.path.isAbsolute(root_package_absolute_path));
+    try self.lookup_package(root_package_absolute_path).?.compile_c(self.packages, extra_flags, self.allocator());
 }

@@ -96,19 +96,18 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     // Extract the retval
     const package_dag = try interpreter.extract_ast(0, primitives_.package_type, Span.phony, &compiler.module_interned_strings);
     const cwd_buffer = compiler.allocator().alloc(u8, std.fs.max_path_bytes) catch unreachable;
-    const cwd = std.fs.cwd().realpath(".", cwd_buffer) catch unreachable;
-    const package_name = std.fs.path.basename(cwd);
-    _ = try make_package(package_dag, package_name, compiler, &interpreter, cwd, "main");
+    const package_abs_path = std.fs.cwd().realpath(".", cwd_buffer) catch unreachable;
+    _ = try make_package(package_dag, compiler, &interpreter, package_abs_path, "main");
 
     try Codegen_Context.output_modules(compiler);
 
-    compiler.propagate_include_directories(package_name);
-    try compiler.compile_c(package_name, false);
+    compiler.propagate_include_directories(package_abs_path);
+    try compiler.compile_c(package_abs_path, false);
 
     std.debug.print("done\n", .{});
 
     if (std.mem.eql(u8, name, "run")) {
-        const curr_package = compiler.lookup_package(package_name).?;
+        const curr_package = compiler.lookup_package(package_abs_path).?;
         if (curr_package.is_static_lib) {
             (errs_.Error{ .basic = .{
                 .msg = "cannot run a non-executable package",
@@ -148,7 +147,7 @@ fn validate_env_vars(allocator: std.mem.Allocator) Command_Error!void {
         }).fatal_error();
         return error.CompileError;
     }
-    _ = std.fs.Dir.openDir(std.fs.cwd(), env_var_res.?, .{}) catch |err| switch (err) {
+    var dir = std.fs.Dir.openDir(std.fs.cwd(), env_var_res.?, .{}) catch |err| switch (err) {
         error.FileNotFound => {
             (errs_.Error{ .basic = .{
                 .msg = "the path specified by an environment variable does not exist",
@@ -168,18 +167,18 @@ fn validate_env_vars(allocator: std.mem.Allocator) Command_Error!void {
             return error.CompileError;
         },
     };
+    dir.close();
 }
 
 fn make_package(
     package: *ast_.AST,
-    package_name: []const u8,
     compiler: *Compiler_Context,
     interpreter: *Interpreter_Context,
-    working_directory: []const u8,
+    package_absolute_path: []const u8,
     entry_name: ?[]const u8,
 ) Command_Error!*Symbol {
     const is_static_lib = package.get_field(primitives_.package_type, "kind").pos() == 1;
-    compiler.register_package(package_name, working_directory, is_static_lib);
+    compiler.register_package(package_absolute_path, is_static_lib);
 
     for (package.get_field(primitives_.package_type, "requirements").children().items) |maybe_requirement_addr| {
         if (maybe_requirement_addr.sum_value._pos != 0) {
@@ -188,15 +187,14 @@ fn make_package(
         const requirement = maybe_requirement_addr.sum_value.init.?;
         const required_package_name: []const u8 = requirement.children().items[0].string.data;
         const required_package_addr: i64 = @intCast(requirement.children().items[1].int.data);
-        const requirement_name = requirement.get_field(primitives_.package_type, "root").string.data;
         const required_package = try interpreter.extract_ast(required_package_addr, primitives_.package_type, Span.phony, &compiler.module_interned_strings);
         const required_package_dir = required_package.get_field(primitives_.package_type, "dir").string.data;
 
         const new_working_directory_buffer = compiler.allocator().alloc(u8, std.fs.max_path_bytes) catch unreachable;
         const new_working_directory = std.fs.cwd().realpath(required_package_dir, new_working_directory_buffer) catch unreachable;
-        _ = try make_package(required_package, required_package_name, compiler, interpreter, new_working_directory, null);
+        _ = try make_package(required_package, compiler, interpreter, new_working_directory, null);
 
-        compiler.make_package_requirement_link(package_name, requirement_name);
+        compiler.make_package_requirement_link(package_absolute_path, required_package_name, required_package_dir);
     }
 
     for (package.get_field(primitives_.package_type, "include_dirs").children().items) |maybe_include_dir_addr| {
@@ -204,7 +202,7 @@ fn make_package(
             continue;
         }
         const include_dir = maybe_include_dir_addr.sum_value.init.?;
-        compiler.lookup_package(package_name).?.include_directories.put(include_dir.string.data, void{}) catch unreachable;
+        compiler.lookup_package(package_absolute_path).?.include_directories.put(include_dir.string.data, void{}) catch unreachable;
     }
 
     for (package.get_field(primitives_.package_type, "lib_dirs").children().items) |maybe_lib_dir_addr| {
@@ -212,7 +210,7 @@ fn make_package(
             continue;
         }
         const include_dir = maybe_lib_dir_addr.sum_value.init.?;
-        compiler.lookup_package(package_name).?.library_directories.put(include_dir.string.data, void{}) catch unreachable;
+        compiler.lookup_package(package_absolute_path).?.library_directories.put(include_dir.string.data, void{}) catch unreachable;
     }
 
     for (package.get_field(primitives_.package_type, "libs").children().items) |maybe_lib_addr| {
@@ -220,11 +218,11 @@ fn make_package(
             continue;
         }
         const include_dir = maybe_lib_addr.sum_value.init.?;
-        compiler.lookup_package(package_name).?.libraries.put(include_dir.string.data, void{}) catch unreachable;
+        compiler.lookup_package(package_absolute_path).?.libraries.put(include_dir.string.data, void{}) catch unreachable;
     }
 
     const root_filename = package.get_field(primitives_.package_type, "root").string.data;
-    const root_file_paths = [_][]const u8{ working_directory, root_filename };
+    const root_file_paths = [_][]const u8{ package_absolute_path, root_filename };
     const root_file_path = std.fs.path.join(compiler.allocator(), &root_file_paths) catch unreachable;
 
     const package_root = compiler.compile_module(
@@ -232,7 +230,7 @@ fn make_package(
         entry_name,
         false,
     ) catch return error.CompileError;
-    compiler.set_package_root(package_name, package_root);
+    compiler.set_package_root(package_absolute_path, package_root);
 
     return package_root;
 }

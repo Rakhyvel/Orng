@@ -1,5 +1,10 @@
 fn build() -> Package {
     let mut retval = Package::static_library(.root="lib.orng")
-    retval.>requires("core", Package::find("core"))
+    retval.>requires("core", Package::find(
+        .git((
+            .url = "https://github.com/Rakhyvel/Orng",
+            .subdir = "std/core"
+        ))
+    ))
     retval
 }

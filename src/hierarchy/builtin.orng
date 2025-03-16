@@ -47,6 +47,15 @@ const Package: Type = (
 
 const Requirement: Type = (String, &Package)
 
+const Package_Source: Type = (
+    | relative: String
+    | git: Git_Source
+)
+
+const Git_Source: Type = (url: String, subdir: String = "", reference: Git_Reference = .branch("main"))
+
+const Git_Reference: Type = (branch: String | tag: String | rev: String)
+
 impl for Package {
     /// Creates an executable package
     fn executable(root: String) -> Self { (root, .executable, "", 0) }
@@ -56,7 +65,7 @@ impl for Package {
 
     /// Finds a package given a name
     /// NOTE: This is currently implemented as a builtin-function in the compiler
-    fn find(name: String) -> &Self { _ = name; unreachable }
+    fn find(src: Package_Source) -> &Self { _ = src; unreachable }
 
     /// Adds a package to the list of required packages
     fn requires(&mut self, name: String, other: &Package) -> () {

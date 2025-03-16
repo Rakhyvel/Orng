@@ -25,7 +25,7 @@ pub var int16_type: *ast_.AST = undefined;
 pub var int32_type: *ast_.AST = undefined;
 pub var int64_type: *ast_.AST = undefined;
 pub var package_type: *ast_.AST = undefined;
-pub var addr_package_type: *ast_.AST = undefined;
+pub var package_source_type: *ast_.AST = undefined;
 pub var string_type: *ast_.AST = undefined;
 pub var type_type: *ast_.AST = undefined;
 pub var unit_type: *ast_.AST = undefined;
@@ -415,8 +415,8 @@ fn create_prelude(compiler: *Compiler_Context) !void {
     );
 
     package_type = compiler.module_scope(module.absolute_path).?.lookup("Package", .{}).found.init_value.?;
+    package_source_type = compiler.module_scope(module.absolute_path).?.lookup("Package_Source", .{}).found.init_value.?;
     _ = compiler.module_scope(module.absolute_path).?.lookup("Requirement", .{}).found.init_value.?;
-    addr_package_type = ast_.AST.create_addr_of(package_type.token(), package_type, false, false, compiler.allocator());
 }
 
 fn create_primitive_identifier(name: []const u8, allocator: std.mem.Allocator) *ast_.AST {

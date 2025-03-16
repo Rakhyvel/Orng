@@ -402,19 +402,22 @@ fn parse_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
     return self.sum_type();
 }
 
+// [|] expr {| expr}
 fn sum_type(self: *Self) Parser_Error_Enum!*ast_.AST {
+    const prefix_bar: ?Token = self.accept(.bar);
     const exp = try self.product_expr();
     var terms: ?std.ArrayList(*ast_.AST) = null;
     var firsttoken_: ?Token = null;
+    if (prefix_bar) |_prefix_bar| {
+        terms = std.ArrayList(*ast_.AST).init(self.allocator);
+        firsttoken_ = _prefix_bar;
+        terms.?.append(exp) catch unreachable;
+    }
     while (self.accept(.bar)) |token| {
         if (terms == null) {
             terms = std.ArrayList(*ast_.AST).init(self.allocator);
             firsttoken_ = token;
             terms.?.append(exp) catch unreachable;
-        }
-        if (self.peek_kind(.right_parenthesis)) {
-            // Trailing bar, break out
-            break;
         }
         terms.?.append(try self.annotation_expr()) catch unreachable;
     }
