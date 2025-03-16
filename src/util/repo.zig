@@ -1,7 +1,9 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-pub fn git_clone(repo_url: []const u8, allocator: std.mem.Allocator) error{CompileError}!void {
+const Error = error{CompileError};
+
+pub fn git_clone(repo_url: []const u8, allocator: std.mem.Allocator) Error!void {
     ensure_packages_dir_exists(allocator);
 
     if (repo_exists(repo_url, allocator)) {
