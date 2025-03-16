@@ -1,5 +1,5 @@
 // 235
-const The_Type: Type = (x:Int |)
+const The_Type: Type = (| x:Int)
 
 fn main() -> Int {
     let a = get_the_sum()

@@ -117,19 +117,19 @@ fn integrate_test_file(filename: []const u8, coverage: bool) bool {
     };
     const module_symbol = compiler.lookup_module(module.absolute_path).?;
 
-    compiler.register_package(module.package_name, module.get_package_abs_path(), false);
-    compiler.set_package_root(module.package_name, module_symbol);
+    compiler.register_package(module.get_package_abs_path(), false);
+    compiler.set_package_root(module.get_package_abs_path(), module_symbol);
 
     Codegen_Context.output_modules(compiler) catch unreachable;
 
-    compiler.lookup_package(module.package_name).?.include_directories.put(std.fs.path.dirname(absolute_filename).?, void{}) catch unreachable;
+    compiler.lookup_package(module.get_package_abs_path()).?.include_directories.put(std.fs.path.dirname(absolute_filename).?, void{}) catch unreachable;
 
     if (coverage) {
         // kcov can't call gcc, so stop JUST before it calls gcc
         return false;
     }
 
-    compiler.compile_c(module.package_name, false) catch unreachable;
+    compiler.compile(module.get_package_abs_path(), false) catch unreachable;
 
     // execute (make sure no signals)
     var output_name = String.init(allocator);

@@ -17,6 +17,8 @@ const Symbol = @import("../symbol/symbol.zig");
 
 const Self = @This();
 
+const Error = error{CompileError};
+
 /// Interpreter execution timeout in milliseconds
 const timeout_ms = 1000;
 /// Size of the stack. 32 KiB, or around 1024 stack frames.
@@ -135,7 +137,7 @@ pub fn run(
 }
 
 /// Executes an instruction within the interpreter context.
-inline fn execute_instruction(self: *Self, instr: *Instruction, compiler: *Compiler_Context) error{CompileError}!void { // This doesn't work if it's not inlined, lol!
+inline fn execute_instruction(self: *Self, instr: *Instruction, compiler: *Compiler_Context) Error!void { // This doesn't work if it's not inlined, lol!
     switch (instr.kind) {
         // Invalid instructions
         .load_extern,
@@ -325,18 +327,18 @@ inline fn execute_instruction(self: *Self, instr: *Instruction, compiler: *Compi
 
             // Intercept method calls to builtin methods
             if (symbol.represents_method(primitives_.package_type, "find")) {
-                const interned_strings = compiler.lookup_interned_string_set(self.modules.get(0).?.uid).?;
                 const arg: *lval_.L_Value = instr.data.lval_list.items[@as(usize, @intCast(0))];
-                const path_ast = try self.extract_ast(try self.effective_address(arg), primitives_.string_type, instr.span, &compiler.module_interned_strings);
+                const interned_strings = compiler.lookup_interned_string_set(self.modules.get(0).?.uid).?;
+                const src_ast = try self.extract_ast(try self.effective_address(arg), primitives_.package_source_type, instr.span, &compiler.module_interned_strings);
                 const current_module_path = (self.curr_module() catch unreachable).absolute_path;
-                const ret_addr = try self.effective_address(instr.dest.?);
-                if (builtin_.package_find(compiler, self, current_module_path, path_ast.string.data)) |package_info| {
+                if (builtin_.package_find(compiler, self, current_module_path, src_ast)) |package_info| {
                     const adrs = package_info.package_adrs;
                     // Store the directory of the package inside the package struct before returning
                     const dir_string = interned_strings.add(package_info.package_dirname, self.modules.get(0).?.uid);
                     const dir_offset = primitives_.package_type.product.get_offset_field("dir", self.allocator);
                     self.memory.store(Interned_String_Set.String_Idx, adrs + dir_offset, dir_string);
                     // Store the address of the package in the retval
+                    const ret_addr = try self.effective_address(instr.dest.?);
                     self.memory.store_int(ret_addr, 8, adrs);
                 } else |_| {
                     return self.interpreter_panic("interpreter error: cannot find package\n", .{});
@@ -435,7 +437,7 @@ pub fn alloc(self: *Self, nbytes: i64, align_to: i64) error{CompileError}!usize 
 }
 
 /// Extracts an AST value from a specified memory address in interpreter's memory, based on the given AST type.
-pub fn extract_ast(self: *Self, address: i64, _type: *ast_.AST, span: Span, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set)) error{CompileError}!*ast_.AST {
+pub fn extract_ast(self: *Self, address: i64, _type: *ast_.AST, span: Span, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set)) Error!*ast_.AST {
     // FIXME: High Cyclo
     std.debug.assert(address >= 0);
     switch (_type.*) {
@@ -531,6 +533,9 @@ pub fn extract_ast(self: *Self, address: i64, _type: *ast_.AST, span: Span, modu
             return retval;
         },
         .product => {
+            if (_type.types_match(primitives_.string_type)) {
+                return self.extract_ast(address, primitives_.string_type, span, module_interned_strings);
+            }
             var value_terms = std.ArrayList(*ast_.AST).init(self.allocator);
             errdefer value_terms.deinit();
             for (0.., _type.children().items) |i, term| {

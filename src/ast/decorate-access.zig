@@ -33,36 +33,37 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
 /// Takes in an AST and returns the symbol that it refers to. This requires looking up modules and packages, and so the
 /// compiler instance is required.
 fn resolve_qualified_name(self: Self, ast: *ast_.AST) walk_.Error!*Symbol {
-    if ((ast.* == .identifier or ast.* == .pattern_symbol) and ast.symbol().?.kind == .import) {
-        const this_module = ast.symbol().?.scope.module.?;
-        const curr_package_path = this_module.get_package_abs_path();
-        var module_path_name = String.init(self.compiler.allocator());
-        defer module_path_name.deinit();
-        module_path_name.writer().print("{s}.orng", .{ast.token().data}) catch unreachable;
-        const package_build_paths = [_][]const u8{ curr_package_path, module_path_name.str() };
-        const other_module_dir = std.fs.path.join(self.compiler.allocator(), &package_build_paths) catch unreachable;
-
-        // TODO: If these are both non-null, report the ambiguity
-        //       If these are both null, report that the module was not found
-
-        const local_module_lookup = self.compiler.lookup_module(other_module_dir);
-        const foreign_module_lookup = self.compiler.lookup_package_root_module(this_module.package_name, ast.symbol().?.kind.import.real_name);
-
-        return (local_module_lookup orelse foreign_module_lookup).?;
-    } else if ((ast.* == .identifier or ast.* == .pattern_symbol) and ast.symbol().?.kind == .module) {
-        return ast.symbol().?;
-    } else if (ast.* == .identifier) {
-        // NOT an import symbol
-        // MUST be within this module
-        // just return whatever it refers to
-        return ast.symbol().?;
-    } else if (ast.* == .access) {
-        const stripped_lhs = if (ast.lhs().* == .addr_of) ast.lhs().expr() else ast.lhs();
-        const expanded_lhs = try self.resolve_qualified_name(stripped_lhs);
-        return try self.resolve_access_symbol(expanded_lhs, ast.rhs(), ast.scope().?);
-    } else {
-        std.debug.panic("compiler error: fell through {}", .{ast});
+    switch (ast.*) {
+        .identifier, .pattern_symbol => return if (ast.symbol().?.kind == .import)
+            self.resolve_import_symbol(ast)
+        else
+            ast.symbol().?,
+        .access => {
+            const stripped_lhs = if (ast.lhs().* == .addr_of) ast.lhs().expr() else ast.lhs();
+            const expanded_lhs = try self.resolve_qualified_name(stripped_lhs);
+            return try self.resolve_access_symbol(expanded_lhs, ast.rhs(), ast.scope().?);
+        },
+        else => std.debug.panic("compiler error: fell through {}", .{ast}),
     }
+}
+
+/// Takes in an AST that refers to an import symbol, and returns the module symbol that it imports
+fn resolve_import_symbol(self: Self, ast: *ast_.AST) *Symbol {
+    const this_module = ast.symbol().?.scope.module.?;
+    const curr_package_path = this_module.get_package_abs_path();
+    var module_path_name = String.init(self.compiler.allocator());
+    defer module_path_name.deinit();
+    module_path_name.writer().print("{s}.orng", .{ast.token().data}) catch unreachable;
+    const package_build_paths = [_][]const u8{ curr_package_path, module_path_name.str() };
+    const other_module_dir = std.fs.path.join(self.compiler.allocator(), &package_build_paths) catch unreachable;
+
+    // TODO: If these are both non-null, report the ambiguity
+    //       If these are both null, report that the module was not found
+
+    const local_module_lookup = self.compiler.lookup_module(other_module_dir);
+    const foreign_module_lookup = self.compiler.lookup_package_root_module(curr_package_path, ast.symbol().?.kind.import.real_name);
+
+    return (local_module_lookup orelse foreign_module_lookup).?;
 }
 
 fn resolve_access_symbol(self: Self, lhs: *Symbol, rhs: *ast_.AST, scope: *Scope) walk_.Error!*Symbol {

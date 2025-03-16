@@ -147,13 +147,10 @@ pub const Module = struct {
     }
 
     pub fn name(self: *Module) []const u8 {
+        const basename = std.fs.path.basename(self.absolute_path);
         var i: usize = 0;
-        while (i < self.absolute_path.len and self.absolute_path[i] != '.') : (i += 1) {}
-        const full_name: []const u8 = self.absolute_path[0..i];
-        i = full_name.len - 1;
-        while (i >= 1 and full_name[i] != std.fs.path.sep) : (i -= 1) {}
-        const short_name: []const u8 = full_name[i + 1 ..];
-        return short_name;
+        while (i < basename.len and basename[i] != '.') : (i += 1) {}
+        return basename[0..i];
     }
 
     pub fn fill_contents(
@@ -176,7 +173,7 @@ pub const Module = struct {
             Apply_Layout.init(),
             Parse.init(&compiler.errors, compiler.allocator()),
             Apply_Ast_Walk(Expand).init(Expand.new(&compiler.errors, compiler.allocator())),
-            Apply_Flat_Ast_Walk(Import).init(Import.new(compiler, module.get_package_abs_path(), module.package_name, &module.local_imported_modules)),
+            Apply_Flat_Ast_Walk(Import).init(Import.new(compiler, module.get_package_abs_path(), &module.local_imported_modules)),
             Apply_Flat_Ast_Walk(Cinclude).init(Cinclude.new(&module.cincludes)),
             Apply_Ast_Walk(Symbol_Tree).init(Symbol_Tree.new(file_root, &compiler.errors, compiler.allocator())),
             Apply_Ast_Walk(Decorate).init(Decorate.new(file_root, &compiler.errors, compiler.allocator())),

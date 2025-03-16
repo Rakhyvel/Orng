@@ -7,6 +7,7 @@ const Module = @import("../hierarchy/module.zig").Module;
 const Header_Emitter = @import("header_emitter.zig");
 const Source_Emitter = @import("source_emitter.zig");
 
+/// Goes through each package and outputs a C/H file header pair for each module in each package
 pub fn output_modules(compiler: *Compiler_Context) !void {
     // Start from root module, of each package, DFS through imports and generate
     for (compiler.packages.keys()) |package_name| {
