@@ -38,7 +38,7 @@ def main():
         if len(new_community) <= 0:
             continue
         print(f"community {i}: {file_set}\n{new_community}\n")
-    # parser.print_call_graph()
+    parser.print_call_graph()
 
 
 
@@ -270,7 +270,7 @@ class Parser:
         while self.cursor < len(self.tokens):
             if self.peek() == 'fn' and is_identifier(self.peek(1)):
                 self.parse_function(filename)
-            if self.cursor < len(self.tokens): 
+            elif self.cursor < len(self.tokens):
                 self.pop()
 
     def parse_function(self, filename):
@@ -278,7 +278,7 @@ class Parser:
         
         function_name = self.peek()
 
-        # print(f'function_name: {function_name}')
+        print(f'function_name: {function_name}')
 
         if function_name not in self.functions and function_name not in ignore_calls:
             self.functions[function_name] = Function(filename)
@@ -294,7 +294,6 @@ class Parser:
                 brace_depth += 1
             elif self.peek() == '}':
                 brace_depth -= 1
-
             if is_identifier(self.peek()) and self.peek(1) == '(':
                 callee_name = self.peek()
                 # idx = -1
@@ -305,11 +304,9 @@ class Parser:
                     self.functions[function_name].children.add(callee_name)
             self.pop()
 
-    # def print_call_graph(self):
-    #     for function_name in self.functions.keys():
-    #         for callee_name in self.functions[function_name]:
-    #             # print(f'{function_name} -> {callee_name};')
-    #             pass
+    def print_call_graph(self):
+        for function_name in self.functions.keys():
+            print(function_name)
 
 
 if __name__ == '__main__':
