@@ -24,6 +24,7 @@ def calculate_cognitive_complexity(file, fn):
     token_complexity = calculate_token_cognitive_complexity(parser.functions[fn].tokens)
     call_chain = longest_call_chain(parser.digraph(), fn)
     recursion_complexity = len(call_chain) if call_chain else 0
+    print(call_chain)
     return token_complexity + recursion_complexity
 
 

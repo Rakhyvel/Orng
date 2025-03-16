@@ -17,6 +17,8 @@ const Symbol = @import("../symbol/symbol.zig");
 
 const Self = @This();
 
+const Error = error{CompileError};
+
 /// Interpreter execution timeout in milliseconds
 const timeout_ms = 1000;
 /// Size of the stack. 32 KiB, or around 1024 stack frames.
@@ -135,7 +137,7 @@ pub fn run(
 }
 
 /// Executes an instruction within the interpreter context.
-inline fn execute_instruction(self: *Self, instr: *Instruction, compiler: *Compiler_Context) error{CompileError}!void { // This doesn't work if it's not inlined, lol!
+inline fn execute_instruction(self: *Self, instr: *Instruction, compiler: *Compiler_Context) Error!void { // This doesn't work if it's not inlined, lol!
     switch (instr.kind) {
         // Invalid instructions
         .load_extern,
@@ -435,7 +437,7 @@ pub fn alloc(self: *Self, nbytes: i64, align_to: i64) error{CompileError}!usize 
 }
 
 /// Extracts an AST value from a specified memory address in interpreter's memory, based on the given AST type.
-pub fn extract_ast(self: *Self, address: i64, _type: *ast_.AST, span: Span, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set)) error{CompileError}!*ast_.AST {
+pub fn extract_ast(self: *Self, address: i64, _type: *ast_.AST, span: Span, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set)) Error!*ast_.AST {
     // FIXME: High Cyclo
     std.debug.assert(address >= 0);
     switch (_type.*) {

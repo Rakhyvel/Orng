@@ -14,9 +14,11 @@ const Error: type = error{
     FileNotFound,
 };
 
+const Package_Find_Result = struct { package_adrs: i64, package_dirname: []const u8 };
+
 /// Implements the Package::find method at build-time. Takes in a string representing the name of
 /// the package in the Orng cache, and returns an AST representing the package.
-pub fn package_find(compiler: *Compiler_Context, interpreter: *Interpreter_Context, current_module_path: []const u8, package_src: *AST) Error!struct { package_adrs: i64, package_dirname: []const u8 } {
+pub fn package_find(compiler: *Compiler_Context, interpreter: *Interpreter_Context, current_module_path: []const u8, package_src: *AST) Error!Package_Find_Result {
     // Construct the path to the package's `build.orng` file
     const package_absolute_path = switch (package_src.pos().?) {
         0 => try package_find_relative(current_module_path, package_src.sum_value.init.?, compiler.allocator()),
@@ -46,7 +48,7 @@ pub fn package_find(compiler: *Compiler_Context, interpreter: *Interpreter_Conte
     return .{ .package_adrs = adrs, .package_dirname = package_absolute_path };
 }
 
-fn package_find_relative(current_module_path: []const u8, package_src: *AST, allocator: std.mem.Allocator) error{CompileError}![]const u8 {
+fn package_find_relative(current_module_path: []const u8, package_src: *AST, allocator: std.mem.Allocator) Error![]const u8 {
     const package_path = package_src.string.data;
 
     const current_package = std.fs.path.dirname(current_module_path).?;
@@ -58,7 +60,7 @@ fn package_find_relative(current_module_path: []const u8, package_src: *AST, all
 }
 
 /// Implements `builtin::Package::find` for the git variant
-fn package_find_git(compiler: *Compiler_Context, package_src: *AST) error{CompileError}![]const u8 {
+fn package_find_git(compiler: *Compiler_Context, package_src: *AST) Error![]const u8 {
     const git_source_type = compiler.get_builtin_type("Git_Source");
     const url = package_src.get_field(git_source_type, "url");
     const subdir = package_src.get_field(git_source_type, "subdir");
