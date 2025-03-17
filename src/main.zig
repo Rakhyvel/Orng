@@ -67,7 +67,7 @@ pub fn main() !void {
 }
 
 fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {
-    try validate_env_vars(allocator);
+    // try validate_env_vars(allocator);
 
     _ = args;
     // Get the path

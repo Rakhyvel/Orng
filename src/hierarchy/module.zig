@@ -1,33 +1,23 @@
 const std = @import("std");
-const scope_validate_ = @import("../semantic/scope_validate.zig");
 const module_validate_ = @import("../semantic/module_validate.zig");
 const ast_ = @import("../ast/ast.zig");
-const args_ = @import("../semantic/args.zig");
-const Basic_Block = @import("../ir/basic-block.zig");
 const CFG = @import("../ir/cfg.zig");
 const cfg_builder_ = @import("../ir/cfg_builder.zig");
 const Cfg_Iterator = @import("../util/dfs.zig").Dfs_Iterator(*CFG);
-const codegen_ = @import("../codegen/codegen.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
-const Interpreter_Context = @import("../interpretation/interpreter.zig");
-const cfg_validate_ = @import("../semantic/cfg_validate.zig");
 const Instruction = @import("../ir/instruction.zig");
-const Lower_Context = @import("../ir/lower.zig");
-const alignment_ = @import("../util/alignment.zig");
-const optimizations_ = @import("../ir/optimizations.zig");
 const pipeline_ = @import("../util/pipeline.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const Span = @import("../util/span.zig");
-const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
 const Type_Set = @import("../ast/type-set.zig");
-const walker_ = @import("../ast/walker.zig");
 
 // Front-end pipeline steps
 const Read_File = @import("../lexer/read_file.zig");
+const Hash = @import("../lexer/hash.zig");
 const Split_Lines = @import("../lexer/split_lines.zig");
 const Tokenize = @import("../lexer/tokenize.zig");
 const Apply_Layout = @import("../lexer/apply_layout.zig");
@@ -92,6 +82,9 @@ pub const Module = struct {
 
     /// Allocator for the module
     allocator: std.mem.Allocator,
+
+    /// The hash of the contents, used to track changes
+    hash: u64,
 
     pub fn init(absolute_path: []const u8, allocator: std.mem.Allocator) *Module {
         var retval = allocator.create(Module) catch unreachable;
@@ -168,6 +161,7 @@ pub const Module = struct {
         // Setup and run the front-end pipeline
         _ = try pipeline_.run(in_name, .{
             Read_File.init(compiler.allocator()),
+            Hash.init(&module.hash),
             Split_Lines.init(&compiler.errors, compiler.allocator()),
             Tokenize.init(in_name, &compiler.errors, fuzz_tokens, compiler.allocator()),
             Apply_Layout.init(),

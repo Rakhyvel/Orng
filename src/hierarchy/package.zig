@@ -2,6 +2,7 @@ const std = @import("std");
 const module_ = @import("../hierarchy/module.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
+const Module_Hash = @import("module_hash.zig");
 
 const Package = @This();
 
@@ -17,6 +18,8 @@ library_directories: std.StringArrayHashMap(void),
 libraries: std.StringArrayHashMap(void),
 is_static_lib: bool,
 visited: bool,
+module_hash: Module_Hash,
+modified: bool,
 
 pub fn new(allocator: std.mem.Allocator, package_absolute_path: []const u8, is_static_lib: bool) *Package {
     const package = allocator.create(Package) catch unreachable;
@@ -31,6 +34,8 @@ pub fn new(allocator: std.mem.Allocator, package_absolute_path: []const u8, is_s
     package.name = std.fs.path.basename(package_absolute_path);
     package.absolute_path = package_absolute_path;
     package.is_static_lib = is_static_lib;
+    package.module_hash = Module_Hash.init(package_absolute_path, allocator) catch unreachable;
+    package.modified = false;
     return package;
 }
 
@@ -49,6 +54,15 @@ pub fn compile(self: *Package, packages: std.StringArrayHashMap(*Package), extra
     }
 
     const obj_files = try self.compile_obj_files(packages, extra_flags, allocator);
+    self.module_hash.output_new_json();
+
+    if (!self.is_static_lib) {
+        self.set_executable_name(allocator);
+    }
+
+    if (!self.modified) {
+        return;
+    }
 
     if (self.is_static_lib) {
         try self.ar(obj_files, allocator);
@@ -60,6 +74,23 @@ pub fn compile(self: *Package, packages: std.StringArrayHashMap(*Package), extra
 fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !std.ArrayList([]const u8) {
     var obj_files = std.ArrayList([]const u8).init(allocator);
     for (self.local_modules.items) |local_module| {
+        // Append the o filename to the obj files list, even if this isn't compiled!
+        var o_file = String.init(allocator);
+        o_file.writer().print("{s}.o", .{local_module.name()}) catch unreachable;
+        obj_files.append(o_file.str()) catch unreachable;
+
+        // Check to see if we need to compile the C file to an object file based on the hash
+        const old_hash = self.module_hash.get_module_stored_hash(local_module.name());
+        const local_module_number_string = std.fmt.allocPrint(allocator, "{X}", .{local_module.hash}) catch unreachable;
+        if (old_hash != null and std.mem.eql(u8, local_module_number_string, old_hash.?)) {
+            // No need to compile!
+            continue;
+        }
+
+        // We'll need to compile! :(
+        // Set the new hash in the JSON, and invoke the cc command to compile the module's C file to an object file
+        self.modified = true;
+        try self.module_hash.set_module_hash(local_module.name(), local_module_number_string, allocator);
         var c_file = String.init(allocator);
         c_file.writer().print("{s}{c}build{c}{s}-{s}.c", .{
             self.absolute_path,
@@ -68,10 +99,6 @@ fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package),
             self.name,
             local_module.name(),
         }) catch unreachable;
-
-        var o_file = String.init(allocator);
-        o_file.writer().print("{s}.o", .{local_module.name()}) catch unreachable;
-        obj_files.append(o_file.str()) catch unreachable;
 
         try self.cc(c_file.str(), o_file.str(), packages, extra_flags, allocator);
     }
@@ -278,9 +305,7 @@ fn ar(self: *Package, obj_files: std.ArrayList([]const u8), allocator: std.mem.A
     }
 }
 
-/// Runs the command to link the object files of a package into an executable
-fn executable(self: *Package, obj_files: std.ArrayList([]const u8), packages: std.StringArrayHashMap(*Package), allocator: std.mem.Allocator) !void {
-    const cmd = try self.construct_exe_cc_cmd(obj_files, packages, allocator);
+fn set_executable_name(self: *Package, allocator: std.mem.Allocator) void {
     var output_absolute_path = String.init(allocator);
     output_absolute_path.writer().print("{s}{c}build{c}{s}", .{
         self.absolute_path,
@@ -289,6 +314,11 @@ fn executable(self: *Package, obj_files: std.ArrayList([]const u8), packages: st
         self.name,
     }) catch unreachable;
     self.output_absolute_path = output_absolute_path.str();
+}
+
+/// Runs the command to link the object files of a package into an executable
+fn executable(self: *Package, obj_files: std.ArrayList([]const u8), packages: std.StringArrayHashMap(*Package), allocator: std.mem.Allocator) !void {
+    const cmd = try self.construct_exe_cc_cmd(obj_files, packages, allocator);
 
     // print_cmd(&cmd);
 

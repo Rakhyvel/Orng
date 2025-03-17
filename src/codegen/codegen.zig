@@ -17,8 +17,9 @@ pub fn output_modules(compiler: *Compiler_Context) !void {
         const package_path = module.get_package_abs_path();
         const build_paths = [_][]const u8{ package_path, "build" };
         const build_path = std.fs.path.join(compiler.allocator(), &build_paths) catch unreachable;
-        std.fs.deleteTreeAbsolute(build_path) catch unreachable;
-        std.fs.makeDirAbsolute(build_path) catch unreachable;
+        _ = std.fs.openDirAbsolute(build_path, .{}) catch {
+            std.fs.makeDirAbsolute(build_path) catch unreachable;
+        };
 
         var dfs_iter: Module_Iterator = Module_Iterator.init(module, compiler.allocator());
         defer dfs_iter.deinit();
@@ -29,7 +30,13 @@ pub fn output_modules(compiler: *Compiler_Context) !void {
 }
 
 /// Takes in a statically correct symbol tree, writes it out to a file
-fn output(module: *Module, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set), build_path: []const u8, local_modules: *std.ArrayList(*Module), allocator: std.mem.Allocator) !void {
+fn output(
+    module: *Module,
+    module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set),
+    build_path: []const u8,
+    local_modules: *std.ArrayList(*Module),
+    allocator: std.mem.Allocator,
+) !void {
     local_modules.append(module) catch unreachable;
 
     var output_h_filename = String.init(allocator);
