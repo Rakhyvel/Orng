@@ -4,6 +4,8 @@ const Compiler_Context = @import("hierarchy/compiler.zig");
 const Codegen_Context = @import("codegen/codegen.zig");
 const errs_ = @import("util/errors.zig");
 const Interpreter_Context = @import("interpretation/interpreter.zig");
+const Package_Iterator = @import("util/dfs.zig").Dfs_Iterator(Package_Iterator_Node);
+const Package_Iterator_Node = @import("hierarchy/package.zig").Package_Iterator_Node;
 const primitives_ = @import("hierarchy/primitives.zig");
 const Span = @import("util/span.zig");
 const String = @import("zig-string/zig-string.zig").String;
@@ -68,41 +70,15 @@ pub fn main() !void {
 }
 
 fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {
-    // try validate_env_vars(allocator);
-
     _ = args;
-    // Get the path
-    const build_path_buffer = std.heap.page_allocator.alloc(u8, std.fs.max_path_bytes) catch unreachable;
-    defer std.heap.page_allocator.free(build_path_buffer);
-
-    const build_path = std.fs.cwd().realpath("build.orng", build_path_buffer) catch |err| switch (err) {
-        error.FileNotFound => {
-            (errs_.Error{ .basic = .{
-                .msg = "no `build.orng` file found in current working directory",
-                .span = Span.phony,
-            } }).fatal_error();
-        },
-        else => return error.CompileError,
-    };
-
     var compiler = try Compiler_Context.init(allocator);
     defer compiler.deinit();
-    var interpreter = Interpreter_Context.init(&compiler.errors, compiler.allocator());
-    defer interpreter.deinit();
-
-    const package_dag = try run_build_orng(compiler, &interpreter, build_path);
-
-    const cwd_buffer = compiler.allocator().alloc(u8, std.fs.max_path_bytes) catch unreachable;
-    const package_abs_path = std.fs.cwd().realpath(".", cwd_buffer) catch unreachable;
-    _ = try make_package(package_dag, compiler, &interpreter, package_abs_path, "main");
-
+    const package_abs_path = try construct_package_dag(compiler);
     compiler.propagate_include_directories(package_abs_path);
     compiler.collect_package_local_modules();
     compiler.determine_if_modified(package_abs_path);
     try Codegen_Context.output_modules(compiler);
     try compiler.compile(package_abs_path, false);
-
-    std.debug.print("done\n", .{});
 
     if (std.mem.eql(u8, name, "run")) {
         try run(compiler, package_abs_path, allocator);
@@ -359,7 +335,47 @@ pub fn init_project(name: []const u8, args: *std.process.ArgIterator, allocator:
 fn clean(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {
     _ = name;
     _ = args;
-    _ = allocator;
 
     // TODO: Find the package's `build/` and just delete it
+    var compiler = try Compiler_Context.init(allocator);
+    defer compiler.deinit();
+    const package_abs_path = try construct_package_dag(compiler);
+
+    var dfs_iter: Package_Iterator = Package_Iterator.init(Package_Iterator_Node.init(compiler, package_abs_path), compiler.allocator());
+    defer dfs_iter.deinit();
+    while (dfs_iter.next()) |package_node| {
+        const build_path = package_node.package.get_build_path(allocator);
+        std.debug.print("cleaning {s}\n", .{build_path});
+        std.fs.deleteTreeAbsolute(build_path) catch |err| switch (err) {
+            error.FileNotFound => {}, // This is ok!
+            else => std.debug.panic("{}\n", .{err}),
+        };
+    }
+}
+
+fn construct_package_dag(compiler: *Compiler_Context) Command_Error![]const u8 {
+    // try validate_env_vars(allocator);
+    const build_path_buffer = std.heap.page_allocator.alloc(u8, std.fs.max_path_bytes) catch unreachable;
+    defer std.heap.page_allocator.free(build_path_buffer);
+
+    const build_path = std.fs.cwd().realpath("build.orng", build_path_buffer) catch |err| switch (err) {
+        error.FileNotFound => {
+            (errs_.Error{ .basic = .{
+                .msg = "no `build.orng` file found in current working directory",
+                .span = Span.phony,
+            } }).fatal_error();
+        },
+        else => return error.CompileError,
+    };
+
+    var interpreter = Interpreter_Context.init(&compiler.errors, compiler.allocator());
+    defer interpreter.deinit();
+
+    const package_dag = try run_build_orng(compiler, &interpreter, build_path);
+
+    const cwd_buffer = compiler.allocator().alloc(u8, std.fs.max_path_bytes) catch unreachable;
+    const package_abs_path = std.fs.cwd().realpath(".", cwd_buffer) catch unreachable;
+    _ = try make_package(package_dag, compiler, &interpreter, package_abs_path, "main");
+
+    return package_abs_path;
 }

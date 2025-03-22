@@ -14,9 +14,7 @@ pub fn output_modules(compiler: *Compiler_Context) !void {
         const package = compiler.lookup_package(package_name).?;
         const package_root_module = package.root.init_value.?.module.module;
 
-        const package_path = package_root_module.get_package_abs_path();
-        const build_paths = [_][]const u8{ package_path, "build" };
-        const build_path = std.fs.path.join(compiler.allocator(), &build_paths) catch unreachable;
+        const build_path = package.get_build_path(compiler.allocator());
         _ = std.fs.openDirAbsolute(build_path, .{}) catch {
             std.fs.makeDirAbsolute(build_path) catch unreachable;
         };

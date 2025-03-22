@@ -22,6 +22,33 @@ visited: bool,
 module_hash: Module_Hash,
 modified: ?bool,
 
+pub const Package_Iterator_Node = struct {
+    compiler: *Compiler_Context,
+    package: *Package,
+
+    pub fn init(compiler: *Compiler_Context, package_abs_path: []const u8) Package_Iterator_Node {
+        const package = compiler.lookup_package(package_abs_path).?;
+        return Package_Iterator_Node{ .compiler = compiler, .package = package };
+    }
+
+    pub fn get_adjacent(self: *Package_Iterator_Node) []Package_Iterator_Node {
+        var list = std.ArrayList(Package_Iterator_Node).init(self.compiler.allocator());
+
+        for (self.package.requirements.keys()) |requirement_name| {
+            const requirement_root_module_symbol = self.package.requirements.get(requirement_name);
+            const requirement_root_module = requirement_root_module_symbol.?.init_value.?.module.module;
+            const requirement_root_abs_path = requirement_root_module.get_package_abs_path();
+            list.append(Package_Iterator_Node.init(self.compiler, requirement_root_abs_path)) catch unreachable;
+        }
+
+        return list.toOwnedSlice() catch unreachable;
+    }
+
+    pub fn free_adjacent(self: *Package_Iterator_Node, adj: []Package_Iterator_Node) void {
+        self.compiler.allocator().free(adj);
+    }
+};
+
 pub fn new(allocator: std.mem.Allocator, package_absolute_path: []const u8, is_static_lib: bool) *Package {
     const package = allocator.create(Package) catch unreachable;
     package.root = undefined; // filled in later
@@ -38,6 +65,13 @@ pub fn new(allocator: std.mem.Allocator, package_absolute_path: []const u8, is_s
     package.module_hash = Module_Hash.init(package_absolute_path, allocator) catch unreachable;
     package.modified = null;
     return package;
+}
+
+pub fn get_build_path(self: *Package, allocator: std.mem.Allocator) []const u8 {
+    const package_root_module = self.root.init_value.?.module.module;
+    const package_path = package_root_module.get_package_abs_path();
+    const build_paths = [_][]const u8{ package_path, "build" };
+    return std.fs.path.join(allocator, &build_paths) catch unreachable;
 }
 
 /// A package is modified if:

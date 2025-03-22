@@ -38,6 +38,14 @@ pub fn Dfs_Iterator(comptime T: type) type {
                 }
             }
 
+            // If the type allows us to free the adjacency slice, free it.
+            if (@typeInfo(T) == .@"struct" and @hasDecl(T, "free_adjacent")) {
+                self.current.?.free_adjacent(adjacent);
+                // Side note: this sucks! If only zig had traits!
+            } else if (@typeInfo(T) == .pointer and @typeInfo(@typeInfo(T).pointer.child) == .@"struct" and @hasDecl(@typeInfo(T).pointer.child, "free_adjacent")) {
+                self.current.?.free_adjacent(adjacent);
+            }
+
             // Advance to the next value
             self.current = null;
             while (self.stack.pop()) |next_val| {

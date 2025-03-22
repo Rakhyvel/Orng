@@ -81,7 +81,6 @@ pub fn compile_module(
         return module;
     }
 
-    std.debug.print("  compiling {s}/{s}...\n", .{ std.fs.path.basename(std.fs.path.dirname(absolute_path).?), std.fs.path.basename(absolute_path) });
     const module = Module.compile(absolute_path, entry_name, fuzz_tokens, self) catch |err| {
         switch (err) {
             // Always print these errors for fuzz testing
