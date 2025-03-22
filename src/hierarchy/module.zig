@@ -1,33 +1,24 @@
 const std = @import("std");
-const scope_validate_ = @import("../semantic/scope_validate.zig");
 const module_validate_ = @import("../semantic/module_validate.zig");
 const ast_ = @import("../ast/ast.zig");
-const args_ = @import("../semantic/args.zig");
-const Basic_Block = @import("../ir/basic-block.zig");
 const CFG = @import("../ir/cfg.zig");
 const cfg_builder_ = @import("../ir/cfg_builder.zig");
 const Cfg_Iterator = @import("../util/dfs.zig").Dfs_Iterator(*CFG);
-const codegen_ = @import("../codegen/codegen.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
-const Interpreter_Context = @import("../interpretation/interpreter.zig");
-const cfg_validate_ = @import("../semantic/cfg_validate.zig");
 const Instruction = @import("../ir/instruction.zig");
-const Lower_Context = @import("../ir/lower.zig");
-const alignment_ = @import("../util/alignment.zig");
-const optimizations_ = @import("../ir/optimizations.zig");
 const pipeline_ = @import("../util/pipeline.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const Span = @import("../util/span.zig");
-const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
+const Module_Hash = @import("module_hash.zig");
 const Token = @import("../lexer/token.zig");
 const Type_Set = @import("../ast/type-set.zig");
-const walker_ = @import("../ast/walker.zig");
 
 // Front-end pipeline steps
 const Read_File = @import("../lexer/read_file.zig");
+const Hash = @import("../lexer/hash.zig");
 const Split_Lines = @import("../lexer/split_lines.zig");
 const Tokenize = @import("../lexer/tokenize.zig");
 const Apply_Layout = @import("../lexer/apply_layout.zig");
@@ -63,7 +54,7 @@ pub const Module = struct {
     // The name of the package this module belongs to
     package_name: []const u8,
 
-    // List of local modules that are imported
+    /// Set of local modules that are imported
     local_imported_modules: std.AutoArrayHashMap(*Module, void),
 
     // Set of C headers to include
@@ -93,6 +84,11 @@ pub const Module = struct {
     /// Allocator for the module
     allocator: std.mem.Allocator,
 
+    /// The hash of the contents, used to track changes
+    hash: u64,
+
+    modified: ?bool,
+
     pub fn init(absolute_path: []const u8, allocator: std.mem.Allocator) *Module {
         var retval = allocator.create(Module) catch unreachable;
         retval.uid = module_uids;
@@ -109,6 +105,7 @@ pub const Module = struct {
         retval.cfgs = std.ArrayList(*CFG).init(allocator);
         retval.type_set = Type_Set.init(allocator);
         retval.entry = null;
+        retval.modified = null;
         return retval;
     }
 
@@ -146,7 +143,7 @@ pub const Module = struct {
         return module;
     }
 
-    pub fn name(self: *Module) []const u8 {
+    pub fn name(self: *const Module) []const u8 {
         const basename = std.fs.path.basename(self.absolute_path);
         var i: usize = 0;
         while (i < basename.len and basename[i] != '.') : (i += 1) {}
@@ -163,11 +160,12 @@ pub const Module = struct {
         compiler: *Compiler_Context,
     ) Module_Errors!void {
         compiler.register_interned_string_set(module.uid);
-        compiler.modules.put(module.absolute_path, module_symbol) catch unreachable;
+        compiler.register_module(module.absolute_path, module_symbol);
 
         // Setup and run the front-end pipeline
         _ = try pipeline_.run(in_name, .{
             Read_File.init(compiler.allocator()),
+            Hash.init(&module.hash),
             Split_Lines.init(&compiler.errors, compiler.allocator()),
             Tokenize.init(in_name, &compiler.errors, fuzz_tokens, compiler.allocator()),
             Apply_Layout.init(),
@@ -179,6 +177,7 @@ pub const Module = struct {
             Apply_Ast_Walk(Decorate).init(Decorate.new(file_root, &compiler.errors, compiler.allocator())),
             Apply_Ast_Walk(Decorate_Access).init(Decorate_Access.new(file_root, &compiler.errors, compiler)),
         });
+
         // Perform checks and collections on the module
         try module_validate_.validate(module, compiler);
         compiler.module_scope(module.absolute_path).?.collect_traits_and_impls(&module.traits, &module.impls);
@@ -285,5 +284,30 @@ pub const Module = struct {
         for (self.instructions.items) |instr| {
             std.debug.print("{}", .{instr});
         }
+    }
+
+    /// A module is modified if:
+    /// - Its hash differs from what is stored in the package's json file
+    /// - Any of the module it imports have been modified
+    pub fn determine_if_modified(self: *Module, compiler: *Compiler_Context) void {
+        if (self.modified != null) {
+            return;
+        }
+
+        const module_hashes = compiler.lookup_package(self.get_package_abs_path()).?.module_hash;
+        const old_hash = module_hashes.get_module_stored_hash(self.name());
+        const local_module_number_string = std.fmt.allocPrint(compiler.allocator(), "{X}", .{self.hash}) catch unreachable;
+        defer compiler.allocator().free(local_module_number_string);
+        self.modified = (old_hash == null) or !std.mem.eql(u8, local_module_number_string, old_hash.?);
+
+        for (self.local_imported_modules.keys()) |imported_module| {
+            imported_module.determine_if_modified(compiler);
+            self.modified = imported_module.modified.? or self.modified.?;
+        }
+    }
+
+    pub fn update_module_hash(self: *const Module, module_hash: *Module_Hash, allocator: std.mem.Allocator) !void {
+        const local_module_number_string = std.fmt.allocPrint(allocator, "{X}", .{self.hash}) catch unreachable;
+        try module_hash.set_module_hash(self.name(), local_module_number_string, allocator);
     }
 };

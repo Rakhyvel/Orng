@@ -83,11 +83,13 @@ fn output_forward_typedefs(self: *Self) CodeGen_Error!void {
     }
 
     // Forward declare all structs/unions
-    for (self.module.type_set.types.items) |dag| {
-        if (dag.base.* == .product or dag.base.* == .sum_type) {
-            try self.writer.print("struct {s}_struct{};\n", .{ self.module.package_name, dag.uid });
-        } else if (dag.base.* == .dyn_type) {
-            try self.writer.print("struct {s}_dyn{};\n", .{ self.module.package_name, dag.uid });
+    for (self.module.type_set.types.items) |dep| {
+        if (dep.base.* == .product or dep.base.* == .sum_type) {
+            try self.emitter.output_struct_name(dep);
+            try self.writer.print(";\n", .{});
+        } else if (dep.base.* == .dyn_type) {
+            try self.emitter.output_dyn_name(dep);
+            try self.writer.print(";\n", .{});
         }
     }
 }
@@ -106,26 +108,28 @@ fn output_typedefs(self: *Self) CodeGen_Error!void {
 }
 
 /// Outputs a typedef declaration based on the provided `DAG`.
-fn output_typedef(self: *Self, dag: *Dependency_Node) CodeGen_Error!void {
+fn output_typedef(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
     // FIXME: High Cyclo
-    if (dag.visited) {
+    if (dep.visited) {
         // only visit a DAG node once
         return;
     }
-    dag.mark_visited();
+    dep.mark_visited();
 
     // output any types that this type depends on
-    for (dag.dependencies.items) |depen| {
+    for (dep.dependencies.items) |depen| {
         try self.output_typedef(depen);
     }
 
-    if (dag.base.* == .function) {
+    if (dep.base.* == .function) {
         try self.writer.print("typedef ", .{});
-        try self.emitter.output_type(dag.base.rhs());
-        try self.writer.print("(*{s}_function{})(", .{ self.module.package_name, dag.uid });
-        if (dag.base.lhs().* == .product) {
+        try self.emitter.output_type(dep.base.rhs());
+        try self.writer.print("(*", .{});
+        try self.emitter.output_function_name(dep);
+        try self.writer.print(")(", .{});
+        if (dep.base.lhs().* == .product) {
             // Function pointer takes more than one argument
-            const product = dag.base.lhs();
+            const product = dep.base.lhs();
             for (product.children().items, 0..) |term, i| {
                 if (!term.is_c_void_type()) {
                     // Do not output `void` parameters
@@ -137,29 +141,33 @@ fn output_typedef(self: *Self, dag: *Dependency_Node) CodeGen_Error!void {
             }
         } else {
             // Function pointer takes one argument
-            try self.emitter.output_type(dag.base.lhs());
+            try self.emitter.output_type(dep.base.lhs());
         }
         try self.writer.print(");\n\n", .{});
-    } else if (dag.base.* == .product) {
-        try self.writer.print("struct {s}_struct{} {{\n", .{ self.module.package_name, dag.uid });
-        try self.output_field_list(dag.base.children(), 4);
+    } else if (dep.base.* == .product) {
+        try self.emitter.output_struct_name(dep);
+        try self.writer.print(" {{\n", .{});
+        try self.output_field_list(dep.base.children(), 4);
         try self.writer.print("}};\n\n", .{});
-    } else if (dag.base.* == .sum_type) {
-        try self.writer.print("struct {s}_struct{} {{\n    uint64_t tag;\n", .{ self.module.package_name, dag.uid });
-        if (!dag.base.sum_type.is_all_unit()) {
+    } else if (dep.base.* == .sum_type) {
+        try self.emitter.output_struct_name(dep);
+        try self.writer.print(" {{\n    uint64_t tag;\n", .{});
+        if (!dep.base.sum_type.is_all_unit()) {
             try self.writer.print("    union {{\n", .{});
-            try self.output_field_list(dag.base.children(), 8);
+            try self.output_field_list(dep.base.children(), 8);
             try self.writer.print("    }};\n", .{});
         }
         try self.writer.print("}};\n\n", .{});
-    } else if (dag.base.* == .untagged_sum_type) {
-        try self.writer.print("union {s}_union{} {{\n", .{ self.module.package_name, dag.uid });
-        if (!dag.base.expr().sum_type.is_all_unit()) {
-            try self.output_field_list(dag.base.children(), 4);
+    } else if (dep.base.* == .untagged_sum_type) {
+        try self.emitter.output_untagged_sum_name(dep);
+        try self.writer.print(" {{\n", .{});
+        if (!dep.base.expr().sum_type.is_all_unit()) {
+            try self.output_field_list(dep.base.children(), 4);
         }
         try self.writer.print("}};\n\n", .{});
-    } else if (dag.base.* == .dyn_type) {
-        try self.writer.print("struct {s}_dyn{} {{\n    void* data_ptr;\n    struct vtable_{s}", .{ self.module.package_name, dag.uid, dag.base.expr().symbol().?.name });
+    } else if (dep.base.* == .dyn_type) {
+        try self.emitter.output_dyn_name(dep);
+        try self.writer.print(" {{\n    void* data_ptr;\n    struct vtable_{s}", .{dep.base.expr().symbol().?.name});
         try self.writer.print("* vtable;\n}};\n\n", .{});
     }
 }

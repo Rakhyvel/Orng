@@ -1,12 +1,6 @@
-extern const putchar: Byte -> Int32
-
-fn print(s: String) -> () {
-    while let mut i = 0; i < s.length; i += 1 {
-        _ = putchar(s[i])
-    }
-}
+import printfns
 
 fn println(s: String) -> () {
-    print(s)
-    print("\n")
+    printfns::print(s)
+    printfns::print("\n")
 }

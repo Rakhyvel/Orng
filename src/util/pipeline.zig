@@ -27,6 +27,9 @@ fn run_inner(previous_value: anytype, pipeline: anytype, comptime step_index: us
     var step = @field(pipeline, field.name);
 
     // Run the step on the previous value
+    if (!@hasDecl(@TypeOf(step), "run")) {
+        @compileError(std.fmt.comptimePrint("the step `{}` does not have a public run() method!", .{@TypeOf(step)}));
+    }
     const run_result = try step.run(previous_value);
 
     if (step_index + 1 == fields.len) {

@@ -7,9 +7,11 @@ pub fn git_clone(repo_url: []const u8, allocator: std.mem.Allocator) Error!void 
     ensure_packages_dir_exists(allocator);
 
     if (repo_exists(repo_url, allocator)) {
-        std.debug.print("{s} already exists\n", .{repo_url});
         return;
     }
+
+    const cwd = get_packages_dir(allocator);
+    std.debug.print("cloning package `{s}`\n", .{repo_url});
 
     var cmd = std.ArrayList([]const u8).init(allocator);
     cmd.appendSlice(&[_][]const u8{
@@ -22,7 +24,7 @@ pub fn git_clone(repo_url: []const u8, allocator: std.mem.Allocator) Error!void 
     const run_res = std.process.Child.run(.{
         .allocator = allocator,
         .argv = cmd.items,
-        .cwd = get_packages_dir(allocator),
+        .cwd = cwd,
     }) catch unreachable;
 
     var retcode: u8 = 0;

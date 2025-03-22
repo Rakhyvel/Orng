@@ -5,28 +5,12 @@ pub fn Dfs_Iterator(comptime T: type) type {
         const Self = @This();
         current: ?T,
 
-        backlog: ?[]T,
-        backlog_idx: usize,
-
         stack: std.ArrayList(T),
         visited: std.AutoHashMap(T, void),
 
         pub fn init(start: T, allocator: std.mem.Allocator) Self {
             return Self{
                 .current = start,
-                .backlog = null,
-                .backlog_idx = 0,
-                .stack = std.ArrayList(T).init(allocator),
-                .visited = std.AutoHashMap(T, void).init(allocator),
-            };
-        }
-
-        pub fn init_many(starts: []T, allocator: std.mem.Allocator) Self {
-            std.debug.assert(starts.len > 0);
-            return Self{
-                .current = starts[0],
-                .backlog = starts,
-                .backlog_idx = 0,
                 .stack = std.ArrayList(T).init(allocator),
                 .visited = std.AutoHashMap(T, void).init(allocator),
             };
@@ -49,9 +33,17 @@ pub fn Dfs_Iterator(comptime T: type) type {
             // We do a visited check here to avoid revisiting vertices
             const adjacent: []T = self.current.?.get_adjacent();
             for (adjacent) |target| {
-                if (self.visited.contains(target)) {
+                if (!self.visited.contains(target)) {
                     self.stack.append(target) catch unreachable;
                 }
+            }
+
+            // If the type allows us to free the adjacency slice, free it.
+            if (@typeInfo(T) == .@"struct" and @hasDecl(T, "free_adjacent")) {
+                self.current.?.free_adjacent(adjacent);
+                // Side note: this sucks! If only zig had traits!
+            } else if (@typeInfo(T) == .pointer and @typeInfo(@typeInfo(T).pointer.child) == .@"struct" and @hasDecl(@typeInfo(T).pointer.child, "free_adjacent")) {
+                self.current.?.free_adjacent(adjacent);
             }
 
             // Advance to the next value
@@ -60,17 +52,6 @@ pub fn Dfs_Iterator(comptime T: type) type {
                 if (!self.visited.contains(next_val)) {
                     self.current = next_val;
                     break;
-                }
-            }
-
-            // If still null, advance backlog
-            if (self.backlog) |backlog| {
-                while (self.backlog_idx < backlog.len) : (self.backlog_idx += 1) {
-                    const backlog_val = backlog[self.backlog_idx];
-                    if (!self.visited.contains(backlog_val)) {
-                        self.current = backlog_val;
-                        break;
-                    }
                 }
             }
 

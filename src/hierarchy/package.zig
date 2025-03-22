@@ -1,7 +1,9 @@
 const std = @import("std");
-const module_ = @import("../hierarchy/module.zig");
+const Module = @import("../hierarchy/module.zig").Module;
+const Compiler_Context = @import("compiler.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
+const Module_Hash = @import("module_hash.zig");
 
 const Package = @This();
 
@@ -9,7 +11,7 @@ name: []const u8,
 absolute_path: []const u8,
 output_absolute_path: []const u8,
 root: *Symbol,
-local_modules: std.ArrayList(*module_.Module),
+local_modules: std.ArrayList(*Module),
 /// Maps the names of required packages, relative to this package, to the symbol of their root module
 requirements: std.StringArrayHashMap(*Symbol),
 include_directories: std.StringArrayHashMap(void),
@@ -17,6 +19,35 @@ library_directories: std.StringArrayHashMap(void),
 libraries: std.StringArrayHashMap(void),
 is_static_lib: bool,
 visited: bool,
+module_hash: Module_Hash,
+modified: ?bool,
+
+pub const Package_Iterator_Node = struct {
+    compiler: *Compiler_Context,
+    package: *Package,
+
+    pub fn init(compiler: *Compiler_Context, package_abs_path: []const u8) Package_Iterator_Node {
+        const package = compiler.lookup_package(package_abs_path).?;
+        return Package_Iterator_Node{ .compiler = compiler, .package = package };
+    }
+
+    pub fn get_adjacent(self: *Package_Iterator_Node) []Package_Iterator_Node {
+        var list = std.ArrayList(Package_Iterator_Node).init(self.compiler.allocator());
+
+        for (self.package.requirements.keys()) |requirement_name| {
+            const requirement_root_module_symbol = self.package.requirements.get(requirement_name);
+            const requirement_root_module = requirement_root_module_symbol.?.init_value.?.module.module;
+            const requirement_root_abs_path = requirement_root_module.get_package_abs_path();
+            list.append(Package_Iterator_Node.init(self.compiler, requirement_root_abs_path)) catch unreachable;
+        }
+
+        return list.toOwnedSlice() catch unreachable;
+    }
+
+    pub fn free_adjacent(self: *Package_Iterator_Node, adj: []Package_Iterator_Node) void {
+        self.compiler.allocator().free(adj);
+    }
+};
 
 pub fn new(allocator: std.mem.Allocator, package_absolute_path: []const u8, is_static_lib: bool) *Package {
     const package = allocator.create(Package) catch unreachable;
@@ -26,12 +57,66 @@ pub fn new(allocator: std.mem.Allocator, package_absolute_path: []const u8, is_s
     package.include_directories = std.StringArrayHashMap(void).init(allocator);
     package.library_directories = std.StringArrayHashMap(void).init(allocator);
     package.libraries = std.StringArrayHashMap(void).init(allocator);
-    package.local_modules = std.ArrayList(*module_.Module).init(allocator);
+    package.local_modules = std.ArrayList(*Module).init(allocator);
     package.visited = false;
     package.name = std.fs.path.basename(package_absolute_path);
     package.absolute_path = package_absolute_path;
     package.is_static_lib = is_static_lib;
+    package.module_hash = Module_Hash.init(package_absolute_path, allocator) catch unreachable;
+    package.modified = null;
     return package;
+}
+
+pub fn get_build_path(self: *const Package, allocator: std.mem.Allocator) []const u8 {
+    const package_root_module = self.root.init_value.?.module.module;
+    const package_path = package_root_module.get_package_abs_path();
+    const build_paths = [_][]const u8{ package_path, "build" };
+    return std.fs.path.join(allocator, &build_paths) catch unreachable;
+}
+
+pub fn get_build_module_absolute_path(self: *const Package, allocator: std.mem.Allocator) []const u8 {
+    const package_root_module = self.root.init_value.?.module.module;
+    const package_path = package_root_module.get_package_abs_path();
+    const build_paths = [_][]const u8{ package_path, "build.orng" };
+    return std.fs.path.join(allocator, &build_paths) catch unreachable;
+}
+
+pub fn get_build_module(self: *const Package, compiler: *Compiler_Context) ?*Module {
+    const build_module_absolute_path = self.get_build_module_absolute_path(compiler.allocator());
+    const build_module_symbol = compiler.lookup_module(build_module_absolute_path) orelse return null;
+    return build_module_symbol.init_value.?.module.module;
+}
+
+/// A package is modified if:
+/// - Any of its modules are modified
+/// - Any of its dependencies are modified
+pub fn determine_if_modified(self: *Package, packages: std.StringArrayHashMap(*Package), compiler: *Compiler_Context) !void {
+    if (self.modified != null) {
+        return;
+    }
+    self.modified = false;
+
+    // Check if any packages are modified
+    for (self.requirements.keys()) |requirement_name| {
+        const requirement_root_module_symbol = self.requirements.get(requirement_name);
+        const requirement_root_module = requirement_root_module_symbol.?.init_value.?.module.module;
+        const requirement_root_abs_path = requirement_root_module.get_package_abs_path();
+        const required_package: *Package = packages.get(requirement_root_abs_path).?;
+        try required_package.determine_if_modified(packages, compiler);
+        self.modified = required_package.modified.? or self.modified.?;
+    }
+
+    if (self.get_build_module(compiler)) |build_module| {
+        build_module.determine_if_modified(compiler);
+        try build_module.update_module_hash(&self.module_hash, compiler.allocator());
+        self.modified = build_module.modified.? or self.modified.?;
+    }
+
+    // Check if any modules are modified
+    for (self.local_modules.items) |local_module| {
+        local_module.determine_if_modified(compiler);
+        self.modified = local_module.modified.? or self.modified.?;
+    }
 }
 
 pub fn compile(self: *Package, packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !void {
@@ -49,17 +134,39 @@ pub fn compile(self: *Package, packages: std.StringArrayHashMap(*Package), extra
     }
 
     const obj_files = try self.compile_obj_files(packages, extra_flags, allocator);
+    self.module_hash.output_new_json(allocator);
 
-    if (self.is_static_lib) {
-        try self.ar(obj_files, allocator);
-    } else {
-        try self.executable(obj_files, packages, allocator);
+    if (!self.is_static_lib) {
+        self.set_executable_name(allocator);
+    }
+
+    if (self.modified.?) {
+        if (self.is_static_lib) {
+            try self.ar(obj_files, allocator);
+        } else {
+            try self.executable(obj_files, packages, allocator);
+        }
     }
 }
 
 fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !std.ArrayList([]const u8) {
     var obj_files = std.ArrayList([]const u8).init(allocator);
     for (self.local_modules.items) |local_module| {
+        if (!std.mem.eql(u8, local_module.get_package_abs_path(), self.absolute_path)) {
+            return obj_files;
+        }
+
+        // Append the o filename to the obj files list, even if this isn't compiled!
+        var o_file = String.init(allocator);
+        o_file.writer().print("{s}.o", .{local_module.name()}) catch unreachable;
+        obj_files.append(o_file.str()) catch unreachable;
+        try local_module.update_module_hash(&self.module_hash, allocator);
+
+        if (!local_module.modified.?) {
+            // No need to re-compile!
+            continue;
+        }
+
         var c_file = String.init(allocator);
         c_file.writer().print("{s}{c}build{c}{s}-{s}.c", .{
             self.absolute_path,
@@ -68,10 +175,6 @@ fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package),
             self.name,
             local_module.name(),
         }) catch unreachable;
-
-        var o_file = String.init(allocator);
-        o_file.writer().print("{s}.o", .{local_module.name()}) catch unreachable;
-        obj_files.append(o_file.str()) catch unreachable;
 
         try self.cc(c_file.str(), o_file.str(), packages, extra_flags, allocator);
     }
@@ -100,6 +203,7 @@ fn cc(
     allocator: std.mem.Allocator,
 ) !void {
     const cc_cmd = try self.construct_obj_cc_cmd(c_file, o_file, packages, extra_flags, allocator);
+    print_cmd(&cc_cmd);
 
     var cwd_string = String.init(allocator);
     cwd_string.writer().print("{s}{c}build", .{ self.absolute_path, std.fs.path.sep }) catch unreachable;
@@ -195,7 +299,6 @@ fn construct_obj_cc_cmd(
     self.append_requirements_includes(&cc_cmd, packages, allocator);
     self.append_self_includes(&cc_cmd, allocator);
 
-    // print_cmd(&cc_cmd);
     return cc_cmd;
 }
 
@@ -248,12 +351,11 @@ fn ar(self: *Package, obj_files: std.ArrayList([]const u8), allocator: std.mem.A
     // Add all the object files
     cmd.appendSlice(obj_files.items) catch unreachable;
 
-    // print_cmd(&cmd);
-
     // Set cwd
     var cwd_string = String.init(allocator);
     cwd_string.writer().print("{s}{c}build", .{ self.absolute_path, std.fs.path.sep }) catch unreachable;
 
+    print_cmd(&cmd);
     const run_res = std.process.Child.run(.{
         .allocator = allocator,
         .argv = cmd.items,
@@ -278,9 +380,7 @@ fn ar(self: *Package, obj_files: std.ArrayList([]const u8), allocator: std.mem.A
     }
 }
 
-/// Runs the command to link the object files of a package into an executable
-fn executable(self: *Package, obj_files: std.ArrayList([]const u8), packages: std.StringArrayHashMap(*Package), allocator: std.mem.Allocator) !void {
-    const cmd = try self.construct_exe_cc_cmd(obj_files, packages, allocator);
+fn set_executable_name(self: *Package, allocator: std.mem.Allocator) void {
     var output_absolute_path = String.init(allocator);
     output_absolute_path.writer().print("{s}{c}build{c}{s}", .{
         self.absolute_path,
@@ -289,13 +389,17 @@ fn executable(self: *Package, obj_files: std.ArrayList([]const u8), packages: st
         self.name,
     }) catch unreachable;
     self.output_absolute_path = output_absolute_path.str();
+}
 
-    // print_cmd(&cmd);
+/// Runs the command to link the object files of a package into an executable
+fn executable(self: *Package, obj_files: std.ArrayList([]const u8), packages: std.StringArrayHashMap(*Package), allocator: std.mem.Allocator) !void {
+    const cmd = try self.construct_exe_cc_cmd(obj_files, packages, allocator);
 
     // Set cwd
     var cwd_string = String.init(allocator);
     cwd_string.writer().print("{s}{c}build", .{ self.absolute_path, std.fs.path.sep }) catch unreachable;
 
+    print_cmd(&cmd);
     const run_res = std.process.Child.run(.{
         .allocator = allocator,
         .argv = cmd.items,
@@ -386,9 +490,12 @@ fn append_requirement_link(
     }
 }
 
+const debug: bool = false;
 fn print_cmd(cmd: *const std.ArrayList([]const u8)) void {
-    for (cmd.items) |item| {
-        std.debug.print("{s} ", .{item});
+    if (debug) {
+        for (cmd.items) |item| {
+            std.debug.print("{s} ", .{item});
+        }
+        std.debug.print("\n", .{});
     }
-    std.debug.print("\n", .{});
 }

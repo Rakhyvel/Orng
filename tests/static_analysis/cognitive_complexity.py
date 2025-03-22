@@ -55,7 +55,6 @@ control_flow_tokens = [
     "or",
     "and",
     "orelse",
-    "try",
     "break",
     "continue",
     "return",
