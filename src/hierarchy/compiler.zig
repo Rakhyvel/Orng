@@ -3,7 +3,8 @@ const AST = @import("../ast/ast.zig").AST;
 const CFG = @import("../ir/cfg.zig");
 const errs_ = @import("../util/errors.zig");
 const Interned_String_Set = @import("../ir/interned_string_set.zig");
-const module_ = @import("../hierarchy/module.zig");
+const Module = @import("../hierarchy/module.zig").Module;
+const Module_Iterator = @import("../util/dfs.zig").Dfs_Iterator(*Module);
 const Package = @import("../hierarchy/package.zig");
 const poison_ = @import("../ast/poison.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
@@ -81,7 +82,7 @@ pub fn compile_module(
     }
 
     std.debug.print("  compiling {s}/{s}...\n", .{ std.fs.path.basename(std.fs.path.dirname(absolute_path).?), std.fs.path.basename(absolute_path) });
-    const module = module_.Module.compile(absolute_path, entry_name, fuzz_tokens, self) catch |err| {
+    const module = Module.compile(absolute_path, entry_name, fuzz_tokens, self) catch |err| {
         switch (err) {
             // Always print these errors for fuzz testing
             error.LexerError,
@@ -166,6 +167,31 @@ pub fn propagate_include_directories(self: *Self, root_package_absolute_path: []
     std.debug.assert(std.fs.path.isAbsolute(root_package_absolute_path));
     const package = self.lookup_package(root_package_absolute_path).?;
     package.append_include_dir(self.packages, &package.include_directories);
+}
+
+pub fn collect_package_local_modules(self: *Self) void {
+    for (self.packages.keys()) |package_name| {
+        const package = self.lookup_package(package_name).?;
+        const module = package.root.init_value.?.module.module;
+
+        const package_path = module.get_package_abs_path();
+        const build_paths = [_][]const u8{ package_path, "build" };
+        const build_path = std.fs.path.join(self.allocator(), &build_paths) catch unreachable;
+        _ = std.fs.openDirAbsolute(build_path, .{}) catch {
+            std.fs.makeDirAbsolute(build_path) catch unreachable;
+        };
+
+        var dfs_iter: Module_Iterator = Module_Iterator.init(module, self.allocator());
+        defer dfs_iter.deinit();
+        while (dfs_iter.next()) |next_module| {
+            package.local_modules.append(next_module) catch unreachable;
+        }
+    }
+}
+
+pub fn determine_if_modified(self: *Self, root_package_absolute_path: []const u8) void {
+    const package = self.lookup_package(root_package_absolute_path).?;
+    package.determine_if_modified(self.packages, self);
 }
 
 pub fn compile(self: *Self, root_package_absolute_path: []const u8, extra_flags: bool) !void {

@@ -63,6 +63,8 @@ fn resolve_import_symbol(self: Self, ast: *ast_.AST) *Symbol {
     const local_module_lookup = self.compiler.lookup_module(other_module_dir);
     const foreign_module_lookup = self.compiler.lookup_package_root_module(curr_package_path, ast.symbol().?.kind.import.real_name);
 
+    // TODO: This doesn't work when we do:
+    //   import module::member
     return (local_module_lookup orelse foreign_module_lookup).?;
 }
 

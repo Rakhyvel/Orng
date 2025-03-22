@@ -1,5 +1,6 @@
 const std = @import("std");
 const module_ = @import("../hierarchy/module.zig");
+const Compiler_Context = @import("compiler.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
 const Module_Hash = @import("module_hash.zig");
@@ -19,7 +20,7 @@ libraries: std.StringArrayHashMap(void),
 is_static_lib: bool,
 visited: bool,
 module_hash: Module_Hash,
-modified: bool,
+modified: ?bool,
 
 pub fn new(allocator: std.mem.Allocator, package_absolute_path: []const u8, is_static_lib: bool) *Package {
     const package = allocator.create(Package) catch unreachable;
@@ -35,8 +36,33 @@ pub fn new(allocator: std.mem.Allocator, package_absolute_path: []const u8, is_s
     package.absolute_path = package_absolute_path;
     package.is_static_lib = is_static_lib;
     package.module_hash = Module_Hash.init(package_absolute_path, allocator) catch unreachable;
-    package.modified = false;
+    package.modified = null;
     return package;
+}
+
+/// A package is modified if:
+/// - Any of its modules are modified
+/// - Any of its dependencies are modified
+pub fn determine_if_modified(self: *Package, packages: std.StringArrayHashMap(*Package), compiler: *Compiler_Context) void {
+    if (self.modified != null) {
+        return;
+    }
+    self.modified = false;
+
+    // Check if any packages are modified
+    for (self.requirements.keys()) |requirement_name| {
+        const requirement_root_module_symbol = self.requirements.get(requirement_name);
+        const requirement_root_module = requirement_root_module_symbol.?.init_value.?.module.module;
+        const requirement_root_abs_path = requirement_root_module.get_package_abs_path();
+        const required_package: *Package = packages.get(requirement_root_abs_path).?;
+        required_package.determine_if_modified(packages, compiler);
+        self.modified = required_package.modified.? or self.modified.?;
+    }
+
+    // Check if any modules are modified
+    for (self.local_modules.items) |local_module| {
+        local_module.determine_if_modified(compiler);
+    }
 }
 
 pub fn compile(self: *Package, packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !void {
@@ -54,20 +80,18 @@ pub fn compile(self: *Package, packages: std.StringArrayHashMap(*Package), extra
     }
 
     const obj_files = try self.compile_obj_files(packages, extra_flags, allocator);
-    self.module_hash.output_new_json();
+    self.module_hash.output_new_json(allocator);
 
     if (!self.is_static_lib) {
         self.set_executable_name(allocator);
     }
 
-    if (!self.modified) {
-        return;
-    }
-
-    if (self.is_static_lib) {
-        try self.ar(obj_files, allocator);
-    } else {
-        try self.executable(obj_files, packages, allocator);
+    if (!self.modified.?) {
+        if (self.is_static_lib) {
+            try self.ar(obj_files, allocator);
+        } else {
+            try self.executable(obj_files, packages, allocator);
+        }
     }
 }
 
@@ -78,19 +102,14 @@ fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package),
         var o_file = String.init(allocator);
         o_file.writer().print("{s}.o", .{local_module.name()}) catch unreachable;
         obj_files.append(o_file.str()) catch unreachable;
-
-        // Check to see if we need to compile the C file to an object file based on the hash
-        const old_hash = self.module_hash.get_module_stored_hash(local_module.name());
         const local_module_number_string = std.fmt.allocPrint(allocator, "{X}", .{local_module.hash}) catch unreachable;
-        if (old_hash != null and std.mem.eql(u8, local_module_number_string, old_hash.?)) {
-            // No need to compile!
+        try self.module_hash.set_module_hash(local_module.name(), local_module_number_string, allocator);
+
+        if (!local_module.modified.?) {
+            // No need to re-compile!
             continue;
         }
 
-        // We'll need to compile! :(
-        // Set the new hash in the JSON, and invoke the cc command to compile the module's C file to an object file
-        self.modified = true;
-        try self.module_hash.set_module_hash(local_module.name(), local_module_number_string, allocator);
         var c_file = String.init(allocator);
         c_file.writer().print("{s}{c}build{c}{s}-{s}.c", .{
             self.absolute_path,
@@ -127,6 +146,7 @@ fn cc(
     allocator: std.mem.Allocator,
 ) !void {
     const cc_cmd = try self.construct_obj_cc_cmd(c_file, o_file, packages, extra_flags, allocator);
+    print_cmd(&cc_cmd);
 
     var cwd_string = String.init(allocator);
     cwd_string.writer().print("{s}{c}build", .{ self.absolute_path, std.fs.path.sep }) catch unreachable;
@@ -222,7 +242,6 @@ fn construct_obj_cc_cmd(
     self.append_requirements_includes(&cc_cmd, packages, allocator);
     self.append_self_includes(&cc_cmd, allocator);
 
-    // print_cmd(&cc_cmd);
     return cc_cmd;
 }
 
@@ -275,12 +294,11 @@ fn ar(self: *Package, obj_files: std.ArrayList([]const u8), allocator: std.mem.A
     // Add all the object files
     cmd.appendSlice(obj_files.items) catch unreachable;
 
-    // print_cmd(&cmd);
-
     // Set cwd
     var cwd_string = String.init(allocator);
     cwd_string.writer().print("{s}{c}build", .{ self.absolute_path, std.fs.path.sep }) catch unreachable;
 
+    print_cmd(&cmd);
     const run_res = std.process.Child.run(.{
         .allocator = allocator,
         .argv = cmd.items,
@@ -320,12 +338,11 @@ fn set_executable_name(self: *Package, allocator: std.mem.Allocator) void {
 fn executable(self: *Package, obj_files: std.ArrayList([]const u8), packages: std.StringArrayHashMap(*Package), allocator: std.mem.Allocator) !void {
     const cmd = try self.construct_exe_cc_cmd(obj_files, packages, allocator);
 
-    // print_cmd(&cmd);
-
     // Set cwd
     var cwd_string = String.init(allocator);
     cwd_string.writer().print("{s}{c}build", .{ self.absolute_path, std.fs.path.sep }) catch unreachable;
 
+    print_cmd(&cmd);
     const run_res = std.process.Child.run(.{
         .allocator = allocator,
         .argv = cmd.items,

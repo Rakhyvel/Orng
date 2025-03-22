@@ -95,9 +95,10 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     const package_abs_path = std.fs.cwd().realpath(".", cwd_buffer) catch unreachable;
     _ = try make_package(package_dag, compiler, &interpreter, package_abs_path, "main");
 
-    try Codegen_Context.output_modules(compiler);
-
     compiler.propagate_include_directories(package_abs_path);
+    compiler.collect_package_local_modules();
+    compiler.determine_if_modified(package_abs_path);
+    try Codegen_Context.output_modules(compiler);
     try compiler.compile(package_abs_path, false);
 
     std.debug.print("done\n", .{});

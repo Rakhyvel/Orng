@@ -12,6 +12,7 @@ const primitives_ = @import("../hierarchy/primitives.zig");
 const Span = @import("../util/span.zig");
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
+const Module_Hash = @import("module_hash.zig");
 const Token = @import("../lexer/token.zig");
 const Type_Set = @import("../ast/type-set.zig");
 
@@ -53,7 +54,7 @@ pub const Module = struct {
     // The name of the package this module belongs to
     package_name: []const u8,
 
-    // List of local modules that are imported
+    /// Set of local modules that are imported
     local_imported_modules: std.AutoArrayHashMap(*Module, void),
 
     // Set of C headers to include
@@ -86,6 +87,8 @@ pub const Module = struct {
     /// The hash of the contents, used to track changes
     hash: u64,
 
+    modified: ?bool,
+
     pub fn init(absolute_path: []const u8, allocator: std.mem.Allocator) *Module {
         var retval = allocator.create(Module) catch unreachable;
         retval.uid = module_uids;
@@ -102,6 +105,7 @@ pub const Module = struct {
         retval.cfgs = std.ArrayList(*CFG).init(allocator);
         retval.type_set = Type_Set.init(allocator);
         retval.entry = null;
+        retval.modified = null;
         return retval;
     }
 
@@ -173,6 +177,7 @@ pub const Module = struct {
             Apply_Ast_Walk(Decorate).init(Decorate.new(file_root, &compiler.errors, compiler.allocator())),
             Apply_Ast_Walk(Decorate_Access).init(Decorate_Access.new(file_root, &compiler.errors, compiler)),
         });
+
         // Perform checks and collections on the module
         try module_validate_.validate(module, compiler);
         compiler.module_scope(module.absolute_path).?.collect_traits_and_impls(&module.traits, &module.impls);
@@ -278,6 +283,26 @@ pub const Module = struct {
     pub fn print_instructions(self: *Module) void {
         for (self.instructions.items) |instr| {
             std.debug.print("{}", .{instr});
+        }
+    }
+
+    /// A module is modified if:
+    /// - Its hash differs from what is stored in the package's json file
+    /// - Any of the module it imports have been modified
+    pub fn determine_if_modified(self: *Module, compiler: *Compiler_Context) void {
+        if (self.modified != null) {
+            return;
+        }
+
+        const module_hashes = compiler.lookup_package(self.get_package_abs_path()).?.module_hash;
+        const old_hash = module_hashes.get_module_stored_hash(self.name());
+        const local_module_number_string = std.fmt.allocPrint(compiler.allocator(), "{X}", .{self.hash}) catch unreachable;
+        defer compiler.allocator().free(local_module_number_string);
+        self.modified = (old_hash == null) or !std.mem.eql(u8, local_module_number_string, old_hash.?);
+
+        for (self.local_imported_modules.keys()) |imported_module| {
+            imported_module.determine_if_modified(compiler);
+            self.modified = imported_module.modified.? or self.modified.?;
         }
     }
 };
