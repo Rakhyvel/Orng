@@ -62,6 +62,7 @@ pub fn determine_if_modified(self: *Package, packages: std.StringArrayHashMap(*P
     // Check if any modules are modified
     for (self.local_modules.items) |local_module| {
         local_module.determine_if_modified(compiler);
+        self.modified = local_module.modified.? or self.modified.?;
     }
 }
 
@@ -86,7 +87,7 @@ pub fn compile(self: *Package, packages: std.StringArrayHashMap(*Package), extra
         self.set_executable_name(allocator);
     }
 
-    if (!self.modified.?) {
+    if (self.modified.?) {
         if (self.is_static_lib) {
             try self.ar(obj_files, allocator);
         } else {
@@ -98,6 +99,10 @@ pub fn compile(self: *Package, packages: std.StringArrayHashMap(*Package), extra
 fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !std.ArrayList([]const u8) {
     var obj_files = std.ArrayList([]const u8).init(allocator);
     for (self.local_modules.items) |local_module| {
+        if (!std.mem.eql(u8, local_module.get_package_abs_path(), self.absolute_path)) {
+            return obj_files;
+        }
+
         // Append the o filename to the obj files list, even if this isn't compiled!
         var o_file = String.init(allocator);
         o_file.writer().print("{s}.o", .{local_module.name()}) catch unreachable;

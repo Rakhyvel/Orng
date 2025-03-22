@@ -3,6 +3,7 @@ const AST = @import("../ast/ast.zig").AST;
 const CFG = @import("../ir/cfg.zig");
 const Module = @import("../hierarchy/module.zig").Module;
 const primitives_ = @import("../hierarchy/primitives.zig");
+const Dependency_Node = @import("../ast/dependency_node.zig");
 const Symbol = @import("../symbol/symbol.zig");
 
 const Writer = std.fs.File.Writer;
@@ -47,25 +48,45 @@ pub fn output_type(self: *Self, _type: *AST) CodeGen_Error!void {
         },
         .anyptr_type => try self.writer.print("void", .{}),
         .function => {
-            const type_uid = self.module.type_set.get(_type).?.uid;
-            try self.writer.print("{s}_function{}", .{ self.module.package_name, type_uid });
+            const dep = self.module.type_set.get(_type).?;
+            try self.output_function_name(dep);
         },
         .sum_type, .product => {
-            const type_uid = self.module.type_set.get(_type).?.uid;
-            try self.writer.print("struct {s}_struct{}", .{ self.module.package_name, type_uid });
+            const dep = self.module.type_set.get(_type).?;
+            try self.output_struct_name(dep);
         },
         .untagged_sum_type => {
-            const type_uid = self.module.type_set.get(_type).?.uid;
-            try self.writer.print("union {s}_union{}", .{ self.module.package_name, type_uid });
+            const dep = self.module.type_set.get(_type).?;
+            try self.output_untagged_sum_name(dep);
         },
         .dyn_type => {
-            const type_uid = self.module.type_set.get(_type).?.uid;
-            try self.writer.print("struct {s}_dyn{}", .{ self.module.package_name, type_uid });
+            const dep = self.module.type_set.get(_type).?;
+            try self.output_dyn_name(dep);
         },
         .unit_type => try self.writer.print("void", .{}),
         .annotation => try self.output_type(_type.annotation.type),
         else => std.debug.panic("compiler error: unimplemented output_type() for {?}", .{_type.*}),
     }
+}
+
+pub fn output_function_name(self: *Self, dep: *const Dependency_Node) CodeGen_Error!void {
+    const type_uid = dep.uid;
+    try self.writer.print("{s}_{s}_function{}", .{ self.module.package_name, self.module.name(), type_uid });
+}
+
+pub fn output_struct_name(self: *Self, dep: *const Dependency_Node) CodeGen_Error!void {
+    const type_uid = dep.uid;
+    try self.writer.print("struct {s}_{s}_struct{}", .{ self.module.package_name, self.module.name(), type_uid });
+}
+
+pub fn output_dyn_name(self: *Self, dep: *const Dependency_Node) CodeGen_Error!void {
+    const type_uid = dep.uid;
+    try self.writer.print("struct {s}_{s}_dyn{}", .{ self.module.package_name, self.module.name(), type_uid });
+}
+
+pub fn output_untagged_sum_name(self: *Self, dep: *const Dependency_Node) CodeGen_Error!void {
+    const type_uid = dep.uid;
+    try self.writer.print("union {s}_{s}_union{}", .{ self.module.package_name, self.module.name(), type_uid });
 }
 
 /// Applies a function to all CFGs in a list of CFGs.

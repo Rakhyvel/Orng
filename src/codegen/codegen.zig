@@ -24,7 +24,9 @@ pub fn output_modules(compiler: *Compiler_Context) !void {
         var dfs_iter: Module_Iterator = Module_Iterator.init(package_root_module, compiler.allocator());
         defer dfs_iter.deinit();
         while (dfs_iter.next()) |module| {
-            try output(module, &compiler.module_interned_strings, build_path, compiler.allocator());
+            if (std.mem.eql(u8, module.get_package_abs_path(), package.absolute_path)) {
+                try output(module, &compiler.module_interned_strings, build_path, compiler.allocator());
+            }
         }
     }
 }

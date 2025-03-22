@@ -10,7 +10,7 @@ const String = @import("zig-string/zig-string.zig").String;
 const Symbol = @import("symbol/symbol.zig");
 
 const version_year: usize = 25;
-const version_month: usize = 1;
+const version_month: usize = 3;
 const version_minor: ?usize = null;
 
 pub const Command_Error: type = error{ LexerError, ParseError, CompileError, FileError, FileNotFound };
@@ -26,6 +26,7 @@ const Command_Entry: type = struct {
 // Keep these in alphabetical order
 const command_table = [_]Command_Entry{
     Command_Entry{ .name = "build", .help = "Builds an Orng package", .func = build },
+    Command_Entry{ .name = "clean", .help = "Clears the build cache, and forces a complete rebuild of the Orng package", .func = clean },
     Command_Entry{ .name = "_fuzz_tokens", .help = "Builds an Orng package with fuzz tokens", .func = build },
     Command_Entry{ .name = "help", .help = "Prints this help menu", .func = help },
     Command_Entry{ .name = "init", .help = "Creates two files, one containing a sample Hello World program and a file to allow for it to be built", .func = init_project },
@@ -353,4 +354,12 @@ pub fn init_project(name: []const u8, args: *std.process.ArgIterator, allocator:
         \\}
     ;
     build_orng.writer().writeAll(build_content) catch return error.FileError;
+}
+
+fn clean(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {
+    _ = name;
+    _ = args;
+    _ = allocator;
+
+    // TODO: Find the package's `build/` and just delete it
 }
