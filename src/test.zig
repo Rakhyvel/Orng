@@ -117,23 +117,29 @@ fn integrate_test_file(filename: []const u8, coverage: bool) bool {
     };
     const module_symbol = compiler.lookup_module(module.absolute_path).?;
 
-    compiler.register_package(module.get_package_abs_path(), false);
-    compiler.set_package_root(module.get_package_abs_path(), module_symbol);
+    const package_abs_path = module.get_package_abs_path();
+    compiler.register_package(package_abs_path, false);
+    compiler.set_package_root(package_abs_path, module_symbol);
+    compiler.lookup_package(package_abs_path).?.include_directories.put(std.fs.path.dirname(absolute_filename).?, void{}) catch unreachable;
 
+    compiler.propagate_include_directories(package_abs_path);
+    compiler.collect_package_local_modules();
+    try compiler.determine_if_modified(package_abs_path);
+
+    const package = compiler.lookup_package(package_abs_path).?;
+    package.modified = true;
     Codegen_Context.output_modules(compiler) catch unreachable;
-
-    compiler.lookup_package(module.get_package_abs_path()).?.include_directories.put(std.fs.path.dirname(absolute_filename).?, void{}) catch unreachable;
 
     if (coverage) {
         // kcov can't call gcc, so stop JUST before it calls gcc
         return false;
     }
 
-    compiler.compile(module.get_package_abs_path(), false) catch unreachable;
+    compiler.compile(package_abs_path, false) catch unreachable;
 
     // execute (make sure no signals)
     var output_name = String.init(allocator);
-    output_name.writer().print("{s}/build/{s}", .{ module.get_package_abs_path(), module.package_name }) catch unreachable;
+    output_name.writer().print("{s}/build/{s}", .{ package_abs_path, module.package_name }) catch unreachable;
     const res = exec(&[_][]const u8{output_name.str()}) catch |e| {
         get_std_out().print("{?}\n", .{e}) catch unreachable;
         term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out()) catch unreachable;

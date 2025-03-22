@@ -81,9 +81,9 @@ pub fn get_build_module_absolute_path(self: *const Package, allocator: std.mem.A
     return std.fs.path.join(allocator, &build_paths) catch unreachable;
 }
 
-pub fn get_build_module(self: *const Package, compiler: *Compiler_Context) *Module {
+pub fn get_build_module(self: *const Package, compiler: *Compiler_Context) ?*Module {
     const build_module_absolute_path = self.get_build_module_absolute_path(compiler.allocator());
-    const build_module_symbol = compiler.lookup_module(build_module_absolute_path).?;
+    const build_module_symbol = compiler.lookup_module(build_module_absolute_path) orelse return null;
     return build_module_symbol.init_value.?.module.module;
 }
 
@@ -106,10 +106,11 @@ pub fn determine_if_modified(self: *Package, packages: std.StringArrayHashMap(*P
         self.modified = required_package.modified.? or self.modified.?;
     }
 
-    const build_module = self.get_build_module(compiler);
-    build_module.determine_if_modified(compiler);
-    try build_module.update_module_hash(&self.module_hash, compiler.allocator());
-    self.modified = build_module.modified.? or self.modified.?;
+    if (self.get_build_module(compiler)) |build_module| {
+        build_module.determine_if_modified(compiler);
+        try build_module.update_module_hash(&self.module_hash, compiler.allocator());
+        self.modified = build_module.modified.? or self.modified.?;
+    }
 
     // Check if any modules are modified
     for (self.local_modules.items) |local_module| {
@@ -489,9 +490,12 @@ fn append_requirement_link(
     }
 }
 
+const debug: bool = false;
 fn print_cmd(cmd: *const std.ArrayList([]const u8)) void {
-    for (cmd.items) |item| {
-        std.debug.print("{s} ", .{item});
+    if (debug) {
+        for (cmd.items) |item| {
+            std.debug.print("{s} ", .{item});
+        }
+        std.debug.print("\n", .{});
     }
-    std.debug.print("\n", .{});
 }
