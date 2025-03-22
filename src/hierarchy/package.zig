@@ -1,5 +1,5 @@
 const std = @import("std");
-const module_ = @import("../hierarchy/module.zig");
+const Module = @import("../hierarchy/module.zig").Module;
 const Compiler_Context = @import("compiler.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
@@ -11,7 +11,7 @@ name: []const u8,
 absolute_path: []const u8,
 output_absolute_path: []const u8,
 root: *Symbol,
-local_modules: std.ArrayList(*module_.Module),
+local_modules: std.ArrayList(*Module),
 /// Maps the names of required packages, relative to this package, to the symbol of their root module
 requirements: std.StringArrayHashMap(*Symbol),
 include_directories: std.StringArrayHashMap(void),
@@ -57,7 +57,7 @@ pub fn new(allocator: std.mem.Allocator, package_absolute_path: []const u8, is_s
     package.include_directories = std.StringArrayHashMap(void).init(allocator);
     package.library_directories = std.StringArrayHashMap(void).init(allocator);
     package.libraries = std.StringArrayHashMap(void).init(allocator);
-    package.local_modules = std.ArrayList(*module_.Module).init(allocator);
+    package.local_modules = std.ArrayList(*Module).init(allocator);
     package.visited = false;
     package.name = std.fs.path.basename(package_absolute_path);
     package.absolute_path = package_absolute_path;
@@ -67,17 +67,30 @@ pub fn new(allocator: std.mem.Allocator, package_absolute_path: []const u8, is_s
     return package;
 }
 
-pub fn get_build_path(self: *Package, allocator: std.mem.Allocator) []const u8 {
+pub fn get_build_path(self: *const Package, allocator: std.mem.Allocator) []const u8 {
     const package_root_module = self.root.init_value.?.module.module;
     const package_path = package_root_module.get_package_abs_path();
     const build_paths = [_][]const u8{ package_path, "build" };
     return std.fs.path.join(allocator, &build_paths) catch unreachable;
 }
 
+pub fn get_build_module_absolute_path(self: *const Package, allocator: std.mem.Allocator) []const u8 {
+    const package_root_module = self.root.init_value.?.module.module;
+    const package_path = package_root_module.get_package_abs_path();
+    const build_paths = [_][]const u8{ package_path, "build.orng" };
+    return std.fs.path.join(allocator, &build_paths) catch unreachable;
+}
+
+pub fn get_build_module(self: *const Package, compiler: *Compiler_Context) *Module {
+    const build_module_absolute_path = self.get_build_module_absolute_path(compiler.allocator());
+    const build_module_symbol = compiler.lookup_module(build_module_absolute_path).?;
+    return build_module_symbol.init_value.?.module.module;
+}
+
 /// A package is modified if:
 /// - Any of its modules are modified
 /// - Any of its dependencies are modified
-pub fn determine_if_modified(self: *Package, packages: std.StringArrayHashMap(*Package), compiler: *Compiler_Context) void {
+pub fn determine_if_modified(self: *Package, packages: std.StringArrayHashMap(*Package), compiler: *Compiler_Context) !void {
     if (self.modified != null) {
         return;
     }
@@ -89,9 +102,14 @@ pub fn determine_if_modified(self: *Package, packages: std.StringArrayHashMap(*P
         const requirement_root_module = requirement_root_module_symbol.?.init_value.?.module.module;
         const requirement_root_abs_path = requirement_root_module.get_package_abs_path();
         const required_package: *Package = packages.get(requirement_root_abs_path).?;
-        required_package.determine_if_modified(packages, compiler);
+        try required_package.determine_if_modified(packages, compiler);
         self.modified = required_package.modified.? or self.modified.?;
     }
+
+    const build_module = self.get_build_module(compiler);
+    build_module.determine_if_modified(compiler);
+    try build_module.update_module_hash(&self.module_hash, compiler.allocator());
+    self.modified = build_module.modified.? or self.modified.?;
 
     // Check if any modules are modified
     for (self.local_modules.items) |local_module| {
@@ -141,8 +159,7 @@ fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package),
         var o_file = String.init(allocator);
         o_file.writer().print("{s}.o", .{local_module.name()}) catch unreachable;
         obj_files.append(o_file.str()) catch unreachable;
-        const local_module_number_string = std.fmt.allocPrint(allocator, "{X}", .{local_module.hash}) catch unreachable;
-        try self.module_hash.set_module_hash(local_module.name(), local_module_number_string, allocator);
+        try local_module.update_module_hash(&self.module_hash, allocator);
 
         if (!local_module.modified.?) {
             // No need to re-compile!

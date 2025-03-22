@@ -110,6 +110,10 @@ pub fn lookup_module(self: *Self, absolute_path: []const u8) ?*Symbol {
     return self.modules.get(absolute_path);
 }
 
+pub fn register_module(self: *Self, absolute_path: []const u8, module: *Symbol) void {
+    self.modules.put(absolute_path, module) catch unreachable;
+}
+
 pub fn module_scope(self: *Self, absolute_path: []const u8) ?*Scope {
     const module_symbol = self.lookup_module(absolute_path) orelse return null;
     return module_symbol.init_value.?.scope();
@@ -188,9 +192,9 @@ pub fn collect_package_local_modules(self: *Self) void {
     }
 }
 
-pub fn determine_if_modified(self: *Self, root_package_absolute_path: []const u8) void {
+pub fn determine_if_modified(self: *Self, root_package_absolute_path: []const u8) !void {
     const package = self.lookup_package(root_package_absolute_path).?;
-    package.determine_if_modified(self.packages, self);
+    try package.determine_if_modified(self.packages, self);
 }
 
 pub fn compile(self: *Self, root_package_absolute_path: []const u8, extra_flags: bool) !void {

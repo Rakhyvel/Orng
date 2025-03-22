@@ -143,7 +143,7 @@ pub const Module = struct {
         return module;
     }
 
-    pub fn name(self: *Module) []const u8 {
+    pub fn name(self: *const Module) []const u8 {
         const basename = std.fs.path.basename(self.absolute_path);
         var i: usize = 0;
         while (i < basename.len and basename[i] != '.') : (i += 1) {}
@@ -160,7 +160,7 @@ pub const Module = struct {
         compiler: *Compiler_Context,
     ) Module_Errors!void {
         compiler.register_interned_string_set(module.uid);
-        compiler.modules.put(module.absolute_path, module_symbol) catch unreachable;
+        compiler.register_module(module.absolute_path, module_symbol);
 
         // Setup and run the front-end pipeline
         _ = try pipeline_.run(in_name, .{
@@ -304,5 +304,10 @@ pub const Module = struct {
             imported_module.determine_if_modified(compiler);
             self.modified = imported_module.modified.? or self.modified.?;
         }
+    }
+
+    pub fn update_module_hash(self: *const Module, module_hash: *Module_Hash, allocator: std.mem.Allocator) !void {
+        const local_module_number_string = std.fmt.allocPrint(allocator, "{X}", .{self.hash}) catch unreachable;
+        try module_hash.set_module_hash(self.name(), local_module_number_string, allocator);
     }
 };
