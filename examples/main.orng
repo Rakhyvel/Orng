@@ -2,7 +2,8 @@ import std::debug
 import std::ffi
 import externs
 
-fn main() -> () {
+fn main() -> ()!() {
     debug::println("Hello, World!")
-    externs::println("Hello, World!")
+    externs::println("Hello, World f!")
+    .err({})
 }

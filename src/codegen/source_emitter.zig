@@ -179,17 +179,30 @@ fn output_main_function(self: *Self) CodeGen_Error!void {
         try self.emitter.output_symbol(symbol);
         try self.writer.print("(){s});", .{string_access});
     } else {
+        if (codomain.* == .sum_type and codomain.sum_type.from == .@"error") {
+            try self.emitter.output_type(codomain);
+            try self.writer.print(" retcode = ", .{});
+        }
         try self.emitter.output_symbol(symbol);
         try self.writer.print(
             \\();
             \\
         , .{});
     }
-    try self.writer.print(
-        \\  return 0;
-        \\}}
-        \\
-    , .{});
+
+    if (codomain.* == .sum_type and codomain.sum_type.from == .@"error") {
+        try self.writer.print(
+            \\  return retcode.tag;
+            \\}}
+            \\
+        , .{});
+    } else {
+        try self.writer.print(
+            \\  return 0;
+            \\}}
+            \\
+        , .{});
+    }
 }
 
 /// Outputs the C code for a basic-block in the given control flow graph.
