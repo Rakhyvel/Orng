@@ -1,37 +1,50 @@
+class Token:
+    def __init__(self, lines: list[str], value: str, col: int, line: int):
+        self.value = value
+        self.col = col
+        self.line = line
+        self.line_text = lines[line - 1]
+
+
 class Scanner:
-    def __init__(self, text):
+    def __init__(self, text: str):
         self.cursor = 0
         self.text = text
+        self.line = 1
+        self.col = 1
+        self.lines = self.text.split('\n')
 
-    def eof(self):
+    def eof(self) -> bool:
         return self.cursor >= len(self.text)
 
-    def curr(self):
+    def curr(self) -> str:
         return self.text[self.cursor]
     
-    def curr_or_empty(self):
-        return self.curr() if not self.eof() else ""
+    def curr_or_empty(self) -> None | str:
+        return self.curr() if not self.eof() else None
 
     def skip_while(self, filter):
         while not self.eof() and filter(self.curr()):
+            if self.curr() == '\n':
+                self.line += 1
             self.cursor += 1
 
-    def tokenize(self):
-        open_close = "(){}[]"
-        tokens = []
-        prev_char = self.text[0]
-        token = prev_char
+    def tokenize(self) -> list[Token]:
+        open_close: str = "(){}[]"
+        tokens: list[Token] = []
+        prev_char: str = self.text[0]
+        token = Token(self.lines, prev_char, self.col, self.line)
         self.cursor += 1
-        prev_token_was_dot = False
+        prev_token_was_dot: bool = False
         while not self.eof():
-            char = self.curr()
+            char: str = self.curr()
             
-            if token[0] in {'"', "'"}:
-                token += char
-                if char == token[0]:
+            if token.value[0] in {'"', "'"}:
+                token.value += char
+                if char == token.value[0]:
                     tokens.append(token)
-                    self.skip_while(lambda x: x.isspace() or x == token[0])
-                    token = self.curr_or_empty()
+                    self.skip_while(lambda x: x.isspace() or x == token.value[0])
+                    token = Token(self.lines, self.curr_or_empty(), self.col, self.line)
             elif (
                 alnumus(char) != alnumus(prev_char)
                 or char.isspace()
@@ -39,21 +52,20 @@ class Scanner:
                 or char in open_close
                 or char == '"'
             ):
-                if token.startswith("//") :
+                if token.value.startswith("//") :
                     self.skip_while(lambda x: self.curr() != "\n")
-                elif all([alnumus(x) for x in token]) and token not in keywords and not prev_token_was_dot:
+                elif all([alnumus(x) for x in token.value]) and token.value not in keywords and not prev_token_was_dot:
                     tokens.append(token)
                 else:
-                    prev_token_was_dot = '.' in token or token == 'fn'
+                    prev_token_was_dot = '.' in token.value or token.value == 'fn'
                     tokens.append(token)
                 self.skip_while(lambda x: x.isspace())
-                token = self.curr_or_empty()
+                token = Token(self.lines, self.curr_or_empty(), self.col, self.line)
             else:
-                token += char
+                token.value += char
             
             prev_char = self.curr_or_empty()
             self.cursor += 1
-        # print(tokens)
         return tokens
 
 

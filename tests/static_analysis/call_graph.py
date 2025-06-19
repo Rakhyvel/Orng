@@ -1,5 +1,5 @@
 import argparse
-from zig_scanner import Scanner, alnumus
+from zig_scanner import Token, Scanner, alnumus
 import networkx as nx
 
 
@@ -45,29 +45,29 @@ class Parser:
         self.functions = dict()  # function name -> [functions called]
         self.dupes = set()
 
-    def accept(self, token) -> str | None:
+    def accept(self, token) -> Token | None:
         if self.tokens[self.cursor] == token:
             return self.pop()
         else:
             return None
 
-    def expect(self, token) -> str:
-        if self.tokens[self.cursor] == token:
+    def expect(self, value) -> Token:
+        if self.tokens[self.cursor].value == value:
             return self.pop()
         else:
-            raise ValueError(f"expected {token}, got {self.peek()}")
+            raise ValueError(f"expected {value}, got {self.peek()}")
 
-    def peek(self, offset=0):
+    def peek(self, offset=0) -> Token:
         return self.tokens[self.cursor + offset]
 
-    def pop(self):
+    def pop(self) -> Token:
         retval = self.tokens[self.cursor]
         self.cursor += 1
         return retval
 
     def parse(self, filename):
         while self.cursor < len(self.tokens):
-            if self.peek() == "fn" and is_identifier(self.peek(1)):
+            if self.peek().value == "fn" and is_identifier(self.peek(1).value):
                 self.parse_function(filename)
             elif self.cursor < len(self.tokens):
                 self.pop()
@@ -75,7 +75,7 @@ class Parser:
     def parse_function(self, filename):
         self.expect("fn")
 
-        function_name = self.peek()
+        function_name = self.peek().value
 
         if function_name not in self.functions and function_name not in ignore_calls:
             self.functions[function_name] = Function(filename)
@@ -83,7 +83,7 @@ class Parser:
             self.dupes.add(function_name)
 
         # find the begining of the function
-        while self.pop() != "{":
+        while self.pop().value != "{":
             pass
 
         fn_token_start = self.cursor
@@ -92,12 +92,12 @@ class Parser:
 
         while brace_depth > 0:
             fn_token_end = self.cursor
-            if self.peek() == "{":
+            if self.peek().value == "{":
                 brace_depth += 1
-            elif self.peek() == "}":
+            elif self.peek().value == "}":
                 brace_depth -= 1
-            if is_identifier(self.peek()) and self.peek(1) == "(":
-                callee_name = self.peek()
+            if is_identifier(self.peek().value) and self.peek(1).value == "(":
+                callee_name = self.peek().value
                 # idx = -1
                 # while self.peek(idx) == '.':
                 #     callee_name = self.peek(idx - 1) + '.' + callee_name
