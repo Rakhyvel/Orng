@@ -11,56 +11,80 @@ def main():
         return parser.parse_args()
 
     args = parse_args()
-    complexity = calculate_cognitive_complexity(args.file, args.fn)
-    if complexity <= 15:
-        print(f"complexity: {complexity} (good!)")
-    else:
-        print(f"complexity: {complexity} (bad!)")
+    calculate_congitive_complexities(args.file, args.fn)
 
 
-def calculate_cognitive_complexity(file, fn):
+class Complexity:
+    def __init__(self, value, nodes, call_graph):
+        self.value = value
+        self.nodes = []
+        self.call_graph = []
+
+
+def calculate_congitive_complexities(file, maybe_fn=None):
     parser = parse(file)
 
-    token_complexity = calculate_token_cognitive_complexity(parser.functions[fn].tokens)
-    call_chain = longest_call_chain(parser.digraph(), fn)
-    recursion_complexity = len(call_chain) if call_chain else 0
-    print(call_chain)
-    return token_complexity + recursion_complexity
+    fns = [maybe_fn] if maybe_fn else parser.functions
+    ratings = []
+    for fn in fns:
+        (token_complexity, nodes) = calculate_token_cognitive_complexity(parser.functions[fn].tokens)
+        call_chain = longest_call_chain(parser.digraph(), fn)
+        recursion_complexity = len(call_chain) if call_chain else 0
+        total_complexity = token_complexity + recursion_complexity
+        ratings.append((fn, (total_complexity, nodes, call_chain)))
+
+    # Sort by complexity and print ratings out
+    ratings.sort(key=lambda t: -t[1][0])
+    ratings = list(filter(lambda t: t[1][0] >= 15, ratings))
+    if len(ratings) == 0:
+        print('All good!')
+    else:
+        for rating in ratings:
+            print(f"{rating[0]}: {rating[1][0]}")
+            rating[1][1].sort(key=lambda t: (-t[1], t[0].line))
+            for node in rating[1][1]:
+                print(f"  - {file}:{node[0].line} [{node[1]}]: {node[0].line_text.strip()}")
+            print(rating[1][2])
 
 
 def calculate_token_cognitive_complexity(tokens):
     complexity = 0
     nesting = 0
     was_else = False
+    nodes = []
     for token in tokens:
-        if not was_else and token in control_flow_tokens:
+        if not was_else and token.value in control_flow_tokens:
             complexity += 1
-            if token in nesting_control_flow_tokens:
+            if token.value in nesting_control_flow_tokens:
                 complexity += nesting
-        elif token == "{":
+            nodes.append((token, nesting + 1))
+        elif token.value == "{":
             nesting += 1
-        elif token == "}":
+        elif token.value == "}":
             nesting -= 1
-        was_else = token == "else"
-    return complexity
+        was_else = token.value == "else"
+    return (complexity, nodes)
 
 
 control_flow_tokens = [
     "if",
     "else",
     "switch",
+    "match",
     "for",
     "while",
     "catch",
     "or",
     "and",
     "orelse",
+    "try",
     "break",
     "continue",
     "return",
+    "loop"
 ]
 
-nesting_control_flow_tokens = ["if", "switch", "for", "while", "catch"]
+nesting_control_flow_tokens = ["if", "switch", "match", "for", "while", "catch", "loop"]
 
 
 if __name__ == "__main__":
