@@ -105,7 +105,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                     self.errors.add_error(
                         errs_.Error{
                             .basic = .{
-                                .msg = "anonymous functions specified with const parameters", // TODOL Could use some better wording
+                                .msg = "anonymous functions specified with const parameters", // TODO: Could use some better wording
                                 .span = ast.token().span,
                             },
                         },

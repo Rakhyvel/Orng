@@ -14,7 +14,8 @@ const succeed_color = term_.Attr{ .fg = .green, .bold = true };
 const fail_color = term_.Attr{ .fg = .red, .bold = true };
 const not_orng_color = term_.Attr{ .fg = .blue, .bold = true };
 
-const Test_File_Fn = fn ([]const u8, bool) bool;
+const Debug_Allocator = std.heap.DebugAllocator(.{ .never_unmap = true, .safety = true });
+const Test_File_Fn = fn ([]const u8, bool, *Debug_Allocator) bool;
 
 // This is for compatability with Windows, since stdout for Windows isn't known at compile-time
 fn get_std_out() std.fs.File.Writer {
@@ -57,59 +58,82 @@ const Results = struct { passed: usize, failed: usize };
 fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_file: Test_File_Fn) !void { // TODO: Uninfer error
     var args = old_args;
     if (!coverage) {
-        try term_.outputColor(succeed_color, "[============]\n", get_std_out());
+        try term_.outputColor(succeed_color, "[==============]\n", get_std_out());
     }
+
+    var failed_tests = std.ArrayList([]const u8).init(std.heap.page_allocator);
+    defer failed_tests.deinit();
 
     var results = Results{ .passed = 0, .failed = 0 };
     while (args.next()) |next| {
-        const res = test_file(next, coverage);
-        if (res) {
+        if (next.len < 4 or !std.mem.eql(u8, next[next.len - 4 ..], "orng")) {
+            continue;
+        }
+
+        var debug_alloc = std.heap.DebugAllocator(.{ .never_unmap = true, .safety = true }){};
+        const test_name = get_test_name(next) orelse continue;
+        if (!coverage) {
+            term_.outputColor(succeed_color, "[ RUN      ... ] ", get_std_out()) catch unreachable;
+            get_std_out().print("{s}\n", .{test_name}) catch unreachable;
+        }
+
+        const res = test_file(next, coverage, &debug_alloc);
+
+        const debug_result = debug_alloc.deinit();
+        var memory_leak_detected: bool = undefined;
+        if (debug_result == .leak) {
+            get_std_out().print("compiler error: memory leak!\n", .{}) catch unreachable;
+            memory_leak_detected = true;
+        } else {
+            memory_leak_detected = false;
+        }
+
+        if (res and !memory_leak_detected) {
             results.passed += 1;
+            if (!coverage) {
+                term_.outputColor(succeed_color, "[  ... PASSED  ]\n", get_std_out()) catch unreachable;
+            }
         } else {
             results.failed += 1;
+            failed_tests.append(test_name) catch unreachable;
+            if (!coverage) {
+                term_.outputColor(fail_color, "[  ... FAILED  ]\n", get_std_out()) catch unreachable;
+            }
         }
     }
 
     if (!coverage) {
-        try term_.outputColor(succeed_color, "[============]\n", get_std_out());
+        try term_.outputColor(succeed_color, "[==============]\n", get_std_out());
         try get_std_out().print("Passed tests: {}\n", .{results.passed});
         try get_std_out().print("Failed tests: {}\n", .{results.failed});
+
         if (results.failed > 0) {
+            try term_.outputColor(fail_color, "[ FAILED TESTS ]\n", get_std_out());
+            for (failed_tests.items) |failed_test| {
+                try get_std_out().print("{s} ", .{failed_test});
+            }
+            try term_.outputColor(fail_color, "\n[==============]\n", get_std_out());
             return error.TestsFailed;
         }
     }
 }
 
-fn integrate_test_file(filename: []const u8, coverage: bool) bool {
+fn integrate_test_file(filename: []const u8, coverage: bool, debug_alloc: *Debug_Allocator) bool {
     // FIXME: High Cyclo
-    if (filename.len < 4 or !std.mem.eql(u8, filename[filename.len - 4 ..], "orng")) {
-        return true;
-    }
-    const dot_index = index_of(filename, '.') orelse {
-        std.debug.print("filename {s} doens't contain a '.'", .{filename});
-        return false;
-    };
-    var test_name = filename[17..dot_index];
-
-    if (!coverage) {
-        term_.outputColor(succeed_color, "[ RUN    ... ] ", get_std_out()) catch unreachable;
-        get_std_out().print("{s}.orng\n", .{test_name[1..]}) catch unreachable;
-    }
     const absolute_filename = std.fs.cwd().realpathAlloc(allocator, filename) catch unreachable;
+
     // Try to compile Orng (make sure no errors)
-    var debug_alloc = std.heap.GeneralPurposeAllocator(.{ .never_unmap = true, .safety = true }){};
     var compiler = Compiler_Context.init(debug_alloc.allocator()) catch unreachable;
+    defer compiler.deinit();
     defer primitives_.deinit();
-    var contents = Read_File.init(compiler.allocator()).run(absolute_filename) catch unreachable;
-    const new_line_idx = until_newline(contents);
-    if (new_line_idx < 3) {
-        std.debug.print("hey dumby, make it `// ` at least", .{});
-    }
-    const expected_out = contents[3..new_line_idx];
+    const contents = Read_File.init(compiler.allocator()).run(absolute_filename) catch unreachable;
+    const header_comment_contents = header_comment(contents, debug_alloc.allocator()) catch unreachable;
+    defer debug_alloc.allocator().free(header_comment_contents);
+    const expected_out = header_comment_contents[0];
+
     const module = module_.Module.compile(absolute_filename, "main", false, compiler) catch {
         if (!coverage) {
-            compiler.errors.print_errors();
-            term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out()) catch unreachable;
+            compiler.errors.print_errors(get_std_out(), .{});
             get_std_out().print("Orng -> C.\n", .{}) catch unreachable;
             std.debug.dumpCurrentStackTrace(128);
         }
@@ -142,55 +166,42 @@ fn integrate_test_file(filename: []const u8, coverage: bool) bool {
     output_name.writer().print("{s}/build/{s}", .{ package_abs_path, module.package_name }) catch unreachable;
     const res = exec(&[_][]const u8{output_name.str()}) catch |e| {
         get_std_out().print("{?}\n", .{e}) catch unreachable;
-        term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out()) catch unreachable;
         get_std_out().print("Execution interrupted!\n", .{}) catch unreachable;
         return false;
     };
     if (!std.mem.eql(u8, res.stdout, expected_out)) {
-        term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out()) catch unreachable;
         get_std_out().print("Expected \"{s}\" retcode, got \"{s}\"\n", .{ expected_out, res.stdout }) catch unreachable;
         return false;
     }
 
-    compiler.deinit();
-    const debug_result = debug_alloc.deinit();
-    if (debug_result == .leak) {
-        term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out()) catch unreachable;
-        get_std_out().print("compiler error: memory leak!\n", .{}) catch unreachable;
-        return false;
-    }
-
     // Monitor stdout and capture return value, if these don't match expected as commented in the file, print error
-    term_.outputColor(succeed_color, "[ ... PASSED ]\n", get_std_out()) catch unreachable;
     return true;
 }
 
-fn negative_test_file(filename: []const u8, coverage: bool) bool {
+fn negative_test_file(filename: []const u8, coverage: bool, debug_alloc: *Debug_Allocator) bool {
     // FIXME: High Cyclo
-    if (filename.len < 4 or !std.mem.eql(u8, filename[filename.len - 4 ..], "orng")) {
-        return true;
-    }
-    const dot_index = index_of(filename, '.') orelse {
-        std.debug.print("filename {s} doens't contain a '.'", .{filename});
-        return false;
-    };
-    var test_name = filename[14..dot_index];
 
     // Output .c file
+    const test_name = get_test_name(filename).?;
     var out_name: String = String.init_with_contents(allocator, "tests/integration/build") catch unreachable;
     defer out_name.deinit();
     out_name.concat(test_name) catch unreachable;
 
-    if (!coverage) {
-        term_.outputColor(succeed_color, "[ RUN    ... ] ", get_std_out()) catch unreachable;
-        get_std_out().print("{s}.orng\n", .{test_name[1..]}) catch unreachable;
-    }
-
     const absolute_filename = std.fs.cwd().realpathAlloc(allocator, filename) catch unreachable;
     // Try to compile Orng (make sure no errors)
-    var debug_alloc = std.heap.GeneralPurposeAllocator(.{ .never_unmap = false, .safety = true }){};
     var compiler = Compiler_Context.init(debug_alloc.allocator()) catch unreachable;
+    defer compiler.deinit();
     defer primitives_.deinit();
+    const contents = Read_File.init(compiler.allocator()).run(absolute_filename) catch unreachable;
+    const body = test_body(contents);
+
+    var error_string = String.init(debug_alloc.allocator());
+    defer error_string.deinit();
+    defer {
+        if (!coverage) {
+            bless_file("tests/test_bless.orng", error_string.str(), body) catch unreachable;
+        }
+    }
 
     // Try to compile Orng (make sure YES errors)
     _ = module_.Module.compile(absolute_filename, "main", false, compiler) catch |err| {
@@ -199,21 +210,19 @@ fn negative_test_file(filename: []const u8, coverage: bool) bool {
                 error.LexerError,
                 error.CompileError,
                 => {
-                    compiler.errors.print_errors();
-                    term_.outputColor(succeed_color, "[ ... PASSED ]\n", get_std_out()) catch unreachable;
+                    compiler.errors.print_errors(error_string.writer(), .{ .print_full_path = false, .print_color = false });
+                    compiler.errors.print_errors(get_std_out(), .{});
                     return true;
                 },
                 error.ParseError, error.FileNotFound => {
                     var str = String.init_with_contents(allocator, filename) catch unreachable;
                     defer str.deinit();
-                    compiler.errors.print_errors();
+                    compiler.errors.print_errors(get_std_out(), .{});
                     if (str.find("parser") != null) {
-                        term_.outputColor(succeed_color, "[ ... PASSED ]\n", get_std_out()) catch unreachable;
                         return true;
                     } else {
-                        term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out()) catch unreachable;
                         get_std_out().print("Non-parser negative tests should parse!\n", .{}) catch unreachable;
-                        compiler.errors.print_errors();
+                        compiler.errors.print_errors(get_std_out(), .{});
                         return false;
                     }
                 },
@@ -222,13 +231,11 @@ fn negative_test_file(filename: []const u8, coverage: bool) bool {
             return false;
         }
     };
-    compiler.deinit();
 
     if (coverage) {
         return false;
     }
 
-    term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out()) catch unreachable;
     get_std_out().print("Negative test compiled without error.\n", .{}) catch unreachable;
     unreachable;
 }
@@ -282,7 +289,7 @@ fn fuzz_tests() !void { // TODO: Uninfer error
             defer lines.deinit();
             i += 1;
             const module = module_.Module.compile("fuzz", "main", false, compiler) catch |err| {
-                compiler.errors.print_errors();
+                compiler.errors.print_errors(get_std_out(), .{});
                 switch (err) {
                     error.LexerError,
                     error.CompileError,
@@ -359,6 +366,80 @@ fn last_index_of(str: []const u8, c: u8) ?usize {
         }
     }
     return null;
+}
+
+fn nth_last_index_of(str: []const u8, c: u8, n: usize) ?usize {
+    var i: usize = str.len - 1;
+    var m = n;
+    while (i >= 0) : (i -= 1) {
+        if (str[i] == c) {
+            if (m == 1) {
+                return i;
+            } else {
+                m -= 1;
+            }
+        }
+    }
+    return null;
+}
+
+fn get_test_name(filename: []const u8) ?[]const u8 {
+    const slash_index = nth_last_index_of(filename, '/', 2) orelse {
+        std.debug.print("filename {s} doens't contain a '/'", .{filename});
+        return null;
+    };
+    return filename[slash_index + 1 ..];
+}
+
+/// Given the contents string, returns a slice of strings representing the content of the header comment of a file. User is responsible for deallocating the slice.
+fn header_comment(contents: []const u8, alloc: std.mem.Allocator) ![][]const u8 {
+    var lines = std.ArrayList([]const u8).init(alloc);
+    var cursor: usize = 0;
+    var next_newline = until_newline(contents);
+    var line: []const u8 = contents[cursor..next_newline];
+    while (line.len >= 3 and line[0] == '/' and line[1] == '/' and line[2] == ' ') {
+        try lines.append(line[3..]);
+
+        cursor = next_newline + 1;
+        next_newline += until_newline(contents[cursor..]) + 1;
+        line = contents[cursor..next_newline];
+    }
+
+    return lines.toOwnedSlice();
+}
+
+/// Retrives the content of a test file after the header comment
+fn test_body(contents: []const u8) []const u8 {
+    var cursor: usize = 0;
+    var next_newline = until_newline(contents);
+    var line: []const u8 = contents[cursor..next_newline];
+    while (line.len >= 3 and line[0] == '/' and line[1] == '/' and line[2] == ' ') {
+        cursor = next_newline + 1;
+        next_newline += until_newline(contents[cursor..]) + 1;
+        line = contents[cursor..next_newline];
+    }
+    return contents[cursor..];
+}
+
+fn bless_file(filename: []const u8, error_msg: []const u8, body: []const u8) !void {
+    var file = try std.fs.cwd().createFile(filename, .{});
+    defer file.close();
+
+    var file_contents = String.init(std.heap.page_allocator);
+    defer file_contents.deinit();
+
+    _ = try file_contents.writer().write("// ");
+    for (error_msg) |c| {
+        _ = try file_contents.writer().write(&[1]u8{c});
+        if (c == '\n') {
+            _ = try file_contents.writer().write("// ");
+        }
+    }
+
+    _ = try file_contents.writer().write(&[1]u8{'\n'});
+    _ = try file_contents.writer().write(body);
+
+    _ = file.write(file_contents.str()) catch unreachable;
 }
 
 fn until_newline(str: []const u8) usize {

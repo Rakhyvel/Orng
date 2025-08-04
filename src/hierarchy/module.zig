@@ -106,6 +106,7 @@ pub const Module = struct {
         retval.type_set = Type_Set.init(allocator);
         retval.entry = null;
         retval.modified = null;
+
         return retval;
     }
 
