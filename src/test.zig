@@ -200,20 +200,18 @@ fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug
 
     var error_string = String.init(debug_alloc.allocator());
     defer error_string.deinit();
-    defer {
-        if (mode == .bless) {
-            bless_file("tests/test_bless.orng", error_string.str(), body) catch unreachable;
-        }
-    }
 
     // Try to compile Orng (make sure YES errors)
     _ = module_.Module.compile(absolute_filename, "main", false, compiler) catch |err| {
-        if (mode == .regular) {
+        compiler.errors.print_errors(error_string.writer(), .{ .print_full_path = false, .print_color = false });
+        if (mode == .bless) {
+            bless_file(filename, error_string.str(), body) catch unreachable;
+            return true;
+        } else if (mode == .regular) {
             switch (err) {
                 error.LexerError,
                 error.CompileError,
                 => {
-                    compiler.errors.print_errors(error_string.writer(), .{ .print_full_path = false, .print_color = false });
                     compiler.errors.print_errors(get_std_out(), .{});
                     return true;
                 },
