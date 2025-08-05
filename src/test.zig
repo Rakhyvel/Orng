@@ -14,8 +14,9 @@ const succeed_color = term_.Attr{ .fg = .green, .bold = true };
 const fail_color = term_.Attr{ .fg = .red, .bold = true };
 const not_orng_color = term_.Attr{ .fg = .blue, .bold = true };
 
+const Test_Mode = enum { regular, coverage, bless };
 const Debug_Allocator = std.heap.DebugAllocator(.{ .never_unmap = true, .safety = true });
-const Test_File_Fn = fn ([]const u8, bool, *Debug_Allocator) bool;
+const Test_File_Fn = fn ([]const u8, Test_Mode, *Debug_Allocator) bool;
 
 // This is for compatability with Windows, since stdout for Windows isn't known at compile-time
 fn get_std_out() std.fs.File.Writer {
@@ -35,13 +36,15 @@ pub fn main() !void {
             arg = args.next().?;
         }
         if (std.mem.eql(u8, "integration", arg)) {
-            try parse_args(args, false, integrate_test_file);
+            try parse_args(args, .regular, integrate_test_file);
         } else if (std.mem.eql(u8, "coverage", arg)) {
-            try parse_args(args, true, integrate_test_file);
+            try parse_args(args, .coverage, integrate_test_file);
         } else if (std.mem.eql(u8, "negative", arg)) {
-            try parse_args(args, false, negative_test_file);
+            try parse_args(args, .regular, negative_test_file);
         } else if (std.mem.eql(u8, "negative-coverage", arg)) {
-            try parse_args(args, true, negative_test_file);
+            try parse_args(args, .coverage, negative_test_file);
+        } else if (std.mem.eql(u8, "bless", arg)) {
+            try parse_args(args, .bless, negative_test_file);
         } else if (std.mem.eql(u8, "fuzz", arg)) {
             try fuzz_tests();
         } else {
@@ -55,9 +58,9 @@ pub fn main() !void {
 /// When `coverage` is false, integration testing occurs as normal, and child processes are spawned for gcc, executing the executable, etc
 /// When `coverage` is true, no child processes are spawned, and no output is given.
 const Results = struct { passed: usize, failed: usize };
-fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_file: Test_File_Fn) !void { // TODO: Uninfer error
+fn parse_args(old_args: std.process.ArgIterator, mode: Test_Mode, comptime test_file: Test_File_Fn) !void { // TODO: Uninfer error
     var args = old_args;
-    if (!coverage) {
+    if (mode == .regular) {
         try term_.outputColor(succeed_color, "[==============]\n", get_std_out());
     }
 
@@ -72,12 +75,12 @@ fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_f
 
         var debug_alloc = std.heap.DebugAllocator(.{ .never_unmap = true, .safety = true }){};
         const test_name = get_test_name(next) orelse continue;
-        if (!coverage) {
+        if (mode == .regular) {
             term_.outputColor(succeed_color, "[ RUN      ... ] ", get_std_out()) catch unreachable;
             get_std_out().print("{s}\n", .{test_name}) catch unreachable;
         }
 
-        const res = test_file(next, coverage, &debug_alloc);
+        const res = test_file(next, mode, &debug_alloc);
 
         const debug_result = debug_alloc.deinit();
         var memory_leak_detected: bool = undefined;
@@ -90,19 +93,19 @@ fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_f
 
         if (res and !memory_leak_detected) {
             results.passed += 1;
-            if (!coverage) {
+            if (mode == .regular) {
                 term_.outputColor(succeed_color, "[  ... PASSED  ]\n", get_std_out()) catch unreachable;
             }
         } else {
             results.failed += 1;
             failed_tests.append(test_name) catch unreachable;
-            if (!coverage) {
+            if (mode == .regular) {
                 term_.outputColor(fail_color, "[  ... FAILED  ]\n", get_std_out()) catch unreachable;
             }
         }
     }
 
-    if (!coverage) {
+    if (mode == .regular) {
         try term_.outputColor(succeed_color, "[==============]\n", get_std_out());
         try get_std_out().print("Passed tests: {}\n", .{results.passed});
         try get_std_out().print("Failed tests: {}\n", .{results.failed});
@@ -118,7 +121,7 @@ fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_f
     }
 }
 
-fn integrate_test_file(filename: []const u8, coverage: bool, debug_alloc: *Debug_Allocator) bool {
+fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug_Allocator) bool {
     // FIXME: High Cyclo
     const absolute_filename = std.fs.cwd().realpathAlloc(allocator, filename) catch unreachable;
 
@@ -132,7 +135,7 @@ fn integrate_test_file(filename: []const u8, coverage: bool, debug_alloc: *Debug
     const expected_out = header_comment_contents[0];
 
     const module = module_.Module.compile(absolute_filename, "main", false, compiler) catch {
-        if (!coverage) {
+        if (mode == .regular) {
             compiler.errors.print_errors(get_std_out(), .{});
             get_std_out().print("Orng -> C.\n", .{}) catch unreachable;
             std.debug.dumpCurrentStackTrace(128);
@@ -154,7 +157,7 @@ fn integrate_test_file(filename: []const u8, coverage: bool, debug_alloc: *Debug
     package.modified = true;
     Codegen_Context.output_modules(compiler) catch unreachable;
 
-    if (coverage) {
+    if (mode == .coverage) {
         // kcov can't call gcc, so stop JUST before it calls gcc
         return false;
     }
@@ -178,7 +181,7 @@ fn integrate_test_file(filename: []const u8, coverage: bool, debug_alloc: *Debug
     return true;
 }
 
-fn negative_test_file(filename: []const u8, coverage: bool, debug_alloc: *Debug_Allocator) bool {
+fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug_Allocator) bool {
     // FIXME: High Cyclo
 
     // Output .c file
@@ -198,14 +201,14 @@ fn negative_test_file(filename: []const u8, coverage: bool, debug_alloc: *Debug_
     var error_string = String.init(debug_alloc.allocator());
     defer error_string.deinit();
     defer {
-        if (!coverage) {
+        if (mode == .bless) {
             bless_file("tests/test_bless.orng", error_string.str(), body) catch unreachable;
         }
     }
 
     // Try to compile Orng (make sure YES errors)
     _ = module_.Module.compile(absolute_filename, "main", false, compiler) catch |err| {
-        if (!coverage) {
+        if (mode == .regular) {
             switch (err) {
                 error.LexerError,
                 error.CompileError,
@@ -232,12 +235,33 @@ fn negative_test_file(filename: []const u8, coverage: bool, debug_alloc: *Debug_
         }
     };
 
-    if (coverage) {
+    if (mode == .coverage) {
         return false;
     }
 
     get_std_out().print("Negative test compiled without error.\n", .{}) catch unreachable;
     unreachable;
+}
+
+fn bless_file(filename: []const u8, error_msg: []const u8, body: []const u8) !void {
+    var file = try std.fs.cwd().createFile(filename, .{});
+    defer file.close();
+
+    var file_contents = String.init(std.heap.page_allocator);
+    defer file_contents.deinit();
+
+    _ = try file_contents.writer().write("// ");
+    for (error_msg) |c| {
+        _ = try file_contents.writer().write(&[1]u8{c});
+        if (c == '\n') {
+            _ = try file_contents.writer().write("// ");
+        }
+    }
+
+    _ = try file_contents.writer().write(&[1]u8{'\n'});
+    _ = try file_contents.writer().write(body);
+
+    _ = file.write(file_contents.str()) catch unreachable;
 }
 
 /// Uses Dr. Proebsting's rdgen to create random Orng programs, feeds them to the compiler
@@ -419,27 +443,6 @@ fn test_body(contents: []const u8) []const u8 {
         line = contents[cursor..next_newline];
     }
     return contents[cursor..];
-}
-
-fn bless_file(filename: []const u8, error_msg: []const u8, body: []const u8) !void {
-    var file = try std.fs.cwd().createFile(filename, .{});
-    defer file.close();
-
-    var file_contents = String.init(std.heap.page_allocator);
-    defer file_contents.deinit();
-
-    _ = try file_contents.writer().write("// ");
-    for (error_msg) |c| {
-        _ = try file_contents.writer().write(&[1]u8{c});
-        if (c == '\n') {
-            _ = try file_contents.writer().write("// ");
-        }
-    }
-
-    _ = try file_contents.writer().write(&[1]u8{'\n'});
-    _ = try file_contents.writer().write(body);
-
-    _ = file.write(file_contents.str()) catch unreachable;
 }
 
 fn until_newline(str: []const u8) usize {
