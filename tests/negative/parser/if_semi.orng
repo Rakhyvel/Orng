@@ -1,3 +1,7 @@
+// if_semi.orng:6:22: error: expected a semicolon here, got `true`
+//     if let x = 4 true {}
+//                     ^
+// 
 fn main() -> Int {
     if let x = 4 true {}
     0

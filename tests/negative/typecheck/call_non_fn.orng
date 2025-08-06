@@ -1,3 +1,7 @@
+// call_non_fn.orng:7:6: error: expected function type for call, got `Int`
+//     x()
+//     ^
+// 
 fn main() -> Int {
     let x = 4
     x()

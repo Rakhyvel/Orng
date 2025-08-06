@@ -1,3 +1,7 @@
+// r22.orng:6:20: error: error: expected a compile-time constant type, got comptime
+//     const ident = { return }
+//                   ^
+// 
 fn main() -> Int { 
     const ident = { return }
 } 

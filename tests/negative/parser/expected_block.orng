@@ -1,1 +1,5 @@
+// expected_block.orng:5:19: error: expected `{`, got `3`
+// fn main() -> Int 3
+//                  ^
+// 
 fn main() -> Int 3

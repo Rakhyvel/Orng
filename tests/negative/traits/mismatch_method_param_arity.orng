@@ -1,3 +1,7 @@
+// mismatch_method_param_arity.orng:10:7: error: trait `My_Trait` specifies 1 parameter for method `f`, got 2
+//     fn f(self, x: Int) -> () {}
+//      ^
+// 
 trait My_Trait {
     fn f(self) -> ()
 }

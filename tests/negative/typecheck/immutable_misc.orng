@@ -1,3 +1,7 @@
+// immutable_misc.orng:6:6: error: the type `Int` is not indexable
+//     0[0] = 4
+//     ^
+// 
 fn main() -> Int {
     0[0] = 4
     0

@@ -1,1 +1,7 @@
+// paramlist.orng:7:10: error: expected closing `)` to match opening `(` here, got `(EOF)`
+//         ^
+// paramlist.orng:7:9: note: opening `(` here:
+// fn main(
+//        ^
+// 
 fn main(

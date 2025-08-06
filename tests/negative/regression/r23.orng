@@ -1,3 +1,7 @@
+// r23.orng:6:13: error: error: expected a compile-time constant type, got block
+//     let x: {Int}
+//            ^
+// 
 fn main() -> Int {
     let x: {Int}
     4

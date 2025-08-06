@@ -1,3 +1,10 @@
+// args_named_few_named.orng:9:11: error: type takes 2 values, 1 value given
+//     f(.y = 5)
+//          ^
+// args_named_few_named.orng:9:7: error: function takes 2 parameters, 1 argument given
+//     f(.y = 5)
+//      ^
+// 
 fn main() -> Int {
     f(.y = 5)
 }

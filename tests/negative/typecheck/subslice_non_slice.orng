@@ -1,3 +1,7 @@
+// subslice_non_slice.orng:6:15: error: cannot take a sub-slice of something that is not a slice
+//     let x = 3[1..2]
+//              ^
+// 
 fn main() -> Int {
     let x = 3[1..2]
     4

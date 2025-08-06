@@ -1,1 +1,5 @@
+// optional.orng:5:23: error: expected a value of type `Int`, got a value of type `Type`
+// fn main() -> Int {?Int}
+//                      ^
+// 
 fn main() -> Int {?Int}

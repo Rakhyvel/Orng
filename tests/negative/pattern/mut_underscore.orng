@@ -1,4 +1,4 @@
-// mut_underscore.orng:2:14: error: discarded symbol marked as `mut`
+// mut_underscore.orng:6:14: error: discarded symbol marked as `mut`
 //     let mut _ : Int = 4
 //             ^
 // 

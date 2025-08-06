@@ -1,3 +1,7 @@
+// infer_not_in.orng:6:28: error: member `d` not in sum: `(a: () | b: () | c: ())`
+//     let x: (a | b | c) = .d
+//                           ^
+// 
 fn main () -> Int {
     let x: (a | b | c) = .d
     0

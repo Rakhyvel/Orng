@@ -1,3 +1,7 @@
+// variadic_arity.orng:8:12: error: function takes 1 parameter, 0 arguments given
+//     printf()
+//           ^
+// 
 extern const printf: [*]Byte -> Int32
 
 fn main() -> Int {

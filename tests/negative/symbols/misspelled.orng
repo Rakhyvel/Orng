@@ -1,3 +1,7 @@
+// misspelled.orng:9:8: error: use of undeclared identifier `car`
+//     car
+//       ^
+// 
 fn main() -> Int {
     let var = 4
     let bar = 5

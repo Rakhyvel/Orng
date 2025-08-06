@@ -1,3 +1,10 @@
+// use_undef4.orng:14:8: error: symbol `x` is never defined
+//     x.>add(4)
+//       ^
+// use_undef4.orng:13:10: note: declared here
+//     let x: &dyn Add = undefined
+//         ^
+// 
 trait Add {
     virtual fn add(&self, other: Int) -> Int
 }

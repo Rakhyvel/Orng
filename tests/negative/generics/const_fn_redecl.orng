@@ -1,3 +1,10 @@
+// const_fn_redecl.orng:12:12: error: redefinition of symbol `template`
+// fn template(const n: Int) -> Int {
+//           ^
+// const_fn_redecl.orng:8:12: note: other definition of `template` here:
+// fn template(const n: Int) -> Int {
+//           ^
+// 
 fn template(const n: Int) -> Int {
     n + 4
 }

@@ -1,3 +1,10 @@
+// method_not_in_empty_impl.orng:12:5: error: missing implementation of method `f` from trait `My_Trait`
+// impl My_Trait for Int {}
+//    ^
+// method_not_in_empty_impl.orng:9:7: note: method specification here:
+//     fn f() -> ()
+//      ^
+// 
 trait My_Trait {
     fn f() -> ()
 }

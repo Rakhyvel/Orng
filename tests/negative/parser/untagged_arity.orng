@@ -1,1 +1,5 @@
+// untagged_arity.orng:5:42: error: built-in function takes 2 parameters, 0 arguments given
+// const My_Untagged_Union: Type = @Untagged()
+//                                         ^
+// 
 const My_Untagged_Union: Type = @Untagged()

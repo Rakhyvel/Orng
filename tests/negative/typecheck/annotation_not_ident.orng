@@ -1,3 +1,13 @@
+// annotation_not_ident.orng:12:24: error: expected identifier, got `a`
+//     const My_Type = (.a: Int | .b: Int | .c: Int)
+//                       ^
+// annotation_not_ident.orng:12:34: error: expected identifier, got `b`
+//     const My_Type = (.a: Int | .b: Int | .c: Int)
+//                                 ^
+// annotation_not_ident.orng:12:44: error: expected identifier, got `c`
+//     const My_Type = (.a: Int | .b: Int | .c: Int)
+//                                           ^
+// 
 fn main() -> Int {
     const My_Type = (.a: Int | .b: Int | .c: Int)
     4

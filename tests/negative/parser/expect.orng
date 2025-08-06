@@ -1,3 +1,7 @@
+// expect.orng:6:10: error: expected a pattern expression here, got `5`
+//     let 5 = 3
+//         ^
+// 
 fn main() -> Int {
     let 5 = 3
 }

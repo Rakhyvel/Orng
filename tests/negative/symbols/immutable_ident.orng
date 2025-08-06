@@ -1,3 +1,7 @@
+// immutable_ident.orng:7:6: error: cannot modify non-mutable symbol `x`
+//     x = 4
+//     ^
+// 
 fn main() -> Int {
     let x = 0
     x = 4

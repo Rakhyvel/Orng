@@ -1,3 +1,7 @@
+// unrecognized_builtin.orng:6:18: error: unknown built-in function
+//     let x = @lmao(4)
+//                 ^
+// 
 fn main() -> Int {
     let x = @lmao(4)
     x

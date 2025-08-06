@@ -184,18 +184,16 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
 fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug_Allocator) bool {
     // FIXME: High Cyclo
 
-    // Output .c file
-    const test_name = get_test_name(filename).?;
-    var out_name: String = String.init_with_contents(allocator, "tests/integration/build") catch unreachable;
-    defer out_name.deinit();
-    out_name.concat(test_name) catch unreachable;
-
     const absolute_filename = std.fs.cwd().realpathAlloc(allocator, filename) catch unreachable;
     // Try to compile Orng (make sure no errors)
     var compiler = Compiler_Context.init(debug_alloc.allocator()) catch unreachable;
     defer compiler.deinit();
     defer primitives_.deinit();
     const contents = Read_File.init(compiler.allocator()).run(absolute_filename) catch unreachable;
+    const head = header_comment(contents, debug_alloc.allocator()) catch unreachable;
+    defer debug_alloc.allocator().free(head);
+    var flat_head = flatten_header_comment(head, debug_alloc.allocator()) catch unreachable;
+    defer flat_head.deinit();
     const body = test_body(contents);
 
     var error_string = String.init(debug_alloc.allocator());
@@ -212,6 +210,7 @@ fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug
                 error.LexerError,
                 error.CompileError,
                 => {
+                    std.debug.print("{}\n", .{std.mem.eql(u8, error_string.str(), flat_head.str())});
                     compiler.errors.print_errors(get_std_out(), .{});
                     return true;
                 },
@@ -428,6 +427,14 @@ fn header_comment(contents: []const u8, alloc: std.mem.Allocator) ![][]const u8 
     }
 
     return lines.toOwnedSlice();
+}
+
+fn flatten_header_comment(lines: [][]const u8, alloc: std.mem.Allocator) !String {
+    var line = String.init(alloc);
+    for (lines) |l| {
+        try line.writer().print("{s}\n", .{l});
+    }
+    return line;
 }
 
 /// Retrives the content of a test file after the header comment

@@ -1,1 +1,5 @@
+// product.orng:5:21: error: expected a value of type `Int`
+// fn main() -> Int{(1,2)}
+//                    ^
+// 
 fn main() -> Int{(1,2)}

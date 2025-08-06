@@ -1,1 +1,5 @@
+// r0.orng:5:12: error: left-hand-side of select is not selectable
+// const a: a.Float() = 0
+//           ^
+// 
 const a: a.Float() = 0

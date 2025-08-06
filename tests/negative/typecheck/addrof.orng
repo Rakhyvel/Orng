@@ -1,1 +1,5 @@
+// addrof.orng:5:20: error: expected a value of type `Int`
+// fn main() -> Int {&Int}
+//                   ^
+// 
 fn main() -> Int {&Int}

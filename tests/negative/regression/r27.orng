@@ -1,3 +1,10 @@
+// r27.orng:9:28: error: error: expected a compile-time constant type, got while
+//     while let ident : while true ; impl for fn ( ) -> Int { } { } { } ; true { } 
+//                           ^
+// r27.orng:9:79: error: expected a value of type `Int`, got a value of type `()`
+//     while let ident : while true ; impl for fn ( ) -> Int { } { } { } ; true { } 
+//                                                                              ^
+// 
 fn main() -> Int { 
     while let ident : while true ; impl for fn ( ) -> Int { } { } { } ; true { } 
 }

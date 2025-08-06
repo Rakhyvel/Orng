@@ -1,3 +1,7 @@
+// if_reduce_let_true_unit_else.orng:6:17: error: symbol `x` is never used
+//     _ = if let x = 4 ; true { } else { }
+//                ^
+// 
 fn main() -> Int { 
     _ = if let x = 4 ; true { } else { }
     322

@@ -1,3 +1,7 @@
+// div_zero_float.orng:6:14: error: divide by 0.0
+//     1.0 / 0.0
+//             ^
+// 
 fn main() -> Float {
     1.0 / 0.0
 }

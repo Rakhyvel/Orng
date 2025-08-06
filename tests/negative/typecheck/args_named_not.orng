@@ -1,3 +1,13 @@
+// args_named_not.orng:12:30: error: expected type does not accept named arugments
+//     let x: (Int, Int) = (.a = 4, .b = 4)
+//                             ^
+// args_named_not.orng:12:28: error: cannot infer the sum type
+//     let x: (Int, Int) = (.a = 4, .b = 4)
+//                           ^
+// args_named_not.orng:12:36: error: cannot infer the sum type
+//     let x: (Int, Int) = (.a = 4, .b = 4)
+//                                   ^
+// 
 fn main() -> Int {
     let x: (Int, Int) = (.a = 4, .b = 4)
     0

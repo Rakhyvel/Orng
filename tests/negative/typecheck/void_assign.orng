@@ -1,3 +1,7 @@
+// void_assign.orng:6:20: error: error: expected a compile-time constant type, got int
+//     let x: Void = 0
+//                   ^
+// 
 fn main() -> Int {
     let x: Void = 0
     x

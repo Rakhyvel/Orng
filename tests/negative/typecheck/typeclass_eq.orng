@@ -1,3 +1,10 @@
+// typeclass_eq.orng:9:30: error: error: expected a compile-time constant type, got unreachable
+//     let x: Void = unreachable
+//                             ^
+// typeclass_eq.orng:10:30: error: error: expected a compile-time constant type, got unreachable
+//     let y: Void = unreachable
+//                             ^
+// 
 fn main() -> Bool {
     let x: Void = unreachable
     let y: Void = unreachable

@@ -1,3 +1,7 @@
+// deref.orng:6:6: error: expected address type for dereference, got `Int`
+//     0^
+//     ^
+// 
 fn main () -> Int {
     0^
     0

@@ -1,3 +1,7 @@
+// args_named_zero.orng:6:7: error: function takes 0 parameters, 1 argument given
+//     f(.x = 4)
+//      ^
+// 
 fn main() -> Int { 
     f(.x = 4)
 }

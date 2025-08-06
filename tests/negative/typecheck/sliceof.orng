@@ -1,3 +1,7 @@
+// sliceof.orng:7:21: error: expected a value of type `[]data: [*]Int`, got a value of type `[]data: [*]Char`
+//     let y: []Int = []x
+//                    ^
+// 
 fn main() -> Int {
     let x: [3]Char = ('a', 'b', 'c')
     let y: []Int = []x

@@ -1,3 +1,7 @@
+// if_optional.orng:6:20: error: expected a value of type `Int`
+//     let x: Int = if true {1}
+//                   ^
+// 
 fn main() -> Int {
     let x: Int = if true {1}
     0

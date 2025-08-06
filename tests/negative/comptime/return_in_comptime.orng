@@ -1,3 +1,7 @@
+// return_in_comptime.orng:6:15: error: comptime cannot be type `Void`
+//     comptime { return 3 } 
+//              ^
+// 
 fn main() -> Int { 
     comptime { return 3 } 
 }

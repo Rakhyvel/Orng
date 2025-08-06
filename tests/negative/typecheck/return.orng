@@ -1,1 +1,5 @@
+// return.orng:5:18: error: `return` is not inside a function
+// const x = {return}
+//                 ^
+// 
 const x = {return}

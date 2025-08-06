@@ -1,3 +1,7 @@
+// unused_call.orng:7:7: error: expected a value of type `()`, got a value of type `Int`
+//     f()
+//      ^
+// 
 fn main() -> Int {
     _ = f()
     f()

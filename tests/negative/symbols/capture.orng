@@ -1,3 +1,7 @@
+// capture.orng:8:10: error: cannot access non-const variable `x` from an inner-function
+//         x
+//         ^
+// 
 fn main() -> Int {
     let x: Int = 45
     fn f() -> Int {

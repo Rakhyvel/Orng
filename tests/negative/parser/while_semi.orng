@@ -1,3 +1,7 @@
+// while_semi.orng:6:25: error: expected a semicolon here, got `true`
+//     while let x = 4 true {}
+//                        ^
+// 
 fn main() -> Int {
     while let x = 4 true {}
     0

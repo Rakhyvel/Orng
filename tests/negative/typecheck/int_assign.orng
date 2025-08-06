@@ -1,3 +1,7 @@
+// int_assign.orng:6:6: error: not an l-value
+//     0 = 0
+//     ^
+// 
 fn main() -> Int {
     0 = 0
     0

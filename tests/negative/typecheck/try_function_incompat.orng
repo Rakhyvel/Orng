@@ -1,3 +1,7 @@
+// try_function_incompat.orng:10:19: error: expected a value of type `(ok: Int | err: ())`, got a value of type `(ok: Int | err: Char)`
+//     let x = try g()
+//                  ^
+// 
 fn main() -> Int {
     f() catch 0
 }

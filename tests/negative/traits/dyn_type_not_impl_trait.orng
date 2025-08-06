@@ -1,3 +1,7 @@
+// dyn_type_not_impl_trait.orng:11:8: error: the type `Int` does not implement the trait `Lol`
+//     f(&x)
+//       ^
+// 
 trait Lol {
     fn lol() -> ()
 }

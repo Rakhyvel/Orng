@@ -1,3 +1,7 @@
+// r11.orng:6:8: error: expected a value of type `[*]String`, got a value of type `String`
+//     let (a, b, c): []String
+//       ^
+// 
 fn main()->() {
     let (a, b, c): []String
 }

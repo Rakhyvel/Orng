@@ -1,3 +1,7 @@
+// try_function.orng:6:8: error: enclosing function around try expression does not return an error
+//     try f()
+//       ^
+// 
 fn main() -> Int {
     try f()
 }

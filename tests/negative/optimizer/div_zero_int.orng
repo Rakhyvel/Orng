@@ -1,3 +1,7 @@
+// div_zero_int.orng:6:10: error: divide by 0
+//     1 / 0
+//         ^
+// 
 fn main() -> Int {
     1 / 0
 }

@@ -1,1 +1,6 @@
+// r5.orng:6:20: error: expected a value of type `Bool`
+// const a: Bool = (0, []1)
+//                   ^
+// error: comptime cannot be type `Void`
+// 
 const a: Bool = (0, []1)

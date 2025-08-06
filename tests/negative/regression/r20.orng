@@ -1,1 +1,5 @@
+// r20.orng:5:28: error: expected a value of type `Int`, got a value of type `Type`
+// fn main() -> Int { return []() }
+//                           ^
+// 
 fn main() -> Int { return []() }

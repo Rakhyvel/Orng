@@ -1,1 +1,5 @@
+// mod.orng:5:21: error: expected a value of type `Char`, got a value of type `Int`
+// fn main()->Char {4 % 5}
+//                    ^
+// 
 fn main()->Char {4 % 5}

@@ -1,3 +1,7 @@
+// inject.orng:8:20: error: expected a value of type `Char`, got a value of type `Int`
+//     let x:T = S.b(3)
+//                   ^
+// 
 fn main() -> Int {
     const T = (a: Int | b: Int)
     const S = (a: Int | b: Char)

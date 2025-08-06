@@ -1,3 +1,7 @@
+// char_codepoints.orng:6:67: error: more than one codepoint specified in character literal
+//     let x = 'this character has too many unicode codepoints in it'
+//                                                                  ^
+// 
 fn main() -> Int {
     let x = 'this character has too many unicode codepoints in it'
     0

@@ -1,4 +1,7 @@
-// 343
+// undefined.orng:7:22: error: expected an expression here, got `undefined`
+//     let x = undefined
+//                     ^
+// 
 
 fn main() -> Int {
     let x = undefined

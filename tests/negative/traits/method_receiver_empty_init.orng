@@ -1,4 +1,7 @@
-// 289
+// method_receiver_empty_init.orng:12:14: error: symbol `self` is never used
+//     fn a(self) -> () {  }
+//             ^
+// 
 trait My_Trait {
     fn a(self) -> ()
 }

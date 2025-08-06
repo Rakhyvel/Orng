@@ -1,3 +1,7 @@
+// sliceof_arr.orng:7:24: error: expected a value of type `Type`, got a value of type `(Char, Char, Char)`
+//     let y: []Int = [3]x
+//                       ^
+// 
 fn main() -> Int {
     let x: [3]Char = ('a', 'b', 'c')
     let y: []Int = [3]x

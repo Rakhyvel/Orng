@@ -1,1 +1,3 @@
+// improper-module-name.orng: error: symbol `improper-module-name` has an improper module name
+// 
 fn main() -> Int { 0 }

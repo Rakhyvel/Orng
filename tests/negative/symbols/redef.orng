@@ -1,3 +1,10 @@
+// redef.orng:10:10: error: redefinition of symbol `x`
+//     let x = 4
+//         ^
+// redef.orng:9:10: note: other definition of `x` here:
+//     let x = 0
+//         ^
+// 
 fn main() -> Int {
     let x = 0
     let x = 4

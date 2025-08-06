@@ -1,3 +1,5 @@
+// error: use of identifier `x` before its definition
+// 
 fn main() -> Int  {
     let x = x
     0

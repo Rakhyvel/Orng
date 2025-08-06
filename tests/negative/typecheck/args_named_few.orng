@@ -1,3 +1,7 @@
+// args_named_few.orng:6:34: error: cannot infer the sum type
+//     let x: (a: Int, b: Int) = (.a = 43)
+//                                 ^
+// 
 fn main() -> Int {
     let x: (a: Int, b: Int) = (.a = 43)
     4

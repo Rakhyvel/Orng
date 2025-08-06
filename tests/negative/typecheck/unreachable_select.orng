@@ -1,3 +1,7 @@
+// unreachable_select.orng:6:17: error: left-hand-side of select is not selectable
+//     unreachable.x
+//                ^
+// 
 fn main() -> Int {
     unreachable.x
     4

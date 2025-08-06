@@ -1,3 +1,7 @@
+// args_few.orng:6:23: error: expected a value of type `Int`, got a value of type `Type`
+//     let x: (b:Int) = ()
+//                      ^
+// 
 fn main() -> Int {
     let x: (b:Int) = ()
     4

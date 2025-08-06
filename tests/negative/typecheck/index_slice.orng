@@ -1,3 +1,7 @@
+// index_slice.orng:8:7: error: expected a value of type `Int`, got a value of type `Char`
+//     y[1]
+//      ^
+// 
 fn main() -> Int {
     let x = ('1', '2', '3')
     let y = []x

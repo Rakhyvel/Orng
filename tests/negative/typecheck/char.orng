@@ -1,1 +1,5 @@
+// char.orng:5:22: error: expected a value of type `Int`, got a value of type `Char`
+// fn main() -> Int {'d'}
+//                     ^
+// 
 fn main() -> Int {'d'}

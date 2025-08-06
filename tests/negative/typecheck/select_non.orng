@@ -1,1 +1,5 @@
+// select_non.orng:5:32: error: left-hand-side of select is not selectable
+// fn main() -> Int {let x = 4; x.g}
+//                               ^
+// 
 fn main() -> Int {let x = 4; x.g}

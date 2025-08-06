@@ -1,1 +1,5 @@
+// int.orng:5:20: error: expected a value of type `Float`, got a value of type `Int`
+// fn main()->Float {1}
+//                   ^
+// 
 fn main()->Float {1}

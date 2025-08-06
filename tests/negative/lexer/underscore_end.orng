@@ -1,3 +1,7 @@
+// underscore_end.orng:6:11: error: identifiers may not end in an underscore
+//     let x_ = 0
+//          ^
+// 
 fn main() -> Int {
     let x_ = 0
     x_

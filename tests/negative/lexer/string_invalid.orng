@@ -1,3 +1,7 @@
+// string_invalid.orng:6:35: error: invalid escape sequence '\d'
+//     let x = "invalid escape! -> \d"
+//                                  ^
+// 
 fn main() -> Int {
     let x = "invalid escape! -> \d"
     0

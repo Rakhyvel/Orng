@@ -1,3 +1,7 @@
+// anon_fn.orng:6:20: error: expected a value of type `Int`, got a value of type `()->()`
+//     let x: Int = fn ()->() {}
+//                   ^
+// 
 fn main() -> Int {
     let x: Int = fn ()->() {}
     0

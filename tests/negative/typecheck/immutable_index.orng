@@ -1,3 +1,5 @@
+// error: cannot modify non-mutable address
+// 
 fn main() -> Int {
     let x: [4]Int = (1, 2, 3, 4)
     let y = []x

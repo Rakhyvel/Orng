@@ -1,3 +1,7 @@
+// infer_fail.orng:6:17: error: cannot infer the sum type
+//     let x = .lol
+//                ^
+// 
 fn main() -> Int {
     let x = .lol
     0

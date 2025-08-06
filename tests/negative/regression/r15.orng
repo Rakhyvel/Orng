@@ -1,3 +1,7 @@
+// r15.orng:6:19: error: expected a value of a(n) integer type, got `Float`
+//     errdefer 3.4 % unreachable * ? if - 4 { }
+//                  ^
+// 
 fn main() -> Int { 
     errdefer 3.4 % unreachable * ? if - 4 { }
 } 

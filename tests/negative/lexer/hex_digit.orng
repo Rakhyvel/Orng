@@ -1,3 +1,7 @@
+// hex_digit.orng:6:8: error: 'X' is not a valid hexadecimal digit
+//     0xXYZ
+//       ^
+// 
 fn main() -> Int {
     0xXYZ
 }

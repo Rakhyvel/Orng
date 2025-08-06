@@ -239,6 +239,8 @@ def bless(args):
         print("Number of negative test files: ", len(files))
         return
 
+    # run bless twice, once to get the error printed out, and the second to get the line number correct
+    res = subprocess.run(["./zig-out/bin/orng-test", "bless"] + files).returncode
     res = subprocess.run(["./zig-out/bin/orng-test", "bless"] + files).returncode
 
 

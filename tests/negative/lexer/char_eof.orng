@@ -1,2 +1,6 @@
+// char_eof.orng:6:48: error: expected a `'`, got end-of-file
+//     let x = 'this character doesnt have an end!
+//                                               ^
+// 
 fn main() -> Int {
     let x = 'this character doesnt have an end!

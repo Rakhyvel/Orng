@@ -1,3 +1,7 @@
+// array_idx.orng:7:8: error: expected an expression here, got `)`
+//     x[)
+//       ^
+// 
 fn main() -> Int {
     let x: [3]Int = (0, 0, 0)
     x[)

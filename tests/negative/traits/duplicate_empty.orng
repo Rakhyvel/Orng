@@ -1,3 +1,5 @@
+// error: no main function found
+// 
 impl for Int {
     fn f(self) -> Int { self }
 }

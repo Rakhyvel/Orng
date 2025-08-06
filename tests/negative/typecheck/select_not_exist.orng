@@ -1,3 +1,7 @@
+// select_not_exist.orng:7:7: error: member `c` not in tuple: `[2]a: Int`
+//     x.c
+//      ^
+// 
 fn main() -> Int {
     let x: (a: Int, b: Int) = (3, 4)
     x.c
