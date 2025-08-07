@@ -32,6 +32,7 @@ statement: let_declaration
          | "defer" assignment_expr
          | "errdefer" assignment_expr
          | assignment_expr
+         | test_declaration
          .
 
 
@@ -140,6 +141,8 @@ match_pattern_atom: ["mut"] ident {"." ident} # ident if part of a dot, symbol o
                   | literal
                   .
 match_pattern_product: match_pattern_sum_value {"," match_pattern_sum_value}.
+
+test_declaration: "test" [string] block_expr.
 
 parens: "(" [expr] ")". # ABSOLUTELY needs to be `"(" expr ")"` so that you can put all exprs in parens
                         # This also makes it so that tuples, sums, and annotations are always parenthized, which helps with landmarking

@@ -144,10 +144,10 @@ pub fn lookup_package_root_module(self: *Self, package_absolute_path: []const u8
     return self.lookup_package(package_absolute_path).?.requirements.get(requirement_name);
 }
 
-pub fn register_package(self: *Self, package_absolute_path: []const u8, is_static_lib: bool) void {
+pub fn register_package(self: *Self, package_absolute_path: []const u8, kind: Package.Package_Kind) void {
     std.debug.assert(std.fs.path.isAbsolute(package_absolute_path));
     if (self.lookup_package(package_absolute_path) == null) {
-        const package = Package.new(self.allocator(), package_absolute_path, is_static_lib);
+        const package = Package.new(self.allocator(), package_absolute_path, kind);
         self.packages.put(package_absolute_path, package) catch unreachable;
     }
 }
@@ -170,6 +170,12 @@ pub fn propagate_include_directories(self: *Self, root_package_absolute_path: []
     std.debug.assert(std.fs.path.isAbsolute(root_package_absolute_path));
     const package = self.lookup_package(root_package_absolute_path).?;
     package.append_include_dir(self.packages, &package.include_directories);
+}
+
+pub fn set_package_kind(self: *Self, package_absolute_path: []const u8, kind: Package.Package_Kind) void {
+    std.debug.assert(std.fs.path.isAbsolute(package_absolute_path));
+    const package = self.lookup_package(package_absolute_path).?;
+    package.kind = kind;
 }
 
 pub fn collect_package_local_modules(self: *Self) void {

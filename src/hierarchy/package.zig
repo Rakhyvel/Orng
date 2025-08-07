@@ -17,10 +17,17 @@ requirements: std.StringArrayHashMap(*Symbol),
 include_directories: std.StringArrayHashMap(void),
 library_directories: std.StringArrayHashMap(void),
 libraries: std.StringArrayHashMap(void),
-is_static_lib: bool,
+kind: Package_Kind,
 visited: bool,
 module_hash: Module_Hash,
 modified: ?bool,
+
+pub const Package_Kind = enum {
+    executable,
+    static_library,
+    shared_library,
+    test_executable,
+};
 
 pub const Package_Iterator_Node = struct {
     compiler: *Compiler_Context,
@@ -49,7 +56,7 @@ pub const Package_Iterator_Node = struct {
     }
 };
 
-pub fn new(allocator: std.mem.Allocator, package_absolute_path: []const u8, is_static_lib: bool) *Package {
+pub fn new(allocator: std.mem.Allocator, package_absolute_path: []const u8, kind: Package_Kind) *Package {
     const package = allocator.create(Package) catch unreachable;
     package.root = undefined; // filled in later
     package.output_absolute_path = undefined; // filled in when the output binary is created
@@ -61,7 +68,7 @@ pub fn new(allocator: std.mem.Allocator, package_absolute_path: []const u8, is_s
     package.visited = false;
     package.name = std.fs.path.basename(package_absolute_path);
     package.absolute_path = package_absolute_path;
-    package.is_static_lib = is_static_lib;
+    package.kind = kind;
     package.module_hash = Module_Hash.init(package_absolute_path, allocator) catch unreachable;
     package.modified = null;
     return package;
@@ -136,15 +143,15 @@ pub fn compile(self: *Package, packages: std.StringArrayHashMap(*Package), extra
     const obj_files = try self.compile_obj_files(packages, extra_flags, allocator);
     self.module_hash.output_new_json(allocator);
 
-    if (!self.is_static_lib) {
+    if (self.kind == .executable or self.kind == .test_executable) {
         self.set_executable_name(allocator);
     }
 
     if (self.modified.?) {
-        if (self.is_static_lib) {
+        if (self.kind == .static_library) {
             try self.ar(obj_files, allocator);
         } else {
-            try self.executable(obj_files, packages, allocator);
+            try self.link_executable(obj_files, packages, allocator);
         }
     }
 }
@@ -392,7 +399,7 @@ fn set_executable_name(self: *Package, allocator: std.mem.Allocator) void {
 }
 
 /// Runs the command to link the object files of a package into an executable
-fn executable(self: *Package, obj_files: std.ArrayList([]const u8), packages: std.StringArrayHashMap(*Package), allocator: std.mem.Allocator) !void {
+fn link_executable(self: *Package, obj_files: std.ArrayList([]const u8), packages: std.StringArrayHashMap(*Package), allocator: std.mem.Allocator) !void {
     const cmd = try self.construct_exe_cc_cmd(obj_files, packages, allocator);
 
     // Set cwd
