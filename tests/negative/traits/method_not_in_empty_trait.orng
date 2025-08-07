@@ -1,3 +1,7 @@
+// method_not_in_empty_trait.orng:8:7: error: method `f` is not in trait `My_Trait`
+//     fn f() -> () { }
+//      ^
+// 
 trait My_Trait { }
 
 impl My_Trait for Int {

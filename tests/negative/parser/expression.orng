@@ -1,1 +1,5 @@
+// expression.orng:5:19: error: expected an expression here, got `defer`
+// fn main() -> defer 4 {}
+//                  ^
+// 
 fn main() -> defer 4 {}

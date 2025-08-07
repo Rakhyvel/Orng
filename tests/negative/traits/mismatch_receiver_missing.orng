@@ -1,3 +1,7 @@
+// mismatch_receiver_missing.orng:10:7: error: trait `My_Trait` specifies receiver `self` for method `f`
+//     fn f() -> () {}
+//      ^
+// 
 trait My_Trait {
     fn f(self) -> ()
 }

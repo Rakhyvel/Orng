@@ -1,1 +1,5 @@
+// or.orng:5:24: error: expected a value of type `Int`, got a value of type `Bool`
+// fn main()->Int {true or false}
+//                       ^
+// 
 fn main()->Int {true or false}

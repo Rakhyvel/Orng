@@ -1,3 +1,7 @@
+// invoke_addr_method_not_found.orng:8:8: error: the type `&Int` does not implement the method `add`
+//     y.>add(56)
+//       ^
+// 
 fn main() -> Int {
     let x = 4
     let y = &x

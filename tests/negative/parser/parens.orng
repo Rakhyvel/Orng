@@ -1,1 +1,7 @@
+// parens.orng:7:16: error: expected closing `)` to match opening `(` here, got `(EOF)`
+//               ^
+// parens.orng:7:15: note: opening `(` here:
+// fn main() -> (
+//              ^
+// 
 fn main() -> (

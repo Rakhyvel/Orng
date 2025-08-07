@@ -1,3 +1,7 @@
+// mismatch_return_type.orng:10:20: error: trait `My_Trait` specifies type `Int` for method `f`, got `()`
+//     fn f(self) -> () {}
+//                   ^
+// 
 trait My_Trait {
     fn f(self) -> Int
 }

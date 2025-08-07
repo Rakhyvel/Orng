@@ -1,3 +1,7 @@
+// const_fn_anonymous.orng:5:3: error: anonymous functions specified with const parameters
+// fn (const n: Int) -> Int {
+//  ^
+// 
 fn (const n: Int) -> Int {
     n + 4
 }

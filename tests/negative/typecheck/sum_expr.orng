@@ -1,3 +1,7 @@
+// sum_expr.orng:6:20: error: invalid sum expression, must be annotation or identifier
+//     let x: (y | z + 3)
+//                   ^
+// 
 fn main() -> Int {
     let x: (y | z + 3)
     4

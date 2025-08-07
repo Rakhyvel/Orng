@@ -1,3 +1,7 @@
+// identifier.orng:7:6: error: expected a value of type `Int`, got a value of type `Float`
+//     x
+//     ^
+// 
 fn main() -> Int {
     let x = 0.4
     x

@@ -1,3 +1,7 @@
+// r19.orng:6:13: error: error: expected a compile-time constant type, got slice_of
+//     let d: []{}
+//            ^
+// 
 fn main() -> () { 
     let d: []{}
     _ = d

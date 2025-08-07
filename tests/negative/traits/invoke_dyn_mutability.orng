@@ -1,3 +1,7 @@
+// invoke_dyn_mutability.orng:21:6: error: receiver `&mut self` of method `lmao` incompatible with type `&dyn Lol`
+//     x.>lmao()
+//     ^
+// 
 trait Lol {
     fn lmao(&mut self) -> ()
 }

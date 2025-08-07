@@ -1,3 +1,7 @@
+// break.orng:6:10: error: `break` is not inside a loop
+//     break
+//         ^
+// 
 fn main() -> Int {
     break
 }

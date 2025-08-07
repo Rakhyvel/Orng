@@ -1,1 +1,5 @@
+// float.orng:5:20: error: expected a value of type `Int`, got a value of type `Float`
+// fn main()->Int {0.4}
+//                   ^
+// 
 fn main()->Int {0.4}

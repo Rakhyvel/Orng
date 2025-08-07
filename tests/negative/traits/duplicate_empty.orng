@@ -1,7 +1,0 @@
-impl for Int {
-    fn f(self) -> Int { self }
-}
-
-impl for Int {
-    fn g(&self) -> Int { self^ }
-}

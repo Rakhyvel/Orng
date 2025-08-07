@@ -1,3 +1,7 @@
+// invoke_dyn_method_not_found.orng:15:8: error: the type `&dyn My_Trait` does not implement the method `get_int`
+//     x.>get_int()
+//       ^
+// 
 trait My_Trait { }
 
 impl My_Trait for Int { }

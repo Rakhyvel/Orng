@@ -1,3 +1,7 @@
+// catch_non_err.orng:6:6: error: expected error type for catch, got `Int`
+//     4 catch 5
+//     ^
+// 
 fn main() -> Int {
     4 catch 5
 }

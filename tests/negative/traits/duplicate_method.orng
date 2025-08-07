@@ -1,3 +1,10 @@
+// duplicate_method.orng:10:7: error: duplicate item `lol`
+//     fn lol() -> ()
+//      ^
+// duplicate_method.orng:9:7: note: other definition of `lol` here:
+//     fn lol() -> ()
+//      ^
+// 
 trait My_Trait {
     fn lol() -> ()
     fn lol() -> ()

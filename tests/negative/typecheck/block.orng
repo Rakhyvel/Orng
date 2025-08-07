@@ -1,1 +1,5 @@
+// block.orng:5:19: error: expected a value of type `Int`, got a value of type `()`
+// fn main() -> Int {}
+//                  ^
+// 
 fn main() -> Int {}

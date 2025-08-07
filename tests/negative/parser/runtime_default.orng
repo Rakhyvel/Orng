@@ -1,3 +1,8 @@
+// runtime_default.orng:7:46: error: default values must be compile-time known
+//     const My_Type: Type = (x: Int = get_four())
+//                                             ^
+// runtime_default.orng:7:46: note: consider wrapping with `comptime`
+// 
 fn main() -> Int {
     const My_Type: Type = (x: Int = get_four())
     let y: My_Type

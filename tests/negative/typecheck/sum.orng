@@ -1,3 +1,7 @@
+// sum.orng:6:22: error: expected a value of type `Int`, got a value of type `Type`
+//     let x: Int = (x | y)
+//                     ^
+// 
 fn main() -> Int {
     let x: Int = (x | y)
     x

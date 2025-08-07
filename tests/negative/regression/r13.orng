@@ -1,1 +1,5 @@
+// r13.orng:5:26: error: expected a value of type `Int`, got a value of type `Void`
+// fn main() -> Int { return }
+//                         ^
+// 
 fn main() -> Int { return }

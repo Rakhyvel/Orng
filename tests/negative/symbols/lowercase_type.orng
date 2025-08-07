@@ -1,3 +1,7 @@
+// lowercase_type.orng:5:10: error: symbol `int` of type `Type` must start with an uppercase letter
+// const int: Type = (a: Int, b: Int)
+//         ^
+// 
 const int: Type = (a: Int, b: Int)
 
 fn main() -> Int {

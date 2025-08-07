@@ -1,1 +1,5 @@
+// paramlist2.orng:5:50: error: error: expected a compile-time constant type, got function
+// fn a (x : Int, y: fn () -> Int {}, z: Int) -> Int {}
+//                                                 ^
+// 
 fn a (x : Int, y: fn () -> Int {}, z: Int) -> Int {}

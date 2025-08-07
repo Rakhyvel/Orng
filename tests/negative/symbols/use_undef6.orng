@@ -1,3 +1,10 @@
+// use_undef6.orng:8:8: error: symbol `x` is never defined
+// fn main() -> Int {
+//       ^
+// use_undef6.orng:9:10: note: declared here
+//     let x: [4]Int = undefined
+//         ^
+// 
 fn main() -> Int {
     let x: [4]Int = undefined
     x[2]

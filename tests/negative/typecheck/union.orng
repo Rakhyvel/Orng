@@ -1,1 +1,5 @@
+// union.orng:5:29: error: expected a value of type `Int`, got a value of type `Type`
+// fn main() -> Int {(x | y) || (z | a)}
+//                            ^
+// 
 fn main() -> Int {(x | y) || (z | a)}

@@ -1,3 +1,7 @@
+// dyn_non_ident.orng:6:11: error: expected `identifier`, got `{`
+//     &dyn {Int}
+//          ^
+// 
 fn main() -> Int { 
     &dyn {Int}
 }

@@ -1,3 +1,7 @@
+// float_digit.orng:6:10: error: 'a' is not a valid decimal digit
+//     0.1_abc
+//         ^
+// 
 fn main() -> Int {
     0.1_abc
     0

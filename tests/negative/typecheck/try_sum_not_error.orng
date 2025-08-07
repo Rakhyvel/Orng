@@ -1,3 +1,7 @@
+// try_sum_not_error.orng:6:11: error: expected error type for try, got `(ok: Int | err: Char)`
+//     try f()
+//          ^
+// 
 fn main() -> Int {
     try f()
 }

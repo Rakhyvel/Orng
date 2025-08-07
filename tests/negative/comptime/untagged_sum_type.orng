@@ -1,3 +1,7 @@
+// untagged_sum_type.orng:6:23: error: comptime untagged sum values cannot propagate to runtime
+//     let x = comptime {
+//                      ^
+// 
 fn main() -> Int {
     let x = comptime {
         let mut y: @Untagged(?Int) = undefined

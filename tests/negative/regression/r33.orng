@@ -1,3 +1,7 @@
+// r33.orng:6:29: error: error: recursive definition of symbol `main` detected
+//     main += match const main = main ; 4 { _ => 3 } 
+//                            ^
+// 
 fn main() -> Int { 
     main += match const main = main ; 4 { _ => 3 } 
 } 

@@ -1,3 +1,7 @@
+// self_referential_const.orng:5:8: error: error: recursive definition of symbol `x` detected
+// const x = comptime{x}
+//       ^
+// 
 const x = comptime{x}
 
 fn main() -> Int {0}

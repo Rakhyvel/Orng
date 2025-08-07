@@ -1,2 +1,6 @@
+// try_out_fn.orng:6:14: error: `try` is not inside a function
+// const x = try y
+//             ^
+// 
 const y: Char!Int = .ok(0)
 const x = try y

@@ -1,3 +1,7 @@
+// inject_non_sum.orng:6:6: error: expected function type for call, got `Int`
+//     4(4)
+//     ^
+// 
 fn main() -> Int {
     4(4)
 }

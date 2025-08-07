@@ -1,3 +1,7 @@
+// int_digit.orng:6:9: error: 'a' is not a valid decimal digit
+//     01_abc
+//        ^
+// 
 fn main() -> Int {
     01_abc
 }

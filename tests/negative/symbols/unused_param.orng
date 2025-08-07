@@ -1,3 +1,7 @@
+// unused_param.orng:9:10: error: symbol `x` is never used
+// fn test(x: Int, y: Int) -> Int {
+//         ^
+// 
 fn main() -> Int {
     test(3, 4)
 }

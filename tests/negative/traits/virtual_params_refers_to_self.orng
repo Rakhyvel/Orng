@@ -1,3 +1,7 @@
+// virtual_params_refers_to_self.orng:6:15: error: virtual method `lol` of trait `Lol` refers to `Self` type
+//     virtual fn lol(x: Self, y: Self) -> ()
+//              ^
+// 
 trait Lol {
     virtual fn lol(x: Self, y: Self) -> ()
 }

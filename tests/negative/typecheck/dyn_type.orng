@@ -1,3 +1,7 @@
+// dyn_type.orng:6:20: error: expected trait type for dyn, got `Int`
+//     let x: &dyn Int = 4
+//                   ^
+// 
 fn main() -> Int {
     let x: &dyn Int = 4
     5

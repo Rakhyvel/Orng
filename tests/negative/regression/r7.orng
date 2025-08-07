@@ -1,1 +1,5 @@
+// r7.orng:5:12: error: error: expected a compile-time constant type, got function
+// fn ( ) -> & { _ = (main : [ ] Char) } {}
+//           ^
+// 
 fn ( ) -> & { _ = (main : [ ] Char) } {}

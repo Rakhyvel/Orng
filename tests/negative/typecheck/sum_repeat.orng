@@ -1,3 +1,10 @@
+// sum_repeat.orng:9:18: error: duplicate item `y`
+//     let x: (y | y | y)
+//                 ^
+// sum_repeat.orng:9:14: note: other definition of `y` here:
+//     let x: (y | y | y)
+//             ^
+// 
 fn main() -> Int {
     let x: (y | y | y)
     0

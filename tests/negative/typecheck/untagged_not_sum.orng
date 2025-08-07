@@ -1,1 +1,5 @@
+// untagged_not_sum.orng:5:19: error: not a sum type
+// const x: @Untagged(Int)
+//                  ^
+// 
 const x: @Untagged(Int)

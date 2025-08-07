@@ -1,1 +1,5 @@
+// and.orng:5:25: error: expected a value of type `Int`, got a value of type `Bool`
+// fn main()->Int {true and false}
+//                        ^
+// 
 fn main()->Int {true and false}

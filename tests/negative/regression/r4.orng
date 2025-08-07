@@ -1,1 +1,5 @@
+// r4.orng:5:13: error: array length is not positive
+// fn b () -> [0]Float { }
+//            ^
+// 
 fn b () -> [0]Float { }

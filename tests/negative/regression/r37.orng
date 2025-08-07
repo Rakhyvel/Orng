@@ -1,3 +1,7 @@
+// r37.orng:5:20: error: error: expected a compile-time constant type, got if
+// impl for @sizeof(if () { }) { } 
+//                   ^
+// 
 impl for @sizeof(if () { }) { } 
 
 fn main() -> Int {0}

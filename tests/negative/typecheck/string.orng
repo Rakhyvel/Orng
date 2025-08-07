@@ -1,1 +1,5 @@
+// string.orng:5:22: error: expected a value of type `Int`, got a value of type `String`
+// fn main()->Int {"lol"}
+//                     ^
+// 
 fn main()->Int {"lol"}

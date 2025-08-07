@@ -1,3 +1,7 @@
+// double_underscore.orng:6:12: error: may not have more than one underscore in a row in an identifier
+//     let x__lol = 4
+//           ^
+// 
 fn main() -> Int {
     let x__lol = 4
     x__lol

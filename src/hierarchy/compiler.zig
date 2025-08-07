@@ -49,7 +49,7 @@ pub fn init(alloc: std.mem.Allocator) Error!*Self {
     retval.packages = std.StringArrayHashMap(*Package).init(retval.allocator());
     retval.prelude = primitives_.get_scope(retval) catch {
         // Prelude compilation can sometimes fail :(
-        retval.errors.print_errors();
+        retval.errors.print_errors(errs_.get_std_err(), .{});
         return error.CompileError;
     };
 
@@ -88,14 +88,14 @@ pub fn compile_module(
             error.ParseError,
             error.FileNotFound,
             => {
-                self.errors.print_errors();
+                self.errors.print_errors(errs_.get_std_err(), .{});
                 return err;
             },
 
             // Only print these errors if NOT fuzz testing
             error.CompileError,
             => if (!fuzz_tokens) {
-                self.errors.print_errors();
+                self.errors.print_errors(errs_.get_std_err(), .{});
                 return err;
             } else {
                 return err;

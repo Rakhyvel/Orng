@@ -1,3 +1,7 @@
+// invoke_static_method_not_found.orng:7:8: error: the type `Int` does not implement the method `add`
+//     x.>add(56)
+//       ^
+// 
 fn main() -> Int {
     let x = 4
     x.>add(56)

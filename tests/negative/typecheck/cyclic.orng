@@ -1,3 +1,7 @@
+// cyclic.orng:6:17: error: error: recursive definition detected
+// const B = (x: A, y: Int)
+//                ^
+// 
 const A = (x: B, y: Int)
 const B = (x: A, y: Int)
 

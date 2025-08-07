@@ -1,3 +1,7 @@
+// unreachable_match.orng:7:20: error: expected an expression here, got `unreachable`
+//         unreachable => 35
+//                   ^
+// 
 fn main() -> Int {
     match 4 {
         unreachable => 35

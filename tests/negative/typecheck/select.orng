@@ -1,3 +1,7 @@
+// select.orng:7:7: error: expected a value of type `Int`, got a value of type `Char`
+//     x.b
+//      ^
+// 
 fn main() -> Int {
     let x: (a: Int, b: Char) = (1, '2')
     x.b

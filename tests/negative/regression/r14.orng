@@ -1,3 +1,7 @@
+// r14.orng:6:18: error: not integer literal
+//     let mut x : [unreachable] Int
+//                 ^
+// 
 fn main() -> Int {
     let mut x : [unreachable] Int
     0

@@ -1,3 +1,7 @@
+// typeclass_arithmetic.orng:6:6: error: expected a value of a(n) arithmetic type, got `Char`
+//     -'d'
+//     ^
+// 
 fn main() -> Char {
     -'d'
 }

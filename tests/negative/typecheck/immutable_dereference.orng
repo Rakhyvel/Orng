@@ -1,3 +1,7 @@
+// immutable_dereference.orng:7:14: error: cannot modify non-mutable address
+//     let y = &x
+//             ^
+// 
 fn main() -> Int {
     let x = 0
     let y = &x

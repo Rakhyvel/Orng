@@ -1,2 +1,6 @@
+// string_eof.orng:6:46: error: expected `"`, got end-of-file
+//     let x = "this string doesn't have an end!
+//                                             ^
+// 
 fn main() -> Int {
     let x = "this string doesn't have an end!

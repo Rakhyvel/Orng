@@ -101,7 +101,7 @@ fn run(compiler: *Compiler_Context, package_abs_path: []const u8, allocator: std
         (errs_.Error{ .basic = .{
             .msg = "cannot run a non-executable package",
             .span = Span.phony,
-        } }).fatal_error();
+        } }).fatal_error(errs_.get_std_err(), .{});
         return error.CompileError;
     }
 
@@ -291,7 +291,7 @@ pub fn init_project(name: []const u8, args: *std.process.ArgIterator, allocator:
         (errs_.Error{ .basic = .{
             .msg = "an Orng package already exists here",
             .span = Span.phony,
-        } }).fatal_error();
+        } }).fatal_error(errs_.get_std_err(), .{});
     } else |err| switch (err) {
         error.FileNotFound => {},
         else => return error.FileError,
@@ -302,7 +302,7 @@ pub fn init_project(name: []const u8, args: *std.process.ArgIterator, allocator:
         (errs_.Error{ .basic = .{
             .msg = "an Orng package already exists here",
             .span = Span.phony,
-        } }).fatal_error();
+        } }).fatal_error(errs_.get_std_err(), .{});
     } else |err| switch (err) {
         error.FileNotFound => {},
         else => return error.FileError,
@@ -362,7 +362,7 @@ fn construct_package_dag(compiler: *Compiler_Context) Command_Error![]const u8 {
             (errs_.Error{ .basic = .{
                 .msg = "no `build.orng` file found in current working directory",
                 .span = Span.phony,
-            } }).fatal_error();
+            } }).fatal_error(errs_.get_std_err(), .{});
         },
         else => return error.CompileError,
     };

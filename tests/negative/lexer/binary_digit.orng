@@ -1,3 +1,7 @@
+// binary_digit.orng:6:8: error: 'X' is not a valid binary digit
+//     0bXYZ
+//       ^
+// 
 fn main() -> Int {
     0bXYZ
 }

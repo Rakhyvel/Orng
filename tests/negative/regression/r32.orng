@@ -1,3 +1,7 @@
+// r32.orng:6:8: error: expected a value of type `Int`, got a value of type `()`
+//     let b = while true; impl for [] comptime {} {} {}
+//       ^
+// 
 fn main() -> Int { 
     let b = while true; impl for [] comptime {} {} {}
 } 

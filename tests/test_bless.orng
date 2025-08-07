@@ -1,7 +1,7 @@
-// non_exhaustive_sum.orng:11:10: error: match over sum type is not exhaustive
+// non_exhaustive_sum.orng:4:10: error: match over sum type is not exhaustive
 //     match my_val {
 //         ^
-// non_exhaustive_sum.orng:9:34: note: term not handled: `d`
+// non_exhaustive_sum.orng:2:34: note: term not handled: `d`
 //     const My_Sum = (a | b | c | d)
 //                                 ^
 // 

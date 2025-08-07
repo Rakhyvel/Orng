@@ -1,3 +1,7 @@
+// args_mix.orng:6:36: error: mixed positional and named arguments are not allowed
+//     let x: (x: Int, y: Int) = (.x = 4, 5)
+//                                   ^
+// 
 fn main() -> Int {
     let x: (x: Int, y: Int) = (.x = 4, 5)
     x.x

@@ -1,3 +1,7 @@
+// typeclass_ord.orng:8:8: error: expected a value of a(n) orderable type, got `Bool`
+//     x < y
+//       ^
+// 
 fn main() -> Bool {
     let x = true
     let y = false

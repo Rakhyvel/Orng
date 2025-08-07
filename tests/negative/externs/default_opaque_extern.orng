@@ -1,3 +1,8 @@
+// default_opaque_extern.orng:10:29: error: no default value for type `C_Int`
+//         let mut xs: [5]C_Int
+//                            ^
+// error: comptime cannot be type `Void`
+// 
 extern ("int") const C_Int: Type
 
 fn main() -> Int {

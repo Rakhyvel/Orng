@@ -1,3 +1,7 @@
+// addrof_poison.orng:6:8: error: expected address type for dereference, got `Int`
+//     &(0^)
+//       ^
+// 
 fn main() -> Int  {
     &(0^)
     0

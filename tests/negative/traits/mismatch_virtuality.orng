@@ -1,3 +1,7 @@
+// mismatch_virtuality.orng:10:7: error: trait `Lol` specifies the method `lmao` as virtual, got non-virtual
+//     fn lmao(&mut self) -> () {
+//      ^
+// 
 trait Lol {
     virtual fn lmao(&mut self) -> ()
 }

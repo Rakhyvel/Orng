@@ -1,3 +1,4 @@
+// 
 fn main() -> () {
     _ = comptime {add(100, 50)}
 }

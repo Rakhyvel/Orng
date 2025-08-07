@@ -1,1 +1,5 @@
+// orelse_non_opt.orng:5:20: error: expected optional type for orelse, got `Int`
+// fn main() -> Int {4 orelse 5}
+//                   ^
+// 
 fn main() -> Int {4 orelse 5}

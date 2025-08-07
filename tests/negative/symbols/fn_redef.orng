@@ -1,3 +1,10 @@
+// fn_redef.orng:10:9: error: redefinition of symbol `x`
+//     fn x()->(){}
+//        ^
+// fn_redef.orng:9:10: note: other definition of `x` here:
+//     let x = 0
+//         ^
+// 
 fn main() -> Int {
     let x = 0
     fn x()->(){}

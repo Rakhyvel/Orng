@@ -1,1 +1,7 @@
+// missing_brace.orng:7:21: error: expected closing `}` to match opening `{` here, got `(EOF)`
+//                    ^
+// missing_brace.orng:7:19: note: opening `{` here:
+// fn main() -> Int {0
+//                  ^
+// 
 fn main() -> Int {0

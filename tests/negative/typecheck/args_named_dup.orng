@@ -1,3 +1,7 @@
+// args_named_dup.orng:6:44: error: duplicate item `a`
+//     let x: (a: Int, b: Int) = (.a = 4, .a = 5, .b = 4)
+//                                           ^
+// 
 fn main() -> Int {
     let x: (a: Int, b: Int) = (.a = 4, .a = 5, .b = 4)
     0

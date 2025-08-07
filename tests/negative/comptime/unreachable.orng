@@ -1,3 +1,7 @@
+// unreachable.orng:6:28: error: comptime cannot be type `Void`
+//     let x: Int = comptime { unreachable }
+//                           ^
+// 
 fn main() -> Int {
     let x: Int = comptime { unreachable }
     x

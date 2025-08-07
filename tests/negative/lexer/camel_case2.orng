@@ -1,3 +1,7 @@
+// camel_case2.orng:5:10: error: camelCase is not supported
+// const C4Mel: Type = Int
+//         ^
+// 
 const C4Mel: Type = Int
 
 fn main() -> Int {

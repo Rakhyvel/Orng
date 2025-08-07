@@ -1,3 +1,7 @@
+// r24.orng:6:14: error: error: expected a compile-time constant type, got sum_type
+//     let x: ?{Int}
+//             ^
+// 
 fn main() -> Int {
     let x: ?{Int}
     4

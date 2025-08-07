@@ -1,3 +1,7 @@
+// self_referential_fn.orng:5:8: error: error: recursive definition of symbol `main` detected
+// fn main() -> Int {
+//       ^
+// 
 fn main() -> Int {
     // This can't be checked properly because slice-of can't know if comptime is valid without knowing if slice-of is valid
     []comptime {main}

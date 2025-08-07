@@ -1,3 +1,7 @@
+// mismatch_receiver_extra.orng:10:14: error: trait `My_Trait` does not specify a receiver for method `f`, got receiver `self`
+//     fn f(self) -> () {}
+//             ^
+// 
 trait My_Trait {
     fn f() -> ()
 }

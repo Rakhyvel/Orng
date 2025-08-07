@@ -1,3 +1,7 @@
+// const_fn_value.orng:10:33: error: expected a value of type `Int->Int`, got a value of type `()`
+//     let x: Int -> Int = template
+//                                ^
+// 
 fn template(const n: Int) -> Int {
     n + 4
 }
