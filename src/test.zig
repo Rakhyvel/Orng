@@ -206,20 +206,20 @@ fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug
             bless_file(filename, error_string.str(), body) catch unreachable;
             return true;
         } else if (mode == .regular) {
+            const errors_match = std.mem.eql(u8, error_string.str(), flat_head.str());
             switch (err) {
                 error.LexerError,
                 error.CompileError,
                 => {
-                    std.debug.print("{}\n", .{std.mem.eql(u8, error_string.str(), flat_head.str())});
                     compiler.errors.print_errors(get_std_out(), .{});
-                    return true;
+                    return errors_match;
                 },
                 error.ParseError, error.FileNotFound => {
                     var str = String.init_with_contents(allocator, filename) catch unreachable;
                     defer str.deinit();
                     compiler.errors.print_errors(get_std_out(), .{});
                     if (str.find("parser") != null) {
-                        return true;
+                        return errors_match;
                     } else {
                         get_std_out().print("Non-parser negative tests should parse!\n", .{}) catch unreachable;
                         compiler.errors.print_errors(get_std_out(), .{});
@@ -431,8 +431,13 @@ fn header_comment(contents: []const u8, alloc: std.mem.Allocator) ![][]const u8 
 
 fn flatten_header_comment(lines: [][]const u8, alloc: std.mem.Allocator) !String {
     var line = String.init(alloc);
+    var i: usize = 0;
     for (lines) |l| {
-        try line.writer().print("{s}\n", .{l});
+        try line.writer().print("{s}", .{l});
+        if (i < lines.len -| 1) {
+            try line.writer().print("\n", .{});
+        }
+        i += 1;
     }
     return line;
 }
