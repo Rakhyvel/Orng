@@ -278,8 +278,8 @@ pub const Error = union(enum) {
         }
     }
 
-    pub fn fatal_error(self: Error) noreturn {
-        self.print_error();
+    pub fn fatal_error(self: Error, writer: anytype, conf: Error_Config) noreturn {
+        self.print_error(writer, conf);
         std.process.exit(1);
     }
 
