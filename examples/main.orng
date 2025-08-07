@@ -5,5 +5,5 @@ import externs
 fn main() -> ()!() {
     debug::println("Hello, World!")
     externs::println("Hello, World f!")
-    .err({})
+    .ok({})
 }
