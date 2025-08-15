@@ -1,0 +1,5 @@
+// error: cannot implement for this, not a trait
+// 
+impl Int for () {
+    
+}

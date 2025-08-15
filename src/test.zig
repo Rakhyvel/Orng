@@ -129,10 +129,6 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
     var compiler = Compiler_Context.init(debug_alloc.allocator()) catch unreachable;
     defer compiler.deinit();
     defer primitives_.deinit();
-    const contents = Read_File.init(compiler.allocator()).run(absolute_filename) catch unreachable;
-    const header_comment_contents = header_comment(contents, debug_alloc.allocator()) catch unreachable;
-    defer debug_alloc.allocator().free(header_comment_contents);
-    const expected_out = header_comment_contents[0];
 
     const module = module_.Module.compile(absolute_filename, "main", false, compiler) catch {
         if (mode == .regular) {
@@ -151,7 +147,7 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
 
     compiler.propagate_include_directories(package_abs_path);
     compiler.collect_package_local_modules();
-    try compiler.determine_if_modified(package_abs_path);
+    compiler.determine_if_modified(package_abs_path);
 
     const package = compiler.lookup_package(package_abs_path).?;
     package.modified = true;
@@ -161,6 +157,11 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
         // kcov can't call gcc, so stop JUST before it calls gcc
         return false;
     }
+
+    const contents = Read_File.init(compiler.allocator()).run(absolute_filename) catch unreachable;
+    const header_comment_contents = header_comment(contents, debug_alloc.allocator()) catch unreachable;
+    defer debug_alloc.allocator().free(header_comment_contents);
+    const expected_out = header_comment_contents[0];
 
     compiler.compile(package_abs_path, false) catch unreachable;
 
@@ -237,7 +238,7 @@ fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug
     }
 
     get_std_out().print("Negative test compiled without error.\n", .{}) catch unreachable;
-    unreachable;
+    return false;
 }
 
 fn bless_file(filename: []const u8, error_msg: []const u8, body: []const u8) !void {

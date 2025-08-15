@@ -29,6 +29,7 @@ import os
 import platform
 import shutil
 import subprocess
+from static_analysis import collect_files
 
 
 TEST_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -170,7 +171,7 @@ def parse_args():
 
 
 def integration(args):
-    files = collect_files(args, "tests/integration")
+    files = collect_files.collect_files_args(args, "tests/integration")
 
     if args.count:
         print("Number of integration test files: ", len(files))
@@ -202,7 +203,7 @@ def integration(args):
 
 
 def negative(args):
-    files = collect_files(args, "tests/negative")
+    files = collect_files.collect_files_args(args, "tests/negative")
 
     if args.count:
         print("Number of negative test files: ", len(files))
@@ -233,7 +234,7 @@ def negative(args):
 
 
 def bless(args):
-    files = collect_files(args, "tests/negative")
+    files = collect_files.collect_files_args(args, "tests/negative")
 
     if args.count:
         print("Number of negative test files: ", len(files))
@@ -245,7 +246,7 @@ def bless(args):
 
 
 def all(args):
-    files = collect_files(args, "tests/integration")
+    files = collect_files.collect_files_args(args, "tests/integration")
     integration_res = subprocess.run(
         ["./zig-out/bin/orng-test", "integration"] + files
     ).returncode
@@ -263,7 +264,7 @@ def all(args):
             + files
         )
 
-    files = collect_files(args, "tests/negative")
+    files = collect_files.collect_files_args(args, "tests/negative")
     negative_res = 0
     if not args.no_coverage and platform.system() != "Windows":
         subprocess.run(
@@ -287,7 +288,7 @@ def all(args):
 
 
 def modified(args):
-    files = collect_modified_files(args, "tests/integration")
+    files = collect_files.collect_modified_files(args, "tests/integration")
     integration_res = 0
     if len(files) > 0:
         integration_res = subprocess.run(
@@ -307,7 +308,7 @@ def modified(args):
                 + files
             )
 
-    files = collect_modified_files(args, "tests/negative")
+    files = collect_files.collect_modified_files(args, "tests/negative")
     negative_res = 0
     if len(files) > 0:
         if platform.system() != "Windows":
@@ -388,59 +389,6 @@ def fuzz():
                 if res != 0:
                     print("[ FAILED ]\n", trimmed)
                     problem_file.write(trimmed + "\n")
-
-
-def collect_files(args, base):
-    # Extract paths in the args.test list, if there are any
-    # Prepend with base
-    if (
-        args.test and len(args.test) > 0 and args.test[0] != "."
-    ):  # If the user enters `-t .`, treat that as a test of the whole directory
-        full_path = [os.path.join(base, path) for path in args.test]
-    elif args.count:
-        full_path = [os.path.join(base, path) for path in args.count]
-    else:
-        full_path = [base]
-
-    # Collect all .orng files recursively in any directories
-    files = []
-    for path in full_path:
-        files += collect_files_recursive(path)
-    return list(dict.fromkeys(files))
-
-
-def collect_modified_files(args, base):
-    res = (
-        subprocess.run(
-            ["git", "diff", "--name-only", "--diff-filter=AM", "origin/main...HEAD"],
-            capture_output=True,
-        )
-        .stdout.decode("utf-8")
-        .split("\n")
-    )
-    res = list(filter(lambda x: x.startswith(base) and x.endswith(".orng"), res))
-    return res
-
-
-def collect_files_recursive(root_filename):
-    files = []
-    if os.path.isdir(root_filename):
-        dir_list = os.listdir(root_filename)
-    elif root_filename.endswith(".orng"):
-        return [root_filename]
-    else:
-        return []
-
-    for file_name in dir_list:
-        root_and_filename = os.path.join(root_filename, file_name)
-        if os.path.isdir(root_and_filename):
-            # Directory
-            files += collect_files_recursive(root_and_filename)
-        elif root_and_filename.endswith(".orng"):
-            # File
-            files.append(root_and_filename)
-    files.sort()
-    return files
 
 
 if __name__ == "__main__":
