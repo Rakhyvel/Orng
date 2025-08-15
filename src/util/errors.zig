@@ -629,8 +629,10 @@ fn print_epilude(maybe_span: ?Span, writer: anytype, conf: Error_Config) void {
             print_color(not_bold, writer, conf);
             writer.print("{s}\n", .{span.line_text}) catch unreachable;
         }
-        for (2..span.col) |_| {
-            writer.print(" ", .{}) catch unreachable;
+        if (span.col > 2) {
+            for (2..span.col) |_| {
+                writer.print(" ", .{}) catch unreachable;
+            }
         }
         if (conf.print_color) {
             term_.outputColor(term_.Attr{ .fg = .green, .bold = true }, "^\n", writer) catch unreachable;

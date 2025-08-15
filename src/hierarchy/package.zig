@@ -97,7 +97,7 @@ pub fn get_build_module(self: *const Package, compiler: *Compiler_Context) ?*Mod
 /// A package is modified if:
 /// - Any of its modules are modified
 /// - Any of its dependencies are modified
-pub fn determine_if_modified(self: *Package, packages: std.StringArrayHashMap(*Package), compiler: *Compiler_Context) !void {
+pub fn determine_if_modified(self: *Package, packages: std.StringArrayHashMap(*Package), compiler: *Compiler_Context) void {
     if (self.modified != null) {
         return;
     }
@@ -109,13 +109,13 @@ pub fn determine_if_modified(self: *Package, packages: std.StringArrayHashMap(*P
         const requirement_root_module = requirement_root_module_symbol.?.init_value.?.module.module;
         const requirement_root_abs_path = requirement_root_module.get_package_abs_path();
         const required_package: *Package = packages.get(requirement_root_abs_path).?;
-        try required_package.determine_if_modified(packages, compiler);
+        required_package.determine_if_modified(packages, compiler);
         self.modified = required_package.modified.? or self.modified.?;
     }
 
     if (self.get_build_module(compiler)) |build_module| {
         build_module.determine_if_modified(compiler);
-        try build_module.update_module_hash(&self.module_hash, compiler.allocator());
+        build_module.update_module_hash(&self.module_hash, compiler.allocator());
         self.modified = build_module.modified.? or self.modified.?;
     }
 
@@ -167,7 +167,7 @@ fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package),
         var o_file = String.init(allocator);
         o_file.writer().print("{s}.o", .{local_module.name()}) catch unreachable;
         obj_files.append(o_file.str()) catch unreachable;
-        try local_module.update_module_hash(&self.module_hash, allocator);
+        local_module.update_module_hash(&self.module_hash, allocator);
 
         if (!local_module.modified.?) {
             // No need to re-compile!

@@ -55,7 +55,7 @@ fn combine_multilines(tokens: *std.ArrayList(Token)) void {
             }
             const multiline: Token = tokens.orderedRemove(i); // Remove multiline
             _ = tokens.orderedRemove(i); // Remove newline (do not compensate)
-            i -= 1; // Compensate for removed multiline
+            i -|= 1; // Compensate for removed multiline
             out.?.insert(multiline.data, out.?.len()) catch unreachable; // Append data to out
         }
         if (out != null) {

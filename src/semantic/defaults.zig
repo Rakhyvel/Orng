@@ -53,6 +53,9 @@ fn generate_default_unvalidated(_type: *ast_.AST, span: Span, errors: *errs_.Err
             retval.sum_value.init = try generate_default(proper_term, span, errors, allocator);
             return retval;
         },
+        .untagged_sum_type => {
+            return try generate_default_unvalidated(_type.expr(), span, errors, allocator);
+        },
         .call => {
             return try generate_default(_type.expand_type(allocator), span, errors, allocator);
         },

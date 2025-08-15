@@ -43,6 +43,13 @@ fn validate_impl(impl: *ast_.AST, compiler: *Compiler_Context) Validate_Error_En
     impl.impl._type = validate_AST(impl.impl._type, primitives_.type_type, compiler);
 
     const trait_symbol: *Symbol = impl.impl.trait.?.symbol().?;
+    if (trait_symbol.kind != .trait) {
+        compiler.errors.add_error(errs_.Error{ .basic = .{
+            .span = trait_symbol.span,
+            .msg = "cannot implement for this, not a trait",
+        } });
+        return error.CompileError;
+    }
     const trait_ast = trait_symbol.decl.?;
 
     // Check that the (trait, type) pair is unique for this scope
