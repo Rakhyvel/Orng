@@ -192,9 +192,9 @@ pub fn collect_package_local_modules(self: *Self) void {
     }
 }
 
-pub fn determine_if_modified(self: *Self, root_package_absolute_path: []const u8) !void {
+pub fn determine_if_modified(self: *Self, root_package_absolute_path: []const u8) void {
     const package = self.lookup_package(root_package_absolute_path).?;
-    try package.determine_if_modified(self.packages, self);
+    package.determine_if_modified(self.packages, self);
 }
 
 pub fn compile(self: *Self, root_package_absolute_path: []const u8, extra_flags: bool) !void {

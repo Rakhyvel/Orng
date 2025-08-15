@@ -63,7 +63,7 @@ pub fn get_module_stored_hash(self: *const Self, module_name: []const u8) ?[]con
     }
 }
 
-pub fn set_module_hash(self: *Self, module_name: []const u8, hash_number_string: []const u8, allocator: std.mem.Allocator) !void {
+pub fn set_module_hash(self: *Self, module_name: []const u8, hash_number_string: []const u8, allocator: std.mem.Allocator) void {
     if (self.json_parsed == null) {
         self.json_parsed = std.json.parseFromSlice(std.json.Value, allocator, "{}", .{}) catch unreachable;
     }

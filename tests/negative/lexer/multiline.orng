@@ -1,0 +1,5 @@
+// multiline.orng:3:38: error: expected `fn`, `trait`, `impl`, or `const` here, got `<multi-line>`
+// \\ this is a simple multiline string!
+//                                     ^
+// 
+\\ this is a simple multiline string!

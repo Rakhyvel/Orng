@@ -307,8 +307,8 @@ pub const Module = struct {
         }
     }
 
-    pub fn update_module_hash(self: *const Module, module_hash: *Module_Hash, allocator: std.mem.Allocator) !void {
+    pub fn update_module_hash(self: *const Module, module_hash: *Module_Hash, allocator: std.mem.Allocator) void {
         const local_module_number_string = std.fmt.allocPrint(allocator, "{X}", .{self.hash}) catch unreachable;
-        try module_hash.set_module_hash(self.name(), local_module_number_string, allocator);
+        module_hash.set_module_hash(self.name(), local_module_number_string, allocator);
     }
 };
