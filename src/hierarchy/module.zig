@@ -81,6 +81,9 @@ pub const Module = struct {
     /// List of all impls defined in this module. Used by codegen to output the vtable implementations.
     impls: std.ArrayList(*ast_.AST),
 
+    /// List of all tests defined in this module. Used by codegen to output the vtable implementations.
+    tests: std.ArrayList(*ast_.AST),
+
     /// Allocator for the module
     allocator: std.mem.Allocator,
 
@@ -102,6 +105,7 @@ pub const Module = struct {
         retval.instructions = std.ArrayList(*Instruction).init(allocator);
         retval.traits = std.ArrayList(*ast_.AST).init(allocator);
         retval.impls = std.ArrayList(*ast_.AST).init(allocator);
+        retval.tests = std.ArrayList(*ast_.AST).init(allocator);
         retval.cfgs = std.ArrayList(*CFG).init(allocator);
         retval.type_set = Type_Set.init(allocator);
         retval.entry = null;
@@ -117,6 +121,15 @@ pub const Module = struct {
         fuzz_tokens: bool,
         compiler: *Compiler_Context,
     ) Module_Errors!*Module {
+        // Check to see if the file exists
+        {
+            var file = std.fs.openFileAbsolute(absolute_path, .{}) catch |err| switch (err) {
+                error.FileNotFound => return error.FileNotFound,
+                else => return error.CompileError,
+            };
+            defer file.close();
+        }
+
         // Create the symbol for this module
         var file_root = Scope.init(compiler.prelude, compiler.allocator());
         const module = Module.init(absolute_path, compiler.allocator());
@@ -181,7 +194,7 @@ pub const Module = struct {
 
         // Perform checks and collections on the module
         try module_validate_.validate(module, compiler);
-        compiler.module_scope(module.absolute_path).?.collect_traits_and_impls(&module.traits, &module.impls);
+        compiler.module_scope(module.absolute_path).?.collect_traits_and_impls(&module.traits, &module.impls, &module.tests);
         try module.add_all_cfgs(entry_name, compiler);
         if (module.entry) |entry| {
             entry.assert_needed_at_runtime();
@@ -234,6 +247,10 @@ pub const Module = struct {
             for (trait.trait.method_decls.items) |decl| {
                 _ = self.type_set.add(decl.method_decl.c_type.?, allocator);
             }
+        }
+
+        for (self.tests.items) |@"test"| {
+            std.debug.print("{s}\n", .{@"test".@"test".name.?.string.data});
         }
     }
 

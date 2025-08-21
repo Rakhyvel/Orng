@@ -94,6 +94,13 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             try self.scope.put_all_symbols(&ast.decl.symbols, self.errors);
         },
 
+        .@"test" => {
+            const symbol = try create_test_symbol(ast, self.scope, self.errors, self.allocator);
+            try self.scope.put_symbol(symbol, self.errors);
+            ast.set_symbol(symbol);
+            return null;
+        },
+
         // Create a symbol for this function
         // Transform into template if templated
         .fn_decl => {
@@ -446,6 +453,48 @@ pub fn create_function_symbol(
     fn_scope.inner_function = retval;
 
     try walk_.walk_ast(ast.fn_decl.init, symbol_walk);
+    return retval;
+}
+
+pub fn create_test_symbol(
+    ast: *ast_.AST,
+    scope: *Scope,
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) Error!*Symbol {
+    // Create the function type - TODO: tests should return a test error: (| expectation_failed)
+    const _type = ast_.AST.create_function(
+        ast.token(),
+        primitives_.unit_type,
+        primitives_.unit_type,
+        allocator,
+    );
+
+    // Create the function scope
+    var fn_scope = Scope.init(scope, allocator);
+    fn_scope.function_depth = scope.function_depth + 1;
+
+    // Choose name (maybe anon)
+    var buf: []const u8 = undefined;
+    if (ast.@"test".name) |name| {
+        buf = name.token().data;
+    } else {
+        buf = next_anon_name("test", allocator);
+    }
+    const retval = Symbol.init(
+        fn_scope,
+        buf,
+        if (ast.@"test".name) |name| name.token().span else ast.token().span,
+        _type,
+        ast.@"test".init,
+        ast,
+        .@"test",
+        allocator,
+    );
+    fn_scope.inner_function = retval;
+
+    const symbol_walk = Self.new(fn_scope, errors, allocator);
+    try walk_.walk_ast(ast.@"test".init, symbol_walk);
     return retval;
 }
 

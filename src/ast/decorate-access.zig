@@ -7,6 +7,7 @@ const errs_ = @import("../util/errors.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
+const token_ = @import("../lexer/token.zig");
 const walk_ = @import("../ast/walker.zig");
 
 scope: *Scope,
@@ -125,13 +126,17 @@ fn resolve_access_symbol(self: Self, lhs: *Symbol, rhs: *ast_.AST, scope: *Scope
         },
 
         .@"const" => {
-            access_result = scope.lookup_impl_member(lhs.init_value.?, rhs.token().data);
+            // TODO: Needs to lookup with an identifier referring to the symbol itself, not to its value
+            // So that lookups to newtypes will lookup with the symbol name rather than the comptime value
+            var test_ident = ast_.AST.create_identifier(token_.init_simple(lhs.name), self.compiler.allocator());
+            test_ident.set_symbol(lhs);
+            access_result = scope.lookup_impl_member(test_ident, rhs.token().data);
             if (access_result == null) {
                 self.compiler.errors.add_error(errs_.Error{
                     .type_not_impl_method = .{
                         .span = rhs.token().span,
                         .method_name = rhs.token().data,
-                        ._type = lhs.init_value.?,
+                        ._type = test_ident,
                     },
                 });
                 return error.CompileError;

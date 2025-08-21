@@ -86,9 +86,9 @@ pub fn init_simple_copy(dest: *lval_.L_Value, src: *lval_.L_Value, span: Span, a
     return instr;
 }
 
-pub fn init_label(cfg: ?*CFG, span: Span, allocator: std.mem.Allocator) *Self {
+pub fn init_label(name: []const u8, span: Span, allocator: std.mem.Allocator) *Self {
     var retval = Self.init(.label, null, null, null, span, allocator);
-    retval.data = Data{ .cfg = cfg };
+    retval.data = Data{ .label = .{ .name = name } };
     return retval;
 }
 
@@ -210,7 +210,7 @@ pub fn pprint(self: Self, allocator: std.mem.Allocator) ![]const u8 {
     defer out.deinit();
 
     switch (self.kind) {
-        .label => try out.writer().print("Label{}:\n", .{self.uid}),
+        .label => try out.writer().print("{s}{}:\n", .{ self.data.label.name, self.uid }),
         .load_int => {
             try out.writer().print("    {} := {}\n", .{ self.dest.?, self.data.int });
         },
@@ -239,7 +239,7 @@ pub fn pprint(self: Self, allocator: std.mem.Allocator) ![]const u8 {
             try out.writer().print("    {} := {{}}\n", .{self.dest.?});
         },
         .copy => {
-            try out.writer().print("    {} := {?}\n", .{ self.dest.?, self.src1 });
+            try out.writer().print("    {} := {?} // {}\n", .{ self.dest.?, self.src1, self.dest.?.get_expanded_type() });
         },
         .not => {
             try out.writer().print("    {} := !{}\n", .{ self.dest.?, self.src1.? });
@@ -322,6 +322,8 @@ pub fn pprint(self: Self, allocator: std.mem.Allocator) ![]const u8 {
         .jump => {
             if (self.data == .jump_bb and self.data.jump_bb.next != null) {
                 try out.writer().print("    jump BB{}\n", .{self.data.jump_bb.next.?.uid});
+            } else if (self.data == .branch and self.data.branch != null) {
+                try out.writer().print("    jump {s}{}\n", .{ self.data.branch.?.data.label.name, self.data.branch.?.uid });
             } else {
                 try out.writer().print("    ret\n", .{});
             }
@@ -329,13 +331,15 @@ pub fn pprint(self: Self, allocator: std.mem.Allocator) ![]const u8 {
         .branch_if_false => {
             if (self.data == .branch_bb and self.data.branch_bb.next != null) {
                 try out.writer().print("    if ({}) jump BB{}", .{ self.src1.?, self.data.branch_bb.next.?.uid });
+            } else if (self.data == .branch and self.data.branch != null) {
+                try out.writer().print("    if (!{}) jump {s}{}\n", .{ self.src1.?, self.data.branch.?.data.label.name, self.data.branch.?.uid });
             } else {
                 try out.writer().print("    if ({}) ret", .{self.src1.?});
             }
             try out.writer().print(" ", .{});
             if (self.data == .branch_bb and self.data.branch_bb.branch != null) {
                 try out.writer().print("else jump BB{}\n", .{self.data.branch_bb.branch.?.uid});
-            } else {
+            } else if (self.data != .branch) {
                 try out.writer().print("else ret\n", .{});
             }
         },
@@ -453,7 +457,7 @@ pub fn copy_of_prop(self: *Self, src: *?*lval_.L_Value, src_def: ?*Self) bool {
         const src_def_redefinition = src_def.?.in_block.?.any_def_after(src_def.?, src_def.?.src1.?.symbver.symbol, self);
         if (src_def_redefinition == null) {
             // there is no re-definition in between src's definition and this Instruction, safe to copy-propagate
-            // logfln("copy-of propagation: {?} => {?} {}", .{ src, src_def.?.src1, self });
+            // std.debug.print("copy-of propagation: {?} => {?} {}", .{ src, src_def.?.src1, self });
             src.* = src_def.?.src1;
             return true;
         } else {
@@ -687,7 +691,9 @@ pub const Data = union(enum) {
     int: i128,
     float: f64,
     string_id: String_Idx,
-    cfg: ?*CFG, // Used by the interpreter to know how much space to leave for a CFGs locals TODO: Fix!
+    label: struct {
+        name: []const u8,
+    },
     string: []const u8,
     symbol: *Symbol,
     lval_list: std.ArrayList(*lval_.L_Value),

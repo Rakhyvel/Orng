@@ -2,7 +2,7 @@ import random
 import subprocess
 import shutil
 import os
-import xml.etree.ElementTree as ET
+from lxml import etree
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import ProcessPoolExecutor
@@ -49,7 +49,7 @@ def insert_line(file, line_number):
 
 
 def get_line(file, line_number):
-    return (file, line_number) in lines
+    return lines.get((file, line_number), False)
 
 
 def reset_mutation_stat(mutation_type: str):
@@ -61,30 +61,28 @@ def add_error_program(error: str):
 
 
 def parse_coverage(xml_file):
-    tree = ET.parse(xml_file)
-    root = tree.getroot()
+    try:
+        tree = etree.parse(xml_file)
+        root = tree.getroot()
+    except (etree.XMLSyntaxError, FileNotFoundError):
+        return 0.0
 
     lines_covered = 0.0
 
-    for package in root.findall(".//package"):
-        lines_covered += float(package.get("line-rate") or "0.0")
-        for class_elem in package.findall(".//class"):
-            filename = class_elem.get("filename")
-            lines = class_elem.find("lines")
-            if float(class_elem.get("line-rate")) <= 0.0:
-                continue
-            if lines is None:
-                continue
-            for line in lines:
-                line_number = line.get("number")
-                line_hits = line.get("hits") or "0.0"
-                line_hits = float(line_hits)
-                if not get_line(filename, line_number):
-                    lines_covered += 1.0 / 9.0
-                if line_hits > 0:
-                    insert_line(filename, line_number)
+    # XPath runs in compiled C and skips all non-matching nodes
+    for line_elem in root.xpath(
+        "//class[@filename]/lines/line[@hits and @number and number(@hits) > 0]"
+    ):
+        class_elem = line_elem.getparent()  # <lines>
+        class_elem = class_elem.getparent()  # <class>
+        filename = class_elem.get("filename")
 
-    return max(0, lines_covered)
+        if filename:
+            line_number = line_elem.get("number")
+            lines_covered += 0 if get_line(filename, line_number) else 1
+            insert_line(filename, line_number)
+
+    return lines_covered
 
 
 class Pop:
@@ -94,11 +92,7 @@ class Pop:
         self.prev_mut = prev_mut
 
     def calculate_fitness(self):
-        program_text = self.convert_to_display()
         prev_fitness = self.fitness
-        # if program_text in fitness_cache:
-        #     self.fitness = fitness_cache[program_text]
-        # else:
         self._calculate_fitness()
         if self.prev_mut != "":
             append_mutation_stat(self.prev_mut, self.fitness - prev_fitness)
@@ -120,12 +114,8 @@ class Pop:
                 text = convert_to_string(program)
                 self._run_program(tmpdir, kcov_out, text)
 
-            cov_xml_path = (
-                subprocess.run(
-                    ["find", kcov_out, "-iname", "cov.xml"], capture_output=True
-                )
-                .stdout.decode("utf-8")
-                .strip()
+            cov_xml_path = os.path.join(
+                kcov_out, "orng-test.164bd816b5697cd7", "cov.xml"
             )
             if len(self.genes) > 120:
                 self.fitness = 0
@@ -140,7 +130,7 @@ class Pop:
             f.write(program_text)
 
         try:
-            res = subprocess.run(
+            result = subprocess.run(
                 [
                     "kcov",
                     "--include-path",
@@ -150,9 +140,18 @@ class Pop:
                     "coverage",
                     input_path,
                 ],
-                timeout=60,
-            ).returncode
+                timeout=15,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                cwd=None,
+                preexec_fn=os.setsid if os.name != "nt" else None,
+            )
+            res = result.returncode
         except subprocess.TimeoutExpired:
+            try:
+                os.killpg(os.getpgid(result.pid), 9)  # no zombies
+            except:
+                pass
             print("timeout")
             res = 1
 
@@ -163,30 +162,39 @@ class Pop:
         return " ".join(list(map(lambda x: str(x), self.genes)))
 
     def crossover(self, parent1: Self, parent2: Self):
+        """Crossover that preserves high-coverage regions"""
+
+        # Simple case: just concatenate sometimes
         if random.random() < 0.1 or len(parent1.genes) < 2 or len(parent2.genes) < 2:
             self.genes = parent1.genes + parent2.genes
             self.prev_mut = "concat"
             return
 
-        parent1_point1 = random.randint(0, len(parent1.genes) - 1)
-        parent1_point2 = (
-            random.randint(parent1_point1, len(parent1.genes) - 1)
-            if parent1_point1 < len(parent1.genes) - 1
-            else len(parent1.genes) - 1
+        # TODO: For more sophisticated crossover, we'd need to track which parts
+        # of each parent contributed to coverage. This is a simplified version:
+
+        # Bias crossover points toward the beginning and end of programs
+        # since these often contain important structural elements
+        def biased_point(length):
+            if random.random() < 0.3:  # 30% chance of picking near start
+                return random.randint(0, min(5, length - 1))
+            elif random.random() < 0.3:  # 30% chance of picking near end
+                return random.randint(max(0, length - 6), length - 1)
+            else:  # 40% chance of uniform random
+                return random.randint(0, length - 1)
+
+        p1_start = biased_point(len(parent1.genes))
+        p1_end = random.randint(p1_start, len(parent1.genes) - 1)
+
+        p2_start = biased_point(len(parent2.genes))
+        p2_end = random.randint(p2_start, len(parent2.genes) - 1)
+
+        # Create child by combining segments
+        self.genes = (
+            parent1.genes[:p1_start]
+            + parent2.genes[p2_start:p2_end]
+            + parent1.genes[p1_end:]
         )
-
-        parent2_point1 = random.randint(0, len(parent2.genes) - 1)
-        parent2_point2 = (
-            random.randint(parent2_point1, len(parent2.genes) - 1)
-            if parent2_point1 < len(parent2.genes) - 1
-            else len(parent2.genes) - 1
-        )
-
-        parent1_first = parent1.genes[:parent1_point1]
-        parent2_mid = parent2.genes[parent2_point1:parent2_point2]
-        parent1_last = parent1.genes[parent1_point2:]
-
-        self.genes = parent1_first + parent2_mid + parent1_last
 
     def mutate(self, models):
         def shuffle(self, n):
@@ -277,15 +285,10 @@ class Pop:
 
 
 def convert_to_string(genes: list[str]):
-    def convert_token(token):
-        if token == " ":
-            return ""
-        if token == "NEWLINE":
-            return "\n"
-        return token
-
-    ret = " ".join(list(map(convert_token, genes)))
-    return ret
+    TOKEN_CONVERSION = {" ": "", "NEWLINE": "\n"}
+    return " ".join(
+        TOKEN_CONVERSION.get(token, token) for token in genes if token != " "
+    )
 
 
 def calculate_fitness_data(pop_data, prev_mut, fitness):
@@ -307,8 +310,8 @@ def main():
     models = build_ngram_model()
 
     population_size = 16
-    high = int(0.0625 * population_size)
-    low = int(0.8 * population_size)
+    high = 0
+    low = 0
     population = [Pop(random_genes(models[4])) for _ in range(population_size)]
 
     best_score = 0
@@ -327,9 +330,29 @@ def main():
                 for i, f in enumerate(futures):
                     population[i] = f.result()
 
+            """
             population.sort(key=lambda pop: -pop.fitness)
 
             new_gen = population[:high]
+
+            # TODO: Try tournament select
+            def tournament_selection(population, tournament_size=3):
+                tournament = random.sample(
+                    population, min(tournament_size, len(population))
+                )
+                return max(tournament, key=lambda x: x.fitness)
+
+            # In main loop, use tournament selection for parents
+            for i in range(high, low):
+                parent1 = tournament_selection(
+                    population[: high * 2]
+                )  # Select from top performers
+                parent2 = tournament_selection(population[: high * 2])
+
+                new_pop = Pop(population[i].genes, population[i].prev_mut)
+                new_pop.fitness = population[i].fitness
+                new_pop.crossover(parent1, parent2)
+                new_gen.append(new_pop)
 
             # cross over mid - low
             for i in range(high, low):
@@ -344,47 +367,47 @@ def main():
                 new_pop.fitness = population[i].fitness
                 new_pop.crossover(parent1, parent2)
                 new_gen.append(new_pop)
+            """
 
             # random low
             for i in range(low, population_size):
-                new_gen.append(Pop(random_genes(models[4])))
+                population[i] = Pop(random_genes(models[4]))
 
-            population = new_gen
+            # population = new_gen
 
             # mutate high-low
-            for i in range(high, low):
-                population[i].mutate(models)
+            # for i in range(high, low):
+            #     population[i].mutate(models)
 
             end_time = time.perf_counter()
-            for mut, deltas in mutation_stats.items():
-                deltas = list(deltas)  # Convert manager list to plain list
-                if not deltas:
-                    continue
-                # print(
-                #     f"{str(mut)} \tweight: {mutation_weights[mut] if mut in mutation_weights else 1.0}\tcount: {len(deltas)}\tavg: {statistics.mean(deltas):.3f}\tmin: {min(deltas):.3f}\tmax: {max(deltas):.3f}\tmedian: {statistics.median(deltas):.3f}"
-                # )
+            # for mut, deltas in mutation_stats.items():
+            #     deltas = list(deltas)  # Convert manager list to plain list
+            #     if not deltas:
+            #         continue
+            #     # print(
+            #     #     f"{str(mut)} \tweight: {mutation_weights[mut] if mut in mutation_weights else 1.0}\tcount: {len(deltas)}\tavg: {statistics.mean(deltas):.3f}\tmin: {min(deltas):.3f}\tmax: {max(deltas):.3f}\tmedian: {statistics.median(deltas):.3f}"
+            #     # )
 
             if lines_covered < len(lines):
                 lines_covered = len(lines)
-                print(f"new lines covered! {len(lines)}")
-                print(f"gen: {gen} time: {end_time - start_time}")
-                for i in range(0, high):
-                    print(f"  {population[i].convert_to_display()}")
-            reset_mutation_stat("generation")
+                print(
+                    f"gen: {gen}  covered: {len(lines)}  time: {end_time - start_time:.1f}s  errors: {len(errors)}"
+                )
+            # reset_mutation_stat("generation")
 
-            temp = 0.01
-            if gen % 5 == 0:
-                for key in mutation_weights.keys():
-                    if key in mutation_stats:
-                        if len(mutation_stats[key]) == 0:
-                            mutation_stats[key].append(0)
-                        try:
-                            mutation_weights[key] = math.exp(
-                                statistics.mean(mutation_stats[key]) / temp
-                            )
-                        except OverflowError:
-                            mutation_weights[key] = 1.0
-                        # reset_mutation_stat(key)
+            # temp = 0.01
+            # if gen % 5 == 0:
+            #     for key in mutation_weights.keys():
+            #         if key in mutation_stats:
+            #             if len(mutation_stats[key]) == 0:
+            #                 mutation_stats[key].append(0)
+            #             try:
+            #                 mutation_weights[key] = math.exp(
+            #                     statistics.mean(mutation_stats[key]) / temp
+            #                 )
+            #             except OverflowError:
+            #                 mutation_weights[key] = 1.0
+            #             # reset_mutation_stat(key)
 
             gen += 1
     except KeyboardInterrupt:

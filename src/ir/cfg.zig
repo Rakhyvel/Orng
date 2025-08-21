@@ -391,7 +391,7 @@ fn append_basic_block(self: *Self, first_bb: *Basic_Block, instructions_list: *s
             continue;
         }
 
-        var label = Instruction.init_label(self, Span.phony, self.allocator);
+        var label = Instruction.init_label("bb", Span.phony, self.allocator);
         label.uid = bb.uid;
         instructions_list.append(label) catch unreachable;
 
@@ -407,7 +407,7 @@ fn append_phony_block(self: *Self, instructions_list: *std.ArrayList(*Instructio
     const offset = @as(Instruction.Index, @intCast(instructions_list.items.len));
     // Append a label which has a back-reference to the CFG
     instructions_list.append(Instruction.init_label(
-        self,
+        "phony",
         Span.phony,
         self.allocator,
     )) catch unreachable;

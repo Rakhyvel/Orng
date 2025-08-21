@@ -1,0 +1,13 @@
+// 352
+const My_Int: Type = (
+    x: Int
+)
+
+impl for My_Int {
+    fn new(x: Int) -> (x: Int,) { (.x = x,) }
+}
+
+fn main ( ) -> Int { 
+    let mut retval = My_Int::new(352)
+    retval.x
+} 

@@ -7,3 +7,8 @@ fn main() -> ()!() {
     externs::println("Hello, World f!")
     .ok({})
 }
+
+test "this is a test!" {
+    let x = 5
+    _ = x
+}

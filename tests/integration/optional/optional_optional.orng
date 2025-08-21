@@ -1,0 +1,12 @@
+// 353
+const x : ??Int = .some(.some(353))
+
+fn main() -> Int {
+    match x {
+        .none => unreachable
+        .some(y) => match y {
+            .none => unreachable
+            .some(z) => z
+        }
+    }
+}

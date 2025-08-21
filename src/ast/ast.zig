@@ -484,7 +484,12 @@ pub const AST = union(enum) {
         init: ?*AST,
         impl: ?*AST = null, // The surrounding `impl`. Null for method_decls in traits.
         _symbol: ?*Symbol = null,
-        infer_error: bool,
+    },
+    @"test": struct {
+        common: AST_Common,
+        name: ?*AST,
+        init: *AST,
+        _symbol: ?*Symbol = null,
     },
     module: struct {
         common: AST_Common,
@@ -1294,7 +1299,19 @@ pub const AST = union(enum) {
             .ret_type = ret_type,
             .refinement = refinement,
             .init = init,
-            .infer_error = false,
+        } }, allocator);
+    }
+
+    pub fn create_test(
+        _token: Token,
+        name: ?*AST,
+        init: *AST,
+        allocator: std.mem.Allocator,
+    ) *AST {
+        return AST.box(AST{ .@"test" = .{
+            .common = AST_Common{ ._token = _token, ._type = null },
+            .name = name,
+            .init = init,
         } }, allocator);
     }
 
@@ -1770,6 +1787,12 @@ pub const AST = union(enum) {
                     allocator,
                 );
             },
+            .@"test" => return create_test(
+                self.token(),
+                self.@"test".name,
+                self.@"test".init,
+                allocator,
+            ),
             .import => return create_import(self.token(), self.import.pattern.clone(allocator), allocator),
             .cinclude => return create_cinclude(self.token(), self.cinclude._expr.clone(allocator), allocator),
             .module => return create_module(self.token(), self.scope().?, self.module.module, allocator),
@@ -2208,6 +2231,17 @@ pub const AST = union(enum) {
                 // NOTE: Do NOT copy over the `all_unit` type, as Self could be unit. Leave it null to be re-evaluated.
                 return retval;
             },
+            .product => {
+                var new_children = std.ArrayList(*AST).init(allocator);
+                for (trait_type.children().items) |item| {
+                    const new_type = item.convert_self_type(for_type, allocator);
+                    new_children.append(new_type) catch unreachable;
+                }
+                var retval = create_product(trait_type.token(), new_children, allocator);
+                retval.product.homotypical = trait_type.product.homotypical;
+                retval.product.was_slice = trait_type.product.was_slice;
+                return retval;
+            },
             else => std.debug.panic("compiler error: convert_self_type doesn't support trait type AST `{s}`", .{@tagName(trait_type.*)}),
         }
     }
@@ -2550,6 +2584,10 @@ pub const AST = union(enum) {
             .module => {
                 try out.print("{s}::{s}", .{ self.module.module.package_name, self.module.module.name() });
             },
+            .@"comptime" => {
+                try out.print("comptime{{.result={?}", .{self.@"comptime".result});
+                try out.print("}}", .{});
+            },
             else => std.debug.panic("compiler error: unimplemented or not a type: {s}", .{@tagName(self.*)}),
         }
     }
@@ -2751,7 +2789,15 @@ pub const AST = union(enum) {
                     return create_optional_type(body_type, allocator);
                 }
             },
-            .match => return self.children().items[0].typeof(allocator),
+            .match => {
+                for (self.children().items) |child| {
+                    const child_type = child.typeof(allocator);
+                    if (!(child_type.* == .identifier and std.mem.eql(u8, "Void", child_type.token().data))) {
+                        return child_type;
+                    }
+                }
+                return primitives_.void_type; // all arms are void
+            },
             .block => if (self.block.final) |_| {
                 return primitives_.void_type;
             } else if (self.children().items.len == 0) {
@@ -3364,6 +3410,7 @@ pub const AST = union(enum) {
                 }
                 try out.writer().print("])", .{});
             },
+            .@"test" => try out.writer().print("test(.name={?})", .{self.@"test".name}),
             .@"defer" => try out.writer().print("defer()", .{}),
             .@"errdefer" => try out.writer().print("errdefer()", .{}),
         }

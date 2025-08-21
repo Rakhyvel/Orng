@@ -159,6 +159,8 @@ fn top_level_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
         return try self.trait_declaration();
     } else if (self.peek_kind(.impl)) {
         return try self.impl_declaration();
+    } else if (self.peek_kind(.@"test")) {
+        return try self.test_declaration();
     } else {
         self.errors.add_error(errs_.Error{ .expected_basic_token = .{
             .expected = "`fn`, `trait`, `impl`, or `const` here",
@@ -1161,6 +1163,18 @@ fn impl_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     retval.impl.method_defs = method_defs;
     retval.impl.const_defs = const_defs;
     return retval;
+}
+
+fn test_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
+    const token = try self.expect(.@"test");
+    const name = try self.arrow_expr();
+    const body = try self.block_expr();
+    return ast_.AST.create_test(
+        token,
+        name,
+        body,
+        self.allocator,
+    );
 }
 
 fn method_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {

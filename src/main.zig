@@ -131,7 +131,7 @@ fn @"test"(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.
     compiler.set_package_kind(package_abs_path, .test_executable);
     compiler.propagate_include_directories(package_abs_path);
     compiler.collect_package_local_modules();
-    try compiler.determine_if_modified(package_abs_path);
+    compiler.determine_if_modified(package_abs_path);
     try Codegen_Context.output_modules(compiler);
     try compiler.compile(package_abs_path, false);
 

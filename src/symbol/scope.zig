@@ -15,6 +15,7 @@ children: std.ArrayList(*Self),
 symbols: std.StringArrayHashMap(*Symbol),
 traits: std.ArrayList(*ast_.AST), // List of all `trait`s in this scope. Added to in the `decorate` phase.
 impls: std.ArrayList(*ast_.AST), // List of all `impl`s in this scope Added to in the `decorate` phase.
+tests: std.ArrayList(*ast_.AST), // List of all `test`s in this scope Added to in the `decorate` phase.
 module: ?*module_.Module, // Enclosing module
 uid: usize,
 
@@ -28,6 +29,7 @@ pub fn init(parent: ?*Self, allocator: std.mem.Allocator) *Self {
     retval.symbols = std.StringArrayHashMap(*Symbol).init(allocator);
     retval.traits = std.ArrayList(*ast_.AST).init(allocator);
     retval.impls = std.ArrayList(*ast_.AST).init(allocator);
+    retval.tests = std.ArrayList(*ast_.AST).init(allocator);
     retval.uid = scope_UID;
     scope_UID += 1;
     if (parent) |_parent| {
@@ -114,6 +116,9 @@ pub fn impl_trait_lookup(self: *Self, for_type: *ast_.AST, trait: *Symbol) Impl_
 
 /// Looks up the impl's decl/method_decl ast for a given type, with a given name
 pub fn lookup_impl_member(self: *Self, for_type: *ast_.AST, name: []const u8) ?*ast_.AST {
+    if (for_type.* == .@"comptime") {
+        return self.lookup_impl_member(for_type.expr(), name);
+    }
     if (!for_type.valid_type()) {
         return null;
     }
@@ -179,11 +184,17 @@ pub fn put_all_symbols(scope: *Self, symbols: *std.ArrayList(*Symbol), errors: *
     }
 }
 
-pub fn collect_traits_and_impls(self: *Self, traits: *std.ArrayList(*ast_.AST), impls: *std.ArrayList(*ast_.AST)) void {
+pub fn collect_traits_and_impls(
+    self: *Self,
+    traits: *std.ArrayList(*ast_.AST),
+    impls: *std.ArrayList(*ast_.AST),
+    tests: *std.ArrayList(*ast_.AST),
+) void {
     traits.appendSlice(self.traits.items) catch unreachable;
     impls.appendSlice(self.impls.items) catch unreachable;
+    tests.appendSlice(self.tests.items) catch unreachable;
 
     for (self.children.items) |child| {
-        child.collect_traits_and_impls(traits, impls);
+        child.collect_traits_and_impls(traits, impls, tests);
     }
 }

@@ -42,11 +42,11 @@ pub fn validate(symbol: *Symbol, compiler: *Compiler_Context) Validate_Error_Enu
                     return error.CompileError;
                 },
                 // Allow these inits to be non-comptime, since they're interpreted at comptime anyway
-                .@"fn", .@"comptime", .@"const" => symbol.init_value.?.common().ok_for_comptime = true,
+                .@"fn", .@"comptime", .@"const", .@"test" => symbol.init_value.?.common().ok_for_comptime = true,
                 else => {},
             }
         }
-        const expected: ?*ast_.AST = if (symbol.kind == .@"fn" or symbol.kind == .@"comptime") symbol._type.rhs() else symbol._type;
+        const expected: ?*ast_.AST = if (symbol.kind == .@"fn" or symbol.kind == .@"comptime" or symbol.kind == .@"test") symbol._type.rhs() else symbol._type;
         // std.debug.print("validating init for: {s}\n", .{symbol.name});
         if (symbol.init_value) |init| {
             // might be null for parameters
