@@ -11,4 +11,5 @@ fn main() -> ()!() {
 test "this is a test!" {
     let x = 5
     _ = x
+    debug::println("Hello, World! This is a test")
 }
