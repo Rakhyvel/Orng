@@ -187,12 +187,19 @@ fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package),
         obj_files.append(o_file.str()) catch unreachable;
         local_module.update_module_hash(&self.module_hash, allocator);
 
+        if (self.kind == .test_executable) {
+            var test_o_file = String.init(allocator);
+            test_o_file.writer().print("{s}-tests.o", .{local_module.name()}) catch unreachable;
+            obj_files.append(test_o_file.str()) catch unreachable;
+        }
+
         if (!local_module.modified.?) {
             // No need to re-compile!
             continue;
         }
 
         var c_file = String.init(allocator);
+        defer c_file.deinit();
         c_file.writer().print("{s}{c}build{c}{s}-{s}.c", .{
             self.absolute_path,
             std.fs.path.sep,
@@ -202,6 +209,22 @@ fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package),
         }) catch unreachable;
 
         try self.cc(c_file.str(), o_file.str(), packages, extra_flags, allocator);
+
+        if (self.kind == .test_executable) {
+            var test_c_file = String.init(allocator);
+            test_c_file.writer().print("{s}{c}build{c}{s}-{s}-tests.c", .{
+                self.absolute_path,
+                std.fs.path.sep,
+                std.fs.path.sep,
+                self.name,
+                local_module.name(),
+            }) catch unreachable;
+
+            var test_o_file = String.init(allocator);
+            test_o_file.writer().print("{s}-tests.o", .{local_module.name()}) catch unreachable;
+
+            try self.cc(test_c_file.str(), test_o_file.str(), packages, extra_flags, allocator);
+        }
     }
 
     // Include the entry point for executables

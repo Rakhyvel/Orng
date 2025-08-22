@@ -6,6 +6,7 @@ const Interned_String_Set = @import("../ir/interned_string_set.zig");
 const Module = @import("../hierarchy/module.zig").Module;
 const Header_Emitter = @import("header_emitter.zig");
 const Source_Emitter = @import("source_emitter.zig");
+const Emitter = @import("emitter.zig");
 const Test_Emitter = @import("test_emitter.zig");
 
 /// Goes through each package and outputs a C/H file header pair for each module in each package
@@ -20,11 +21,14 @@ pub fn output_modules(compiler: *Compiler_Context) !void {
             std.fs.makeDirAbsolute(build_path) catch unreachable;
         };
 
+        var modules = std.ArrayList(*Module).init(compiler.allocator());
+        defer modules.deinit();
         var dfs_iter: Module_Iterator = Module_Iterator.init(package_root_module, compiler.allocator());
         defer dfs_iter.deinit();
         while (dfs_iter.next()) |module| {
             if (std.mem.eql(u8, module.get_package_abs_path(), package.absolute_path)) {
                 try output(module, &compiler.module_interned_strings, build_path, compiler.allocator());
+                modules.append(module) catch unreachable;
 
                 if (package.kind == .test_executable) {
                     try output_tests(module, &compiler.module_interned_strings, build_path, compiler.allocator());
@@ -33,7 +37,7 @@ pub fn output_modules(compiler: *Compiler_Context) !void {
         }
 
         switch (package.kind) {
-            .test_executable => try output_testrunner(build_path, compiler.allocator()),
+            .test_executable => try output_testrunner(modules, build_path, compiler.allocator()),
             .executable => try output_start(package_root_module, &compiler.module_interned_strings, build_path, compiler.allocator()),
             else => {},
         }
@@ -90,7 +94,7 @@ fn output_start(module: *Module, module_interned_strings: *const std.AutoArrayHa
     source_emitter.output_main_function() catch return error.CompileError;
 }
 
-fn output_testrunner(build_path: []const u8, allocator: std.mem.Allocator) !void {
+fn output_testrunner(modules: std.ArrayList(*Module), build_path: []const u8, allocator: std.mem.Allocator) !void {
     const paths = [_][]const u8{ build_path, "test-runner.c" };
     const path = std.fs.path.join(allocator, &paths) catch unreachable;
 
@@ -102,19 +106,62 @@ fn output_testrunner(build_path: []const u8, allocator: std.mem.Allocator) !void
         \\/* Code generated using the Orng compiler http://ornglang.org */
         \\
         \\#include <stdio.h>
-        \\// forall modules in package, include modules test header
+        \\#include <stdlib.h>
+        \\#include <string.h>
         \\
-        \\struct $test_entry {{
-        \\    char* test_name;
-        \\    void (*test_fp)(void);
+        \\
+    , .{}) catch return error.CompileError;
+
+    for (modules.items) |module| {
+        testrunner_writer.print("#include \"{s}-{s}-tests.h\"\n", .{ module.package_name, module.name() }) catch unreachable;
+    }
+
+    testrunner_writer.print(
+        \\
+        \\struct test_entry {{
+        \\    const char* name;
+        \\    void (*fp)(void);
         \\}};
         \\
-        \\// forall modules in package, array of test entry(test name, test function pointer)
+        \\struct test_entry tests[] = {{
+        \\
+    , .{}) catch return error.CompileError;
+
+    var num_tests: usize = 0;
+    for (modules.items) |module| {
+        var emitter = Emitter.init(module, testrunner_writer);
+        for (module.tests.items) |@"test"| {
+            testrunner_writer.print("    {{\"{s}\", ", .{@"test".symbol.decl.?.@"test".name.?.string.data}) catch return error.CompileError;
+            emitter.output_symbol(@"test".symbol) catch return error.CompileError;
+            testrunner_writer.print("}},\n", .{}) catch return error.CompileError;
+            num_tests += 1;
+        }
+    }
+
+    testrunner_writer.print(
+        \\}};
+        \\const size_t num_tests = {};
         \\
         \\int main(int argc, char* argv[]) {{
-        \\    printf("Hello, World!\n");
+        \\    const char *substr = NULL;
+        \\    if (argc >= 2) {{
+        \\        substr = argv[1];
+        \\    }}
+        \\    int total = 0;
+        \\    for (int i = 0; i < num_tests; i += 1) {{
+        \\        if (substr == NULL || strstr(tests[i].name, substr)) {{
+        \\            total += 1;
+        \\        }}
+        \\    }}
+        \\
+        \\    for (int i = 0; i < num_tests; i += 1) {{
+        \\        if (substr == NULL || strstr(tests[i].name, substr)) {{
+        \\            printf("Test [%d/%d] %s ...", i + 1, total, tests[i].name);
+        \\            printf("OK\n");
+        \\        }}
+        \\    }}
         \\}}
-    , .{}) catch return error.CompileError;
+    , .{num_tests}) catch return error.CompileError;
 }
 
 fn open_file(package_name: []const u8, module_name: []const u8, ext: []const u8, build_path: []const u8, allocator: std.mem.Allocator) !std.fs.File {
