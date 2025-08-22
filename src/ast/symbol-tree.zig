@@ -475,12 +475,7 @@ pub fn create_test_symbol(
     fn_scope.function_depth = scope.function_depth + 1;
 
     // Choose name (maybe anon)
-    var buf: []const u8 = undefined;
-    if (ast.@"test".name) |name| {
-        buf = name.token().data;
-    } else {
-        buf = next_anon_name("test", allocator);
-    }
+    const buf: []const u8 = next_anon_name("test", allocator);
     const retval = Symbol.init(
         fn_scope,
         buf,
