@@ -4,8 +4,6 @@ const Compiler_Context = @import("hierarchy/compiler.zig");
 const Codegen_Context = @import("codegen/codegen.zig");
 const errs_ = @import("util/errors.zig");
 const Interpreter_Context = @import("interpretation/interpreter.zig");
-const Package_Iterator = @import("util/dfs.zig").Dfs_Iterator(Package_Iterator_Node);
-const Package_Iterator_Node = @import("hierarchy/package.zig").Package_Iterator_Node;
 const Package_Kind = @import("hierarchy/package.zig").Package_Kind;
 const primitives_ = @import("hierarchy/primitives.zig");
 const Span = @import("util/span.zig");
@@ -364,17 +362,7 @@ fn clean(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     var compiler = try Compiler_Context.init(allocator);
     defer compiler.deinit();
     const package_abs_path = try construct_package_dag(compiler);
-
-    var dfs_iter: Package_Iterator = Package_Iterator.init(Package_Iterator_Node.init(compiler, package_abs_path), compiler.allocator());
-    defer dfs_iter.deinit();
-    while (dfs_iter.next()) |package_node| {
-        const build_path = package_node.package.get_build_path(allocator);
-        std.debug.print("cleaning {s}\n", .{build_path});
-        std.fs.deleteTreeAbsolute(build_path) catch |err| switch (err) {
-            error.FileNotFound => {}, // This is ok!
-            else => std.debug.panic("{}\n", .{err}),
-        };
-    }
+    compiler.clean_package(package_abs_path);
 }
 
 fn construct_package_dag(compiler: *Compiler_Context) Command_Error![]const u8 {

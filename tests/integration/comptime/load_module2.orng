@@ -1,0 +1,8 @@
+// 343
+fn main() -> Int {
+    343
+}
+
+fn add(x: Int, y: Int) -> Int {
+    x + y
+}

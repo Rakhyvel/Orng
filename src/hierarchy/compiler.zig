@@ -6,6 +6,8 @@ const Interned_String_Set = @import("../ir/interned_string_set.zig");
 const Module = @import("../hierarchy/module.zig").Module;
 const Module_Iterator = @import("../util/dfs.zig").Dfs_Iterator(*Module);
 const Package = @import("../hierarchy/package.zig");
+const Package_Iterator = @import("../util/dfs.zig").Dfs_Iterator(Package_Iterator_Node);
+const Package_Iterator_Node = @import("../hierarchy/package.zig").Package_Iterator_Node;
 const poison_ = @import("../ast/poison.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const String = @import("../zig-string/zig-string.zig").String;
@@ -141,7 +143,11 @@ pub fn lookup_package(self: *Self, package_absolute_path: []const u8) ?*Package 
 
 pub fn lookup_package_root_module(self: *Self, package_absolute_path: []const u8, requirement_name: []const u8) ?*Symbol {
     std.debug.assert(std.fs.path.isAbsolute(package_absolute_path));
-    return self.lookup_package(package_absolute_path).?.requirements.get(requirement_name);
+    const package = self.lookup_package(package_absolute_path);
+    if (package == null) {
+        return null;
+    }
+    return package.?.requirements.get(requirement_name);
 }
 
 pub fn register_package(self: *Self, package_absolute_path: []const u8, kind: Package.Package_Kind) void {
@@ -177,6 +183,18 @@ pub fn set_package_kind(self: *Self, package_absolute_path: []const u8, kind: Pa
     const package = self.lookup_package(package_absolute_path).?;
     package.kind = kind;
     package.set_executable_name(self.allocator()) catch unreachable;
+}
+
+pub fn clean_package(self: *Self, package_absolute_path: []const u8) void {
+    var dfs_iter: Package_Iterator = Package_Iterator.init(Package_Iterator_Node.init(self, package_absolute_path), self.allocator());
+    defer dfs_iter.deinit();
+    while (dfs_iter.next()) |package_node| {
+        const build_path = package_node.package.get_build_path(self.allocator());
+        std.fs.deleteTreeAbsolute(build_path) catch |err| switch (err) {
+            error.FileNotFound => {}, // This is ok!
+            else => std.debug.panic("{}\n", .{err}),
+        };
+    }
 }
 
 pub fn collect_package_local_modules(self: *Self) void {

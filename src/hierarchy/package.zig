@@ -183,14 +183,25 @@ fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package),
 
         // Append the o filename to the obj files list, even if this isn't compiled!
         var o_file = String.init(allocator);
-        o_file.writer().print("{s}.o", .{local_module.name()}) catch unreachable;
+        o_file.writer().print("{s}{c}build{c}{s}-tests.o", .{
+            self.absolute_path,
+            std.fs.path.sep,
+            std.fs.path.sep,
+            local_module.name(),
+        }) catch unreachable;
         obj_files.append(o_file.str()) catch unreachable;
-        local_module.update_module_hash(&self.module_hash, allocator);
+        local_module.modified = !file_exists(o_file.str());
 
         if (self.kind == .test_executable) {
             var test_o_file = String.init(allocator);
-            test_o_file.writer().print("{s}-tests.o", .{local_module.name()}) catch unreachable;
+            test_o_file.writer().print("{s}{c}build{c}{s}-tests.o", .{
+                self.absolute_path,
+                std.fs.path.sep,
+                std.fs.path.sep,
+                local_module.name(),
+            }) catch unreachable;
             obj_files.append(test_o_file.str()) catch unreachable;
+            local_module.modified = !file_exists(test_o_file.str());
         }
 
         if (!local_module.modified.?) {

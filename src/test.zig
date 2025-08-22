@@ -143,6 +143,7 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
     const package_abs_path = module.get_package_abs_path();
     compiler.register_package(package_abs_path, .executable);
     compiler.set_package_root(package_abs_path, module_symbol);
+    compiler.clean_package(package_abs_path);
     compiler.lookup_package(package_abs_path).?.include_directories.put(std.fs.path.dirname(absolute_filename).?, void{}) catch unreachable;
 
     compiler.propagate_include_directories(package_abs_path);
