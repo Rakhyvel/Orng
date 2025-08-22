@@ -3,6 +3,7 @@ const Module_Iterator = @import("../util/dfs.zig").Dfs_Iterator(*Module);
 const String = @import("../zig-string/zig-string.zig").String;
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const Interned_String_Set = @import("../ir/interned_string_set.zig");
+const primitives_ = @import("../hierarchy/primitives.zig");
 const Module = @import("../hierarchy/module.zig").Module;
 const Header_Emitter = @import("header_emitter.zig");
 const Source_Emitter = @import("source_emitter.zig");
@@ -118,10 +119,19 @@ fn output_testrunner(modules: std.ArrayList(*Module), build_path: []const u8, al
 
     testrunner_writer.print(
         \\
+        \\typedef 
+    , .{}) catch return error.CompileError;
+    var mod_0_emitter = Emitter.init(modules.items[0], testrunner_writer);
+    mod_0_emitter.output_type(primitives_.test_result_type) catch return error.CompileError;
+    testrunner_writer.print(
+        \\ test_result;
+        \\
+        \\typedef test_result(*test_fn)(void);
+        \\
         \\struct test_entry {{
         \\    const char* filename;
         \\    const char* name;
-        \\    void (*run)(void);
+        \\    test_fn run;
         \\}};
         \\
         \\struct test_entry tests[] = {{
@@ -132,7 +142,7 @@ fn output_testrunner(modules: std.ArrayList(*Module), build_path: []const u8, al
     for (modules.items) |module| {
         var emitter = Emitter.init(module, testrunner_writer);
         for (module.tests.items) |@"test"| {
-            testrunner_writer.print("    {{\"{s}\", \"{s}\", ", .{ @"test".symbol.scope.module.?.name(), @"test".symbol.decl.?.@"test".name.?.string.data }) catch return error.CompileError;
+            testrunner_writer.print("    {{\"{s}\", \"{s}\", (test_fn)", .{ @"test".symbol.scope.module.?.name(), @"test".symbol.decl.?.@"test".name.?.string.data }) catch return error.CompileError;
             emitter.output_symbol(@"test".symbol) catch return error.CompileError;
             testrunner_writer.print("}},\n", .{}) catch return error.CompileError;
             num_tests += 1;
@@ -149,13 +159,26 @@ fn output_testrunner(modules: std.ArrayList(*Module), build_path: []const u8, al
         \\        substr = argv[1];
         \\    }}
         \\
+        \\    printf("[============]\n");
+        \\    const char *prev_filename = NULL;
         \\    for (int i = 0; i < num_tests; i += 1) {{
         \\        if (substr == NULL || strstr(tests[i].name, substr)) {{
-        \\            printf("[ RUN    ... ] %s.orng: %s\n", tests[i].filename, tests[i].name);
-        \\            tests[i].run();
-        \\            printf("[ ... PASSED ]\n");
+        \\            if (prev_filename == NULL) {{
+        \\                prev_filename = tests[i].filename;
+        \\            }} else if (strcmp(prev_filename, tests[i].filename)) {{
+        \\                prev_filename = tests[i].filename;
+        \\                printf("[------------]\n");
+        \\            }}
+        \\            printf("[ RUN        ] %s.orng: %s\n", tests[i].filename, tests[i].name);
+        \\            test_result res = tests[i].run();
+        \\            if (res.tag == 0) {{
+        \\                printf("[         OK ]\n");
+        \\            }} else {{
+        \\                printf("[     FAILED ]\n");
+        \\            }}
         \\        }}
         \\    }}
+        \\    printf("[============]\n");
         \\}}
     , .{num_tests}) catch return error.CompileError;
 }

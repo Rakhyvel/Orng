@@ -466,7 +466,7 @@ pub fn create_test_symbol(
     const _type = ast_.AST.create_function(
         ast.token(),
         primitives_.unit_type,
-        primitives_.unit_type,
+        primitives_.test_result_type,
         allocator,
     );
 

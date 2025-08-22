@@ -2774,7 +2774,7 @@ pub const AST = union(enum) {
             },
             .sub_slice => return self.sub_slice.super.typeof(allocator),
             .sum_value => return self.sum_value.base.?.expand_type(allocator),
-            .@"try" => return self.expr().typeof(allocator).get_ok_type(),
+            .@"try" => return self.expr().typeof(allocator).expand_type(allocator).get_ok_type(),
             .default => return self.expr(),
 
             // Control-flow expressions

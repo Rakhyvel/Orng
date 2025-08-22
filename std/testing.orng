@@ -1,0 +1,7 @@
+fn expect(cond: Bool) -> Test_Result {
+    if not cond {
+        .err
+    } else {
+        .ok
+    }
+}

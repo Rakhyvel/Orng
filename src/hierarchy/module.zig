@@ -278,6 +278,8 @@ pub const Module = struct {
             const interned_strings = compiler.lookup_interned_string_set(self.uid).?;
             const cfg = (try cfg_builder_.get_cfg(symbol, interned_strings, &compiler.errors, compiler.allocator()));
             self.tests.append(cfg) catch unreachable;
+            cfg.assert_needed_at_runtime();
+            self.collect_cfgs(cfg);
         }
     }
 
@@ -285,9 +287,15 @@ pub const Module = struct {
         for (self.cfgs.items) |cfg| {
             // Add parameter types to type set
             const decl = cfg.symbol.decl.?;
-            const param_symbols = if (decl.* == .fn_decl) decl.fn_decl.param_symbols else decl.method_decl.param_symbols;
-            for (param_symbols.items) |param| {
-                _ = self.type_set.add(param.expanded_type.?, allocator);
+            const param_symbols: ?std.ArrayList(*Symbol) = switch (decl.*) {
+                .fn_decl => decl.fn_decl.param_symbols,
+                .method_decl => decl.method_decl.param_symbols,
+                else => null,
+            };
+            if (param_symbols != null) {
+                for (param_symbols.?.items) |param| {
+                    _ = self.type_set.add(param.expanded_type.?, allocator);
+                }
             }
 
             for (cfg.basic_blocks.items) |bb| {
