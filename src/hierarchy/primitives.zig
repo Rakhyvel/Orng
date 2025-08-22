@@ -9,6 +9,7 @@ const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
 const Symbol_Tree = @import("../ast/symbol-tree.zig");
 const Token = @import("../lexer/token.zig");
+const UID_Gen = @import("../util/uid_gen.zig");
 
 // TODO: Think about how to remove these public variables. They're only variable because they need to be constructed later.
 pub var anyptr_type: *ast_.AST = undefined;
@@ -131,7 +132,8 @@ fn create_prelude(compiler: *Compiler_Context) !void {
     byte_slice_type = ast_.AST.create_slice_type(byte_type, false, compiler.allocator()).assert_ast_valid();
 
     // Create prelude scope
-    prelude = Scope.init(null, compiler.allocator());
+    var uid_gen = UID_Gen.init();
+    prelude = Scope.init(null, &uid_gen, compiler.allocator());
 
     // Create Symbols for primitives
     _ = create_prelude_symbol("String", type_type, byte_slice_type, compiler.allocator());

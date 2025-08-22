@@ -12,6 +12,7 @@ const Symbol = @import("../symbol/symbol.zig");
 const scope_validate_ = @import("../semantic/scope_validate.zig");
 const Symbol_Tree = @import("../ast/symbol-tree.zig");
 const Token = @import("../lexer/token.zig");
+const UID_Gen = @import("../util/uid_gen.zig");
 const walker_ = @import("../ast/walker.zig");
 
 /// Relatively light-weight way to interpret an AST.

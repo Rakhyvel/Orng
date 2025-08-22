@@ -3,12 +3,11 @@ const ast_ = @import("../ast/ast.zig");
 const errs_ = @import("../util/errors.zig");
 const Symbol = @import("symbol.zig");
 const module_ = @import("../hierarchy/module.zig");
+const UID_Gen = @import("../util/uid_gen.zig");
 
 const Self = @This();
 
 const Lookup_Result = union(enum) { found_but_rt, found_but_fn, not_found, found: *Symbol };
-
-var scope_UID: usize = 0;
 
 parent: ?*Self,
 children: std.ArrayList(*Self),
@@ -18,11 +17,12 @@ impls: std.ArrayList(*ast_.AST), // List of all `impl`s in this scope Added to i
 tests: std.ArrayList(*ast_.AST), // List of all `test`s in this scope Added to in the `decorate` phase.
 module: ?*module_.Module, // Enclosing module
 uid: usize,
+uid_gen: *UID_Gen,
 
 function_depth: usize = 0,
 inner_function: ?*Symbol = null,
 
-pub fn init(parent: ?*Self, allocator: std.mem.Allocator) *Self {
+pub fn init(parent: ?*Self, uid_gen: *UID_Gen, allocator: std.mem.Allocator) *Self {
     var retval = allocator.create(Self) catch unreachable;
     retval.parent = parent;
     retval.children = std.ArrayList(*Self).init(allocator);
@@ -30,8 +30,8 @@ pub fn init(parent: ?*Self, allocator: std.mem.Allocator) *Self {
     retval.traits = std.ArrayList(*ast_.AST).init(allocator);
     retval.impls = std.ArrayList(*ast_.AST).init(allocator);
     retval.tests = std.ArrayList(*ast_.AST).init(allocator);
-    retval.uid = scope_UID;
-    scope_UID += 1;
+    retval.uid = uid_gen.uid();
+    retval.uid_gen = uid_gen;
     if (parent) |_parent| {
         _parent.children.append(retval) catch unreachable;
         retval.function_depth = _parent.function_depth;

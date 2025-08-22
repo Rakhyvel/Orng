@@ -16,6 +16,7 @@ const Symbol = @import("../symbol/symbol.zig");
 const Module_Hash = @import("module_hash.zig");
 const Token = @import("../lexer/token.zig");
 const Type_Set = @import("../ast/type-set.zig");
+const UID_Gen = @import("../util/uid_gen.zig");
 
 // Front-end pipeline steps
 const Read_File = @import("../lexer/read_file.zig");
@@ -48,6 +49,9 @@ var module_uids: Module_UID = 0;
 pub const Module = struct {
     // A unique identifier for this Orng module
     uid: Module_UID,
+
+    /// Unique Identifier generator for symbols in this module, so that symbols are given predictable, stable UIDs
+    uid_gen: UID_Gen,
 
     // Absolute path of the module
     absolute_path: []const u8,
@@ -96,6 +100,7 @@ pub const Module = struct {
     pub fn init(absolute_path: []const u8, allocator: std.mem.Allocator) *Module {
         var retval = allocator.create(Module) catch unreachable;
         retval.uid = module_uids;
+        retval.uid_gen = UID_Gen.init();
         module_uids += 1;
         std.debug.assert(std.fs.path.isAbsolute(absolute_path));
         retval.absolute_path = absolute_path;
@@ -132,8 +137,8 @@ pub const Module = struct {
         }
 
         // Create the symbol for this module
-        var file_root = Scope.init(compiler.prelude, compiler.allocator());
         const module = Module.init(absolute_path, compiler.allocator());
+        var file_root = Scope.init(compiler.prelude, &module.uid_gen, compiler.allocator());
         file_root.module = module;
         const symbol = Symbol.init(
             compiler.prelude,
