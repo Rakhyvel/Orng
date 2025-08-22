@@ -119,8 +119,9 @@ fn output_testrunner(modules: std.ArrayList(*Module), build_path: []const u8, al
     testrunner_writer.print(
         \\
         \\struct test_entry {{
+        \\    const char* filename;
         \\    const char* name;
-        \\    void (*fp)(void);
+        \\    void (*run)(void);
         \\}};
         \\
         \\struct test_entry tests[] = {{
@@ -131,7 +132,7 @@ fn output_testrunner(modules: std.ArrayList(*Module), build_path: []const u8, al
     for (modules.items) |module| {
         var emitter = Emitter.init(module, testrunner_writer);
         for (module.tests.items) |@"test"| {
-            testrunner_writer.print("    {{\"{s}\", ", .{@"test".symbol.decl.?.@"test".name.?.string.data}) catch return error.CompileError;
+            testrunner_writer.print("    {{\"{s}\", \"{s}\", ", .{ @"test".symbol.scope.module.?.name(), @"test".symbol.decl.?.@"test".name.?.string.data }) catch return error.CompileError;
             emitter.output_symbol(@"test".symbol) catch return error.CompileError;
             testrunner_writer.print("}},\n", .{}) catch return error.CompileError;
             num_tests += 1;
@@ -147,17 +148,12 @@ fn output_testrunner(modules: std.ArrayList(*Module), build_path: []const u8, al
         \\    if (argc >= 2) {{
         \\        substr = argv[1];
         \\    }}
-        \\    int total = 0;
-        \\    for (int i = 0; i < num_tests; i += 1) {{
-        \\        if (substr == NULL || strstr(tests[i].name, substr)) {{
-        \\            total += 1;
-        \\        }}
-        \\    }}
         \\
         \\    for (int i = 0; i < num_tests; i += 1) {{
         \\        if (substr == NULL || strstr(tests[i].name, substr)) {{
-        \\            printf("Test [%d/%d] %s ...", i + 1, total, tests[i].name);
-        \\            printf("OK\n");
+        \\            printf("[ RUN    ... ] %s.orng: %s\n", tests[i].filename, tests[i].name);
+        \\            tests[i].run();
+        \\            printf("[ ... PASSED ]\n");
         \\        }}
         \\    }}
         \\}}

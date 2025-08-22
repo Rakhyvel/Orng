@@ -8,8 +8,12 @@ fn main() -> ()!() {
     .ok({})
 }
 
-test "this is a test!" {
+test "test of tests" {
     let x = 5
     _ = x
-    debug::println("Hello, World! This is a test")
+}
+
+test "test that tests work" {
+    let x = 5
+    _ = x
 }
