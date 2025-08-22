@@ -11,6 +11,7 @@ const pipeline_ = @import("../util/pipeline.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const Span = @import("../util/span.zig");
 const Scope = @import("../symbol/scope.zig");
+const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
 const Module_Hash = @import("module_hash.zig");
 const Token = @import("../lexer/token.zig");
@@ -314,7 +315,7 @@ pub const Module = struct {
     }
 
     /// A module is modified if:
-    /// - Its hash differs from what is stored in the package's json file
+    /// - Its source hash differs from what is stored in the package's json file
     /// - Any of the module it imports have been modified
     pub fn determine_if_modified(self: *Module, compiler: *Compiler_Context) void {
         if (self.modified != null) {

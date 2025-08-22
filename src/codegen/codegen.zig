@@ -6,7 +6,7 @@ const Interned_String_Set = @import("../ir/interned_string_set.zig");
 const Module = @import("../hierarchy/module.zig").Module;
 const Header_Emitter = @import("header_emitter.zig");
 const Source_Emitter = @import("source_emitter.zig");
-const Test_Source_Emitter = @import("test_source_emitter.zig");
+const Test_Emitter = @import("test_emitter.zig");
 
 /// Goes through each package and outputs a C/H file header pair for each module in each package
 pub fn output_modules(compiler: *Compiler_Context) !void {
@@ -31,6 +31,12 @@ pub fn output_modules(compiler: *Compiler_Context) !void {
                 }
             }
         }
+
+        switch (package.kind) {
+            .test_executable => try output_testrunner(build_path, compiler.allocator()),
+            .executable => try output_start(package_root_module, &compiler.module_interned_strings, build_path, compiler.allocator()),
+            else => {},
+        }
     }
 }
 
@@ -41,22 +47,12 @@ fn output(
     build_path: []const u8,
     allocator: std.mem.Allocator,
 ) !void {
-    var output_h_filename = String.init(allocator);
-    defer output_h_filename.deinit();
-    output_h_filename.writer().print("{s}-{s}.h", .{ module.package_name, module.name() }) catch unreachable;
-    const out_h_paths = [_][]const u8{ build_path, output_h_filename.str() };
-    const out_h_path = std.fs.path.join(allocator, &out_h_paths) catch unreachable;
-    var output_h_file = std.fs.createFileAbsolute(out_h_path, .{}) catch unreachable;
+    var output_h_file = try open_file(module.package_name, module.name(), ".h", build_path, allocator);
     defer output_h_file.close();
     var header_emitter = Header_Emitter.init(module, output_h_file.writer());
     header_emitter.generate() catch return error.CompileError;
 
-    var output_c_filename = String.init(allocator);
-    defer output_c_filename.deinit();
-    output_c_filename.writer().print("{s}-{s}.c", .{ module.package_name, module.name() }) catch unreachable;
-    const out_c_paths = [_][]const u8{ build_path, output_c_filename.str() };
-    const out_c_path = std.fs.path.join(allocator, &out_c_paths) catch unreachable;
-    var output_c_file = std.fs.createFileAbsolute(out_c_path, .{}) catch unreachable;
+    var output_c_file = try open_file(module.package_name, module.name(), ".c", build_path, allocator);
     defer output_c_file.close();
     var source_emitter = Source_Emitter.init(module, module_interned_strings, output_c_file.writer());
     source_emitter.generate() catch return error.CompileError;
@@ -69,14 +65,66 @@ fn output_tests(
     build_path: []const u8,
     allocator: std.mem.Allocator,
 ) !void {
-    var output_c_filename = String.init(allocator);
-    defer output_c_filename.deinit();
-    output_c_filename.writer().print("{s}-{s}-tests.c", .{ module.package_name, module.name() }) catch unreachable;
-    const out_c_paths = [_][]const u8{ build_path, output_c_filename.str() };
-    const out_c_path = std.fs.path.join(allocator, &out_c_paths) catch unreachable;
-    var output_c_file = std.fs.createFileAbsolute(out_c_path, .{}) catch unreachable;
+    var output_h_file = try open_file(module.package_name, module.name(), "-tests.h", build_path, allocator);
+    defer output_h_file.close();
+
+    var output_c_file = try open_file(module.package_name, module.name(), "-tests.c", build_path, allocator);
     defer output_c_file.close();
 
-    var test_source_emitter = Test_Source_Emitter.init(module, module_interned_strings, output_c_file.writer());
-    test_source_emitter.generate() catch return error.CompileError;
+    var test_emitter = Test_Emitter.init(module, module_interned_strings, output_c_file.writer(), output_h_file.writer());
+    test_emitter.generate() catch return error.CompileError;
+}
+
+fn output_start(module: *Module, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set), build_path: []const u8, allocator: std.mem.Allocator) !void {
+    const paths = [_][]const u8{ build_path, "start.c" };
+    const path = std.fs.path.join(allocator, &paths) catch unreachable;
+
+    var testrunner_file = std.fs.createFileAbsolute(path, .{}) catch unreachable;
+    defer testrunner_file.close();
+
+    var start_writer = testrunner_file.writer();
+
+    var source_emitter = Source_Emitter.init(module, module_interned_strings, start_writer);
+    source_emitter.output_header_include() catch return error.CompileError;
+    start_writer.print("#include <stdio.h>\n\n", .{}) catch return error.CompileError;
+    source_emitter.output_main_function() catch return error.CompileError;
+}
+
+fn output_testrunner(build_path: []const u8, allocator: std.mem.Allocator) !void {
+    const paths = [_][]const u8{ build_path, "test-runner.c" };
+    const path = std.fs.path.join(allocator, &paths) catch unreachable;
+
+    var testrunner_file = std.fs.createFileAbsolute(path, .{}) catch unreachable;
+    defer testrunner_file.close();
+
+    var testrunner_writer = testrunner_file.writer();
+    testrunner_writer.print(
+        \\/* Code generated using the Orng compiler http://ornglang.org */
+        \\
+        \\#include <stdio.h>
+        \\// forall modules in package, include modules test header
+        \\
+        \\struct $test_entry {{
+        \\    char* test_name;
+        \\    void (*test_fp)(void);
+        \\}};
+        \\
+        \\// forall modules in package, array of test entry(test name, test function pointer)
+        \\
+        \\int main(int argc, char* argv[]) {{
+        \\    printf("Hello, World!\n");
+        \\}}
+    , .{}) catch return error.CompileError;
+}
+
+fn open_file(package_name: []const u8, module_name: []const u8, ext: []const u8, build_path: []const u8, allocator: std.mem.Allocator) !std.fs.File {
+    var output_filename = String.init(allocator);
+    defer output_filename.deinit();
+    output_filename.writer().print("{s}-{s}{s}", .{ package_name, module_name, ext }) catch unreachable;
+
+    const out_paths = [_][]const u8{ build_path, output_filename.str() };
+    const out_path = std.fs.path.join(allocator, &out_paths) catch unreachable;
+
+    const output_file = std.fs.createFileAbsolute(out_path, .{}) catch unreachable;
+    return output_file;
 }

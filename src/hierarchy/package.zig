@@ -1,5 +1,6 @@
 const std = @import("std");
 const Module = @import("../hierarchy/module.zig").Module;
+const CFG = @import("../ir/cfg.zig");
 const Compiler_Context = @import("compiler.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
@@ -71,6 +72,9 @@ pub fn new(allocator: std.mem.Allocator, package_absolute_path: []const u8, kind
     package.kind = kind;
     package.module_hash = Module_Hash.init(package_absolute_path, allocator) catch unreachable;
     package.modified = null;
+
+    package.set_executable_name(allocator) catch unreachable;
+
     return package;
 }
 
@@ -86,6 +90,10 @@ pub fn get_build_module_absolute_path(self: *const Package, allocator: std.mem.A
     const package_path = package_root_module.get_package_abs_path();
     const build_paths = [_][]const u8{ package_path, "build.orng" };
     return std.fs.path.join(allocator, &build_paths) catch unreachable;
+}
+
+pub fn entry(self: *const Package) ?*CFG {
+    return self.root.init_value.?.module.module.entry;
 }
 
 pub fn get_build_module(self: *const Package, compiler: *Compiler_Context) ?*Module {
@@ -113,6 +121,7 @@ pub fn determine_if_modified(self: *Package, packages: std.StringArrayHashMap(*P
         self.modified = required_package.modified.? or self.modified.?;
     }
 
+    // Check if the build module was modified, if it was, entire package will be rebuilt
     if (self.get_build_module(compiler)) |build_module| {
         build_module.determine_if_modified(compiler);
         build_module.update_module_hash(&self.module_hash, compiler.allocator());
@@ -124,6 +133,18 @@ pub fn determine_if_modified(self: *Package, packages: std.StringArrayHashMap(*P
         local_module.determine_if_modified(compiler);
         self.modified = local_module.modified.? or self.modified.?;
     }
+
+    // Check if the output exists - if it doesn't, package is modified
+    self.modified = !file_exists(self.output_absolute_path) or self.modified.?;
+}
+
+fn file_exists(abs_path: []const u8) bool {
+    var file = std.fs.openFileAbsolute(abs_path, .{}) catch |err| switch (err) {
+        error.FileNotFound => return false,
+        else => return false,
+    };
+    defer file.close();
+    return true;
 }
 
 /// Compiles a package. Assumes C files have already been emitted.
@@ -144,10 +165,6 @@ pub fn compile(self: *Package, packages: std.StringArrayHashMap(*Package), extra
     const obj_files = try self.compile_obj_files(packages, extra_flags, allocator);
     self.module_hash.output_new_json(allocator);
 
-    if (self.kind == .executable or self.kind == .test_executable) {
-        self.set_executable_name(allocator);
-    }
-
     if (self.modified.?) {
         if (self.kind == .static_library) {
             try self.ar(obj_files, allocator);
@@ -161,7 +178,7 @@ fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package),
     var obj_files = std.ArrayList([]const u8).init(allocator);
     for (self.local_modules.items) |local_module| {
         if (!std.mem.eql(u8, local_module.get_package_abs_path(), self.absolute_path)) {
-            return obj_files;
+            break;
         }
 
         // Append the o filename to the obj files list, even if this isn't compiled!
@@ -186,6 +203,38 @@ fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package),
 
         try self.cc(c_file.str(), o_file.str(), packages, extra_flags, allocator);
     }
+
+    // Include the entry point for executables
+    if (self.modified.?) {
+        switch (self.kind) {
+            .test_executable => {
+                const test_runner_o_file = "test-runner.o";
+                obj_files.append(test_runner_o_file) catch unreachable;
+                var c_file = String.init(allocator);
+                c_file.writer().print("{s}{c}build{c}test-runner.c", .{
+                    self.absolute_path,
+                    std.fs.path.sep,
+                    std.fs.path.sep,
+                }) catch unreachable;
+
+                try self.cc(c_file.str(), test_runner_o_file, packages, extra_flags, allocator);
+            },
+            .executable => {
+                const test_runner_o_file = "start.o";
+                obj_files.append(test_runner_o_file) catch unreachable;
+                var c_file = String.init(allocator);
+                c_file.writer().print("{s}{c}build{c}start.c", .{
+                    self.absolute_path,
+                    std.fs.path.sep,
+                    std.fs.path.sep,
+                }) catch unreachable;
+
+                try self.cc(c_file.str(), test_runner_o_file, packages, extra_flags, allocator);
+            },
+            else => {},
+        }
+    }
+
     return obj_files;
 }
 
@@ -352,9 +401,7 @@ fn ar(self: *Package, obj_files: std.ArrayList([]const u8), allocator: std.mem.A
     }) catch unreachable;
 
     // Add the lib name
-    var lib_name = String.init(allocator);
-    lib_name.writer().print("lib{s}.a", .{self.name}) catch unreachable;
-    cmd.append(lib_name.str()) catch unreachable;
+    cmd.append(self.output_absolute_path) catch unreachable;
 
     // Add all the object files
     cmd.appendSlice(obj_files.items) catch unreachable;
@@ -388,14 +435,19 @@ fn ar(self: *Package, obj_files: std.ArrayList([]const u8), allocator: std.mem.A
     }
 }
 
-fn set_executable_name(self: *Package, allocator: std.mem.Allocator) void {
+pub fn set_executable_name(self: *Package, allocator: std.mem.Allocator) !void {
     var output_absolute_path = String.init(allocator);
-    output_absolute_path.writer().print("{s}{c}build{c}{s}", .{
+    output_absolute_path.writer().print("{s}{c}build{c}", .{
         self.absolute_path,
         std.fs.path.sep,
         std.fs.path.sep,
-        self.name,
     }) catch unreachable;
+    switch (self.kind) {
+        .executable => try output_absolute_path.writer().print("{s}", .{self.name}),
+        .test_executable => try output_absolute_path.writer().print("{s}-test", .{self.name}),
+        .static_library => try output_absolute_path.writer().print("lib{s}.a", .{self.name}),
+        .shared_library => try output_absolute_path.writer().print("{s}.so", .{self.name}),
+    }
     self.output_absolute_path = output_absolute_path.str();
 }
 
@@ -457,10 +509,8 @@ fn construct_exe_cc_cmd(
     }
 
     // Add the output name
-    var output_name = String.init(allocator);
-    output_name.writer().print("{s}", .{self.name}) catch unreachable;
     cmd.append("-o") catch unreachable;
-    cmd.append(output_name.str()) catch unreachable;
+    cmd.append(self.output_absolute_path) catch unreachable;
 
     return cmd;
 }
@@ -498,7 +548,7 @@ fn append_requirement_link(
     }
 }
 
-const debug: bool = false;
+const debug: bool = true;
 fn print_cmd(cmd: *const std.ArrayList([]const u8)) void {
     if (debug) {
         for (cmd.items) |item| {

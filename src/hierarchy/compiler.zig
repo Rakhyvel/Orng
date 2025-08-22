@@ -176,6 +176,7 @@ pub fn set_package_kind(self: *Self, package_absolute_path: []const u8, kind: Pa
     std.debug.assert(std.fs.path.isAbsolute(package_absolute_path));
     const package = self.lookup_package(package_absolute_path).?;
     package.kind = kind;
+    package.set_executable_name(self.allocator()) catch unreachable;
 }
 
 pub fn collect_package_local_modules(self: *Self) void {

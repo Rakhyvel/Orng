@@ -1,3 +1,6 @@
+///! Handles interned strings. These are required mainly for the interpreter, since strings conceptually are a slice
+/// referring to some piece of backing data. The interned string set per module is where the backing text data is
+/// stored.
 const std = @import("std");
 
 const Self: type = @This();

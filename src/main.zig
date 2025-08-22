@@ -123,7 +123,6 @@ fn run(compiler: *Compiler_Context, package_abs_path: []const u8, allocator: std
 fn @"test"(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {
     _ = name;
     _ = args;
-    std.debug.print("Hello, Test!\n", .{});
 
     var compiler = try Compiler_Context.init(allocator);
     defer compiler.deinit();
