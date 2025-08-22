@@ -571,7 +571,7 @@ fn append_requirement_link(
     }
 }
 
-const debug: bool = true;
+const debug: bool = false;
 fn print_cmd(cmd: *const std.ArrayList([]const u8)) void {
     if (debug) {
         for (cmd.items) |item| {
