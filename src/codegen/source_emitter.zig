@@ -107,7 +107,7 @@ fn output_impls(
 }
 
 /// Output the definition of a function.
-fn output_function_definition(self: *Self, cfg: *CFG) CodeGen_Error!void {
+pub fn output_function_definition(self: *Self, cfg: *CFG) CodeGen_Error!void {
     try self.emitter.output_function_prototype(cfg);
     try self.writer.print("{{\n", .{});
 
@@ -122,16 +122,23 @@ fn output_function_definition(self: *Self, cfg: *CFG) CodeGen_Error!void {
     }
 
     // Mark unused parameters as discarded
-    const param_symbols = if (cfg.symbol.decl.?.* == .fn_decl) cfg.symbol.decl.?.fn_decl.param_symbols else cfg.symbol.decl.?.method_decl.param_symbols;
-    for (param_symbols.items) |param| {
-        // Do this only if they aren't discarded in source
-        // Users can discard parameters, however used parameters may also become unused through optimizations
-        if (!param.expanded_type.?.is_c_void_type() and // unit-typed parameters aren't emitted
-            param.uses == 0)
-        {
-            try self.writer.print("    (void)", .{});
-            try self.emitter.output_symbol(param);
-            try self.writer.print(";\n", .{});
+    const param_symbols: ?std.ArrayList(*Symbol) = switch (cfg.symbol.decl.?.*) {
+        .fn_decl => cfg.symbol.decl.?.fn_decl.param_symbols,
+        .method_decl => cfg.symbol.decl.?.method_decl.param_symbols,
+        .@"test" => null,
+        else => std.debug.panic("unimplemented output_function_prototype for {s}", .{@tagName(cfg.symbol.decl.?.*)}),
+    };
+    if (param_symbols != null) {
+        for (param_symbols.?.items) |param| {
+            // Do this only if they aren't discarded in source
+            // Users can discard parameters, however used parameters may also become unused through optimizations
+            if (!param.expanded_type.?.is_c_void_type() and // unit-typed parameters aren't emitted
+                param.uses == 0)
+            {
+                try self.writer.print("    (void)", .{});
+                try self.emitter.output_symbol(param);
+                try self.writer.print(";\n", .{});
+            }
         }
     }
 

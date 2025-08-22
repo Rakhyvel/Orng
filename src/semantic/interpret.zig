@@ -41,7 +41,7 @@ pub fn interpret(
     // Get the cfg from the symbol, and embed into the module
     const module = symbol.scope.module.?;
     const intered_strings = compiler.lookup_interned_string_set(module.uid).?;
-    const cfg = try cfg_builder_.get_cfg(symbol, null, intered_strings, &compiler.errors, compiler.allocator());
+    const cfg = try cfg_builder_.get_cfg(symbol, intered_strings, &compiler.errors, compiler.allocator());
     defer cfg.deinit(); // Remove the cfg so that it isn't output
 
     const idx = cfg.emplace_cfg(&module.cfgs, &module.instructions);

@@ -82,7 +82,7 @@ pub const Module = struct {
     impls: std.ArrayList(*ast_.AST),
 
     /// List of all tests defined in this module. Used by codegen to output the vtable implementations.
-    tests: std.ArrayList(*ast_.AST),
+    tests: std.ArrayList(*CFG),
 
     /// Allocator for the module
     allocator: std.mem.Allocator,
@@ -105,7 +105,7 @@ pub const Module = struct {
         retval.instructions = std.ArrayList(*Instruction).init(allocator);
         retval.traits = std.ArrayList(*ast_.AST).init(allocator);
         retval.impls = std.ArrayList(*ast_.AST).init(allocator);
-        retval.tests = std.ArrayList(*ast_.AST).init(allocator);
+        retval.tests = std.ArrayList(*CFG).init(allocator);
         retval.cfgs = std.ArrayList(*CFG).init(allocator);
         retval.type_set = Type_Set.init(allocator);
         retval.entry = null;
@@ -194,12 +194,13 @@ pub const Module = struct {
 
         // Perform checks and collections on the module
         try module_validate_.validate(module, compiler);
-        compiler.module_scope(module.absolute_path).?.collect_traits_and_impls(&module.traits, &module.impls, &module.tests);
+        compiler.module_scope(module.absolute_path).?.collect_traits_and_impls(&module.traits, &module.impls);
         try module.add_all_cfgs(entry_name, compiler);
         if (module.entry) |entry| {
             entry.assert_needed_at_runtime();
         }
         try module.collect_impl_cfgs(compiler);
+        try module.collect_tests(compiler);
         module.collect_trait_types(compiler.allocator());
         module.collect_cfg_types(compiler.allocator());
     }
@@ -215,7 +216,7 @@ pub const Module = struct {
 
             // Instruction translation
             const interned_strings = compiler.lookup_interned_string_set(self.uid).?;
-            const cfg = try cfg_builder_.get_cfg(symbol, null, interned_strings, &compiler.errors, compiler.allocator());
+            const cfg = try cfg_builder_.get_cfg(symbol, interned_strings, &compiler.errors, compiler.allocator());
             self.collect_cfgs(cfg);
 
             if (need_entry and std.mem.eql(u8, key, entry_name.?)) {
@@ -248,10 +249,6 @@ pub const Module = struct {
                 _ = self.type_set.add(decl.method_decl.c_type.?, allocator);
             }
         }
-
-        for (self.tests.items) |@"test"| {
-            std.debug.print("{s}\n", .{@"test".@"test".name.?.string.data});
-        }
     }
 
     fn collect_impl_cfgs(self: *Module, compiler: *Compiler_Context) Module_Errors!void {
@@ -259,10 +256,22 @@ pub const Module = struct {
             for (impl.impl.method_defs.items) |def| {
                 const symbol = def.symbol().?;
                 const interned_strings = compiler.lookup_interned_string_set(self.uid).?;
-                const cfg = (try cfg_builder_.get_cfg(symbol, null, interned_strings, &compiler.errors, compiler.allocator()));
+                const cfg = (try cfg_builder_.get_cfg(symbol, interned_strings, &compiler.errors, compiler.allocator()));
                 cfg.assert_needed_at_runtime();
                 self.collect_cfgs(cfg);
             }
+        }
+    }
+
+    fn collect_tests(self: *Module, compiler: *Compiler_Context) Module_Errors!void {
+        var test_asts = std.ArrayList(*ast_.AST).init(compiler.allocator());
+        compiler.module_scope(self.absolute_path).?.collect_tests(&test_asts);
+
+        for (test_asts.items) |test_ast| {
+            const symbol = test_ast.symbol().?;
+            const interned_strings = compiler.lookup_interned_string_set(self.uid).?;
+            const cfg = (try cfg_builder_.get_cfg(symbol, interned_strings, &compiler.errors, compiler.allocator()));
+            self.tests.append(cfg) catch unreachable;
         }
     }
 

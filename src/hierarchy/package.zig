@@ -126,6 +126,7 @@ pub fn determine_if_modified(self: *Package, packages: std.StringArrayHashMap(*P
     }
 }
 
+/// Compiles a package. Assumes C files have already been emitted.
 pub fn compile(self: *Package, packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !void {
     if (self.visited) {
         return;

@@ -56,8 +56,7 @@ locals_size: ?i64,
 allocator: std.mem.Allocator,
 
 /// Initializes a Self
-pub fn init(symbol: *Symbol, caller: ?*Self, allocator: std.mem.Allocator) *Self {
-    _ = caller;
+pub fn init(symbol: *Symbol, allocator: std.mem.Allocator) *Self {
     if (symbol.cfg) |cfg| {
         return cfg;
     }

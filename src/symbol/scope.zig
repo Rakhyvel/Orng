@@ -188,13 +188,22 @@ pub fn collect_traits_and_impls(
     self: *Self,
     traits: *std.ArrayList(*ast_.AST),
     impls: *std.ArrayList(*ast_.AST),
-    tests: *std.ArrayList(*ast_.AST),
 ) void {
     traits.appendSlice(self.traits.items) catch unreachable;
     impls.appendSlice(self.impls.items) catch unreachable;
+
+    for (self.children.items) |child| {
+        child.collect_traits_and_impls(traits, impls);
+    }
+}
+
+pub fn collect_tests(
+    self: *Self,
+    tests: *std.ArrayList(*ast_.AST),
+) void {
     tests.appendSlice(self.tests.items) catch unreachable;
 
     for (self.children.items) |child| {
-        child.collect_traits_and_impls(traits, impls, tests);
+        child.collect_tests(tests);
     }
 }

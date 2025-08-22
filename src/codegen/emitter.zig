@@ -129,21 +129,28 @@ pub fn output_function_prototype(
     var num_non_unit_params: i64 = 0;
     try self.writer.print("(", .{});
     const decl = cfg.symbol.decl.?;
-    const param_symbols = if (decl.* == .fn_decl) decl.fn_decl.param_symbols else decl.method_decl.param_symbols;
-    for (param_symbols.items, 0..) |term, i| {
-        if (!term.expanded_type.?.is_c_void_type()) {
-            if (decl.* == .method_decl and decl.method_decl.receiver != null and i == 0) {
-                // Print out method receiver
-                try self.writer.print("void* ", .{});
-                try self.output_symbol(term);
-            } else {
-                // Print out parameter declarations
-                try self.output_var_decl(term, true);
+    const param_symbols: ?std.ArrayList(*Symbol) = switch (decl.*) {
+        .fn_decl => decl.fn_decl.param_symbols,
+        .method_decl => decl.method_decl.param_symbols,
+        .@"test" => null,
+        else => std.debug.panic("unimplemented output_function_prototype for {s}", .{@tagName(decl.*)}),
+    };
+    if (param_symbols != null) {
+        for (param_symbols.?.items, 0..) |term, i| {
+            if (!term.expanded_type.?.is_c_void_type()) {
+                if (decl.* == .method_decl and decl.method_decl.receiver != null and i == 0) {
+                    // Print out method receiver
+                    try self.writer.print("void* ", .{});
+                    try self.output_symbol(term);
+                } else {
+                    // Print out parameter declarations
+                    try self.output_var_decl(term, true);
+                }
+                if (i + 1 < param_symbols.?.items.len and !param_symbols.?.items[i + 1].expanded_type.?.is_c_void_type()) {
+                    try self.writer.print(", ", .{});
+                }
+                num_non_unit_params += 1;
             }
-            if (i + 1 < param_symbols.items.len and !param_symbols.items[i + 1].expanded_type.?.is_c_void_type()) {
-                try self.writer.print(", ", .{});
-            }
-            num_non_unit_params += 1;
         }
     }
 

@@ -1903,7 +1903,7 @@ pub const AST = union(enum) {
     pub fn top_level(self: *AST) bool {
         return switch (self.*) {
             .decl => self.decl._top_level,
-            .fn_decl, .method_decl => true,
+            .fn_decl, .method_decl, .@"test" => true,
             else => std.debug.panic("compiler error: cannot call `.top_level()` on the AST `{s}`", .{@tagName(self.*)}),
         };
     }

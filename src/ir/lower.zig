@@ -643,7 +643,7 @@ fn lval_from_symbol_cfg(
     symbol: *Symbol,
     span: Span,
 ) Lower_Errors!*lval_.L_Value {
-    const callee = try cfg_builder_.get_cfg(symbol, self.cfg, self.interned_strings, self.errors, self.allocator);
+    const callee = try cfg_builder_.get_cfg(symbol, self.interned_strings, self.errors, self.allocator);
     self.cfg.children.put(callee, {}) catch unreachable;
     const lval = self.create_temp_lvalue(symbol._type);
     const instr = Instruction.init_symbol(lval, symbol, span, self.allocator);
