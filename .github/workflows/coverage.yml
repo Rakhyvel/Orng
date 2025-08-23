@@ -64,6 +64,8 @@ jobs:
         zig build orng
         cd examples
         kcov --include-path "$GITHUB_WORKSPACE/src" "$GITHUB_WORKSPACE/kcov-out" ../zig-out/bin/orng build
+        kcov --include-path "$GITHUB_WORKSPACE/src" "$GITHUB_WORKSPACE/kcov-out" ../zig-out/bin/orng clean
+        kcov --include-path "$GITHUB_WORKSPACE/src" "$GITHUB_WORKSPACE/kcov-out" ../zig-out/bin/orng test
         cd ..
 
     - name: Ensure Modified Lines in src/ Are Covered
