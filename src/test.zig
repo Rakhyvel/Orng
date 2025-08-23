@@ -162,7 +162,8 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
     const contents = Read_File.init(compiler.allocator()).run(absolute_filename) catch unreachable;
     const header_comment_contents = header_comment(contents, debug_alloc.allocator()) catch unreachable;
     defer debug_alloc.allocator().free(header_comment_contents);
-    const expected_out = String.init_with_contents(debug_alloc.allocator(), header_comment_contents[0]) catch unreachable;
+    var expected_out = String.init_with_contents(debug_alloc.allocator(), header_comment_contents[0]) catch unreachable;
+    defer expected_out.deinit();
     _ = expected_out.replace("\r", "") catch unreachable;
     _ = expected_out.replace("\n", "") catch unreachable;
 
@@ -176,8 +177,8 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
         get_std_out().print("Execution interrupted!\n", .{}) catch unreachable;
         return false;
     };
-    if (!std.mem.eql(u8, res.stdout, expected_out)) {
-        get_std_out().print("Expected \"{s}\" retcode, got \"{s}\"\n", .{ expected_out, res.stdout }) catch unreachable;
+    if (!std.mem.eql(u8, res.stdout, expected_out.str())) {
+        get_std_out().print("Expected \"{s}\" retcode, got \"{s}\"\n", .{ expected_out.str(), res.stdout }) catch unreachable;
         return false;
     }
 
