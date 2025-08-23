@@ -13,6 +13,7 @@ pub fn Dfs_Iterator(comptime T: type) type {
                 .current = start,
                 .stack = std.ArrayList(T).init(allocator),
                 .visited = std.AutoHashMap(T, void).init(allocator),
+                fgfgf
             };
         }
 
