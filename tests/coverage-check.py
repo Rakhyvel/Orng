@@ -46,12 +46,7 @@ def check_coverage(src_files, base_ref):
         sys.exit(0)
 
     # Open, read, and parse the XML file
-    cov_xml_path = (
-        subprocess.run(["find", ".", "-iname", "cov.xml"], capture_output=True)
-        .stdout.decode("utf-8")
-        .strip()
-    )
-    print(f"cov_xml_path: {cov_xml_path}")
+    cov_xml_path = "kcov-out/kcov-merged/cov.xml"
     coverage_data = parse_coverage(cov_xml_path)
 
     uncovered_lines = []

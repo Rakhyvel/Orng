@@ -162,7 +162,9 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
     const contents = Read_File.init(compiler.allocator()).run(absolute_filename) catch unreachable;
     const header_comment_contents = header_comment(contents, debug_alloc.allocator()) catch unreachable;
     defer debug_alloc.allocator().free(header_comment_contents);
-    const expected_out = header_comment_contents[0];
+    const expected_out = String.init_with_contents(debug_alloc.allocator(), header_comment_contents[0]) catch unreachable;
+    _ = expected_out.replace("\r", "") catch unreachable;
+    _ = expected_out.replace("\n", "") catch unreachable;
 
     compiler.compile(package_abs_path, false) catch unreachable;
 
@@ -208,6 +210,7 @@ fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug
             bless_file(filename, error_string.str(), body) catch unreachable;
             return true;
         } else if (mode == .regular) {
+            // For windows compatability, these don't really matter tbh
             _ = error_string.replace("\r", "") catch unreachable;
             _ = error_string.replace("\n", "") catch unreachable;
             _ = flat_head.replace("\r", "") catch unreachable;
