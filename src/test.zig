@@ -208,6 +208,10 @@ fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug
             bless_file(filename, error_string.str(), body) catch unreachable;
             return true;
         } else if (mode == .regular) {
+            _ = error_string.replace("\r", "") catch unreachable;
+            _ = error_string.replace("\n", "") catch unreachable;
+            _ = flat_head.replace("\r", "") catch unreachable;
+            _ = flat_head.replace("\n", "") catch unreachable;
             const errors_match = std.mem.eql(u8, error_string.str(), flat_head.str());
             switch (err) {
                 error.LexerError,
@@ -459,6 +463,6 @@ fn test_body(contents: []const u8) []const u8 {
 
 fn until_newline(str: []const u8) usize {
     var i: usize = 0;
-    while (i < str.len and str[i] != '\n' and str[i] != '\r') : (i += 1) {}
+    while (i < str.len and str[i] != '\n') : (i += 1) {}
     return i;
 }
