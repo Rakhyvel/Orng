@@ -407,7 +407,7 @@ fn nth_last_index_of(str: []const u8, c: u8, n: usize) ?usize {
 }
 
 fn get_test_name(filename: []const u8) ?[]const u8 {
-    const slash_index = nth_last_index_of(filename, '/', 2) orelse {
+    const slash_index = nth_last_index_of(filename, std.fs.path.sep, 2) orelse {
         std.debug.print("filename {s} doens't contain a '/'", .{filename});
         return null;
     };
