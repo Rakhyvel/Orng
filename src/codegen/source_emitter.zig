@@ -21,6 +21,7 @@ const Self = @This();
 const HIGHEST_PRECEDENCE = 100;
 
 module: *module_.Module,
+/// Interned strings for this module. Referenced when emitting a load_string instruction to retrieve the string information.
 module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set),
 emitter: Emitter,
 writer: Writer,
@@ -40,6 +41,12 @@ pub fn init(module: *module_.Module, module_interned_strings: *const std.AutoArr
 
 /// Generates C code for the provided Orng module and writes it to the given writer.
 pub fn generate(self: *Self) CodeGen_Error!void {
+    try self.output_header_include();
+    try self.output_impls();
+    try self.emitter.forall_functions(self, "\n/* Function definitions */", output_function_definition);
+}
+
+pub fn output_header_include(self: *Self) CodeGen_Error!void {
     try self.writer.print(
         \\/* Code generated using the Orng compiler http://ornglang.org */
         \\
@@ -47,36 +54,6 @@ pub fn generate(self: *Self) CodeGen_Error!void {
         \\
         \\
     , .{ self.module.package_name, self.module.name() });
-
-    try self.output_interned_strings();
-    try self.output_impls();
-    try self.emitter.forall_functions(self, "\n/* Function definitions */", output_function_definition);
-    try self.output_main_function();
-}
-
-/// Outputs the interned strings declarations
-fn output_interned_strings(self: *Self) CodeGen_Error!void {
-    const interned_strings = self.module_interned_strings.get(self.module.uid).?;
-    if (interned_strings.items().len > 0) {
-        // Do not output header comment if there are no interned strings!
-        try self.writer.print("/* Interned Strings */\n", .{});
-    }
-
-    // Output each string in the string hash map
-    for (0..interned_strings.items().len) |i| {
-        try self.writer.print("static char* string_{} = \"", .{i});
-        // Print each byte in the string in hex format
-        const str = interned_strings.items()[i];
-        for (str) |byte| {
-            try self.writer.print("\\x{X:0>2}", .{byte});
-        }
-        try self.writer.print("\";\n", .{});
-    }
-
-    if (interned_strings.items().len > 0) {
-        // Do not output this newline if there are no interned strings!
-        try self.writer.print("\n", .{});
-    }
 }
 
 fn output_impls(
@@ -107,7 +84,7 @@ fn output_impls(
 }
 
 /// Output the definition of a function.
-fn output_function_definition(self: *Self, cfg: *CFG) CodeGen_Error!void {
+pub fn output_function_definition(self: *Self, cfg: *CFG) CodeGen_Error!void {
     try self.emitter.output_function_prototype(cfg);
     try self.writer.print("{{\n", .{});
 
@@ -122,16 +99,18 @@ fn output_function_definition(self: *Self, cfg: *CFG) CodeGen_Error!void {
     }
 
     // Mark unused parameters as discarded
-    const param_symbols = if (cfg.symbol.decl.?.* == .fn_decl) cfg.symbol.decl.?.fn_decl.param_symbols else cfg.symbol.decl.?.method_decl.param_symbols;
-    for (param_symbols.items) |param| {
-        // Do this only if they aren't discarded in source
-        // Users can discard parameters, however used parameters may also become unused through optimizations
-        if (!param.expanded_type.?.is_c_void_type() and // unit-typed parameters aren't emitted
-            param.uses == 0)
-        {
-            try self.writer.print("    (void)", .{});
-            try self.emitter.output_symbol(param);
-            try self.writer.print(";\n", .{});
+    const param_symbols = cfg.symbol.decl.?.param_symbols();
+    if (param_symbols != null) {
+        for (param_symbols.?.items) |param| {
+            // Do this only if they aren't discarded in source
+            // Users can discard parameters, however used parameters may also become unused through optimizations
+            if (!param.expanded_type.?.is_c_void_type() and // unit-typed parameters aren't emitted
+                param.uses == 0)
+            {
+                try self.writer.print("    (void)", .{});
+                try self.emitter.output_symbol(param);
+                try self.writer.print(";\n", .{});
+            }
         }
     }
 
@@ -144,7 +123,7 @@ fn output_function_definition(self: *Self, cfg: *CFG) CodeGen_Error!void {
     try self.writer.print("}}\n\n", .{});
 }
 
-fn output_main_function(self: *Self) CodeGen_Error!void {
+pub fn output_main_function(self: *Self) CodeGen_Error!void {
     if (self.module.entry == null) {
         return;
     }
@@ -335,10 +314,12 @@ fn output_instruction_post_check(self: *Self, instr: *Instruction) CodeGen_Error
         .load_string => {
             try self.output_var_assign_cast(instr.dest.?, instr.dest.?.get_expanded_type());
             const interned_strings = self.module_interned_strings.get(instr.data.string_id.module_uid).?;
-            try self.writer.print("{{(uint8_t*)string_{}, {}}};\n", .{
-                instr.data.string_id.string_idx,
-                interned_strings.items()[instr.data.string_id.string_idx].len,
-            });
+            try self.writer.print("{{(uint8_t*)\"", .{});
+            const str = interned_strings.items()[instr.data.string_id.string_idx];
+            for (str) |byte| {
+                try self.writer.print("\\x{X:0>2}", .{byte});
+            }
+            try self.writer.print("\", {}}};\n", .{interned_strings.items()[instr.data.string_id.string_idx].len});
         },
         .load_struct => {
             try self.output_var_assign_cast(instr.dest.?, instr.dest.?.get_expanded_type());

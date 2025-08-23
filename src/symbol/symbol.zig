@@ -24,6 +24,7 @@ pub const Kind = union(enum) {
     },
     import_inner, // Created from the inner expressions of qualified import statements, similar to consts
     module, // Refers to modules. The init is the `module` AST, which refers to the module and to the scope. `Module`s have their symbol
+    @"test",
 };
 
 pub const Symbol_Validation_State = validation_state_.Validation_State(*Self);

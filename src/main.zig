@@ -4,8 +4,7 @@ const Compiler_Context = @import("hierarchy/compiler.zig");
 const Codegen_Context = @import("codegen/codegen.zig");
 const errs_ = @import("util/errors.zig");
 const Interpreter_Context = @import("interpretation/interpreter.zig");
-const Package_Iterator = @import("util/dfs.zig").Dfs_Iterator(Package_Iterator_Node);
-const Package_Iterator_Node = @import("hierarchy/package.zig").Package_Iterator_Node;
+const Package_Kind = @import("hierarchy/package.zig").Package_Kind;
 const primitives_ = @import("hierarchy/primitives.zig");
 const Span = @import("util/span.zig");
 const String = @import("zig-string/zig-string.zig").String;
@@ -33,6 +32,7 @@ const command_table = [_]Command_Entry{
     Command_Entry{ .name = "help", .help = "Prints this help menu", .func = help },
     Command_Entry{ .name = "init", .help = "Creates two files, one containing a sample Hello World program and a file to allow for it to be built", .func = init_project },
     Command_Entry{ .name = "run", .help = "Builds and runs an Orng package", .func = build },
+    Command_Entry{ .name = "test", .help = "Builds and runs any tests in the current Orng package", .func = @"test" },
     Command_Entry{ .name = "version", .help = "Prints the version of Orng", .func = print_version },
 };
 
@@ -97,7 +97,7 @@ fn run_build_orng(compiler: *Compiler_Context, interpreter: *Interpreter_Context
 /// Runs the package executable after it's built
 fn run(compiler: *Compiler_Context, package_abs_path: []const u8, allocator: std.mem.Allocator) !void {
     const curr_package = compiler.lookup_package(package_abs_path).?;
-    if (curr_package.is_static_lib) {
+    if (curr_package.kind == .static_library) {
         (errs_.Error{ .basic = .{
             .msg = "cannot run a non-executable package",
             .span = Span.phony,
@@ -116,6 +116,23 @@ fn run(compiler: *Compiler_Context, package_abs_path: []const u8, allocator: std
     child.spawn() catch return error.CompileError;
     const term = child.wait() catch return error.CompileError;
     std.debug.print("exited: {}", .{term.Exited});
+}
+
+fn @"test"(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {
+    _ = name;
+    _ = args;
+
+    var compiler = try Compiler_Context.init(allocator);
+    defer compiler.deinit();
+    const package_abs_path = try construct_package_dag(compiler);
+    compiler.set_package_kind(package_abs_path, .test_executable);
+    compiler.propagate_include_directories(package_abs_path);
+    compiler.collect_package_local_modules();
+    compiler.determine_if_modified(package_abs_path);
+    try Codegen_Context.output_modules(compiler);
+    try compiler.compile(package_abs_path, false);
+
+    try run(compiler, package_abs_path, allocator);
 }
 
 fn validate_env_vars(allocator: std.mem.Allocator) Command_Error!void {
@@ -165,8 +182,13 @@ fn make_package(
     package_absolute_path: []const u8,
     entry_name: ?[]const u8,
 ) Command_Error!*Symbol {
-    const is_static_lib = package.get_field(primitives_.package_type, "kind").pos() == 1;
-    compiler.register_package(package_absolute_path, is_static_lib);
+    var package_kind: Package_Kind = undefined;
+    switch (package.get_field(primitives_.package_type, "kind").pos().?) {
+        0 => package_kind = .executable,
+        1 => package_kind = .static_library,
+        else => std.debug.panic("unimplemented", .{}),
+    }
+    compiler.register_package(package_absolute_path, package_kind);
 
     for (package.get_field(primitives_.package_type, "requirements").children().items) |maybe_requirement_addr| {
         if (maybe_requirement_addr.sum_value._pos != 0) {
@@ -340,17 +362,7 @@ fn clean(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     var compiler = try Compiler_Context.init(allocator);
     defer compiler.deinit();
     const package_abs_path = try construct_package_dag(compiler);
-
-    var dfs_iter: Package_Iterator = Package_Iterator.init(Package_Iterator_Node.init(compiler, package_abs_path), compiler.allocator());
-    defer dfs_iter.deinit();
-    while (dfs_iter.next()) |package_node| {
-        const build_path = package_node.package.get_build_path(allocator);
-        std.debug.print("cleaning {s}\n", .{build_path});
-        std.fs.deleteTreeAbsolute(build_path) catch |err| switch (err) {
-            error.FileNotFound => {}, // This is ok!
-            else => std.debug.panic("{}\n", .{err}),
-        };
-    }
+    compiler.clean_package(package_abs_path);
 }
 
 fn construct_package_dag(compiler: *Compiler_Context) Command_Error![]const u8 {

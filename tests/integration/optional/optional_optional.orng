@@ -1,0 +1,13 @@
+// 353
+const x : ??Int = .some(.some(353))
+const a : ? @Untagged ( ? Int )
+
+fn main() -> Int {
+    match x {
+        .none => unreachable
+        .some(y) => match y {
+            .none => unreachable
+            .some(z) => z
+        }
+    }
+}

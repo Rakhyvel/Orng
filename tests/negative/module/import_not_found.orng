@@ -1,0 +1,5 @@
+// import_not_found.orng:5:16: error: file `yo_momma.orng` not found
+// import yo_momma
+//               ^
+// 
+import yo_momma

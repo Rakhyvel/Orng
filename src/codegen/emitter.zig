@@ -30,6 +30,8 @@ pub fn output_type(self: *Self, _type: *AST) CodeGen_Error!void {
         return;
     }
 
+    std.debug.assert(_type.common()._expanded_type == null or _type.common()._expanded_type.?.* != .@"comptime"); // comptime types should never last to C codegen
+
     if (_type.common()._expanded_type != null and _type.common()._expanded_type.?.sizeof() == 0) {
         // For zero-size types that are still required to be output, ie pointers to empty untagged unions, structs, or ()
         try self.writer.print("void", .{});
@@ -124,21 +126,23 @@ pub fn output_function_prototype(
     var num_non_unit_params: i64 = 0;
     try self.writer.print("(", .{});
     const decl = cfg.symbol.decl.?;
-    const param_symbols = if (decl.* == .fn_decl) decl.fn_decl.param_symbols else decl.method_decl.param_symbols;
-    for (param_symbols.items, 0..) |term, i| {
-        if (!term.expanded_type.?.is_c_void_type()) {
-            if (decl.* == .method_decl and decl.method_decl.receiver != null and i == 0) {
-                // Print out method receiver
-                try self.writer.print("void* ", .{});
-                try self.output_symbol(term);
-            } else {
-                // Print out parameter declarations
-                try self.output_var_decl(term, true);
+    const param_symbols = decl.param_symbols();
+    if (param_symbols != null) {
+        for (param_symbols.?.items, 0..) |term, i| {
+            if (!term.expanded_type.?.is_c_void_type()) {
+                if (decl.* == .method_decl and decl.method_decl.receiver != null and i == 0) {
+                    // Print out method receiver
+                    try self.writer.print("void* ", .{});
+                    try self.output_symbol(term);
+                } else {
+                    // Print out parameter declarations
+                    try self.output_var_decl(term, true);
+                }
+                if (i + 1 < param_symbols.?.items.len and !param_symbols.?.items[i + 1].expanded_type.?.is_c_void_type()) {
+                    try self.writer.print(", ", .{});
+                }
+                num_non_unit_params += 1;
             }
-            if (i + 1 < param_symbols.items.len and !param_symbols.items[i + 1].expanded_type.?.is_c_void_type()) {
-                try self.writer.print(", ", .{});
-            }
-            num_non_unit_params += 1;
         }
     }
 

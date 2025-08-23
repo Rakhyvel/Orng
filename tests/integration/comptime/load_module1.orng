@@ -1,0 +1,8 @@
+// 342
+import load_module2
+
+fn main() -> Int {
+    comptime {
+        load_module2::add(300, 42)
+    }
+}

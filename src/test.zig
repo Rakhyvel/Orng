@@ -141,8 +141,9 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
     const module_symbol = compiler.lookup_module(module.absolute_path).?;
 
     const package_abs_path = module.get_package_abs_path();
-    compiler.register_package(package_abs_path, false);
+    compiler.register_package(package_abs_path, .executable);
     compiler.set_package_root(package_abs_path, module_symbol);
+    compiler.clean_package(package_abs_path);
     compiler.lookup_package(package_abs_path).?.include_directories.put(std.fs.path.dirname(absolute_filename).?, void{}) catch unreachable;
 
     compiler.propagate_include_directories(package_abs_path);
@@ -161,7 +162,10 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
     const contents = Read_File.init(compiler.allocator()).run(absolute_filename) catch unreachable;
     const header_comment_contents = header_comment(contents, debug_alloc.allocator()) catch unreachable;
     defer debug_alloc.allocator().free(header_comment_contents);
-    const expected_out = header_comment_contents[0];
+    var expected_out = String.init_with_contents(debug_alloc.allocator(), header_comment_contents[0]) catch unreachable;
+    defer expected_out.deinit();
+    _ = expected_out.replace("\r", "") catch unreachable;
+    _ = expected_out.replace("\n", "") catch unreachable;
 
     compiler.compile(package_abs_path, false) catch unreachable;
 
@@ -173,8 +177,8 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
         get_std_out().print("Execution interrupted!\n", .{}) catch unreachable;
         return false;
     };
-    if (!std.mem.eql(u8, res.stdout, expected_out)) {
-        get_std_out().print("Expected \"{s}\" retcode, got \"{s}\"\n", .{ expected_out, res.stdout }) catch unreachable;
+    if (!std.mem.eql(u8, res.stdout, expected_out.str())) {
+        get_std_out().print("Expected \"{s}\" retcode, got \"{s}\"\n", .{ expected_out.str(), res.stdout }) catch unreachable;
         return false;
     }
 
@@ -207,6 +211,11 @@ fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug
             bless_file(filename, error_string.str(), body) catch unreachable;
             return true;
         } else if (mode == .regular) {
+            // For windows compatability, these don't really matter tbh
+            _ = error_string.replace("\r", "") catch unreachable;
+            _ = error_string.replace("\n", "") catch unreachable;
+            _ = flat_head.replace("\r", "") catch unreachable;
+            _ = flat_head.replace("\n", "") catch unreachable;
             const errors_match = std.mem.eql(u8, error_string.str(), flat_head.str());
             switch (err) {
                 error.LexerError,
@@ -218,7 +227,7 @@ fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug
                 error.ParseError, error.FileNotFound => {
                     var str = String.init_with_contents(allocator, filename) catch unreachable;
                     defer str.deinit();
-                    compiler.errors.print_errors(get_std_out(), .{});
+                    compiler.errors.print_errors(get_std_out(), .{ .print_full_path = false });
                     if (str.find("parser") != null) {
                         return errors_match;
                     } else {
@@ -406,7 +415,7 @@ fn nth_last_index_of(str: []const u8, c: u8, n: usize) ?usize {
 }
 
 fn get_test_name(filename: []const u8) ?[]const u8 {
-    const slash_index = nth_last_index_of(filename, '/', 2) orelse {
+    const slash_index = nth_last_index_of(filename, std.fs.path.sep, 2) orelse {
         std.debug.print("filename {s} doens't contain a '/'", .{filename});
         return null;
     };
@@ -458,6 +467,6 @@ fn test_body(contents: []const u8) []const u8 {
 
 fn until_newline(str: []const u8) usize {
     var i: usize = 0;
-    while (i < str.len and str[i] != '\n' and str[i] != '\r') : (i += 1) {}
+    while (i < str.len and str[i] != '\n') : (i += 1) {}
     return i;
 }

@@ -50,9 +50,11 @@ pub fn lower_AST_into_cfg(self: *Self) Lower_Errors!void {
     const eval: ?*lval_.L_Value = try self.lower_AST(self.cfg.symbol.init_value.?, Labels.null_labels);
     if (self.cfg.symbol.decl.?.* == .fn_decl or self.cfg.symbol.decl.?.* == .method_decl) {
         // `_comptime` symbols don't have parameters anyway
-        const param_symbols = if (self.cfg.symbol.decl.?.* == .fn_decl) self.cfg.symbol.decl.?.fn_decl.param_symbols else self.cfg.symbol.decl.?.method_decl.param_symbols;
-        for (param_symbols.items) |param| {
-            self.cfg.parameters.append(Symbol_Version.create_unversioned(param, self.allocator)) catch unreachable;
+        const param_symbols = self.cfg.symbol.decl.?.param_symbols();
+        if (param_symbols != null) {
+            for (param_symbols.?.items) |param| {
+                self.cfg.parameters.append(Symbol_Version.create_unversioned(param, self.allocator)) catch unreachable;
+            }
         }
     }
     const return_version = lval_.L_Value.create_unversioned_symbver(self.cfg.return_symbol, self.allocator);
@@ -74,23 +76,20 @@ pub fn lower_AST_into_cfg(self: *Self) Lower_Errors!void {
 
     if (false) {
         // Print out the basic blocks
+        std.debug.print("CFG {s}:\n", .{self.cfg.symbol.name});
         for (self.cfg.basic_blocks.items) |bb| {
-            std.debug.print("Basic Block {}({}):\n", .{ bb.uid, bb.empty() });
-            for (bb.instructions.items) |instr| {
-                std.debug.print("{}", .{instr});
-            }
-            std.debug.print("\n", .{});
+            bb.pprint();
         }
     }
 }
 
 fn lower_AST(self: *Self, ast: *ast_.AST, labels: Labels) Lower_Errors!?*lval_.L_Value {
     const retval = self.lower_AST_inner(ast, labels);
-    // std.debug.print("{}\n", .{ast});
     if (false) {
+        std.debug.print("{}\n", .{ast});
         // Print symbol Instruction after lowering, before breaking up into basic blocks
         std.debug.print("CFG {s}:\n", .{self.cfg.symbol.name});
-        while (self.instructions.items) |instr| {
+        for (self.instructions.items) |instr| {
             std.debug.print("{}", .{instr});
         }
         std.debug.print("\n", .{});
@@ -183,8 +182,8 @@ fn lower_AST_inner(
         .@"try" => {
             var expr = (try self.lower_AST(ast.expr(), labels)) orelse return null;
 
-            const end_label = Instruction.init_label(self.cfg, ast.token().span, self.allocator);
-            const err_label = Instruction.init_label(self.cfg, ast.token().span, self.allocator);
+            const end_label = Instruction.init_label("try.end", ast.token().span, self.allocator);
+            const err_label = Instruction.init_label("try.err", ast.token().span, self.allocator);
 
             var expanded_expr_type = expr.get_expanded_type();
             // Trying error sum, runtime check if error, branch to error path
@@ -392,7 +391,13 @@ fn lower_AST_inner(
         .sum_value => {
             var _init: ?*lval_.L_Value = null;
             const pos: usize = ast.pos().?;
-            const proper_term: *ast_.AST = (ast.typeof(self.allocator)).children().items[pos];
+            const ast_type = ast.typeof(self.allocator);
+            const proper_term: *ast_.AST = if (ast_type.* == .sum_type or ast_type.* == .untagged_sum_type)
+                ast_type.children().items[pos]
+            else if (ast_type.* == .annotation)
+                ast_type
+            else
+                std.debug.panic("expected either sum type or annot got {}", .{ast_type});
             if (ast.sum_value.init != null) {
                 const sum_init = try self.lower_AST(ast.sum_value.init.?, labels);
                 if (proper_term.annotation.type.* != .unit_type) { // still output the Instruction, but do not refer to it unless the type isn't unit
@@ -407,8 +412,8 @@ fn lower_AST_inner(
         .@"if" => {
             // Create the result symbol and labels used
             const symbol = self.create_temp_symbol(ast.typeof(self.allocator));
-            const else_label = Instruction.init_label(self.cfg, ast.token().span, self.allocator);
-            const end_label = Instruction.init_label(self.cfg, ast.token().span, self.allocator);
+            const else_label = Instruction.init_label("if.else", ast.token().span, self.allocator);
+            const end_label = Instruction.init_label("if.end", ast.token().span, self.allocator);
 
             // If there's a let, then do it, dumby!
             if (ast.@"if".let) |let| {
@@ -433,18 +438,18 @@ fn lower_AST_inner(
         .match => {
             // Create the result symbol and labels used
             const symbol = self.create_temp_symbol(ast.typeof(self.allocator));
-            const end_label = Instruction.init_label(self.cfg, ast.token().span, self.allocator); // Exit label of match
-            const none_label = Instruction.init_label(self.cfg, ast.token().span, self.allocator); // jumped to if all tests fail and no `else` mapping
+            const end_label = Instruction.init_label("match.end", ast.token().span, self.allocator); // Exit label of match
+            const fail_label = Instruction.init_label("match.fail", ast.token().span, self.allocator); // jumped to if all tests fail and no `else` mapping
 
             if (ast.match.let) |let| { // If there's a let, then do it, dumby!
                 _ = try self.lower_AST(let, labels);
             }
 
             const expr = (try self.lower_AST(ast.expr(), labels)) orelse return null;
-            const rhs_label_list = try self.generate_match_pattern_checks(expr, ast.children().*, none_label, labels);
+            const rhs_label_list = try self.generate_match_pattern_checks(expr, ast.children().*, fail_label, labels);
 
             // Couldn't match pattern, panic!
-            self.instructions.append(none_label) catch unreachable;
+            self.instructions.append(fail_label) catch unreachable;
             self.instructions.append(Instruction.init_stack_push(ast.token().span, self.allocator)) catch unreachable;
             self.instructions.append(Instruction.init_panic("could not match pattern", ast.token().span, self.allocator)) catch unreachable;
 
@@ -457,10 +462,10 @@ fn lower_AST_inner(
         .@"while" => {
             // Create the result symbol and labels used
             const symbol = self.create_temp_symbol(ast.typeof(self.allocator));
-            const cond_label = Instruction.init_label(self.cfg, ast.token().span, self.allocator);
-            const current_continue_label = Instruction.init_label(self.cfg, ast.token().span, self.allocator);
-            const else_label = Instruction.init_label(self.cfg, ast.token().span, self.allocator);
-            const end_label = Instruction.init_label(self.cfg, ast.token().span, self.allocator);
+            const cond_label = Instruction.init_label("while.cond", ast.token().span, self.allocator);
+            const current_continue_label = Instruction.init_label("while.continue", ast.token().span, self.allocator);
+            const else_label = Instruction.init_label("while.else", ast.token().span, self.allocator);
+            const end_label = Instruction.init_label("while.end", ast.token().span, self.allocator);
 
             if (ast.@"while".let) |let| { // do `let` if there's a let
                 _ = try self.lower_AST(let, labels);
@@ -512,14 +517,14 @@ fn lower_AST_inner(
             var error_labels = std.ArrayList(*Instruction).init(self.allocator);
             defer error_labels.deinit();
             for (ast.block.defers.items) |_| {
-                continue_labels.append(Instruction.init_label(self.cfg, ast.token().span, self.allocator)) catch unreachable;
-                break_labels.append(Instruction.init_label(self.cfg, ast.token().span, self.allocator)) catch unreachable;
-                return_labels.append(Instruction.init_label(self.cfg, ast.token().span, self.allocator)) catch unreachable;
+                continue_labels.append(Instruction.init_label("block.continue", ast.token().span, self.allocator)) catch unreachable;
+                break_labels.append(Instruction.init_label("block.break", ast.token().span, self.allocator)) catch unreachable;
+                return_labels.append(Instruction.init_label("block.return", ast.token().span, self.allocator)) catch unreachable;
             }
             for (ast.block.errdefers.items) |_| {
-                error_labels.append(Instruction.init_label(self.cfg, ast.token().span, self.allocator)) catch unreachable;
+                error_labels.append(Instruction.init_label("block.errdefer", ast.token().span, self.allocator)) catch unreachable;
             }
-            const end_label = Instruction.init_label(self.cfg, ast.token().span, self.allocator);
+            const end_label = Instruction.init_label("block.end", ast.token().span, self.allocator);
 
             // These are the labels to go to on each final statement.
             // These are updated to point to different places in the defer chain at the end of this block.
@@ -640,7 +645,7 @@ fn lval_from_symbol_cfg(
     symbol: *Symbol,
     span: Span,
 ) Lower_Errors!*lval_.L_Value {
-    const callee = try cfg_builder_.get_cfg(symbol, self.cfg, self.interned_strings, self.errors, self.allocator);
+    const callee = try cfg_builder_.get_cfg(symbol, self.interned_strings, self.errors, self.allocator);
     self.cfg.children.put(callee, {}) catch unreachable;
     const lval = self.create_temp_lvalue(symbol._type);
     const instr = Instruction.init_symbol(lval, symbol, span, self.allocator);
@@ -726,8 +731,8 @@ fn or_and_op(
 ) Lower_Errors!?*lval_.L_Value {
     // Create the result symbol and labels used
     const or_and_symbol = self.create_temp_symbol(ast.typeof(self.allocator));
-    const jump_label = Instruction.init_label(self.cfg, ast.token().span, self.allocator);
-    const end_label = Instruction.init_label(self.cfg, ast.token().span, self.allocator);
+    const jump_label = Instruction.init_label("or/and.jump", ast.token().span, self.allocator);
+    const end_label = Instruction.init_label("or/and.end", ast.token().span, self.allocator);
 
     const should_jump = ast.* == .@"or";
 
@@ -763,8 +768,8 @@ fn tuple_equality_check(
     const temp = self.create_temp_lvalue(ast.typeof(self.allocator));
 
     // Labels used
-    const fail_label = Instruction.init_label(self.cfg, ast.token().span, self.allocator);
-    const end_label = Instruction.init_label(self.cfg, ast.token().span, self.allocator);
+    const fail_label = Instruction.init_label("tuple-eq.fail", ast.token().span, self.allocator);
+    const end_label = Instruction.init_label("tuple-eq.end", ast.token().span, self.allocator);
 
     self.tuple_equality_flow(lhs.?, rhs.?, fail_label);
 
@@ -816,8 +821,8 @@ fn coalesce_op(
 ) Lower_Errors!?*lval_.L_Value {
     // Create the result symbol and labels
     const coalesce_symbol = self.create_temp_symbol(ast.typeof(self.allocator));
-    const zero_label = Instruction.init_label(self.cfg, ast.token().span, self.allocator);
-    const end_label = Instruction.init_label(self.cfg, ast.token().span, self.allocator);
+    const zero_label = Instruction.init_label("coalesce.zero", ast.token().span, self.allocator);
+    const end_label = Instruction.init_label("coalesce.end", ast.token().span, self.allocator);
 
     // Test if lhs tag is 0 (`ok` or `some`)
     const lhs = (try self.lower_AST(ast.lhs(), labels)) orelse return null;
@@ -919,7 +924,7 @@ fn generate_subslice_check(
     upper: *lval_.L_Value,
     span: Span,
 ) void {
-    const end_label = Instruction.init_label(self.cfg, span, self.allocator);
+    const end_label = Instruction.init_label("subslice-bounds-check.end", span, self.allocator);
     const compare = self.create_temp_lvalue(primitives_.bool_type);
     self.instructions.append(Instruction.init(.greater_int, compare, lower, upper, span, self.allocator)) catch unreachable;
     self.instructions.append(Instruction.init_branch(compare, end_label, span, self.allocator)) catch unreachable;
@@ -950,13 +955,13 @@ fn flow(
             try self.flow(condition.lhs(), label, true, span, labels);
             try self.flow(condition.rhs(), label, true, span, labels);
         } else {
-            const skip_label = Instruction.init_label(self.cfg, span, self.allocator);
+            const skip_label = Instruction.init_label("or-flow.skip", span, self.allocator);
             try self.flow(condition.lhs(), skip_label, true, span, labels);
             try self.flow(condition.rhs(), label, false, span, labels);
             self.instructions.append(skip_label) catch unreachable;
         },
         .@"and" => if (sense) {
-            const skip_label = Instruction.init_label(self.cfg, span, self.allocator);
+            const skip_label = Instruction.init_label("and-flow.skip", span, self.allocator);
             try self.flow(condition.lhs(), skip_label, false, span, labels);
             try self.flow(condition.rhs(), label, true, span, labels);
             self.instructions.append(skip_label) catch unreachable;
@@ -1025,8 +1030,8 @@ fn generate_match_pattern_checks(
     var rhs_label_list = std.ArrayList(*Instruction).init(self.allocator); // labels to branch on a successful test ("code for the mapping")
     errdefer rhs_label_list.deinit();
     for (mappings.items) |mapping| {
-        lhs_label_list.append(Instruction.init_label(self.cfg, mapping.token().span, self.allocator)) catch unreachable;
-        rhs_label_list.append(Instruction.init_label(self.cfg, mapping.token().span, self.allocator)) catch unreachable;
+        lhs_label_list.append(Instruction.init_label("match.lhs", mapping.token().span, self.allocator)) catch unreachable;
+        rhs_label_list.append(Instruction.init_label("match-rhs", mapping.token().span, self.allocator)) catch unreachable;
     }
     for (mappings.items, 0..) |mapping, i| {
         self.instructions.append(lhs_label_list.items[i]) catch unreachable;

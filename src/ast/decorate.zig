@@ -85,5 +85,6 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
         },
         .trait => self.scope.traits.append(ast) catch unreachable,
         .impl => self.scope.impls.append(ast) catch unreachable,
+        .@"test" => self.scope.tests.append(ast) catch unreachable,
     }
 }

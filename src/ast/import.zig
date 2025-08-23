@@ -186,6 +186,10 @@ fn resolve_import(self: Self, ast: *ast_.AST) walker_.Error!*Symbol {
                 } });
                 return error.CompileError;
             },
+            error.CompileError => {
+                // This is possible if the user does `import Int` or something
+                return error.CompileError;
+            },
             else => std.debug.panic("compiler error: this shouldn't be reachable\n", .{}),
         };
     }

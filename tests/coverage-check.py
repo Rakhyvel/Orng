@@ -40,17 +40,55 @@ def print_span_and_source(span):
         print(f"{span}\n  {lines[int(line) - 1]}", end="")
 
 
+def print_span_and_source_collected(uncovered_lines):
+    uncovered_lines = sorted(uncovered_lines)  # sort by filename, then line_number
+
+    filename = None
+    start = None
+    prev = None
+
+    lines = None
+
+    for fname, linenum in uncovered_lines:
+        if filename is None:
+            # First item
+            filename, start, prev = fname, linenum, linenum
+            with open(filename) as f:
+                lines = f.readlines()
+            continue
+
+        if fname != filename or prev is None or linenum != prev + 1:
+            # End of the current chunk
+            if start == prev and start is not None and lines is not None:
+                print(f"{filename}:{start}")
+            else:
+                print(f"{filename}:{start}-{prev}")
+            if start is not None and prev is not None and lines is not None:
+                for i in range(start, prev + 1):
+                    print(f"  {lines[int(i) - 1]}", end="")
+            # Start new chunk
+            filename, start, prev = fname, linenum, linenum
+            with open(filename) as f:
+                lines = f.readlines()
+        else:
+            # Continue the current chunk
+            prev = linenum
+
+    # Print the final chunk
+    if filename is not None:
+        if start == prev:
+            print(f"{filename}:{start}")
+        else:
+            print(f"{filename}:{start}-{prev}")
+
+
 def check_coverage(src_files, base_ref):
     if not src_files:
         print("No modified source files, skipping coverage check.")
         sys.exit(0)
 
     # Open, read, and parse the XML file
-    cov_xml_path = (
-        subprocess.run(["find", ".", "-iname", "cov.xml"], capture_output=True)
-        .stdout.decode("utf-8")
-        .strip()
-    )
+    cov_xml_path = "kcov-out/kcov-merged/cov.xml"
     coverage_data = parse_coverage(cov_xml_path)
 
     uncovered_lines = []
@@ -78,7 +116,7 @@ def check_coverage(src_files, base_ref):
                     line in coverage_data[src_file]
                     and not coverage_data[src_file][line]
                 ):
-                    uncovered_lines.append(f"{src_file}:{line}")
+                    uncovered_lines.append((src_file, line))
 
         except subprocess.CalledProcessError as e:
             print(f"Error processing file {src_file}: {e}")
@@ -87,8 +125,7 @@ def check_coverage(src_files, base_ref):
     # Report uncovered lines
     if uncovered_lines:
         print("WARNING: The following modified lines are not covered by tests:")
-        for span in uncovered_lines:
-            print_span_and_source(span)
+        print_span_and_source_collected(uncovered_lines)
     else:
         print("WOW! 🤩 all lines were covered by tests")
 

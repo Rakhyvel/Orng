@@ -1,9 +1,24 @@
 import std::debug
 import std::ffi
+import std::testing
 import externs
 
-fn main() -> ()!() {
+fn main() -> () {
     debug::println("Hello, World!")
     externs::println("Hello, World f!")
-    .err({})
+}
+
+test "test of tests" {
+    let x = 5
+    let y = 4
+
+    try testing::expect(y + 1 == x)
+
+    .ok
+}
+
+test "test that tests work" {
+    let x = 6
+    _ = x
+    .ok
 }

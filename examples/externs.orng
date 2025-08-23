@@ -4,3 +4,14 @@ fn println(s: String) -> () {
     printfns::print(s)
     printfns::print("\n")
 }
+
+test "println" {
+    println("Hello, World!")
+    .ok
+}
+
+test "can call print" {
+    printfns::print("Hello, World!")
+    printfns::print("\n")
+    .ok
+}

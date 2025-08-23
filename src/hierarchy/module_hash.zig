@@ -1,3 +1,4 @@
+///! Encapsulates information about modules and their hashes for a package.
 const std = @import("std");
 
 const Self = @This();

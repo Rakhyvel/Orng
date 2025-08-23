@@ -61,6 +61,12 @@ jobs:
         export ORNG_STD_PATH="$GITHUB_WORKSPACE/std"
         export ORNG_BUILTIN_PATH="$GITHUB_WORKSPACE/src/hierarchy/builtin.orng"
         python tests/test.py modified
+        zig build orng
+        cd examples
+        kcov --include-path "$GITHUB_WORKSPACE/src" "$GITHUB_WORKSPACE/kcov-out" ../zig-out/bin/orng build
+        kcov --include-path "$GITHUB_WORKSPACE/src" "$GITHUB_WORKSPACE/kcov-out" ../zig-out/bin/orng clean
+        kcov --include-path "$GITHUB_WORKSPACE/src" "$GITHUB_WORKSPACE/kcov-out" ../zig-out/bin/orng test
+        cd ..
 
     - name: Ensure Modified Lines in src/ Are Covered
       run: python tests/coverage-check.py -s $src_files -b origin/${{ github.event.pull_request.base.ref }}

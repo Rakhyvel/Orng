@@ -11,10 +11,12 @@ const pipeline_ = @import("../util/pipeline.zig");
 const primitives_ = @import("../hierarchy/primitives.zig");
 const Span = @import("../util/span.zig");
 const Scope = @import("../symbol/scope.zig");
+const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
 const Module_Hash = @import("module_hash.zig");
 const Token = @import("../lexer/token.zig");
 const Type_Set = @import("../ast/type-set.zig");
+const UID_Gen = @import("../util/uid_gen.zig");
 
 // Front-end pipeline steps
 const Read_File = @import("../lexer/read_file.zig");
@@ -47,6 +49,9 @@ var module_uids: Module_UID = 0;
 pub const Module = struct {
     // A unique identifier for this Orng module
     uid: Module_UID,
+
+    /// Unique Identifier generator for symbols in this module, so that symbols are given predictable, stable UIDs
+    uid_gen: UID_Gen,
 
     // Absolute path of the module
     absolute_path: []const u8,
@@ -81,6 +86,9 @@ pub const Module = struct {
     /// List of all impls defined in this module. Used by codegen to output the vtable implementations.
     impls: std.ArrayList(*ast_.AST),
 
+    /// List of all tests defined in this module. Used by codegen to output the vtable implementations.
+    tests: std.ArrayList(*CFG),
+
     /// Allocator for the module
     allocator: std.mem.Allocator,
 
@@ -92,6 +100,7 @@ pub const Module = struct {
     pub fn init(absolute_path: []const u8, allocator: std.mem.Allocator) *Module {
         var retval = allocator.create(Module) catch unreachable;
         retval.uid = module_uids;
+        retval.uid_gen = UID_Gen.init();
         module_uids += 1;
         std.debug.assert(std.fs.path.isAbsolute(absolute_path));
         retval.absolute_path = absolute_path;
@@ -102,6 +111,7 @@ pub const Module = struct {
         retval.instructions = std.ArrayList(*Instruction).init(allocator);
         retval.traits = std.ArrayList(*ast_.AST).init(allocator);
         retval.impls = std.ArrayList(*ast_.AST).init(allocator);
+        retval.tests = std.ArrayList(*CFG).init(allocator);
         retval.cfgs = std.ArrayList(*CFG).init(allocator);
         retval.type_set = Type_Set.init(allocator);
         retval.entry = null;
@@ -117,9 +127,18 @@ pub const Module = struct {
         fuzz_tokens: bool,
         compiler: *Compiler_Context,
     ) Module_Errors!*Module {
+        // Check to see if the file exists
+        {
+            var file = std.fs.openFileAbsolute(absolute_path, .{}) catch |err| switch (err) {
+                error.FileNotFound => return error.FileNotFound,
+                else => return error.CompileError,
+            };
+            defer file.close();
+        }
+
         // Create the symbol for this module
-        var file_root = Scope.init(compiler.prelude, compiler.allocator());
         const module = Module.init(absolute_path, compiler.allocator());
+        var file_root = Scope.init(compiler.prelude, &module.uid_gen, compiler.allocator());
         file_root.module = module;
         const symbol = Symbol.init(
             compiler.prelude,
@@ -187,6 +206,7 @@ pub const Module = struct {
             entry.assert_needed_at_runtime();
         }
         try module.collect_impl_cfgs(compiler);
+        try module.collect_tests(compiler);
         module.collect_trait_types(compiler.allocator());
         module.collect_cfg_types(compiler.allocator());
     }
@@ -202,7 +222,7 @@ pub const Module = struct {
 
             // Instruction translation
             const interned_strings = compiler.lookup_interned_string_set(self.uid).?;
-            const cfg = try cfg_builder_.get_cfg(symbol, null, interned_strings, &compiler.errors, compiler.allocator());
+            const cfg = try cfg_builder_.get_cfg(symbol, interned_strings, &compiler.errors, compiler.allocator());
             self.collect_cfgs(cfg);
 
             if (need_entry and std.mem.eql(u8, key, entry_name.?)) {
@@ -242,10 +262,24 @@ pub const Module = struct {
             for (impl.impl.method_defs.items) |def| {
                 const symbol = def.symbol().?;
                 const interned_strings = compiler.lookup_interned_string_set(self.uid).?;
-                const cfg = (try cfg_builder_.get_cfg(symbol, null, interned_strings, &compiler.errors, compiler.allocator()));
+                const cfg = (try cfg_builder_.get_cfg(symbol, interned_strings, &compiler.errors, compiler.allocator()));
                 cfg.assert_needed_at_runtime();
                 self.collect_cfgs(cfg);
             }
+        }
+    }
+
+    fn collect_tests(self: *Module, compiler: *Compiler_Context) Module_Errors!void {
+        var test_asts = std.ArrayList(*ast_.AST).init(compiler.allocator());
+        compiler.module_scope(self.absolute_path).?.collect_tests(&test_asts);
+
+        for (test_asts.items) |test_ast| {
+            const symbol = test_ast.symbol().?;
+            const interned_strings = compiler.lookup_interned_string_set(self.uid).?;
+            const cfg = (try cfg_builder_.get_cfg(symbol, interned_strings, &compiler.errors, compiler.allocator()));
+            self.tests.append(cfg) catch unreachable;
+            cfg.assert_needed_at_runtime();
+            self.collect_cfgs(cfg);
         }
     }
 
@@ -253,9 +287,11 @@ pub const Module = struct {
         for (self.cfgs.items) |cfg| {
             // Add parameter types to type set
             const decl = cfg.symbol.decl.?;
-            const param_symbols = if (decl.* == .fn_decl) decl.fn_decl.param_symbols else decl.method_decl.param_symbols;
-            for (param_symbols.items) |param| {
-                _ = self.type_set.add(param.expanded_type.?, allocator);
+            const param_symbols = decl.param_symbols();
+            if (param_symbols != null) {
+                for (param_symbols.?.items) |param| {
+                    _ = self.type_set.add(param.expanded_type.?, allocator);
+                }
             }
 
             for (cfg.basic_blocks.items) |bb| {
@@ -288,7 +324,7 @@ pub const Module = struct {
     }
 
     /// A module is modified if:
-    /// - Its hash differs from what is stored in the package's json file
+    /// - Its source hash differs from what is stored in the package's json file
     /// - Any of the module it imports have been modified
     pub fn determine_if_modified(self: *Module, compiler: *Compiler_Context) void {
         if (self.modified != null) {

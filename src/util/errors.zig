@@ -577,7 +577,7 @@ pub const Error = union(enum) {
     }
 
     fn peek_error(err: Error) void {
-        err.print_error();
+        err.print_error(std.io.getStdErr().writer(), .{});
         unreachable;
     }
 };

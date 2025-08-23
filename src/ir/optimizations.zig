@@ -11,7 +11,7 @@ const Symbol_Version = @import("symbol_version.zig");
 var debug = false;
 
 pub fn optimize(cfg: *CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) error{CompileError}!void {
-    // debug = std.mem.eql(u8, cfg.symbol.name, "main") and std.mem.eql(u8, cfg.module.package_name, "externs");
+    // debug = std.mem.eql(u8, cfg.symbol.name, "main"); //and std.mem.eql(u8, cfg.module.package_name, "externs");
     if (debug) {
         std.debug.print("[  CFG  ]: {s}\n", .{cfg.symbol.name});
         cfg.block_graph_head.?.pprint();
@@ -44,6 +44,7 @@ fn propagate(cfg: *CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) err
             const src1_def: ?*Instruction = if (instr.src1 != null and instr.src1.?.* == .symbver) def_map.get(instr.src1.?.symbver) orelse null else null;
             const src2_def: ?*Instruction = if (instr.src2 != null and instr.src2.?.* == .symbver) def_map.get(instr.src2.?.symbver) orelse null else null;
             retval = try propagate_instruction(instr, src1_def, src2_def, errors) or retval;
+            log_optimization_pass("^", cfg);
 
             if (instr.dest != null and instr.dest.?.* != .symbver) {
                 def_map.put(instr.dest.?.extract_symbver(), null) catch unreachable;
@@ -77,7 +78,7 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
         .copy => {
             const src1_def_is_ast = src1_def != null and src1_def.?.kind == .load_AST;
             if (instr.src1 == null or (instr.src1.?.expanded_type_sizeof() == 0 and !src1_def_is_ast)) {
-                logfln("unit-copy elimination {?}", .{instr.src1.?.expanded_type_sizeof()});
+                logfln("unit-copy elimination {?} {}", .{ instr.src1, instr.src1.?.get_expanded_type() });
                 instr.in_block.?.mark_for_removal(instr); // Mark for deletion in a later pass
             } else if (instr.dest.?.* == .symbver and
                 instr.src1.?.* == .symbver and
@@ -88,7 +89,7 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
                 instr.in_block.?.mark_for_removal(instr); // Mark for deletion in a later pass
                 retval = true;
             } else {
-                logfln("copy-propagation {?}", .{src1_def});
+                logfln("copy-propagation {?}", .{instr});
                 retval = try instr.copy_prop(src1_def, .load_int, errors) or // TODO: Check if data fits int type bounds!
                     try instr.copy_prop(src1_def, .load_float, errors) or
                     try instr.copy_prop(src1_def, .load_string, errors) or
@@ -640,6 +641,9 @@ fn log_optimization_pass(msg: []const u8, cfg: *CFG) void {
         } else {
             std.debug.print("[WARNING] block head for CFG: {s} is null\n", .{cfg.symbol.name});
         }
+
+        var in_buffer: [256]u8 = undefined;
+        _ = std.io.getStdIn().read(&in_buffer) catch unreachable;
     }
 }
 

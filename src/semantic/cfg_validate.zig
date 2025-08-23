@@ -14,10 +14,12 @@ pub fn validate_cfg(cfg: *CFG, errors: *errs_.Errors) error{CompileError}!void {
     cfg.calculate_definitions();
 
     if (cfg.symbol.decl.?.* == .fn_decl or cfg.symbol.decl.?.* == .method_decl) {
-        const param_symbols = if (cfg.symbol.decl.?.* == .fn_decl) cfg.symbol.decl.?.fn_decl.param_symbols else cfg.symbol.decl.?.method_decl.param_symbols;
-        for (param_symbols.items) |param_symbol| {
-            try param_symbol.err_if_unused(errors);
-            try param_symbol.err_if_var_not_mutated(errors);
+        const param_symbols = cfg.symbol.decl.?.param_symbols();
+        if (param_symbols != null) {
+            for (param_symbols.?.items) |param_symbol| {
+                try param_symbol.err_if_unused(errors);
+                try param_symbol.err_if_var_not_mutated(errors);
+            }
         }
     }
 

@@ -32,12 +32,29 @@ pub fn init(module: *module_.Module, writer: Writer) Self {
 
 /// Generates the header file for the given module
 pub fn generate(self: *Self) CodeGen_Error!void {
+    try self.output_include_guard_begin();
+    try self.output_common_includes();
+    try self.output_includes();
+    try self.output_forward_typedefs();
+    try self.output_typedefs();
+    try self.output_traits();
+    try self.emitter.forall_functions(self, "/* Function forward definitions */", output_forward_function);
+    try self.output_include_guard_end();
+}
+
+pub fn output_include_guard_begin(self: *Self) CodeGen_Error!void {
     try self.writer.print(
         \\/* Code generated using the Orng compiler http://ornglang.org */
         \\
         \\#ifndef _{0s}_{1s}_h
         \\#define _{0s}_{1s}_h
         \\
+        \\
+    , .{ self.module.package_name, self.module.name() });
+}
+
+pub fn output_common_includes(self: *Self) CodeGen_Error!void {
+    try self.writer.print(
         \\#include <stdio.h>
         \\#include <stdint.h>
         \\#include <stdlib.h>
@@ -45,13 +62,10 @@ pub fn generate(self: *Self) CodeGen_Error!void {
         \\#include "debug.inc"
         \\
         \\
-    , .{ self.module.package_name, self.module.name() });
+    , .{});
+}
 
-    try self.output_includes();
-    try self.output_forward_typedefs();
-    try self.output_typedefs();
-    try self.output_traits();
-    try self.emitter.forall_functions(self, "/* Function forward definitions */", output_forward_function);
+pub fn output_include_guard_end(self: *Self) CodeGen_Error!void {
     try self.writer.print(
         \\
         \\#endif
@@ -59,7 +73,7 @@ pub fn generate(self: *Self) CodeGen_Error!void {
     , .{});
 }
 
-fn output_includes(self: *Self) CodeGen_Error!void {
+pub fn output_includes(self: *Self) CodeGen_Error!void {
     if (self.module.cincludes.items.len != 0) {
         for (self.module.cincludes.items) |cinclude| {
             try self.writer.print("#include \"{s}\"\n", .{cinclude.string.data});
@@ -240,7 +254,7 @@ fn output_traits(self: *Self) CodeGen_Error!void {
 }
 
 /// Outputs the forward declaration of a function.
-fn output_forward_function(self: *Self, cfg: *CFG) CodeGen_Error!void {
+pub fn output_forward_function(self: *Self, cfg: *CFG) CodeGen_Error!void {
     try self.emitter.output_function_prototype(cfg);
     try self.writer.print(";\n", .{});
 }

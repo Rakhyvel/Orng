@@ -61,7 +61,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         // Create a new scope, pass it to children
         .@"if", .match, .@"while", .@"for" => {
             var new_self = self;
-            new_self.scope = Scope.init(self.scope, self.allocator);
+            new_self.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
             new_self.in_loop = new_self.in_loop or ast.* == .@"while" or ast.* == .@"for";
             ast.set_scope(new_self.scope);
             return new_self;
@@ -70,7 +70,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         // Create a new scope, set defers, pass it to children
         .block => {
             var new_self = self;
-            new_self.scope = Scope.init(self.scope, self.allocator);
+            new_self.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
             new_self.defers = &ast.block.defers;
             new_self.errdefers = &ast.block.errdefers;
             new_self.in_loop = new_self.in_loop or ast.* == .@"while" or ast.* == .@"for";
@@ -92,6 +92,13 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 self.allocator,
             );
             try self.scope.put_all_symbols(&ast.decl.symbols, self.errors);
+        },
+
+        .@"test" => {
+            const symbol = try create_test_symbol(ast, self.scope, self.errors, self.allocator);
+            try self.scope.put_symbol(symbol, self.errors);
+            ast.set_symbol(symbol);
+            return null;
         },
 
         // Create a symbol for this function
@@ -141,7 +148,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 return null;
             }
             var new_self = self;
-            new_self.scope = Scope.init(self.scope, self.allocator);
+            new_self.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
             ast.set_scope(new_self.scope);
             const symbol = try create_trait_symbol(ast, self.scope, self.allocator);
             try self.scope.put_symbol(symbol, self.errors);
@@ -169,7 +176,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         .impl => {
             // Impls get there own scope, actually
             var new_self = self;
-            new_self.scope = Scope.init(self.scope, self.allocator);
+            new_self.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
             ast.set_scope(new_self.scope);
 
             if (ast.impl.trait == null) {
@@ -211,7 +218,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             } else if (ast.method_decl.init == null) {
                 // Trait method decl
                 var new_self = self;
-                new_self.scope = Scope.init(self.scope, self.allocator);
+                new_self.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
                 new_self.scope.function_depth = new_self.scope.function_depth + 1;
                 return new_self;
             } else {
@@ -369,7 +376,7 @@ fn create_symbol(
 /// mapping's scope.
 fn create_match_pattern_symbol(match: *ast_.AST, scope: *Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Error!void {
     for (match.children().items) |mapping| {
-        const new_scope = Scope.init(scope, allocator);
+        const new_scope = Scope.init(scope, scope.uid_gen, allocator);
         mapping.set_scope(new_scope);
         var symbols = std.ArrayList(*Symbol).init(allocator);
         defer symbols.deinit();
@@ -403,7 +410,7 @@ pub fn create_function_symbol(
     );
 
     // Create the function scope
-    var fn_scope = Scope.init(scope, allocator);
+    var fn_scope = Scope.init(scope, scope.uid_gen, allocator);
     fn_scope.function_depth = scope.function_depth + 1;
 
     // Recurse parameters and init
@@ -415,7 +422,7 @@ pub fn create_function_symbol(
     // Put the param symbols in the param symbols list
     for (ast.children().items) |param| {
         const symbol = param.decl.symbols.items[0];
-        ast.fn_decl.param_symbols.append(symbol) catch unreachable;
+        ast.param_symbols().?.append(symbol) catch unreachable;
     }
 
     const key_set = fn_scope.symbols.keys();
@@ -446,6 +453,42 @@ pub fn create_function_symbol(
     fn_scope.inner_function = retval;
 
     try walk_.walk_ast(ast.fn_decl.init, symbol_walk);
+    return retval;
+}
+
+pub fn create_test_symbol(
+    ast: *ast_.AST,
+    scope: *Scope,
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) Error!*Symbol {
+    const _type = ast_.AST.create_function(
+        ast.token(),
+        primitives_.unit_type,
+        primitives_.test_result_type,
+        allocator,
+    );
+
+    // Create the function scope
+    var fn_scope = Scope.init(scope, scope.uid_gen, allocator);
+    fn_scope.function_depth = scope.function_depth + 1;
+
+    // Choose name (maybe anon)
+    const buf: []const u8 = next_anon_name("test", allocator);
+    const retval = Symbol.init(
+        fn_scope,
+        buf,
+        if (ast.@"test".name) |name| name.token().span else ast.token().span,
+        _type,
+        ast.@"test".init,
+        ast,
+        .@"test",
+        allocator,
+    );
+    fn_scope.inner_function = retval;
+
+    const symbol_walk = Self.new(fn_scope, errors, allocator);
+    try walk_.walk_ast(ast.@"test".init, symbol_walk);
     return retval;
 }
 
@@ -554,7 +597,7 @@ pub fn create_temp_comptime_symbol(
 
     // Create the comptime scope
     // This is to prevent `comptime` expressions from using runtime variables
-    var comptime_scope = Scope.init(scope, allocator);
+    var comptime_scope = Scope.init(scope, scope.uid_gen, allocator);
     comptime_scope.function_depth = scope.function_depth + 1;
 
     // Choose name
@@ -630,7 +673,7 @@ fn create_method_symbol(
     const _type = create_method_type(ast, allocator);
 
     // Create the function scope
-    var fn_scope = Scope.init(scope, allocator);
+    var fn_scope = Scope.init(scope, scope.uid_gen, allocator);
     fn_scope.function_depth = scope.function_depth + 1;
 
     // Recurse parameters and init
@@ -655,7 +698,7 @@ fn create_method_symbol(
             allocator,
         );
         try fn_scope.put_symbol(receiver_symbol, errors);
-        ast.method_decl.param_symbols.append(receiver_symbol) catch unreachable;
+        ast.param_symbols().?.append(receiver_symbol) catch unreachable;
 
         if (ast.method_decl.receiver.?.receiver.kind == .value) {
             const self_type = recv_type.expr();
@@ -684,7 +727,7 @@ fn create_method_symbol(
     // Put the param symbols in the param symbols list
     for (ast.children().items) |param| {
         const symbol = param.decl.symbols.items[0];
-        ast.method_decl.param_symbols.append(symbol) catch unreachable;
+        ast.param_symbols().?.append(symbol) catch unreachable;
     }
 
     const key_set = fn_scope.symbols.keys();

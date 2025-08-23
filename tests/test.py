@@ -42,6 +42,11 @@ def main():
     shutil.rmtree("zig-cache", ignore_errors=True)
     shutil.rmtree("zig-out", ignore_errors=True)
     res = subprocess.run(
+        "find . -iname 'build' -type d -exec rm -rf {} +", shell=True
+    ).returncode
+    if res != 0:
+        exit(1)
+    res = subprocess.run(
         ["zig", "build", "orng-test", "--release=safe", "-Doptimize=Debug"]
     ).returncode
     if res != 0:

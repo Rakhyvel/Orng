@@ -56,8 +56,7 @@ locals_size: ?i64,
 allocator: std.mem.Allocator,
 
 /// Initializes a Self
-pub fn init(symbol: *Symbol, caller: ?*Self, allocator: std.mem.Allocator) *Self {
-    _ = caller;
+pub fn init(symbol: *Symbol, allocator: std.mem.Allocator) *Self {
     if (symbol.cfg) |cfg| {
         return cfg;
     }
@@ -204,9 +203,11 @@ pub fn basic_block_from_instructions(self: *Self, instructions: std.ArrayList(*I
 pub fn calculate_usage(self: *Self) void {
     // FIXME: High Cyclo
     if (self.symbol.decl.?.* == .fn_decl or self.symbol.decl.?.* == .method_decl) {
-        const param_symbols = if (self.symbol.decl.?.* == .fn_decl) self.symbol.decl.?.fn_decl.param_symbols else self.symbol.decl.?.method_decl.param_symbols;
-        for (param_symbols.items) |param_symbol| {
-            param_symbol.uses = 0;
+        const param_symbols = self.symbol.decl.?.param_symbols();
+        if (param_symbols != null) {
+            for (param_symbols.?.items) |param_symbol| {
+                param_symbol.uses = 0;
+            }
         }
     }
 
@@ -391,7 +392,7 @@ fn append_basic_block(self: *Self, first_bb: *Basic_Block, instructions_list: *s
             continue;
         }
 
-        var label = Instruction.init_label(self, Span.phony, self.allocator);
+        var label = Instruction.init_label("bb", Span.phony, self.allocator);
         label.uid = bb.uid;
         instructions_list.append(label) catch unreachable;
 
@@ -407,7 +408,7 @@ fn append_phony_block(self: *Self, instructions_list: *std.ArrayList(*Instructio
     const offset = @as(Instruction.Index, @intCast(instructions_list.items.len));
     // Append a label which has a back-reference to the CFG
     instructions_list.append(Instruction.init_label(
-        self,
+        "phony",
         Span.phony,
         self.allocator,
     )) catch unreachable;
@@ -478,10 +479,7 @@ pub fn calculate_offsets(self: *Self) i64 //< Number of bytes used for locals by
     // Calculate parameters offsets, descending from retval address offset
     var phony_sp: i64 = 0;
     if (self.symbol.decl.?.* == .fn_decl or self.symbol.decl.?.* == .method_decl) {
-        const param_symbols = if (self.symbol.decl.?.* == .fn_decl)
-            self.symbol.decl.?.fn_decl.param_symbols.items
-        else
-            self.symbol.decl.?.method_decl.param_symbols.items;
+        const param_symbols = self.symbol.decl.?.param_symbols().?.items;
         // Go through params, as if we were pushing them
         var i: i64 = @as(i64, @intCast(param_symbols.len)) - 1;
         while (i >= 0) : (i -= 1) {

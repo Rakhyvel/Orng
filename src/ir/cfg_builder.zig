@@ -11,12 +11,11 @@ const optimizations_ = @import("../ir/optimizations.zig");
 
 pub fn get_cfg(
     symbol: *Symbol,
-    caller: ?*CFG,
     interned_strings: *Interned_String_Set,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Lower_Context.Lower_Errors!*CFG {
-    std.debug.assert(symbol.kind == .@"fn" or symbol.kind == .@"comptime");
+    std.debug.assert(symbol.kind == .@"fn" or symbol.kind == .@"comptime" or symbol.kind == .@"test");
     std.debug.assert(symbol.validation_state == .valid);
     if (symbol.init_validation_state == .validating) {
         errors.add_error(errs_.Error{ .recursive_definition = .{
@@ -26,7 +25,7 @@ pub fn get_cfg(
         return error.CompileError;
     }
     if (symbol.cfg == null) {
-        symbol.cfg = CFG.init(symbol, caller, allocator);
+        symbol.cfg = CFG.init(symbol, allocator);
         var lower_context = Lower_Context.init(symbol.cfg.?, interned_strings, errors, allocator);
         try lower_context.lower_AST_into_cfg();
         try cfg_validate_.validate_cfg(symbol.cfg.?, errors);
