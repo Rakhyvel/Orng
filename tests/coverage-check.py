@@ -64,8 +64,8 @@ def print_span_and_source_collected(uncovered_lines):
             else:
                 print(f"{filename}:{start}-{prev}")
             if start is not None and prev is not None and lines is not None:
-                for i in range(start, prev):
-                    print(f"  {lines[int(i) - 1]}")
+                for i in range(start, prev + 1):
+                    print(f"  {lines[int(i) - 1]}", end="")
             # Start new chunk
             filename, start, prev = fname, linenum, linenum
             with open(filename) as f:
