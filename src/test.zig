@@ -219,7 +219,7 @@ fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug
                 error.ParseError, error.FileNotFound => {
                     var str = String.init_with_contents(allocator, filename) catch unreachable;
                     defer str.deinit();
-                    compiler.errors.print_errors(get_std_out(), .{});
+                    compiler.errors.print_errors(get_std_out(), .{ .print_full_path = false });
                     if (str.find("parser") != null) {
                         return errors_match;
                     } else {

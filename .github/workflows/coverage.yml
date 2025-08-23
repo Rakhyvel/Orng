@@ -63,7 +63,7 @@ jobs:
         python tests/test.py modified
         zig build orng
         cd examples
-        ../zig-out/bin/orng build
+        kcov --include_path "$GITHUB_WORKSPACE/src" "$GITHUB_WORKSPACE/kcov-out" ../zig-out/bin/orng build
         cd ..
 
     - name: Ensure Modified Lines in src/ Are Covered
