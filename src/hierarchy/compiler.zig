@@ -73,6 +73,10 @@ pub fn compile_build_file(self: *Self, absolute_path: []const u8) Error!*CFG {
 }
 
 /// Compiles a module from a file
+///
+/// TODO: I think what needs to happen to allow for circular imports is compile the module first, collect any other
+///       imports and symbols, and stop just before access decoration. Only after all symbols are defined for all
+///       modules should accesses be resolved.
 pub fn compile_module(
     self: *Self,
     absolute_path: []const u8,

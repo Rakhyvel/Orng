@@ -5,3 +5,7 @@ fn expect(cond: Bool) -> Test_Result {
         .ok
     }
 }
+
+test "expect" {
+    expect(true)
+}

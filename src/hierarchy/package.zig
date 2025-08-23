@@ -174,8 +174,8 @@ pub fn compile(self: *Package, packages: std.StringArrayHashMap(*Package), extra
     }
 }
 
-fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !std.ArrayList([]const u8) {
-    var obj_files = std.ArrayList([]const u8).init(allocator);
+fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !std.StringArrayHashMap(void) {
+    var obj_files = std.StringArrayHashMap(void).init(allocator);
     for (self.local_modules.items) |local_module| {
         if (!std.mem.eql(u8, local_module.get_package_abs_path(), self.absolute_path)) {
             break;
@@ -183,14 +183,14 @@ fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package),
 
         // Append the o filename to the obj files list, even if this isn't compiled!
         var o_file = String.init(allocator);
-        o_file.writer().print("{s}{c}build{c}{s}-tests.o", .{
+        o_file.writer().print("{s}{c}build{c}{s}.o", .{
             self.absolute_path,
             std.fs.path.sep,
             std.fs.path.sep,
             local_module.name(),
         }) catch unreachable;
-        obj_files.append(o_file.str()) catch unreachable;
-        local_module.modified = !file_exists(o_file.str());
+        obj_files.put(o_file.str(), void{}) catch unreachable;
+        local_module.modified = !file_exists(o_file.str()) or local_module.modified.?;
 
         if (self.kind == .test_executable) {
             var test_o_file = String.init(allocator);
@@ -200,14 +200,15 @@ fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package),
                 std.fs.path.sep,
                 local_module.name(),
             }) catch unreachable;
-            obj_files.append(test_o_file.str()) catch unreachable;
-            local_module.modified = !file_exists(test_o_file.str());
+            obj_files.put(test_o_file.str(), void{}) catch unreachable;
+            local_module.modified = !file_exists(test_o_file.str()) or local_module.modified.?;
         }
 
         if (!local_module.modified.?) {
             // No need to re-compile!
             continue;
         }
+        std.debug.print("{s}\n", .{local_module.name()});
 
         var c_file = String.init(allocator);
         defer c_file.deinit();
@@ -218,7 +219,6 @@ fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package),
             self.name,
             local_module.name(),
         }) catch unreachable;
-
         try self.cc(c_file.str(), o_file.str(), packages, extra_flags, allocator);
 
         if (self.kind == .test_executable) {
@@ -243,7 +243,7 @@ fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package),
         switch (self.kind) {
             .test_executable => {
                 const test_runner_o_file = "test-runner.o";
-                obj_files.append(test_runner_o_file) catch unreachable;
+                obj_files.put(test_runner_o_file, void{}) catch unreachable;
                 var c_file = String.init(allocator);
                 c_file.writer().print("{s}{c}build{c}test-runner.c", .{
                     self.absolute_path,
@@ -255,7 +255,7 @@ fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package),
             },
             .executable => {
                 const test_runner_o_file = "start.o";
-                obj_files.append(test_runner_o_file) catch unreachable;
+                obj_files.put(test_runner_o_file, void{}) catch unreachable;
                 var c_file = String.init(allocator);
                 c_file.writer().print("{s}{c}build{c}start.c", .{
                     self.absolute_path,
@@ -425,7 +425,7 @@ fn append_self_includes(
     }
 }
 
-fn ar(self: *Package, obj_files: std.ArrayList([]const u8), allocator: std.mem.Allocator) !void {
+fn ar(self: *Package, obj_files: std.StringArrayHashMap(void), allocator: std.mem.Allocator) !void {
     // Base command
     var cmd = std.ArrayList([]const u8).init(allocator);
     cmd.appendSlice(&[_][]const u8{
@@ -438,7 +438,7 @@ fn ar(self: *Package, obj_files: std.ArrayList([]const u8), allocator: std.mem.A
     cmd.append(self.output_absolute_path) catch unreachable;
 
     // Add all the object files
-    cmd.appendSlice(obj_files.items) catch unreachable;
+    cmd.appendSlice(obj_files.keys()) catch unreachable;
 
     // Set cwd
     var cwd_string = String.init(allocator);
@@ -486,7 +486,7 @@ pub fn set_executable_name(self: *Package, allocator: std.mem.Allocator) !void {
 }
 
 /// Runs the command to link the object files of a package into an executable
-fn link_executable(self: *Package, obj_files: std.ArrayList([]const u8), packages: std.StringArrayHashMap(*Package), allocator: std.mem.Allocator) !void {
+fn link_executable(self: *Package, obj_files: std.StringArrayHashMap(void), packages: std.StringArrayHashMap(*Package), allocator: std.mem.Allocator) !void {
     const cmd = try self.construct_exe_cc_cmd(obj_files, packages, allocator);
 
     // Set cwd
@@ -524,7 +524,7 @@ fn link_executable(self: *Package, obj_files: std.ArrayList([]const u8), package
 /// Constructs the command to call zig cc to compile an executable from a list of object files
 fn construct_exe_cc_cmd(
     self: *Package,
-    obj_files: std.ArrayList([]const u8),
+    obj_files: std.StringArrayHashMap(void),
     packages: std.StringArrayHashMap(*Package),
     allocator: std.mem.Allocator,
 ) !std.ArrayList([]const u8) {
@@ -536,7 +536,7 @@ fn construct_exe_cc_cmd(
     cmd.appendSlice(&[_][]const u8{ "zig", "cc" }) catch unreachable;
 
     // Add all the object files
-    cmd.appendSlice(obj_files.items) catch unreachable;
+    cmd.appendSlice(obj_files.keys()) catch unreachable;
 
     for (self.requirements.keys()) |requirement_name| {
         self.append_requirement_link(&cmd, packages, requirement_name, allocator);
@@ -582,7 +582,7 @@ fn append_requirement_link(
     }
 }
 
-const debug: bool = false;
+const debug: bool = true;
 fn print_cmd(cmd: *const std.ArrayList([]const u8)) void {
     if (debug) {
         for (cmd.items) |item| {

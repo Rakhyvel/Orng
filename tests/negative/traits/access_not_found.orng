@@ -1,0 +1,7 @@
+// access_not_found.orng:6:13: error: the type `Int` does not implement the method `new`
+//     Int::new()
+//            ^
+// 
+fn main() -> Int {
+    Int::new()
+}
