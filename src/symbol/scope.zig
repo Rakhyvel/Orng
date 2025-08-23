@@ -116,9 +116,7 @@ pub fn impl_trait_lookup(self: *Self, for_type: *ast_.AST, trait: *Symbol) Impl_
 
 /// Looks up the impl's decl/method_decl ast for a given type, with a given name
 pub fn lookup_impl_member(self: *Self, for_type: *ast_.AST, name: []const u8) ?*ast_.AST {
-    if (for_type.* == .@"comptime") {
-        return self.lookup_impl_member(for_type.expr(), name);
-    }
+    std.debug.assert(for_type.* != .@"comptime"); // these must be in expanded form
     if (!for_type.valid_type()) {
         return null;
     }

@@ -30,10 +30,7 @@ pub fn output_type(self: *Self, _type: *AST) CodeGen_Error!void {
         return;
     }
 
-    if (_type.common()._expanded_type != null and _type.common()._expanded_type.?.* == .@"comptime") {
-        try self.output_type(_type.common()._expanded_type.?.@"comptime".result.?);
-        return;
-    }
+    std.debug.assert(_type.common()._expanded_type == null or _type.common()._expanded_type.?.* != .@"comptime"); // comptime types should never last to C codegen
 
     if (_type.common()._expanded_type != null and _type.common()._expanded_type.?.sizeof() == 0) {
         // For zero-size types that are still required to be output, ie pointers to empty untagged unions, structs, or ()
