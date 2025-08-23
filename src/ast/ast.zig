@@ -443,7 +443,7 @@ pub const AST = union(enum) {
         common: AST_Common,
         name: ?*AST, //
         _params: std.ArrayList(*AST), // Parameters' decl ASTs
-        param_symbols: std.ArrayList(*Symbol), // Parameters' symbols
+        _param_symbols: std.ArrayList(*Symbol), // Parameters' symbols
         ret_type: *AST,
         refinement: ?*AST,
         init: *AST,
@@ -476,7 +476,7 @@ pub const AST = union(enum) {
         is_virtual: bool,
         receiver: ?*AST,
         _params: std.ArrayList(*AST), // Parameters' decl ASTs
-        param_symbols: std.ArrayList(*Symbol), // Parameters' symbols
+        _param_symbols: std.ArrayList(*Symbol), // Parameters' symbols
         c_type: ?*AST = null,
         domain: ?*AST = null, // Domain type when calling. Filled in at symbol-tree creation for impls and traits.
         ret_type: *AST,
@@ -1270,7 +1270,7 @@ pub const AST = union(enum) {
             .common = AST_Common{ ._token = _token, ._type = null },
             .name = name,
             ._params = params,
-            .param_symbols = std.ArrayList(*Symbol).init(allocator),
+            ._param_symbols = std.ArrayList(*Symbol).init(allocator),
             .ret_type = ret_type,
             .refinement = refinement,
             .init = init,
@@ -1295,7 +1295,7 @@ pub const AST = union(enum) {
             .is_virtual = is_virtual,
             .receiver = receiver,
             ._params = params,
-            .param_symbols = std.ArrayList(*Symbol).init(allocator),
+            ._param_symbols = std.ArrayList(*Symbol).init(allocator),
             .ret_type = ret_type,
             .refinement = refinement,
             .init = init,
@@ -1898,6 +1898,15 @@ pub const AST = union(enum) {
             .bit_xor => self.bit_xor._args = val,
             else => std.debug.panic("compiler error: cannot call `.set_children()` on the AST `{s}`", .{@tagName(self.*)}),
         }
+    }
+
+    pub fn param_symbols(self: *AST) ?*std.ArrayList(*Symbol) {
+        return switch (self.*) {
+            .fn_decl => &self.fn_decl._param_symbols,
+            .method_decl => &self.method_decl._param_symbols,
+            .@"test" => null,
+            else => std.debug.panic("compiler error: cannot call `.param_symbols()` on the AST `{s}`", .{@tagName(self.*)}),
+        };
     }
 
     pub fn top_level(self: *AST) bool {
@@ -3379,9 +3388,9 @@ pub const AST = union(enum) {
                 }
                 try out.writer().print("],\n", .{});
                 try out.writer().print("    .param_symbols = [", .{});
-                for (self.fn_decl.param_symbols.items, 0..) |item, i| {
+                for (self.fn_decl._param_symbols.items, 0..) |item, i| {
                     try out.writer().print("{}", .{item});
-                    if (i < self.fn_decl.param_symbols.items.len) {
+                    if (i < self.fn_decl._param_symbols.items.len) {
                         try out.writer().print(",", .{});
                     }
                 }

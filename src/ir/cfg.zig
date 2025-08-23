@@ -203,9 +203,11 @@ pub fn basic_block_from_instructions(self: *Self, instructions: std.ArrayList(*I
 pub fn calculate_usage(self: *Self) void {
     // FIXME: High Cyclo
     if (self.symbol.decl.?.* == .fn_decl or self.symbol.decl.?.* == .method_decl) {
-        const param_symbols = if (self.symbol.decl.?.* == .fn_decl) self.symbol.decl.?.fn_decl.param_symbols else self.symbol.decl.?.method_decl.param_symbols;
-        for (param_symbols.items) |param_symbol| {
-            param_symbol.uses = 0;
+        const param_symbols = self.symbol.decl.?.param_symbols();
+        if (param_symbols != null) {
+            for (param_symbols.?.items) |param_symbol| {
+                param_symbol.uses = 0;
+            }
         }
     }
 
@@ -477,10 +479,7 @@ pub fn calculate_offsets(self: *Self) i64 //< Number of bytes used for locals by
     // Calculate parameters offsets, descending from retval address offset
     var phony_sp: i64 = 0;
     if (self.symbol.decl.?.* == .fn_decl or self.symbol.decl.?.* == .method_decl) {
-        const param_symbols = if (self.symbol.decl.?.* == .fn_decl)
-            self.symbol.decl.?.fn_decl.param_symbols.items
-        else
-            self.symbol.decl.?.method_decl.param_symbols.items;
+        const param_symbols = self.symbol.decl.?.param_symbols().?.items;
         // Go through params, as if we were pushing them
         var i: i64 = @as(i64, @intCast(param_symbols.len)) - 1;
         while (i >= 0) : (i -= 1) {

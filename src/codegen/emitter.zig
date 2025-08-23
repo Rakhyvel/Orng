@@ -126,12 +126,7 @@ pub fn output_function_prototype(
     var num_non_unit_params: i64 = 0;
     try self.writer.print("(", .{});
     const decl = cfg.symbol.decl.?;
-    const param_symbols: ?std.ArrayList(*Symbol) = switch (decl.*) {
-        .fn_decl => decl.fn_decl.param_symbols,
-        .method_decl => decl.method_decl.param_symbols,
-        .@"test" => null,
-        else => std.debug.panic("unimplemented output_function_prototype for {s}", .{@tagName(decl.*)}),
-    };
+    const param_symbols = decl.param_symbols();
     if (param_symbols != null) {
         for (param_symbols.?.items, 0..) |term, i| {
             if (!term.expanded_type.?.is_c_void_type()) {

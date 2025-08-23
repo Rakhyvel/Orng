@@ -126,8 +126,6 @@ fn resolve_access_symbol(self: Self, lhs: *Symbol, rhs: *ast_.AST, scope: *Scope
         },
 
         .@"const" => {
-            // TODO: Needs to lookup with an identifier referring to the symbol itself, not to its value
-            // So that lookups to newtypes will lookup with the symbol name rather than the comptime value
             var test_ident = ast_.AST.create_identifier(token_.init_simple(lhs.name), self.compiler.allocator());
             test_ident.set_symbol(lhs);
             access_result = scope.lookup_impl_member(test_ident, rhs.token().data);

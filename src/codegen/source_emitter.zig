@@ -99,12 +99,7 @@ pub fn output_function_definition(self: *Self, cfg: *CFG) CodeGen_Error!void {
     }
 
     // Mark unused parameters as discarded
-    const param_symbols: ?std.ArrayList(*Symbol) = switch (cfg.symbol.decl.?.*) {
-        .fn_decl => cfg.symbol.decl.?.fn_decl.param_symbols,
-        .method_decl => cfg.symbol.decl.?.method_decl.param_symbols,
-        .@"test" => null,
-        else => std.debug.panic("unimplemented output_function_prototype for {s}", .{@tagName(cfg.symbol.decl.?.*)}),
-    };
+    const param_symbols = cfg.symbol.decl.?.param_symbols();
     if (param_symbols != null) {
         for (param_symbols.?.items) |param| {
             // Do this only if they aren't discarded in source

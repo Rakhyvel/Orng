@@ -422,7 +422,7 @@ pub fn create_function_symbol(
     // Put the param symbols in the param symbols list
     for (ast.children().items) |param| {
         const symbol = param.decl.symbols.items[0];
-        ast.fn_decl.param_symbols.append(symbol) catch unreachable;
+        ast.param_symbols().?.append(symbol) catch unreachable;
     }
 
     const key_set = fn_scope.symbols.keys();
@@ -462,7 +462,6 @@ pub fn create_test_symbol(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Error!*Symbol {
-    // Create the function type - TODO: tests should return a test error: (| expectation_failed)
     const _type = ast_.AST.create_function(
         ast.token(),
         primitives_.unit_type,
@@ -699,7 +698,7 @@ fn create_method_symbol(
             allocator,
         );
         try fn_scope.put_symbol(receiver_symbol, errors);
-        ast.method_decl.param_symbols.append(receiver_symbol) catch unreachable;
+        ast.param_symbols().?.append(receiver_symbol) catch unreachable;
 
         if (ast.method_decl.receiver.?.receiver.kind == .value) {
             const self_type = recv_type.expr();
@@ -728,7 +727,7 @@ fn create_method_symbol(
     // Put the param symbols in the param symbols list
     for (ast.children().items) |param| {
         const symbol = param.decl.symbols.items[0];
-        ast.method_decl.param_symbols.append(symbol) catch unreachable;
+        ast.param_symbols().?.append(symbol) catch unreachable;
     }
 
     const key_set = fn_scope.symbols.keys();

@@ -50,9 +50,11 @@ pub fn lower_AST_into_cfg(self: *Self) Lower_Errors!void {
     const eval: ?*lval_.L_Value = try self.lower_AST(self.cfg.symbol.init_value.?, Labels.null_labels);
     if (self.cfg.symbol.decl.?.* == .fn_decl or self.cfg.symbol.decl.?.* == .method_decl) {
         // `_comptime` symbols don't have parameters anyway
-        const param_symbols = if (self.cfg.symbol.decl.?.* == .fn_decl) self.cfg.symbol.decl.?.fn_decl.param_symbols else self.cfg.symbol.decl.?.method_decl.param_symbols;
-        for (param_symbols.items) |param| {
-            self.cfg.parameters.append(Symbol_Version.create_unversioned(param, self.allocator)) catch unreachable;
+        const param_symbols = self.cfg.symbol.decl.?.param_symbols();
+        if (param_symbols != null) {
+            for (param_symbols.?.items) |param| {
+                self.cfg.parameters.append(Symbol_Version.create_unversioned(param, self.allocator)) catch unreachable;
+            }
         }
     }
     const return_version = lval_.L_Value.create_unversioned_symbver(self.cfg.return_symbol, self.allocator);

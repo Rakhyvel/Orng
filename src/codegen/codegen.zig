@@ -84,10 +84,10 @@ fn output_start(module: *Module, module_interned_strings: *const std.AutoArrayHa
     const paths = [_][]const u8{ build_path, "start.c" };
     const path = std.fs.path.join(allocator, &paths) catch unreachable;
 
-    var testrunner_file = std.fs.createFileAbsolute(path, .{}) catch unreachable;
-    defer testrunner_file.close();
+    var start_file = std.fs.createFileAbsolute(path, .{}) catch unreachable;
+    defer start_file.close();
 
-    var start_writer = testrunner_file.writer();
+    var start_writer = start_file.writer();
 
     var source_emitter = Source_Emitter.init(module, module_interned_strings, start_writer);
     source_emitter.output_header_include() catch return error.CompileError;
