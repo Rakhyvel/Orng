@@ -208,7 +208,6 @@ fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package),
             // No need to re-compile!
             continue;
         }
-        std.debug.print("{s}\n", .{local_module.name()});
 
         var c_file = String.init(allocator);
         defer c_file.deinit();
