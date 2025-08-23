@@ -61,6 +61,10 @@ jobs:
         export ORNG_STD_PATH="$GITHUB_WORKSPACE/std"
         export ORNG_BUILTIN_PATH="$GITHUB_WORKSPACE/src/hierarchy/builtin.orng"
         python tests/test.py modified
+        zig build orng
+        cd examples
+        ../zig-out/bin/orng build
+        cd ..
 
     - name: Ensure Modified Lines in src/ Are Covered
       run: python tests/coverage-check.py -s $src_files -b origin/${{ github.event.pull_request.base.ref }}

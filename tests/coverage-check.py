@@ -51,6 +51,7 @@ def check_coverage(src_files, base_ref):
         .stdout.decode("utf-8")
         .strip()
     )
+    print(f"cov_xml_path: {cov_xml_path}")
     coverage_data = parse_coverage(cov_xml_path)
 
     uncovered_lines = []
