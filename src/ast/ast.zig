@@ -2731,7 +2731,7 @@ pub const AST = union(enum) {
                     }
                 } else if (lhs_type.* == .addr_of and lhs_type.addr_of.multiptr) {
                     return lhs_type.expr();
-                } else if (lhs_type.* == .identifier and std.mem.eql(u8, lhs_type.token().data, "String")) {
+                } else if (lhs_type.is_ident_type("String")) {
                     return primitives_.byte_type;
                 } else if (lhs_type.* == .poison) {
                     return poison_.poisoned;
@@ -2789,7 +2789,9 @@ pub const AST = union(enum) {
             // Control-flow expressions
             .@"while", .@"if" => {
                 const body_type = self.body_block().typeof(allocator);
-                if (self.else_block() != null or
+                if (body_type.is_ident_type("Void") and self.else_block() != null) {
+                    return self.else_block().?.typeof(allocator);
+                } else if (self.else_block() != null or
                     primitives_.unit_type.types_match(body_type.expand_type(allocator)) or
                     body_type.expand_type(allocator).types_match(primitives_.void_type))
                 {
@@ -2800,8 +2802,8 @@ pub const AST = union(enum) {
             },
             .match => {
                 for (self.children().items) |child| {
-                    const child_type = child.typeof(allocator);
-                    if (!(child_type.* == .identifier and std.mem.eql(u8, "Void", child_type.token().data))) {
+                    const child_type: *AST = child.typeof(allocator);
+                    if (!child_type.is_ident_type("Void")) {
                         return child_type;
                     }
                 }
@@ -2986,18 +2988,18 @@ pub const AST = union(enum) {
             // If only B is an identifier, and B isn't an atom type, dive
             return types_match(A, B.expand_identifier());
         }
-        if (A.* == .type_of and B.* == .identifier and std.mem.eql(u8, B.token().data, "Type")) {
+        if (A.* == .type_of and B.is_ident_type("Type")) {
             // @type_of(t) : $T -> Type
             return true;
         }
-        if (B.* == .type_of and A.* == .identifier and std.mem.eql(u8, A.token().data, "Type")) {
+        if (B.* == .type_of and A.is_ident_type("Type")) {
             // @type_of(t) : $T -> Type
             return true;
         }
         if (A.* == .poison or B.* == .poison) {
             return true; // Whatever
         }
-        if (A.* == .identifier and std.mem.eql(u8, "Void", A.token().data)) {
+        if (A.is_ident_type("Void")) {
             return true; // Bottom type - vacuously true
         }
         // std.debug.assert(A.common().validation_state == .valid);
@@ -3203,6 +3205,10 @@ pub const AST = union(enum) {
 
     pub fn is_c_void_type(self: *AST) bool {
         return primitives_.unit_type.c_types_match(self);
+    }
+
+    pub fn is_ident_type(self: *AST, name: []const u8) bool {
+        return self.* == .identifier and std.mem.eql(u8, self.token().data, name);
     }
 
     // TODO: Use Tree Writer, don't call writer print, recursively call pprint

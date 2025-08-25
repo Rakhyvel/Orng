@@ -97,7 +97,7 @@ def find_new_lines(xml_file):
 
 
 def worker(thread_id: int, models: dict[int, ngram.NGram]):
-    model = models[3 + thread_id % 3]
+    model = models[3 + thread_id % 5]
 
     with tempfile.TemporaryDirectory() as tmpdir:
         # construct files needed
