@@ -12,37 +12,43 @@ const Scope = @import("../symbol/scope.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
+const UID_Gen = @import("../util/uid_gen.zig");
 
 // TODO: Think about how to remove these public variables. They're only variable because they need to be constructed later.
 pub var package_type: *ast_.AST = undefined;
 pub var package_source_type: *ast_.AST = undefined;
 pub var test_result_type: *ast_.AST = undefined;
 
-// The prelude should only be created once per compilation. _ALL_ packages and modules are within this one prelude scope.
-var prelude: ?*Scope = null;
+var core: ?*Scope = null;
+pub var core_symbol: ?*Symbol = null;
 pub fn get_scope(compiler: *Compiler_Context) !*Scope {
-    if (prelude == null) {
-        try create_prelude(compiler);
+    if (core == null) {
+        try create_core(compiler);
     }
-    return prelude.?;
+    return core.?;
 }
 
 pub fn deinit() void {
-    prelude = null;
+    core = null;
 }
 
-fn create_prelude(compiler: *Compiler_Context) !void {
-    var prelude_abs_path = String.init_with_contents(compiler.allocator(), "/prelude") catch unreachable;
-    prelude_abs_path.writer().print("{c}prelude.orng", .{std.fs.path.sep}) catch unreachable;
+fn create_core(compiler: *Compiler_Context) !void {
+    // Create core scope
+    var uid_gen = UID_Gen.init();
+
+    var prelude_abs_path = String.init_with_contents(compiler.allocator(), "/core") catch unreachable;
+    prelude_abs_path.writer().print("{c}core.orng", .{std.fs.path.sep}) catch unreachable;
+
     const module = module_.Module.init((prelude_abs_path.toOwned() catch unreachable).?, compiler.allocator());
-    const symbol = Symbol.init(
+    core = Scope.init(compiler.prelude, &uid_gen, compiler.allocator());
+    core_symbol = Symbol.init(
         compiler.prelude,
-        "prelude",
-        Span{ .col = 1, .line_number = 1, .filename = "prelude", .line_text = "" },
+        "core",
+        Span{ .col = 1, .line_number = 1, .filename = "core", .line_text = "" },
         prelude_.unit_type,
         ast_.AST.create_module(
             Token.init_simple("core"),
-            prelude.?,
+            core.?,
             module,
             compiler.allocator(),
         ),
@@ -50,19 +56,17 @@ fn create_prelude(compiler: *Compiler_Context) !void {
         .module,
         compiler.allocator(),
     );
-    try prelude.?.put_symbol(symbol, &compiler.errors);
+    try compiler.prelude.put_symbol(core_symbol.?, &compiler.errors);
+    core.?.module = module;
 
-    var env_map = std.process.getEnvMap(compiler.allocator()) catch unreachable;
-    defer env_map.deinit();
-    prelude.?.module = module;
     const contents: []const u8 = @embedFile("core.orng");
     try module_.Module.fill_contents(
         contents,
         "core.orng",
         null,
-        prelude.?,
+        core.?,
         module,
-        symbol,
+        core_symbol.?,
         false,
         compiler,
     );

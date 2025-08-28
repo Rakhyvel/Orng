@@ -1,6 +1,7 @@
 const std = @import("std");
 const AST = @import("../ast/ast.zig").AST;
 const CFG = @import("../ir/cfg.zig");
+const core_ = @import("core.zig");
 const errs_ = @import("../util/errors.zig");
 const Interned_String_Set = @import("../ir/interned_string_set.zig");
 const Module = @import("../hierarchy/module.zig").Module;
@@ -30,6 +31,8 @@ errors: errs_.Errors,
 
 prelude: *Scope,
 
+core: ?*Scope, // Null when compiling prelude and core module itself!
+
 /// Maps module absolute paths to their symbol
 modules: std.StringArrayHashMap(*Symbol),
 
@@ -49,11 +52,18 @@ pub fn init(alloc: std.mem.Allocator) Error!*Self {
     retval.module_interned_strings = std.AutoArrayHashMap(u32, *Interned_String_Set).init(retval.allocator());
     retval.modules = std.StringArrayHashMap(*Symbol).init(retval.allocator());
     retval.packages = std.StringArrayHashMap(*Package).init(retval.allocator());
+    retval.core = null;
+
     retval.prelude = prelude_.get_scope(retval) catch {
         // Prelude compilation can sometimes fail :(
         retval.errors.print_errors(errs_.get_std_err(), .{});
         return error.CompileError;
     };
+
+    retval.core = (core_.get_scope(retval) catch {
+        retval.errors.print_errors(errs_.get_std_err(), .{});
+        return error.CompileError;
+    });
 
     return retval;
 }

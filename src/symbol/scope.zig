@@ -51,6 +51,12 @@ pub const Lookup_Flags = struct {
 };
 
 pub fn lookup(self: *Self, name: []const u8, flags: Lookup_Flags) Lookup_Result {
+    if (false) {
+        const found = self.symbols.get(name) != null;
+        std.debug.print("searching for: {s} {}({})\n", .{ name, found, flags });
+        self.pprint();
+    }
+
     if (self.symbols.get(name)) |symbol| {
         if (!flags.allow_modules and symbol.kind == .module) {
             if (self.parent) |parent| {

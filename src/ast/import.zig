@@ -163,11 +163,11 @@ fn create_anon_names(self: Self, terms: *std.ArrayList(*ast_.AST)) std.ArrayList
 
 /// Given an import pattern symbol `ast`, resolve the module symbol that it refers to, potentially compiling it if
 /// necessary.
-fn resolve_import(self: Self, ast: *ast_.AST) walker_.Error!*Symbol {
-    std.debug.assert(ast.* == .pattern_symbol and ast.pattern_symbol.kind == .import);
+fn resolve_import(self: Self, pattern_ast: *ast_.AST) walker_.Error!*Symbol {
+    std.debug.assert(pattern_ast.* == .pattern_symbol and pattern_ast.pattern_symbol.kind == .import);
     var import_filename = String.init(self.compiler.allocator());
     defer import_filename.deinit();
-    const import_name = ast.pattern_symbol.kind.import.real_name;
+    const import_name = pattern_ast.pattern_symbol.kind.import.real_name;
     import_filename.writer().print("{s}.orng", .{import_name}) catch unreachable;
     const import_file_paths = [_][]const u8{ self.package_absolute_path, import_filename.str() };
     const import_file_path = std.fs.path.join(self.compiler.allocator(), &import_file_paths) catch unreachable;
@@ -182,7 +182,7 @@ fn resolve_import(self: Self, ast: *ast_.AST) walker_.Error!*Symbol {
             error.FileNotFound => {
                 self.compiler.errors.add_error(.{ .import_file_not_found = .{
                     .filename = import_name,
-                    .span = ast.token().span,
+                    .span = pattern_ast.token().span,
                 } });
                 return error.CompileError;
             },

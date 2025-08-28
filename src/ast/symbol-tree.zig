@@ -330,6 +330,7 @@ fn create_symbol(
                     return;
                 }
             }
+
             const symbol_init = if (pattern.pattern_symbol.kind != .@"const" or decl != null and decl.?.decl.is_alias)
                 init
             else if (init != null)
@@ -337,6 +338,10 @@ fn create_symbol(
                 try create_comptime_init(init.?, scope, allocator)
             else
                 null;
+
+            if (pattern.pattern_symbol.kind == .import) {
+                std.debug.print("kind: {s}\n", .{@tagName(decl.?.*)});
+            }
             const symbol = Symbol.init(
                 scope,
                 pattern.pattern_symbol.name,
