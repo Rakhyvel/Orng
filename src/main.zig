@@ -1,11 +1,11 @@
 const std = @import("std");
 const ast_ = @import("ast/ast.zig");
+const core_ = @import("hierarchy/core.zig");
 const Compiler_Context = @import("hierarchy/compiler.zig");
 const Codegen_Context = @import("codegen/codegen.zig");
 const errs_ = @import("util/errors.zig");
 const Interpreter_Context = @import("interpretation/interpreter.zig");
 const Package_Kind = @import("hierarchy/package.zig").Package_Kind;
-const primitives_ = @import("hierarchy/primitives.zig");
 const Span = @import("util/span.zig");
 const String = @import("zig-string/zig-string.zig").String;
 const Symbol = @import("symbol/symbol.zig");
@@ -89,9 +89,9 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
 /// info for how to build the package
 fn run_build_orng(compiler: *Compiler_Context, interpreter: *Interpreter_Context, build_path: []const u8) !*ast_.AST {
     const build_cfg = compiler.compile_build_file(build_path) catch return error.CompileError;
-    interpreter.set_entry_point(build_cfg, primitives_.package_type.expand_type(compiler.allocator()));
+    interpreter.set_entry_point(build_cfg, core_.package_type.expand_type(compiler.allocator()));
     try interpreter.run(compiler);
-    return try interpreter.extract_ast(0, primitives_.package_type, Span.phony, &compiler.module_interned_strings);
+    return try interpreter.extract_ast(0, core_.package_type, Span.phony, &compiler.module_interned_strings);
 }
 
 /// Runs the package executable after it's built
@@ -183,22 +183,22 @@ fn make_package(
     entry_name: ?[]const u8,
 ) Command_Error!*Symbol {
     var package_kind: Package_Kind = undefined;
-    switch (package.get_field(primitives_.package_type, "kind").pos().?) {
+    switch (package.get_field(core_.package_type, "kind").pos().?) {
         0 => package_kind = .executable,
         1 => package_kind = .static_library,
         else => std.debug.panic("unimplemented", .{}),
     }
     compiler.register_package(package_absolute_path, package_kind);
 
-    for (package.get_field(primitives_.package_type, "requirements").children().items) |maybe_requirement_addr| {
+    for (package.get_field(core_.package_type, "requirements").children().items) |maybe_requirement_addr| {
         if (maybe_requirement_addr.sum_value._pos != 0) {
             continue;
         }
         const requirement = maybe_requirement_addr.sum_value.init.?;
         const required_package_name: []const u8 = requirement.children().items[0].string.data;
         const required_package_addr: i64 = @intCast(requirement.children().items[1].int.data);
-        const required_package = try interpreter.extract_ast(required_package_addr, primitives_.package_type, Span.phony, &compiler.module_interned_strings);
-        const required_package_dir = required_package.get_field(primitives_.package_type, "dir").string.data;
+        const required_package = try interpreter.extract_ast(required_package_addr, core_.package_type, Span.phony, &compiler.module_interned_strings);
+        const required_package_dir = required_package.get_field(core_.package_type, "dir").string.data;
 
         const new_working_directory_buffer = compiler.allocator().alloc(u8, std.fs.max_path_bytes) catch unreachable;
         const new_working_directory = std.fs.cwd().realpath(required_package_dir, new_working_directory_buffer) catch unreachable;
@@ -211,7 +211,7 @@ fn make_package(
     set_package_lib_dirs(package, compiler, package_absolute_path);
     set_package_libs(package, compiler, package_absolute_path);
 
-    const root_filename = package.get_field(primitives_.package_type, "root").string.data;
+    const root_filename = package.get_field(core_.package_type, "root").string.data;
     const root_file_paths = [_][]const u8{ package_absolute_path, root_filename };
     const root_file_path = std.fs.path.join(compiler.allocator(), &root_file_paths) catch unreachable;
 
@@ -231,7 +231,7 @@ fn set_package_include_dirs(
     compiler: *Compiler_Context,
     package_absolute_path: []const u8,
 ) void {
-    for (package.get_field(primitives_.package_type, "include_dirs").children().items) |maybe_include_dir_addr| {
+    for (package.get_field(core_.package_type, "include_dirs").children().items) |maybe_include_dir_addr| {
         if (maybe_include_dir_addr.sum_value._pos != 0) {
             continue;
         }
@@ -246,7 +246,7 @@ fn set_package_lib_dirs(
     compiler: *Compiler_Context,
     package_absolute_path: []const u8,
 ) void {
-    for (package.get_field(primitives_.package_type, "lib_dirs").children().items) |maybe_lib_dir_addr| {
+    for (package.get_field(core_.package_type, "lib_dirs").children().items) |maybe_lib_dir_addr| {
         if (maybe_lib_dir_addr.sum_value._pos != 0) {
             continue;
         }
@@ -261,7 +261,7 @@ fn set_package_libs(
     compiler: *Compiler_Context,
     package_absolute_path: []const u8,
 ) void {
-    for (package.get_field(primitives_.package_type, "libs").children().items) |maybe_lib_addr| {
+    for (package.get_field(core_.package_type, "libs").children().items) |maybe_lib_addr| {
         if (maybe_lib_addr.sum_value._pos != 0) {
             continue;
         }

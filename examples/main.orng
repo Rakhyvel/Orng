@@ -19,6 +19,9 @@ test "test of tests" {
 
 test "test that tests work" {
     let x = 6
-    _ = x
+    let y = 5
+
+    try testing::expect(y + 1 == x)
+
     .ok
 }

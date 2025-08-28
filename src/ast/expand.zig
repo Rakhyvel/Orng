@@ -4,7 +4,7 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const errs_ = @import("../util/errors.zig");
-const primitives_ = @import("../hierarchy/primitives.zig");
+const prelude_ = @import("../hierarchy/prelude.zig");
 const Token = @import("../lexer/token.zig");
 const walk_ = @import("../ast/walker.zig");
 
@@ -77,7 +77,7 @@ fn annot_from_ast(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
     if (ast.* == .annotation) {
         return ast;
     } else if (ast.* == .identifier) {
-        return ast_.AST.create_annotation(ast.token(), ast, primitives_.unit_type, null, null, allocator).assert_ast_valid();
+        return ast_.AST.create_annotation(ast.token(), ast, prelude_.unit_type, null, null, allocator).assert_ast_valid();
     } else {
         errors.add_error(errs_.Error{ .basic = .{
             .span = ast.token().span,

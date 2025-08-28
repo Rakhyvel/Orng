@@ -1,6 +1,7 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const builtin_ = @import("builtin.zig");
+const core_ = @import("../hierarchy/core.zig");
 const CFG = @import("../ir/cfg.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
@@ -9,7 +10,7 @@ const Interned_String_Set = @import("../ir/interned_string_set.zig");
 const lval_ = @import("../ir/lval.zig");
 const Memory = @import("memory.zig");
 const module_ = @import("../hierarchy/module.zig");
-const primitives_ = @import("../hierarchy/primitives.zig");
+const prelude_ = @import("../hierarchy/prelude.zig");
 const alignment_ = @import("../util/alignment.zig");
 const Token = @import("../lexer/token.zig");
 const Span = @import("../util/span.zig");
@@ -326,16 +327,16 @@ inline fn execute_instruction(self: *Self, instr: *Instruction, compiler: *Compi
             const symbol: *Symbol = @ptrFromInt(symbol_int);
 
             // Intercept method calls to builtin methods
-            if (symbol.represents_method(primitives_.package_type, "find")) {
+            if (symbol.represents_method(core_.package_type, "find")) {
                 const arg: *lval_.L_Value = instr.data.lval_list.items[@as(usize, @intCast(0))];
                 const interned_strings = compiler.lookup_interned_string_set(self.modules.get(0).?.uid).?;
-                const src_ast = try self.extract_ast(try self.effective_address(arg), primitives_.package_source_type, instr.span, &compiler.module_interned_strings);
+                const src_ast = try self.extract_ast(try self.effective_address(arg), core_.package_source_type, instr.span, &compiler.module_interned_strings);
                 const current_module_path = (self.curr_module() catch unreachable).absolute_path;
                 if (builtin_.package_find(compiler, self, current_module_path, src_ast)) |package_info| {
                     const adrs = package_info.package_adrs;
                     // Store the directory of the package inside the package struct before returning
                     const dir_string = interned_strings.add(package_info.package_dirname, self.modules.get(0).?.uid);
-                    const dir_offset = primitives_.package_type.product.get_offset_field("dir", self.allocator);
+                    const dir_offset = core_.package_type.product.get_offset_field("dir", self.allocator);
                     self.memory.store(Interned_String_Set.String_Idx, adrs + dir_offset, dir_string);
                     // Store the address of the package in the retval
                     const ret_addr = try self.effective_address(instr.dest.?);
@@ -442,7 +443,7 @@ pub fn extract_ast(self: *Self, address: i64, _type: *ast_.AST, span: Span, modu
     std.debug.assert(address >= 0);
     switch (_type.*) {
         .identifier => {
-            const info = primitives_.info_from_name(_type.token().data);
+            const info = prelude_.info_from_name(_type.token().data);
             if (info == null) {
                 return try self.extract_ast(address, _type.symbol().?.init_value.?, span, module_interned_strings);
             }
@@ -450,7 +451,7 @@ pub fn extract_ast(self: *Self, address: i64, _type: *ast_.AST, span: Span, modu
                 .type => {
                     const stack_value = self.memory.load_unsigned_int(address, 8);
                     if (stack_value == 0xAAAAAAAAAAAAAAAA) { // NOTE: This only works if the interpreter never overwrites this address...
-                        return primitives_.unit_type;
+                        return prelude_.unit_type;
                     } else {
                         return @ptrFromInt(stack_value);
                     }
@@ -508,7 +509,7 @@ pub fn extract_ast(self: *Self, address: i64, _type: *ast_.AST, span: Span, modu
         .function => {
             const stack_value = @as(usize, @intCast(self.memory.load_int(address, 8)));
             if (stack_value == 0) {
-                return primitives_.void_type;
+                return prelude_.void_type;
             } else {
                 const symbol: *Symbol = @ptrFromInt(stack_value);
                 const ast = ast_.AST.create_pattern_symbol(
@@ -533,8 +534,8 @@ pub fn extract_ast(self: *Self, address: i64, _type: *ast_.AST, span: Span, modu
             return retval;
         },
         .product => {
-            if (_type.types_match(primitives_.string_type)) {
-                return self.extract_ast(address, primitives_.string_type, span, module_interned_strings);
+            if (_type.types_match(prelude_.string_type)) {
+                return self.extract_ast(address, prelude_.string_type, span, module_interned_strings);
             }
             var value_terms = std.ArrayList(*ast_.AST).init(self.allocator);
             errdefer value_terms.deinit();
@@ -711,7 +712,7 @@ fn push(self: *Self, comptime T: type, val: T) error{CompileError}!void {
 /// Asserts that the provided `val` fits within the bounds specified by the data type `_type`.
 /// Adds an error if the value is out of bounds.
 fn assert_fits(self: *Self, val: i128, _type: *ast_.AST, operation_name: []const u8, span: Span) error{CompileError}!void {
-    const bounds = primitives_.bounds_from_ast(_type) orelse return;
+    const bounds = prelude_.bounds_from_ast(_type) orelse return;
     if (val < bounds.lower or val > bounds.upper) {
         self.debug_call_stack.append(span) catch unreachable;
         return self.interpreter_panic("interpreter error: {s} is out of bounds; value={}\n", .{ operation_name, val });

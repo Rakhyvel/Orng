@@ -9,7 +9,7 @@ const Package = @import("../hierarchy/package.zig");
 const Package_Iterator = @import("../util/dfs.zig").Dfs_Iterator(Package_Iterator_Node);
 const Package_Iterator_Node = @import("../hierarchy/package.zig").Package_Iterator_Node;
 const poison_ = @import("../ast/poison.zig");
-const primitives_ = @import("../hierarchy/primitives.zig");
+const prelude_ = @import("../hierarchy/prelude.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
 const Scope = @import("../symbol/scope.zig");
@@ -49,7 +49,7 @@ pub fn init(alloc: std.mem.Allocator) Error!*Self {
     retval.module_interned_strings = std.AutoArrayHashMap(u32, *Interned_String_Set).init(retval.allocator());
     retval.modules = std.StringArrayHashMap(*Symbol).init(retval.allocator());
     retval.packages = std.StringArrayHashMap(*Package).init(retval.allocator());
-    retval.prelude = primitives_.get_scope(retval) catch {
+    retval.prelude = prelude_.get_scope(retval) catch {
         // Prelude compilation can sometimes fail :(
         retval.errors.print_errors(errs_.get_std_err(), .{});
         return error.CompileError;

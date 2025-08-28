@@ -2,8 +2,9 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
+const core_ = @import("../hierarchy/core.zig");
 const errs_ = @import("../util/errors.zig");
-const primitives_ = @import("../hierarchy/primitives.zig");
+const prelude_ = @import("../hierarchy/prelude.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
@@ -162,8 +163,8 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                     "Self",
                     self.allocator,
                 ),
-                primitives_.type_type,
-                primitives_.unit_type,
+                prelude_.type_type,
+                prelude_.unit_type,
                 true,
                 self.allocator,
             );
@@ -200,7 +201,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                     "Self",
                     self.allocator,
                 ),
-                primitives_.type_type,
+                prelude_.type_type,
                 ast.impl._type,
                 true,
                 self.allocator,
@@ -325,7 +326,7 @@ fn create_symbol(
                     return error.CompileError;
                 } else {
                     // Register the symbol of the symbol pattern as the blackhole symbol, but do not append
-                    pattern.set_symbol(primitives_.blackhole);
+                    pattern.set_symbol(prelude_.blackhole);
                     return;
                 }
             }
@@ -464,8 +465,8 @@ pub fn create_test_symbol(
 ) Error!*Symbol {
     const _type = ast_.AST.create_function(
         ast.token(),
-        primitives_.unit_type,
-        primitives_.test_result_type,
+        prelude_.unit_type,
+        core_.test_result_type,
         allocator,
     );
 
@@ -504,7 +505,7 @@ fn next_anon_name(class: []const u8, allocator: std.mem.Allocator) []const u8 {
 
 pub fn extract_domain(params: std.ArrayList(*ast_.AST), allocator: std.mem.Allocator) *ast_.AST {
     if (params.items.len == 0) {
-        return primitives_.unit_type;
+        return prelude_.unit_type;
     } else if (params.items.len <= 1) {
         return ast_.AST.create_annotation(
             params.items[0].token(),
@@ -591,7 +592,7 @@ pub fn create_temp_comptime_symbol(
     allocator: std.mem.Allocator,
 ) Error!*Symbol {
     // Create the function type. The rhs is a typeof node, since type expansion is done in a later time
-    const lhs = primitives_.unit_type;
+    const lhs = prelude_.unit_type;
     const rhs = ast_.AST.create_type_of(ast.token(), ast, allocator);
     const _type = ast_.AST.create_function(ast.token(), lhs, rhs_type_hint orelse rhs, allocator);
 
@@ -630,8 +631,8 @@ fn create_trait_symbol(
         scope,
         ast.token().data,
         ast.token().span,
-        primitives_.unit_type,
-        primitives_.unit_value,
+        prelude_.unit_type,
+        prelude_.unit_value,
         ast,
         .trait,
         allocator,
@@ -769,8 +770,8 @@ fn create_template_symbol(
         scope,
         buf,
         ast.template.decl.fn_decl.name.?.token().span,
-        primitives_.unit_type,
-        primitives_.unit_value,
+        prelude_.unit_type,
+        prelude_.unit_value,
         ast,
         .template,
         allocator,

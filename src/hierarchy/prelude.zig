@@ -1,3 +1,5 @@
+///! This file is responsible for handling the prelude. The prelude is a scope that is common to all files. It includes
+/// common types that other languages might call "primitives". Types such as Int, String, and Word64.
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
@@ -25,9 +27,6 @@ pub var int8_type: *ast_.AST = undefined;
 pub var int16_type: *ast_.AST = undefined;
 pub var int32_type: *ast_.AST = undefined;
 pub var int64_type: *ast_.AST = undefined;
-pub var package_type: *ast_.AST = undefined;
-pub var package_source_type: *ast_.AST = undefined;
-pub var test_result_type: *ast_.AST = undefined;
 pub var string_type: *ast_.AST = undefined;
 pub var type_type: *ast_.AST = undefined;
 pub var unit_type: *ast_.AST = undefined;
@@ -403,24 +402,6 @@ fn create_prelude(compiler: *Compiler_Context) !void {
         compiler.allocator(),
     );
     try prelude.?.put_symbol(symbol, &compiler.errors);
-
-    var env_map = std.process.getEnvMap(compiler.allocator()) catch unreachable;
-    defer env_map.deinit();
-    prelude.?.module = module;
-    try module_.Module.fill_contents(
-        env_map.get("ORNG_BUILTIN_PATH").?,
-        null,
-        prelude.?,
-        module,
-        symbol,
-        false,
-        compiler,
-    );
-
-    package_type = compiler.module_scope(module.absolute_path).?.lookup("Package", .{}).found.init_value.?;
-    package_source_type = compiler.module_scope(module.absolute_path).?.lookup("Package_Source", .{}).found.init_value.?;
-    test_result_type = compiler.module_scope(module.absolute_path).?.lookup("Test_Result", .{}).found.init_value.?;
-    _ = compiler.module_scope(module.absolute_path).?.lookup("Requirement", .{}).found.init_value.?;
 }
 
 fn create_primitive_identifier(name: []const u8, allocator: std.mem.Allocator) *ast_.AST {

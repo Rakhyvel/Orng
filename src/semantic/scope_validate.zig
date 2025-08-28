@@ -5,7 +5,7 @@ const ast_ = @import("../ast/ast.zig");
 const validate_AST = @import("ast_validate.zig").validate_AST;
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
-const primitives_ = @import("../hierarchy/primitives.zig");
+const prelude_ = @import("../hierarchy/prelude.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
@@ -40,7 +40,7 @@ fn validate_impl(impl: *ast_.AST, compiler: *Compiler_Context) Validate_Error_En
         return error.CompileError;
     }
 
-    impl.impl._type = validate_AST(impl.impl._type, primitives_.type_type, compiler);
+    impl.impl._type = validate_AST(impl.impl._type, prelude_.type_type, compiler);
 
     const trait_symbol: *Symbol = impl.impl.trait.?.symbol().?;
     if (trait_symbol.kind != .trait) {
@@ -113,7 +113,7 @@ fn validate_impl(impl: *ast_.AST, compiler: *Compiler_Context) Validate_Error_En
 
         // Check that parameters match
         for (def.children().items, trait_decl.?.children().items) |impl_param, trait_param| {
-            _ = try typing_.checked_types_match(trait_param.decl.type, primitives_.type_type, &compiler.errors);
+            _ = try typing_.checked_types_match(trait_param.decl.type, prelude_.type_type, &compiler.errors);
             const impl_type = impl_param.decl.type;
             const trait_type = ast_.AST.convert_self_type(trait_param.decl.type, impl.impl._type, compiler.allocator());
             if (!try typing_.checked_types_match(impl_type, trait_type, &compiler.errors)) {

@@ -5,7 +5,7 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const Module = @import("../hierarchy/module.zig").Module;
-const primitives_ = @import("../hierarchy/primitives.zig");
+const prelude_ = @import("../hierarchy/prelude.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
@@ -52,8 +52,8 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
             .common = common,
             .symbols = std.ArrayList(*Symbol).init(self.compiler.allocator()),
             .pattern = ast.import.pattern,
-            .type = primitives_.type_type,
-            .init = primitives_.unit_type,
+            .type = prelude_.type_type,
+            .init = prelude_.unit_type,
             ._top_level = true,
             .is_alias = false,
             .prohibit_defaults = false,
@@ -116,8 +116,8 @@ fn unwrap_access_imports(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.
                     anon_names.items[i],
                     self.compiler.allocator(),
                 ),
-                .type = primitives_.type_type,
-                .init = primitives_.unit_type,
+                .type = prelude_.type_type,
+                .init = prelude_.unit_type,
                 ._top_level = true,
                 .is_alias = false,
                 .prohibit_defaults = false,

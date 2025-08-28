@@ -8,7 +8,7 @@ const errs_ = @import("../util/errors.zig");
 const Interpreter_Context = @import("../interpretation/interpreter.zig");
 const module_ = @import("../hierarchy/module.zig");
 const poison_ = @import("../ast/poison.zig");
-const primitives_ = @import("../hierarchy/primitives.zig");
+const prelude_ = @import("../hierarchy/prelude.zig");
 const Span = @import("../util/span.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");
@@ -38,8 +38,8 @@ pub fn type_check(span: Span, got: *ast_.AST, expected: ?*ast_.AST, errors: *err
 }
 
 pub fn void_check(span: Span, expected: ?*ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
-    if (expected != null and try checked_types_match(primitives_.type_type, expected.?, errors)) {
-        return throw_unexpected_type(span, expected.?, primitives_.void_type, errors);
+    if (expected != null and try checked_types_match(prelude_.type_type, expected.?, errors)) {
+        return throw_unexpected_type(span, expected.?, prelude_.void_type, errors);
     }
 }
 
@@ -49,8 +49,8 @@ pub fn middle_statement_check(span: Span, got: *ast_.AST, errors: *errs_.Errors)
         errors.add_error(errs_.Error{ .invalid_type = .{ .span = span, .got = got } });
         return error.CompileError;
     }
-    if (!try checked_types_match(primitives_.unit_type, got, errors) and !try checked_types_match(got, primitives_.void_type, errors)) {
-        return throw_unexpected_type(span, primitives_.unit_type, got, errors);
+    if (!try checked_types_match(prelude_.unit_type, got, errors) and !try checked_types_match(got, prelude_.void_type, errors)) {
+        return throw_unexpected_type(span, prelude_.unit_type, got, errors);
     }
 }
 
@@ -61,8 +61,8 @@ pub fn type_check_int(
     allocator: std.mem.Allocator,
 ) Validate_Error_Enum!void {
     const expanded_expected = if (expected != null) expected.?.expand_type(allocator) else null;
-    if (expanded_expected != null) { //and !try checked_types_match(primitives_.unit_type, expanded_expected.?, errors)
-        const info = primitives_.info_from_ast(expanded_expected.?);
+    if (expanded_expected != null) { //and !try checked_types_match(prelude_.unit_type, expanded_expected.?, errors)
+        const info = prelude_.info_from_ast(expanded_expected.?);
         if (info != null and info.?.bounds != null) {
             if (ast.int.data < info.?.bounds.?.lower or
                 ast.int.data > info.?.bounds.?.upper)
@@ -77,17 +77,17 @@ pub fn type_check_int(
             }
         } else {
             // This error is thrown because the `expanded_expected` is not an integer primitive type
-            return throw_unexpected_type(ast.token().span, expanded_expected.?, primitives_.int_type, errors);
+            return throw_unexpected_type(ast.token().span, expanded_expected.?, prelude_.int_type, errors);
         }
     }
-    ast.set_represents(expected orelse primitives_.int_type);
+    ast.set_represents(expected orelse prelude_.int_type);
 }
 
 pub fn type_check_float(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (expected != null and !expected.?.can_represent_float()) {
-        return throw_unexpected_type(ast.token().span, expected.?, primitives_.float_type, errors);
+        return throw_unexpected_type(ast.token().span, expected.?, prelude_.float_type, errors);
     }
-    ast.set_represents(expected orelse primitives_.float_type);
+    ast.set_represents(expected orelse prelude_.float_type);
 }
 
 pub fn type_check_eq(span: Span, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {

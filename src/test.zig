@@ -3,7 +3,7 @@ const Compiler_Context = @import("hierarchy/compiler.zig");
 const Codegen_Context = @import("codegen/codegen.zig");
 const exec = @import("util/exec.zig").exec;
 const module_ = @import("hierarchy/module.zig");
-const primitives_ = @import("hierarchy/primitives.zig");
+const prelude_ = @import("hierarchy/prelude.zig");
 const Read_File = @import("lexer/read_file.zig");
 const String = @import("zig-string/zig-string.zig").String;
 const term_ = @import("util/term.zig");
@@ -128,7 +128,7 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
     // Try to compile Orng (make sure no errors)
     var compiler = Compiler_Context.init(debug_alloc.allocator()) catch unreachable;
     defer compiler.deinit();
-    defer primitives_.deinit();
+    defer prelude_.deinit();
 
     const module = module_.Module.compile(absolute_filename, "main", false, compiler) catch {
         if (mode == .regular) {
@@ -193,7 +193,7 @@ fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug
     // Try to compile Orng (make sure no errors)
     var compiler = Compiler_Context.init(debug_alloc.allocator()) catch unreachable;
     defer compiler.deinit();
-    defer primitives_.deinit();
+    defer prelude_.deinit();
     const contents = Read_File.init(compiler.allocator()).run(absolute_filename) catch unreachable;
     const head = header_comment(contents, debug_alloc.allocator()) catch unreachable;
     defer debug_alloc.allocator().free(head);
@@ -314,7 +314,7 @@ fn fuzz_tests() !void { // TODO: Uninfer error
             var arena_alloc = std.heap.ArenaAllocator.init(debug_alloc.allocator());
             errdefer arena_alloc.deinit();
             var compiler = Compiler_Context.init(arena_alloc.allocator()) catch unreachable;
-            defer primitives_.deinit();
+            defer prelude_.deinit();
             defer compiler.deinit();
             var lines = std.ArrayList([]const u8).init(allocator);
             defer lines.deinit();

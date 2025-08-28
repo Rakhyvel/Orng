@@ -8,7 +8,7 @@ const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const Instruction = @import("../ir/instruction.zig");
 const pipeline_ = @import("../util/pipeline.zig");
-const primitives_ = @import("../hierarchy/primitives.zig");
+const prelude_ = @import("../hierarchy/prelude.zig");
 const Span = @import("../util/span.zig");
 const Scope = @import("../symbol/scope.zig");
 const String = @import("../zig-string/zig-string.zig").String;
@@ -144,7 +144,7 @@ pub const Module = struct {
             compiler.prelude,
             module.name(),
             Span{ .col = 1, .line_number = 1, .filename = absolute_path, .line_text = "" },
-            primitives_.unit_type,
+            prelude_.unit_type,
             ast_.AST.create_module(
                 Token.init_simple(module.name()),
                 file_root,
@@ -158,7 +158,7 @@ pub const Module = struct {
         try compiler.prelude.put_symbol(symbol, &compiler.errors);
         file_root.module = module;
 
-        try fill_contents(absolute_path, entry_name, file_root, module, symbol, fuzz_tokens, compiler);
+        try fill_contents_from_file(absolute_path, entry_name, file_root, module, symbol, fuzz_tokens, compiler);
 
         return module;
     }
@@ -170,7 +170,7 @@ pub const Module = struct {
         return basename[0..i];
     }
 
-    pub fn fill_contents(
+    fn fill_contents_from_file(
         in_name: []const u8,
         entry_name: ?[]const u8,
         file_root: *Scope,
@@ -179,12 +179,23 @@ pub const Module = struct {
         fuzz_tokens: bool,
         compiler: *Compiler_Context,
     ) Module_Errors!void {
-        compiler.register_interned_string_set(module.uid);
-        compiler.register_module(module.absolute_path, module_symbol);
+        const read_file = Read_File.init(compiler.allocator());
+        const contents = try read_file.run(in_name);
+        return fill_contents(contents, in_name, entry_name, file_root, module, module_symbol, fuzz_tokens, compiler);
+    }
 
+    pub fn fill_contents(
+        contents: []const u8,
+        in_name: []const u8,
+        entry_name: ?[]const u8,
+        file_root: *Scope,
+        module: *Module,
+        module_symbol: *Symbol,
+        fuzz_tokens: bool,
+        compiler: *Compiler_Context,
+    ) Module_Errors!void {
         // Setup and run the front-end pipeline
-        _ = try pipeline_.run(in_name, .{
-            Read_File.init(compiler.allocator()),
+        _ = try pipeline_.run(contents, .{
             Hash.init(&module.hash),
             Split_Lines.init(&compiler.errors, compiler.allocator()),
             Tokenize.init(in_name, &compiler.errors, fuzz_tokens, compiler.allocator()),
@@ -197,6 +208,9 @@ pub const Module = struct {
             Apply_Ast_Walk(Decorate).init(Decorate.new(file_root, &compiler.errors, compiler.allocator())),
             Apply_Ast_Walk(Decorate_Access).init(Decorate_Access.new(file_root, &compiler.errors, compiler)),
         });
+
+        compiler.register_interned_string_set(module.uid);
+        compiler.register_module(module.absolute_path, module_symbol);
 
         // Perform checks and collections on the module
         try module_validate_.validate(module, compiler);

@@ -1,9 +1,9 @@
 const std = @import("std");
 const AST = @import("../ast/ast.zig").AST;
 const Compiler_Context = @import("../hierarchy/compiler.zig");
+const core_ = @import("../hierarchy/core.zig");
 const Interpreter_Context = @import("../interpretation/interpreter.zig");
 const lval_ = @import("../ir/lval.zig");
-const primitives_ = @import("../hierarchy/primitives.zig");
 const repo_ = @import("../util/repo.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 
@@ -37,7 +37,7 @@ pub fn package_find(compiler: *Compiler_Context, interpreter: *Interpreter_Conte
     interpreter.load_module(build_cfg.symbol.scope.module.?);
 
     // Allocate space for the package to be placed
-    const package_len: usize = @intCast(primitives_.package_type.sizeof());
+    const package_len: usize = @intCast(core_.package_type.sizeof());
     const adrs: i64 = @intCast(try interpreter.alloc(@intCast(package_len), 8));
     const retval_place = lval_.L_Value.create_raw_address_lval(adrs, compiler.allocator());
 
