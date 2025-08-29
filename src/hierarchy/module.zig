@@ -193,6 +193,9 @@ pub const Module = struct {
         fuzz_tokens: bool,
         compiler: *Compiler_Context,
     ) Module_Errors!void {
+        compiler.register_interned_string_set(module.uid);
+        compiler.register_module(module.absolute_path, module_symbol);
+
         if (compiler.core != null) {
             // Can be null if you're compiling the core module itself!
             module.local_imported_modules.put(compiler.core.?.module.?, void{}) catch unreachable;
@@ -223,9 +226,6 @@ pub const Module = struct {
             Apply_Ast_Walk(Decorate).init(Decorate.new(file_root, &compiler.errors, compiler.allocator())),
             Apply_Ast_Walk(Decorate_Access).init(Decorate_Access.new(file_root, &compiler.errors, compiler)),
         });
-
-        compiler.register_interned_string_set(module.uid);
-        compiler.register_module(module.absolute_path, module_symbol);
 
         // Perform checks and collections on the module
         try module_validate_.validate(module, compiler);

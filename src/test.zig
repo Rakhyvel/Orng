@@ -1,6 +1,7 @@
 const std = @import("std");
 const Compiler_Context = @import("hierarchy/compiler.zig");
 const Codegen_Context = @import("codegen/codegen.zig");
+const core_ = @import("hierarchy/core.zig");
 const exec = @import("util/exec.zig").exec;
 const module_ = @import("hierarchy/module.zig");
 const prelude_ = @import("hierarchy/prelude.zig");
@@ -129,6 +130,7 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
     var compiler = Compiler_Context.init(debug_alloc.allocator()) catch unreachable;
     defer compiler.deinit();
     defer prelude_.deinit();
+    defer core_.deinit();
 
     const module = module_.Module.compile(absolute_filename, "main", false, compiler) catch {
         if (mode == .regular) {
@@ -194,6 +196,7 @@ fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug
     var compiler = Compiler_Context.init(debug_alloc.allocator()) catch unreachable;
     defer compiler.deinit();
     defer prelude_.deinit();
+    defer core_.deinit();
     const contents = Read_File.init(compiler.allocator()).run(absolute_filename) catch unreachable;
     const head = header_comment(contents, debug_alloc.allocator()) catch unreachable;
     defer debug_alloc.allocator().free(head);
@@ -316,6 +319,7 @@ fn fuzz_tests() !void { // TODO: Uninfer error
             var compiler = Compiler_Context.init(arena_alloc.allocator()) catch unreachable;
             defer prelude_.deinit();
             defer compiler.deinit();
+            defer core_.deinit();
             var lines = std.ArrayList([]const u8).init(allocator);
             defer lines.deinit();
             i += 1;
