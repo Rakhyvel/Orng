@@ -245,13 +245,13 @@ fn validate_AST_internal(
             return ast.@"comptime".result.?;
         },
         .assign => {
+            try validate_L_Value(ast.lhs(), &compiler.errors);
             ast.set_lhs(validate_AST(ast.lhs(), null, compiler));
             const lhs_type = ast.lhs().typeof(compiler.allocator());
             try poison_.assert_none_poisoned(lhs_type);
             const rhs_expected: ?*ast_.AST = if (ast.lhs().* == .identifier and std.mem.eql(u8, ast.lhs().token().data, "_")) null else lhs_type;
             ast.set_rhs(validate_AST(ast.rhs(), rhs_expected, compiler));
             try poison_.assert_none_poisoned(.{ ast.lhs(), ast.rhs() });
-            try validate_L_Value(ast.lhs(), &compiler.errors);
             try assert_mutable(ast.lhs(), &compiler.errors, compiler.allocator());
             try typing_.type_check(ast.token().span, prelude_.unit_type, expected, &compiler.errors);
             return ast;
@@ -352,7 +352,7 @@ fn validate_AST_internal(
             const domain = if (expanded_lhs_type.* == .function) expanded_lhs_type.lhs() else ast.lhs().sum_value.domain.?;
             const codomain = if (expanded_lhs_type.* == .function) expanded_lhs_type.rhs() else ast.lhs().sum_value.base.?;
             const variadic = expanded_lhs_type.* == .function and expanded_lhs_type.function.variadic;
-            ast.set_children(try args_.default_args(ast.children().*, domain, &compiler.errors, compiler.allocator()));
+            ast.set_children(try args_.default_args(.function, ast.children().*, domain, &compiler.errors, compiler.allocator()));
             try args_.validate_args_arity(.function, ast.children(), domain, variadic, ast.token().span, &compiler.errors);
             ast.set_children((try typing_.validate_args_type(ast.children(), domain, compiler)).*);
             try typing_.type_check(ast.token().span, codomain, expected, &compiler.errors);
@@ -513,7 +513,7 @@ fn validate_AST_internal(
                     ast.children().insert(0, addr_of) catch unreachable; // prepend lhs to children as a receiver
                 }
             }
-            ast.set_children(try args_.default_args(ast.children().*, domain, &compiler.errors, compiler.allocator()));
+            ast.set_children(try args_.default_args(.method, ast.children().*, domain, &compiler.errors, compiler.allocator()));
             try args_.validate_args_arity(.method, ast.children(), domain, false, ast.token().span, &compiler.errors);
             ast.set_children((try typing_.validate_args_type(ast.children(), domain, compiler)).*);
 
@@ -585,7 +585,7 @@ fn validate_AST_internal(
             } else if (expanded_expected != null and expanded_expected.?.* == .product) {
                 // Expecting ast to be a product value of some product type
                 _ = ast.assert_ast_valid();
-                ast.set_children(try args_.default_args(ast.children().*, expanded_expected.?, &compiler.errors, compiler.allocator()));
+                ast.set_children(try args_.default_args(.product, ast.children().*, expanded_expected.?, &compiler.errors, compiler.allocator()));
                 try args_.validate_args_arity(.product, ast.children(), expanded_expected.?, false, ast.token().span, &compiler.errors);
                 ast.set_children((try typing_.validate_args_type(ast.children(), expanded_expected.?, compiler)).*);
                 ast.common()._type = expected.?;
@@ -766,7 +766,7 @@ fn validate_AST_internal(
         },
         .sum_value => {
             if (ast.sum_value.base == null and expected == null) {
-                compiler.errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "cannot infer the sum type" } });
+                compiler.errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "cannot infer type for initializer" } });
                 return error.CompileError;
             } else if (ast.sum_value.base == null) {
                 // Infer that the base type is `expected`
@@ -1059,13 +1059,13 @@ fn remove_const_args(
 
 fn validate_L_Value(ast: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     switch (ast.*) {
-        .identifier => {},
+        .select, .identifier => {},
 
         .dereference => if (ast.expr().* != .addr_of) {
             try validate_L_Value(ast.expr(), errors);
         },
 
-        .index, .select => try validate_L_Value(ast.lhs(), errors),
+        .index => try validate_L_Value(ast.lhs(), errors),
 
         .product => for (ast.children().items) |term| {
             try validate_L_Value(term, errors);

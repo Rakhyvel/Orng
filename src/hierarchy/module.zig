@@ -322,6 +322,7 @@ pub const Module = struct {
                     _ = self.type_set.add(param.expanded_type.?, allocator);
                 }
             }
+            _ = self.type_set.add(cfg.return_symbol.expanded_type.?, allocator);
 
             for (cfg.basic_blocks.items) |bb| {
                 for (bb.instructions.items) |instr| {

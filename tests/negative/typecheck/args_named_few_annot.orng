@@ -1,0 +1,8 @@
+// args_named_few_annot.orng:6:34: error: not an l-value
+//     let x: (a: Int, b: Int) = (.a = 43)
+//                                 ^
+// 
+fn main() -> Int {
+    let x: (a: Int, b: Int) = (.a = 43)
+    4
+}

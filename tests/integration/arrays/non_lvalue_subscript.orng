@@ -1,0 +1,16 @@
+// 350
+fn main() -> Int {
+    bar(2)
+}
+
+fn bar(index: Int) -> Int {
+    f().a[index]
+}
+
+const Foo = (
+    a: [4]Int,
+)
+
+fn f() -> Foo {
+    (.a = (150, 250, 350, 450),)
+}

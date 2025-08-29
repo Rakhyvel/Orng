@@ -2703,6 +2703,9 @@ pub const AST = union(enum) {
             => return self.rhs().typeof(allocator),
 
             .product => {
+                if (self.children().items.len == 0) {
+                    return prelude_.unit_type;
+                }
                 var first_type = self.children().items[0].typeof(allocator);
                 if (first_type.types_match(prelude_.type_type)) {
                     // typeof product type is Type

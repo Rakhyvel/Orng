@@ -44,7 +44,7 @@ def run_program(input_path: str, kcov_out: str, program_tokens: list[str]):
                 input_path,
             ],
             timeout=15,
-            stdout=subprocess.DEVNULL,
+            # capture_output=True,
             stderr=subprocess.DEVNULL,
             cwd=None,
             preexec_fn=os.setsid if os.name != "nt" else None,
@@ -57,8 +57,10 @@ def run_program(input_path: str, kcov_out: str, program_tokens: list[str]):
             pass
         print("timeout")
         res = 1
+        program_display += "// timeout"
 
     if res != 0:
+        # print(result.stdout)
         add_error_program(program_display)
 
 

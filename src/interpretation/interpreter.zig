@@ -33,7 +33,15 @@ const halt_trap_instruction: Instruction.Index = 0xFFFF_FFF0;
 /// When true, interpreter runs each instruction at a time, printing the stack and registers for debugging purposes.
 /// I _think_ that VSCode language servers consume a JSON file representing the state of the debugger, so this could be
 /// useful.
-const debugger: bool = false;
+const Debugger_Mode = enum {
+    /// Interpreter does not emit debugging logs
+    off,
+    /// Interpreter emits debugging logs
+    noninteractive,
+    /// Interpreter emits debugging logs, waits for user to proceed to next instruction
+    interactive,
+};
+const debugger: Debugger_Mode = .off;
 
 const Instruction_Pointer = struct {
     /// The UID of the module currently being executed
@@ -119,17 +127,17 @@ pub fn run(
     // Stop whenever has returned more than called, or instruction pointer is not a halt trap representation
     while (self.call_depth >= initial_call_depth and self.instruction_pointer.inst_idx < halt_trap_instruction) : (self.instruction_pointer.inst_idx += 1) {
         const instr: *Instruction = try self.curr_instruction();
-        if (debugger) {
+        if (debugger != .off) {
             std.debug.print("\n", .{});
             self.print_registers();
             self.print_stack();
             std.debug.print("\n\n\n\n{s}\n{}=> ", .{ instr.span.line_text, instr });
         }
         const time_now = std.time.milliTimestamp();
-        if (!debugger and time_now - self.start_time > timeout_ms) {
+        if (debugger == .off and time_now - self.start_time > timeout_ms) {
             return self.interpreter_panic("interpreter error: compile-time interpreter timeout\n", .{});
         }
-        if (debugger) {
+        if (debugger == .interactive) {
             var in_buffer: [256]u8 = undefined;
             _ = std.io.getStdIn().read(&in_buffer) catch unreachable;
         }
@@ -154,7 +162,12 @@ inline fn execute_instruction(self: *Self, instr: *Instruction, compiler: *Compi
             self.memory.store_int(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), instr.data.int);
         },
         .load_float => self.memory.store_float(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), instr.data.float),
-        .load_string => self.memory.store(Interned_String_Set.String_Idx, try self.effective_address(instr.dest.?), instr.data.string_id),
+        .load_string => {
+            self.memory.store(Interned_String_Set.String_Idx, try self.effective_address(instr.dest.?), instr.data.string_id);
+            const interned_strings = compiler.lookup_interned_string_set(self.modules.get(instr.data.string_id.module_uid).?.uid).?;
+            const string = interned_strings.items()[instr.data.string_id.string_idx];
+            self.memory.store(u64, try self.effective_address(instr.dest.?) + 8, string.len);
+        },
         .load_symbol => {
             const symbol_module = instr.data.symbol.scope.module.?;
             if (self.modules.get(symbol_module.uid) == null) {
@@ -567,7 +580,7 @@ fn print_registers(self: *Self) void {
     std.debug.print("bp:0x{X} sp:0x{X} ip:[{s}#{}]@{X}\n", .{
         self.base_pointer,
         self.stack_pointer,
-        if (module != null) module.?.name else "?",
+        if (module != null) module.?.name() else "?",
         self.instruction_pointer.module_uid,
         self.instruction_pointer.inst_idx,
     });
@@ -575,7 +588,7 @@ fn print_registers(self: *Self) void {
 
 /// Prints the contents of the interpreter's stack. Used for debugging.
 fn print_stack(self: *Self) void {
-    self.print_memory(0, @as(usize, @intCast(self.stack_pointer)));
+    self.memory.print_memory(0, @as(usize, @intCast(self.stack_pointer)));
 }
 
 fn print_debug_stack(self: *Self) void {
