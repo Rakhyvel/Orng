@@ -227,7 +227,6 @@ pub fn collect_package_local_modules(self: *Self) void {
         const package_path = module.get_package_abs_path();
         const build_paths = [_][]const u8{ package_path, "build" };
         const build_path = std.fs.path.join(self.allocator(), &build_paths) catch unreachable;
-        std.debug.print("trying to make {s}\n", .{build_path});
         _ = std.fs.openDirAbsolute(build_path, .{}) catch {
             std.fs.makeDirAbsolute(build_path) catch unreachable;
         };

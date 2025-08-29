@@ -131,6 +131,7 @@ pub fn determine_if_modified(self: *Package, packages: std.StringArrayHashMap(*P
     // Check if any modules are modified
     for (self.local_modules.items) |local_module| {
         local_module.determine_if_modified(compiler);
+        local_module.update_module_hash(&self.module_hash, compiler.allocator());
         self.modified = local_module.modified.? or self.modified.?;
     }
 
@@ -178,7 +179,7 @@ fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package),
     var obj_files = std.StringArrayHashMap(void).init(allocator);
     for (self.local_modules.items) |local_module| {
         if (!std.mem.eql(u8, local_module.get_package_abs_path(), self.absolute_path)) {
-            break;
+            continue;
         }
 
         // Append the o filename to the obj files list, even if this isn't compiled!
@@ -241,28 +242,44 @@ fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package),
     if (self.modified.?) {
         switch (self.kind) {
             .test_executable => {
-                const test_runner_o_file = "test-runner.o";
-                obj_files.put(test_runner_o_file, void{}) catch unreachable;
-                var c_file = String.init(allocator);
-                c_file.writer().print("{s}{c}build{c}test-runner.c", .{
+                var test_runner_o_file = String.init(allocator);
+                test_runner_o_file.writer().print("{s}{c}build{c}test-runner.o", .{
                     self.absolute_path,
                     std.fs.path.sep,
                     std.fs.path.sep,
                 }) catch unreachable;
+                obj_files.put(test_runner_o_file.str(), void{}) catch unreachable;
 
-                try self.cc(c_file.str(), test_runner_o_file, packages, extra_flags, allocator);
+                if (!file_exists(test_runner_o_file.str())) {
+                    var c_file = String.init(allocator);
+                    c_file.writer().print("{s}{c}build{c}test-runner.c", .{
+                        self.absolute_path,
+                        std.fs.path.sep,
+                        std.fs.path.sep,
+                    }) catch unreachable;
+
+                    try self.cc(c_file.str(), test_runner_o_file.str(), packages, extra_flags, allocator);
+                }
             },
             .executable => {
-                const test_runner_o_file = "start.o";
-                obj_files.put(test_runner_o_file, void{}) catch unreachable;
-                var c_file = String.init(allocator);
-                c_file.writer().print("{s}{c}build{c}start.c", .{
+                var start_o_file = String.init(allocator);
+                start_o_file.writer().print("{s}{c}build{c}start.o", .{
                     self.absolute_path,
                     std.fs.path.sep,
                     std.fs.path.sep,
                 }) catch unreachable;
+                obj_files.put(start_o_file.str(), void{}) catch unreachable;
 
-                try self.cc(c_file.str(), test_runner_o_file, packages, extra_flags, allocator);
+                if (!file_exists(start_o_file.str())) {
+                    var c_file = String.init(allocator);
+                    c_file.writer().print("{s}{c}build{c}start.c", .{
+                        self.absolute_path,
+                        std.fs.path.sep,
+                        std.fs.path.sep,
+                    }) catch unreachable;
+
+                    try self.cc(c_file.str(), start_o_file.str(), packages, extra_flags, allocator);
+                }
             },
             else => {},
         }
@@ -492,31 +509,33 @@ fn link_executable(self: *Package, obj_files: std.StringArrayHashMap(void), pack
     var cwd_string = String.init(allocator);
     cwd_string.writer().print("{s}{c}build", .{ self.absolute_path, std.fs.path.sep }) catch unreachable;
 
-    print_cmd(&cmd);
-    const run_res = std.process.Child.run(.{
-        .allocator = allocator,
-        .argv = cmd.items,
-        .cwd = cwd_string.str(),
-    }) catch unreachable;
+    if (!file_exists(self.output_absolute_path)) {
+        print_cmd(&cmd);
+        const run_res = std.process.Child.run(.{
+            .allocator = allocator,
+            .argv = cmd.items,
+            .cwd = cwd_string.str(),
+        }) catch unreachable;
 
-    var retcode: u8 = 0;
-    switch (run_res.term) {
-        .Exited => |c| {
-            retcode = c;
-        },
-        .Signal => |c| switch (c) {
-            11 => return error.CompileError,
-            else => return error.CompileError,
-        },
-        else => {
-            std.debug.print("{s}\n", .{run_res.stderr});
+        var retcode: u8 = 0;
+        switch (run_res.term) {
+            .Exited => |c| {
+                retcode = c;
+            },
+            .Signal => |c| switch (c) {
+                11 => return error.CompileError,
+                else => return error.CompileError,
+            },
+            else => {
+                std.debug.print("{s}\n", .{run_res.stderr});
+                return error.CompileError;
+            },
+        }
+
+        if (retcode != 0) {
+            std.debug.print("err:{s}\n", .{run_res.stderr});
             return error.CompileError;
-        },
-    }
-
-    if (retcode != 0) {
-        std.debug.print("err:{s}\n", .{run_res.stderr});
-        return error.CompileError;
+        }
     }
 }
 
@@ -581,7 +600,7 @@ fn append_requirement_link(
     }
 }
 
-const debug: bool = false;
+const debug: bool = true;
 fn print_cmd(cmd: *const std.ArrayList([]const u8)) void {
     if (debug) {
         for (cmd.items) |item| {
