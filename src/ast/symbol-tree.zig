@@ -339,9 +339,6 @@ fn create_symbol(
             else
                 null;
 
-            if (pattern.pattern_symbol.kind == .import) {
-                std.debug.print("kind: {s}\n", .{@tagName(decl.?.*)});
-            }
             const symbol = Symbol.init(
                 scope,
                 pattern.pattern_symbol.name,

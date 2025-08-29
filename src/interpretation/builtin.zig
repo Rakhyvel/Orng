@@ -59,9 +59,9 @@ fn package_find_relative(current_module_path: []const u8, package_src: *AST, all
     return std.fs.cwd().realpath(required_package_path, package_buffer) catch return error.CompileError;
 }
 
-/// Implements `builtin::Package::find` for the git variant
+/// Implements `core::Package::find` for the git variant
 fn package_find_git(compiler: *Compiler_Context, package_src: *AST) Error![]const u8 {
-    const git_source_type = compiler.get_builtin_type("Git_Source");
+    const git_source_type = compiler.get_core_type("Git_Source");
     const url = package_src.get_field(git_source_type, "url");
     const subdir = package_src.get_field(git_source_type, "subdir");
 

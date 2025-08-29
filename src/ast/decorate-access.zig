@@ -26,7 +26,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         else => return self,
 
         .access => {
-            ast.set_symbol(try self.resolve_qualified_name(ast));
+            _ = try self.resolve_qualified_name(ast);
             return null;
         },
     }
@@ -43,7 +43,9 @@ fn resolve_qualified_name(self: Self, ast: *ast_.AST) walk_.Error!*Symbol {
         .access => {
             const stripped_lhs = if (ast.lhs().* == .addr_of) ast.lhs().expr() else ast.lhs();
             const expanded_lhs = try self.resolve_qualified_name(stripped_lhs);
-            return try self.resolve_access_symbol(expanded_lhs, ast.rhs(), ast.scope().?);
+            const symbol = try self.resolve_access_symbol(expanded_lhs, ast.rhs(), ast.scope().?);
+            ast.set_symbol(symbol);
+            return symbol;
         },
         else => std.debug.panic("compiler error: fell through {}", .{ast}),
     }
@@ -59,7 +61,7 @@ fn resolve_import_symbol(self: Self, ast: *ast_.AST) *Symbol {
     const package_build_paths = [_][]const u8{ curr_package_path, module_path_name.str() };
     const other_module_dir = std.fs.path.join(self.compiler.allocator(), &package_build_paths) catch unreachable;
 
-    if (std.mem.eql(u8, ast.symbol().?.kind.import.real_name, "core.orng")) {
+    if (std.mem.eql(u8, ast.symbol().?.kind.import.real_name, "core")) {
         return core_.core_symbol.?;
     }
 

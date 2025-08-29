@@ -193,7 +193,6 @@ pub const Module = struct {
         fuzz_tokens: bool,
         compiler: *Compiler_Context,
     ) Module_Errors!void {
-        std.debug.print("{s}\n", .{in_name});
         if (compiler.core != null) {
             // Can be null if you're compiling the core module itself!
             module.local_imported_modules.put(compiler.core.?.module.?, void{}) catch unreachable;
@@ -203,12 +202,11 @@ pub const Module = struct {
                 Span{ .col = 1, .line_number = 1, .filename = "core", .line_text = "" },
                 prelude_.unit_type,
                 prelude_.unit_value,
-                undefined,
-                .{ .import = .{ .real_name = "core.orng" } },
+                null,
+                .{ .import = .{ .real_name = "core" } },
                 compiler.allocator(),
             );
             try file_root.put_symbol(core_import_symbol, &compiler.errors);
-            file_root.pprint();
         }
 
         // Setup and run the front-end pipeline
@@ -362,7 +360,8 @@ pub const Module = struct {
             return;
         }
 
-        const module_hashes = compiler.lookup_package(self.get_package_abs_path()).?.module_hash;
+        const package_abs_path = self.get_package_abs_path();
+        const module_hashes = compiler.lookup_package(package_abs_path).?.module_hash;
         const old_hash = module_hashes.get_module_stored_hash(self.name());
         const local_module_number_string = std.fmt.allocPrint(compiler.allocator(), "{X}", .{self.hash}) catch unreachable;
         defer compiler.allocator().free(local_module_number_string);

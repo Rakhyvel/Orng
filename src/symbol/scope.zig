@@ -149,6 +149,24 @@ pub fn lookup_impl_member(self: *Self, for_type: *ast_.AST, name: []const u8) ?*
         }
     }
 
+    // Search for any imports
+    for (self.symbols.keys()) |symbol_name| {
+        const symbol = self.symbols.get(symbol_name).?;
+        if (symbol.kind == .import) {
+            const res = self.parent.?.lookup(symbol.kind.import.real_name, .{ .allow_modules = true });
+            switch (res) {
+                .found => {
+                    const module_scope = res.found.init_value.?.scope().?;
+                    const module_scope_lookup = module_scope.lookup_impl_member(for_type, name);
+                    if (module_scope_lookup != null) {
+                        return module_scope_lookup;
+                    }
+                },
+                else => std.debug.panic("compiler error: import didn't resolve to a module: {s}", .{symbol.kind.import.real_name}),
+            }
+        }
+    }
+
     if (self.parent != null) {
         // Did not match in this scope. Try parent scope
         return self.parent.?.lookup_impl_member(for_type, name);

@@ -61,6 +61,9 @@ pub fn validate_AST(ast: *ast_.AST, old_expected_type: ?*ast_.AST, compiler: *Co
         if (expected_type.?.* == .annotation) {
             expected_type = expected_type.?.annotation.type;
         }
+        if (expected_type.?.* == .access) {
+            expected_type = expected_type.?.symbol().?.init_value;
+        }
         if (typing_.checked_types_match(expected_type.?, prelude_.type_type, &compiler.errors) catch return ast.enpoison()) {
             _ = typing_.checked_types_match(ast, prelude_.type_type, &compiler.errors) catch return ast.enpoison();
         }
@@ -440,7 +443,7 @@ fn validate_AST_internal(
             return ast;
         },
         .access => {
-            ast.set_lhs(validate_AST(ast.lhs(), prelude_.type_type, compiler));
+            ast.set_lhs(validate_AST(ast.lhs(), null, compiler));
             try poison_.assert_none_poisoned(ast.lhs());
 
             // look up symbol, that's the type

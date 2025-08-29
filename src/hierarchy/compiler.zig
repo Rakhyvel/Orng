@@ -11,6 +11,7 @@ const Package_Iterator = @import("../util/dfs.zig").Dfs_Iterator(Package_Iterato
 const Package_Iterator_Node = @import("../hierarchy/package.zig").Package_Iterator_Node;
 const poison_ = @import("../ast/poison.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
+const repo_ = @import("../util/repo.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
 const Scope = @import("../symbol/scope.zig");
@@ -64,6 +65,10 @@ pub fn init(alloc: std.mem.Allocator) Error!*Self {
         retval.errors.print_errors(errs_.get_std_err(), .{});
         return error.CompileError;
     });
+
+    retval.register_package(core_.core_package_name, .static_library);
+    const core_module_symbol = retval.lookup_module(retval.core.?.module.?.absolute_path).?;
+    retval.set_package_root(core_.core_package_name, core_module_symbol);
 
     return retval;
 }
@@ -141,8 +146,8 @@ pub fn register_interned_string_set(self: *Self, module_uid: u32) void {
     self.module_interned_strings.put(module_uid, interned_strings) catch unreachable;
 }
 
-pub fn get_builtin_type(self: *Self, name: []const u8) *AST {
-    const prelude_abs_path = self.prelude.module.?.absolute_path;
+pub fn get_core_type(self: *Self, name: []const u8) *AST {
+    const prelude_abs_path = self.core.?.module.?.absolute_path;
     return self.module_scope(prelude_abs_path).?.lookup(name, .{}).found.init_value.?;
 }
 
@@ -169,6 +174,9 @@ pub fn register_package(self: *Self, package_absolute_path: []const u8, kind: Pa
     if (self.lookup_package(package_absolute_path) == null) {
         const package = Package.new(self.allocator(), package_absolute_path, kind);
         self.packages.put(package_absolute_path, package) catch unreachable;
+        if (!std.mem.eql(u8, package_absolute_path, core_.core_package_name)) {
+            self.make_package_requirement_link(package_absolute_path, "core", core_.core_package_name);
+        }
     }
 }
 
@@ -219,6 +227,7 @@ pub fn collect_package_local_modules(self: *Self) void {
         const package_path = module.get_package_abs_path();
         const build_paths = [_][]const u8{ package_path, "build" };
         const build_path = std.fs.path.join(self.allocator(), &build_paths) catch unreachable;
+        std.debug.print("trying to make {s}\n", .{build_path});
         _ = std.fs.openDirAbsolute(build_path, .{}) catch {
             std.fs.makeDirAbsolute(build_path) catch unreachable;
         };

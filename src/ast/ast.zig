@@ -2540,6 +2540,11 @@ pub const AST = union(enum) {
                 try out.print(".", .{});
                 try self.select._rhs.print_type(out);
             },
+            .access => {
+                try self.access._lhs.print_type(out);
+                try out.print("::", .{});
+                try self.access._rhs.print_type(out);
+            },
             .field => try out.print("{s}", .{self.field.common._token.data}),
             .@"union" => {
                 try self.lhs().print_type(out);
@@ -2970,6 +2975,11 @@ pub const AST = union(enum) {
             return types_match(A.annotation.type, B);
         } else if (B.* == .annotation) {
             return types_match(A, B.annotation.type);
+        }
+        if (A.* == .access) {
+            return types_match(A.symbol().?.init_value.?, B);
+        } else if (B.* == .access) {
+            return types_match(A, B.symbol().?.init_value.?);
         }
         if (B.* == .anyptr_type and A.* == .addr_of) {
             return true;

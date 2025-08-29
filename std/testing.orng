@@ -1,4 +1,4 @@
-fn expect(cond: Bool) -> Test_Result {
+fn expect(cond: Bool) -> core::Test_Result {
     if not cond {
         .err
     } else {

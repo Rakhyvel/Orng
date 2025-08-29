@@ -55,8 +55,8 @@ pub fn add(self: *Self, oldast_: *ast_.AST, allocator: std.mem.Allocator) ?*Depe
             return self.add(ast.annotation.type, allocator);
         },
         .addr_of => {
-            // return self.add(ast.expr(), allocator);
-            return null;
+            return self.add(ast.expr(), allocator);
+            // return null;
         },
         .identifier, .unit_type, .anyptr_type => {
             // Do not add to Dependency_Node
