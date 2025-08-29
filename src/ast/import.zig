@@ -186,7 +186,7 @@ fn resolve_import(self: Self, pattern_ast: *ast_.AST) walker_.Error!*Symbol {
                 } });
                 return error.CompileError;
             },
-            error.CompileError => {
+            error.CompileError, error.ParseError => {
                 // This is possible if the user does `import Int` or something
                 return error.CompileError;
             },

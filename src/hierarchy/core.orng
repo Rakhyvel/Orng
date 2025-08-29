@@ -107,3 +107,17 @@ impl for Package {
 }
 
 const Test_Result: Type = ()!()
+
+trait Allocator {
+    virtual fn alloc(&mut self, nbytes: Int) -> ?[*mut]Byte
+    virtual fn free(&mut self, allocation: [*]Byte) -> ()
+    virtual fn resize(&mut self, allocation: [*mut]Byte, newsize: Int) -> ?[*mut]Byte
+}
+
+trait Writer {
+    virtual fn write(&mut self, bytes: []Byte) -> ()
+}
+
+trait Reader {
+    virtual fn read(&mut self) -> [mut]Byte
+}

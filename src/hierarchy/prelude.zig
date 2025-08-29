@@ -381,7 +381,6 @@ fn create_prelude(compiler: *Compiler_Context) !void {
 
     var errors = errs_.Errors.init(compiler.allocator());
     defer errors.deinit();
-    errdefer errors.print_errors(errs_.get_std_err(), .{});
 
     var prelude_abs_path = String.init_with_contents(compiler.allocator(), "/prelude") catch unreachable;
     prelude_abs_path.writer().print("{c}prelude.orng", .{std.fs.path.sep}) catch unreachable;

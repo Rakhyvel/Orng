@@ -29,6 +29,7 @@ arena: std.heap.ArenaAllocator,
 
 /// List of errors found during compilation
 errors: errs_.Errors,
+stderr: ?std.fs.File.Writer,
 
 prelude: *Scope,
 
@@ -44,7 +45,7 @@ module_interned_strings: std.AutoArrayHashMap(u32, *Interned_String_Set),
 packages: std.StringArrayHashMap(*Package),
 
 /// Throws an error if the prelude could not be compiled
-pub fn init(alloc: std.mem.Allocator) Error!*Self {
+pub fn init(stderr: ?std.fs.File.Writer, alloc: std.mem.Allocator) Error!*Self {
     var retval: *Self = alloc.create(Self) catch unreachable;
     retval.arena = std.heap.ArenaAllocator.init(alloc);
 
@@ -54,17 +55,10 @@ pub fn init(alloc: std.mem.Allocator) Error!*Self {
     retval.modules = std.StringArrayHashMap(*Symbol).init(retval.allocator());
     retval.packages = std.StringArrayHashMap(*Package).init(retval.allocator());
     retval.core = null;
+    retval.stderr = stderr;
 
-    retval.prelude = prelude_.get_scope(retval) catch {
-        // Prelude compilation can sometimes fail :(
-        retval.errors.print_errors(errs_.get_std_err(), .{});
-        return error.CompileError;
-    };
-
-    retval.core = (core_.get_scope(retval) catch {
-        retval.errors.print_errors(errs_.get_std_err(), .{});
-        return error.CompileError;
-    });
+    retval.prelude = try prelude_.get_scope(retval);
+    retval.core = try core_.get_scope(retval);
 
     retval.register_package(core_.core_package_name, .static_library);
     const core_module_symbol = retval.lookup_module(retval.core.?.module.?.absolute_path).?;
@@ -74,6 +68,9 @@ pub fn init(alloc: std.mem.Allocator) Error!*Self {
 }
 
 pub fn deinit(self: *Self) void {
+    if (self.stderr) |stderr| {
+        self.errors.print_errors(stderr, .{});
+    }
     self.arena.deinit();
     self.arena.child_allocator.destroy(self);
 }
@@ -109,14 +106,12 @@ pub fn compile_module(
             error.ParseError,
             error.FileNotFound,
             => {
-                self.errors.print_errors(errs_.get_std_err(), .{});
                 return err;
             },
 
             // Only print these errors if NOT fuzz testing
             error.CompileError,
             => if (!fuzz_tokens) {
-                self.errors.print_errors(errs_.get_std_err(), .{});
                 return err;
             } else {
                 return err;

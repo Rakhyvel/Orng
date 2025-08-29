@@ -1138,7 +1138,7 @@ fn trait_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
 
 fn impl_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     const token = try self.expect(.impl);
-    const trait_ident: ?*ast_.AST = if (!self.peek_kind(.@"for")) ast_.AST.create_identifier(try self.expect(.identifier), self.allocator) else null;
+    const trait_ident: ?*ast_.AST = if (!self.peek_kind(.@"for")) (try self.arrow_expr()) else null;
     _ = try self.expect(.@"for");
     const _type = try self.arrow_expr();
     _ = try self.expect(.left_brace);

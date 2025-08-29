@@ -154,9 +154,9 @@ fn resolve_access_symbol(self: Self, lhs: *Symbol, rhs: *ast_.AST, scope: *Scope
     if (access_result.?.* == .decl) {
         std.debug.assert(access_result.?.decl.symbols.items.len > 0);
         return access_result.?.decl.symbols.items[0];
-    } else if (access_result.?.* == .method_decl or access_result.?.* == .fn_decl) {
+    } else if (access_result.?.* == .method_decl or access_result.?.* == .fn_decl or access_result.?.* == .trait) {
         return access_result.?.symbol().?;
     } else {
-        std.debug.panic("compiler error: type access isn't decl or method_decl, it's {s}", .{@tagName(access_result.?.*)});
+        std.debug.panic("compiler error: unsupported access symbol resolution for decl-like AST: {s}", .{@tagName(access_result.?.*)});
     }
 }

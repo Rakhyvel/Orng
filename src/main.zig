@@ -71,7 +71,7 @@ pub fn main() !void {
 
 fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {
     _ = args;
-    var compiler = try Compiler_Context.init(allocator);
+    var compiler = try Compiler_Context.init(errs_.get_std_err(), allocator);
     defer compiler.deinit();
     const package_abs_path = try construct_package_dag(compiler);
     compiler.propagate_include_directories(package_abs_path);
@@ -114,15 +114,13 @@ fn run(compiler: *Compiler_Context, package_abs_path: []const u8, allocator: std
     child.stderr_behavior = .Inherit;
 
     child.spawn() catch return error.CompileError;
-    const term = child.wait() catch return error.CompileError;
-    std.debug.print("exited: {}", .{term.Exited});
 }
 
 fn @"test"(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {
     _ = name;
     _ = args;
 
-    var compiler = try Compiler_Context.init(allocator);
+    var compiler = try Compiler_Context.init(errs_.get_std_err(), allocator);
     defer compiler.deinit();
     const package_abs_path = try construct_package_dag(compiler);
     compiler.set_package_kind(package_abs_path, .test_executable);
@@ -359,7 +357,7 @@ fn clean(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     _ = args;
 
     // TODO: Find the package's `build/` and just delete it
-    var compiler = try Compiler_Context.init(allocator);
+    var compiler = try Compiler_Context.init(errs_.get_std_err(), allocator);
     defer compiler.deinit();
     const package_abs_path = try construct_package_dag(compiler);
     compiler.clean_package(package_abs_path);
