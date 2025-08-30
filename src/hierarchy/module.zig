@@ -237,7 +237,7 @@ pub const Module = struct {
         try module.collect_impl_cfgs(compiler);
         try module.collect_tests(compiler);
         module.collect_trait_types(compiler.allocator());
-        module.collect_cfg_types(compiler.allocator());
+        module.collect_types(compiler.allocator());
     }
 
     fn add_all_cfgs(self: *Module, entry_name: ?[]const u8, compiler: *Compiler_Context) Module_Errors!void {
@@ -312,26 +312,10 @@ pub const Module = struct {
         }
     }
 
-    fn collect_cfg_types(self: *Module, allocator: std.mem.Allocator) void {
+    fn collect_types(self: *Module, allocator: std.mem.Allocator) void {
+        // For all cfgs in the module...
         for (self.cfgs.items) |cfg| {
-            // Add parameter types to type set
-            const decl = cfg.symbol.decl.?;
-            const param_symbols = decl.param_symbols();
-            if (param_symbols != null) {
-                for (param_symbols.?.items) |param| {
-                    _ = self.type_set.add(param.expanded_type.?, allocator);
-                }
-            }
-            _ = self.type_set.add(cfg.return_symbol.expanded_type.?, allocator);
-
-            for (cfg.basic_blocks.items) |bb| {
-                for (bb.instructions.items) |instr| {
-                    if (instr.dest != null) {
-                        _ = self.type_set.add(instr.dest.?.get_expanded_type(), allocator);
-                        _ = self.type_set.add(instr.dest.?.extract_symbver().symbol.expanded_type.?, allocator);
-                    }
-                }
-            }
+            cfg.collect_types(&self.type_set, allocator);
         }
     }
 

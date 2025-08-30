@@ -175,117 +175,146 @@ pub fn compile(self: *Package, packages: std.StringArrayHashMap(*Package), extra
     }
 }
 
+/// Compiles the C files to object files for this package's local modules and entry point
 fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !std.StringArrayHashMap(void) {
     var obj_files = std.StringArrayHashMap(void).init(allocator);
+
+    try self.compile_local_modules(&obj_files, packages, extra_flags, allocator);
+    try self.compile_entry_point(&obj_files, packages, extra_flags, allocator);
+
+    return obj_files;
+}
+
+/// Compiles the C files to object files for this package's local modules
+fn compile_local_modules(self: *Package, obj_files: *std.StringArrayHashMap(void), packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !void {
     for (self.local_modules.items) |local_module| {
         if (!std.mem.eql(u8, local_module.get_package_abs_path(), self.absolute_path)) {
             continue;
         }
 
-        // Append the o filename to the obj files list, even if this isn't compiled!
-        var o_file = String.init(allocator);
-        o_file.writer().print("{s}{c}build{c}{s}.o", .{
-            self.absolute_path,
-            std.fs.path.sep,
-            std.fs.path.sep,
-            local_module.name(),
-        }) catch unreachable;
-        obj_files.put(o_file.str(), void{}) catch unreachable;
-        local_module.modified = !file_exists(o_file.str()) or local_module.modified.?;
-
-        if (self.kind == .test_executable) {
-            var test_o_file = String.init(allocator);
-            test_o_file.writer().print("{s}{c}build{c}{s}-tests.o", .{
-                self.absolute_path,
-                std.fs.path.sep,
-                std.fs.path.sep,
-                local_module.name(),
-            }) catch unreachable;
-            obj_files.put(test_o_file.str(), void{}) catch unreachable;
-            local_module.modified = !file_exists(test_o_file.str()) or local_module.modified.?;
-        }
+        const o_file = self.add_module_obj_files(obj_files, local_module, allocator);
 
         if (!local_module.modified.?) {
             // No need to re-compile!
             continue;
         }
 
-        var c_file = String.init(allocator);
-        defer c_file.deinit();
-        c_file.writer().print("{s}{c}build{c}{s}-{s}.c", .{
+        try self.compile_module_sources(o_file, packages, local_module, extra_flags, allocator);
+    }
+}
+
+/// Appends the object files for a module to a set of object files
+fn add_module_obj_files(self: *Package, obj_files: *std.StringArrayHashMap(void), local_module: *Module, allocator: std.mem.Allocator) String {
+    // Append the o filename to the obj files list, even if this isn't compiled!
+    var o_file = String.init(allocator);
+    o_file.writer().print("{s}{c}build{c}{s}.o", .{
+        self.absolute_path,
+        std.fs.path.sep,
+        std.fs.path.sep,
+        local_module.name(),
+    }) catch unreachable;
+    obj_files.put(o_file.str(), void{}) catch unreachable;
+    local_module.modified = !file_exists(o_file.str()) or local_module.modified.?;
+
+    if (self.kind == .test_executable) {
+        var test_o_file = String.init(allocator);
+        test_o_file.writer().print("{s}{c}build{c}{s}-tests.o", .{
+            self.absolute_path,
+            std.fs.path.sep,
+            std.fs.path.sep,
+            local_module.name(),
+        }) catch unreachable;
+        obj_files.put(test_o_file.str(), void{}) catch unreachable;
+        local_module.modified = !file_exists(test_o_file.str()) or local_module.modified.?;
+    }
+    return o_file;
+}
+
+/// Compiles the sources for a module
+fn compile_module_sources(self: *Package, o_file: String, packages: std.StringArrayHashMap(*Package), local_module: *Module, extra_flags: bool, allocator: std.mem.Allocator) !void {
+    var c_file = String.init(allocator);
+    defer c_file.deinit();
+    c_file.writer().print("{s}{c}build{c}{s}-{s}.c", .{
+        self.absolute_path,
+        std.fs.path.sep,
+        std.fs.path.sep,
+        self.name,
+        local_module.name(),
+    }) catch unreachable;
+    try self.cc(c_file.str(), o_file.str(), packages, extra_flags, allocator);
+
+    if (self.kind == .test_executable) {
+        var test_c_file = String.init(allocator);
+        test_c_file.writer().print("{s}{c}build{c}{s}-{s}-tests.c", .{
             self.absolute_path,
             std.fs.path.sep,
             std.fs.path.sep,
             self.name,
             local_module.name(),
         }) catch unreachable;
-        try self.cc(c_file.str(), o_file.str(), packages, extra_flags, allocator);
 
-        if (self.kind == .test_executable) {
-            var test_c_file = String.init(allocator);
-            test_c_file.writer().print("{s}{c}build{c}{s}-{s}-tests.c", .{
-                self.absolute_path,
-                std.fs.path.sep,
-                std.fs.path.sep,
-                self.name,
-                local_module.name(),
-            }) catch unreachable;
+        var test_o_file = String.init(allocator);
+        test_o_file.writer().print("{s}-tests.o", .{local_module.name()}) catch unreachable;
 
-            var test_o_file = String.init(allocator);
-            test_o_file.writer().print("{s}-tests.o", .{local_module.name()}) catch unreachable;
+        try self.cc(test_c_file.str(), test_o_file.str(), packages, extra_flags, allocator);
+    }
+}
 
-            try self.cc(test_c_file.str(), test_o_file.str(), packages, extra_flags, allocator);
-        }
+/// Compiles the C file for this package's entry point
+fn compile_entry_point(self: *Package, obj_files: *std.StringArrayHashMap(void), packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !void {
+    if (!self.modified.?) {
+        return;
     }
 
-    // Include the entry point for executables
-    if (self.modified.?) {
-        switch (self.kind) {
-            .test_executable => {
-                var test_runner_o_file = String.init(allocator);
-                test_runner_o_file.writer().print("{s}{c}build{c}test-runner.o", .{
-                    self.absolute_path,
-                    std.fs.path.sep,
-                    std.fs.path.sep,
-                }) catch unreachable;
-                obj_files.put(test_runner_o_file.str(), void{}) catch unreachable;
-
-                if (!file_exists(test_runner_o_file.str())) {
-                    var c_file = String.init(allocator);
-                    c_file.writer().print("{s}{c}build{c}test-runner.c", .{
-                        self.absolute_path,
-                        std.fs.path.sep,
-                        std.fs.path.sep,
-                    }) catch unreachable;
-
-                    try self.cc(c_file.str(), test_runner_o_file.str(), packages, extra_flags, allocator);
-                }
-            },
-            .executable => {
-                var start_o_file = String.init(allocator);
-                start_o_file.writer().print("{s}{c}build{c}start.o", .{
-                    self.absolute_path,
-                    std.fs.path.sep,
-                    std.fs.path.sep,
-                }) catch unreachable;
-                obj_files.put(start_o_file.str(), void{}) catch unreachable;
-
-                if (!file_exists(start_o_file.str())) {
-                    var c_file = String.init(allocator);
-                    c_file.writer().print("{s}{c}build{c}start.c", .{
-                        self.absolute_path,
-                        std.fs.path.sep,
-                        std.fs.path.sep,
-                    }) catch unreachable;
-
-                    try self.cc(c_file.str(), start_o_file.str(), packages, extra_flags, allocator);
-                }
-            },
-            else => {},
-        }
+    switch (self.kind) {
+        .executable => try self.compile_executable_entry_point(obj_files, packages, extra_flags, allocator),
+        .test_executable => try self.compile_test_runner_entry_point(obj_files, packages, extra_flags, allocator),
+        else => {},
     }
+}
 
-    return obj_files;
+/// Compiles the `start` C file to an object file
+fn compile_executable_entry_point(self: *Package, obj_files: *std.StringArrayHashMap(void), packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !void {
+    var start_o_file = String.init(allocator);
+    start_o_file.writer().print("{s}{c}build{c}start.o", .{
+        self.absolute_path,
+        std.fs.path.sep,
+        std.fs.path.sep,
+    }) catch unreachable;
+    obj_files.put(start_o_file.str(), void{}) catch unreachable;
+
+    if (!file_exists(start_o_file.str())) {
+        var c_file = String.init(allocator);
+        c_file.writer().print("{s}{c}build{c}start.c", .{
+            self.absolute_path,
+            std.fs.path.sep,
+            std.fs.path.sep,
+        }) catch unreachable;
+
+        try self.cc(c_file.str(), start_o_file.str(), packages, extra_flags, allocator);
+    }
+}
+
+/// Compiles the test-runner C file to an object file
+fn compile_test_runner_entry_point(self: *Package, obj_files: *std.StringArrayHashMap(void), packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !void {
+    var test_runner_o_file = String.init(allocator);
+    test_runner_o_file.writer().print("{s}{c}build{c}test-runner.o", .{
+        self.absolute_path,
+        std.fs.path.sep,
+        std.fs.path.sep,
+    }) catch unreachable;
+    obj_files.put(test_runner_o_file.str(), void{}) catch unreachable;
+
+    if (!file_exists(test_runner_o_file.str())) {
+        var c_file = String.init(allocator);
+        c_file.writer().print("{s}{c}build{c}test-runner.c", .{
+            self.absolute_path,
+            std.fs.path.sep,
+            std.fs.path.sep,
+        }) catch unreachable;
+
+        try self.cc(c_file.str(), test_runner_o_file.str(), packages, extra_flags, allocator);
+    }
 }
 
 pub fn append_include_dir(self: *Package, packages: std.StringArrayHashMap(*Package), include_dirs: *std.StringArrayHashMap(void)) void {
@@ -574,6 +603,16 @@ fn append_requirement_link(
     const requirement_root_abs_path = requirement_root_module.get_package_abs_path();
     const required_package = packages.get(requirement_root_abs_path).?;
 
+    try self.append_library_dirs(cmd, required_package, allocator);
+    try self.append_library_flags(cmd, required_package, allocator);
+}
+
+fn append_library_dirs(
+    self: *Package,
+    cmd: *std.ArrayList([]const u8),
+    required_package: *Package,
+    allocator: std.mem.Allocator,
+) !void {
     var requirement_library_path = String.init(allocator);
     requirement_library_path.writer().print("{s}{c}build", .{ required_package.root.init_value.?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
     cmd.append("-L") catch unreachable;
@@ -583,7 +622,14 @@ fn append_requirement_link(
         cmd.append("-L") catch unreachable;
         cmd.append(lib_dir) catch unreachable;
     }
+}
 
+fn append_library_flags(
+    self: *Package,
+    cmd: *std.ArrayList([]const u8),
+    required_package: *Package,
+    allocator: std.mem.Allocator,
+) !void {
     var requirement_library = String.init(allocator);
     requirement_library.writer().print("-l{s}", .{required_package.name}) catch unreachable;
     cmd.append(requirement_library.str()) catch unreachable;
