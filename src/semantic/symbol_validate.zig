@@ -122,9 +122,10 @@ fn validate_trait(trait: *Symbol, compiler: *Compiler_Context) Validate_Error_En
         }
 
         for (decl.method_decl._params.items) |param| {
-            _ = validate_AST(param.decl.type, prelude_.type_type, compiler);
+            param.decl.type = validate_AST(param.decl.type, prelude_.type_type, compiler);
         }
-        _ = validate_AST(decl.method_decl.ret_type, prelude_.type_type, compiler);
+        decl.method_decl.ret_type = validate_AST(decl.method_decl.ret_type, prelude_.type_type, compiler);
+        decl.method_decl.c_type = validate_AST(decl.method_decl.c_type.?, prelude_.type_type, compiler);
 
         if (decl.method_decl.is_virtual) {
             if (decl.method_decl.c_type.?.refers_to_self()) {
