@@ -474,21 +474,23 @@ pub fn info_from_name(name: []const u8) ?Primitive_Info {
 pub fn bounds_from_ast(_type: *ast_.AST) ?Bounds {
     // _type is expanded
     switch (_type.*) {
-        .identifier => {
-            const info = primitives.get(_type.token().data) orelse return null;
-            if (info.bounds == null) {
-                return null;
-            }
-            return switch (info.type_kind) {
-                .signed_integer => info.bounds.?,
-                .unsigned_integer => info.bounds.?,
-                .boolean => Bounds{ .lower = 0, .upper = 2 },
-                else => return null,
-            };
-        },
+        .identifier => return bounds_from_identifier(_type),
         .addr_of, .function => return Bounds{ .lower = 0, .upper = 0xFFFF_FFFF_FFFF_FFFF },
         else => return null,
     }
+}
+
+fn bounds_from_identifier(ident_type: *ast_.AST) ?Bounds {
+    const info = primitives.get(ident_type.token().data) orelse return null;
+    if (info.bounds == null) {
+        return null;
+    }
+    return switch (info.type_kind) {
+        .signed_integer => info.bounds.?,
+        .unsigned_integer => info.bounds.?,
+        .boolean => Bounds{ .lower = 0, .upper = 2 },
+        else => return null,
+    };
 }
 
 pub fn info_from_ast(expanded_type: *ast_.AST) ?Primitive_Info {
