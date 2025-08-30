@@ -1,6 +1,6 @@
-// args_named_few.orng:6:36: error: product takes 2 fields, 1 value given
+// args_named_few.orng:6:40: error: product takes 2 fields, 1 value given
 //     let x: (a: Int, b: Int) = (.a = 43,)
-//                                   ^
+//                                       ^
 // 
 fn main() -> Int {
     let x: (a: Int, b: Int) = (.a = 43,)

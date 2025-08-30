@@ -1,0 +1,8 @@
+// core_not_found.orng:6:51: error: member `Something_That_Doesnt_Exist` not in module `core::core`
+//     let x: Int = core::Something_That_Doesnt_Exist
+//                                                  ^
+// 
+fn main() -> Int {
+    let x: Int = core::Something_That_Doesnt_Exist
+    x
+}

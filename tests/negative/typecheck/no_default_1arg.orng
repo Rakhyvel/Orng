@@ -1,0 +1,11 @@
+// no_default_1arg.orng:6:7: error: function takes 1 parameter, 0 arguments given
+//     f()
+//      ^
+// 
+fn main() -> Int {
+    f()
+}
+
+fn f(x: Int) -> Int {
+    x
+}

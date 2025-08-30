@@ -125,30 +125,10 @@ fn resolve_access_module(self: Self, module_symbol: *Symbol, rhs: *ast_.AST) wal
 }
 
 /// Resolves a symbol access on an import symbol
+/// This is gauranteed to work, since the import-module symbol connection is setup by the compiler itself
 fn resolve_access_import(self: Self, import_symbol: *Symbol, rhs: *ast_.AST, scope: *Scope) walk_.Error!*Symbol {
-    const res = import_symbol.scope.parent.?.lookup(import_symbol.kind.import.real_name, .{ .allow_modules = true });
-    switch (res) {
-        // Found the symbol, decorate the identifier AST with it
-        .found => return try self.resolve_access_symbol(res.found, rhs, scope),
-
-        // Couldn't find the symbol
-        .not_found => {
-            self.errors.add_error(errs_.Error{ .undeclared_identifier = .{ .identifier = rhs.token(), .expected = null } });
-            return error.CompileError;
-        },
-
-        // Found the symbol, but must cross a comptime-boundary to access it, and it is not const
-        .found_but_rt => {
-            self.errors.add_error(errs_.Error{ .comptime_access_runtime = .{ .identifier = rhs.token() } });
-            return error.CompileError;
-        },
-
-        // Found the symbol, but must cross an inner-function boundary to access it, and it is not const
-        .found_but_fn => {
-            self.errors.add_error(errs_.Error{ .inner_fn_access_runtime = .{ .identifier = rhs.token() } });
-            return error.CompileError;
-        },
-    }
+    const referant_symbol = import_symbol.scope.parent.?.lookup(import_symbol.kind.import.real_name, .{ .allow_modules = true }).found;
+    return try self.resolve_access_symbol(referant_symbol, rhs, scope);
 }
 
 /// Resolves a symbol access on a constant symbol, likely a trait lookup

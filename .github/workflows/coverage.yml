@@ -60,7 +60,7 @@ jobs:
       run: |
         export ORNG_STD_PATH="$GITHUB_WORKSPACE/std"
         export ORNG_BUILTIN_PATH="$GITHUB_WORKSPACE/src/hierarchy/builtin.orng"
-        python tests/test.py modified
+        python tests/test.py all
         zig build orng
         cd examples
         kcov --include-path "$GITHUB_WORKSPACE/src" "$GITHUB_WORKSPACE/kcov-out" ../zig-out/bin/orng build

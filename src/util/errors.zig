@@ -437,7 +437,7 @@ pub const Error = union(enum) {
             },
             .duplicate => writer.print("duplicate item `{s}`\n", .{err.duplicate.identifier}) catch unreachable,
             .member_not_in => {
-                writer.print("member `{s}` not in {s}: `", .{ err.member_not_in.identifier, err.member_not_in.name }) catch unreachable;
+                writer.print("member `{s}` not in {s} `", .{ err.member_not_in.identifier, err.member_not_in.name }) catch unreachable;
                 err.member_not_in.group.print_type(writer) catch unreachable;
                 writer.print("`\n", .{}) catch unreachable;
             },

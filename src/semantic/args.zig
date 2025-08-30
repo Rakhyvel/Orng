@@ -36,17 +36,18 @@ pub const Validate_Args_Thing = enum {
 pub fn default_args(
     thing: Validate_Args_Thing,
     asts: std.ArrayList(*ast_.AST), // The args for a call, or the terms for a product
+    call_span: Span,
     expected: *ast_.AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Validate_Error_Enum!std.ArrayList(*ast_.AST) {
     if (try args_are_named(asts, errors) and expected.* != .unit_type) {
-        return named_args(thing, asts, expected, errors, allocator) catch |err| switch (err) {
+        return named_args(thing, asts, call_span, expected, errors, allocator) catch |err| switch (err) {
             error.NoDefault => error.CompileError,
             error.CompileError, error.ParseError, error.LexerError => error.CompileError,
         };
     } else {
-        return positional_args(thing, asts, expected, errors, allocator) catch |err| switch (err) {
+        return positional_args(thing, asts, call_span, expected, errors, allocator) catch |err| switch (err) {
             error.NoDefault => error.CompileError,
         };
     }
@@ -90,6 +91,7 @@ fn args_are_named(
 fn positional_args(
     thing: Validate_Args_Thing,
     asts: std.ArrayList(*ast_.AST),
+    call_span: Span,
     expected: *ast_.AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
@@ -111,9 +113,9 @@ fn positional_args(
             } else {
                 // empty args, no default init in parameter. No default possible!
                 errors.add_error(errs_.Error{ .mismatch_arity = .{
-                    .span = asts.items[0].token().span,
-                    .takes = 10000,
-                    .given = 10000,
+                    .span = call_span,
+                    .takes = 1,
+                    .given = 0,
                     .thing_name = thing.name(),
                     .takes_name = thing.takes_name(),
                     .given_name = thing.given_name(),
@@ -135,7 +137,7 @@ fn positional_args(
                         filled_args.append(term.annotation.init.?) catch unreachable;
                     } else {
                         errors.add_error(errs_.Error{ .mismatch_arity = .{
-                            .span = asts.items[0].token().span,
+                            .span = call_span,
                             .takes = expected.children().items.len,
                             .given = asts.items.len,
                             .thing_name = thing.name(),
@@ -168,6 +170,7 @@ fn positional_args(
 fn named_args(
     thing: Validate_Args_Thing,
     asts: std.ArrayList(*ast_.AST),
+    call_span: Span,
     expected: *ast_.AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
@@ -222,7 +225,7 @@ fn named_args(
                     } else {
                         // Value is not provided, and there is no default init, ERROR!
                         errors.add_error(errs_.Error{ .mismatch_arity = .{
-                            .span = asts.items[0].token().span,
+                            .span = call_span,
                             .takes = expected.children().items.len,
                             .given = arg_name_to_val_map.keys().len,
                             .thing_name = thing.name(),

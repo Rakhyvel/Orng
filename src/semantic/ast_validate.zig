@@ -352,7 +352,7 @@ fn validate_AST_internal(
             const domain = if (expanded_lhs_type.* == .function) expanded_lhs_type.lhs() else ast.lhs().sum_value.domain.?;
             const codomain = if (expanded_lhs_type.* == .function) expanded_lhs_type.rhs() else ast.lhs().sum_value.base.?;
             const variadic = expanded_lhs_type.* == .function and expanded_lhs_type.function.variadic;
-            ast.set_children(try args_.default_args(.function, ast.children().*, domain, &compiler.errors, compiler.allocator()));
+            ast.set_children(try args_.default_args(.function, ast.children().*, ast.token().span, domain, &compiler.errors, compiler.allocator()));
             try args_.validate_args_arity(.function, ast.children(), domain, variadic, ast.token().span, &compiler.errors);
             ast.set_children((try typing_.validate_args_type(ast.children(), domain, compiler)).*);
             try typing_.type_check(ast.token().span, codomain, expected, &compiler.errors);
@@ -513,7 +513,7 @@ fn validate_AST_internal(
                     ast.children().insert(0, addr_of) catch unreachable; // prepend lhs to children as a receiver
                 }
             }
-            ast.set_children(try args_.default_args(.method, ast.children().*, domain, &compiler.errors, compiler.allocator()));
+            ast.set_children(try args_.default_args(.method, ast.children().*, ast.token().span, domain, &compiler.errors, compiler.allocator()));
             try args_.validate_args_arity(.method, ast.children(), domain, false, ast.token().span, &compiler.errors);
             ast.set_children((try typing_.validate_args_type(ast.children(), domain, compiler)).*);
 
@@ -585,7 +585,7 @@ fn validate_AST_internal(
             } else if (expanded_expected != null and expanded_expected.?.* == .product) {
                 // Expecting ast to be a product value of some product type
                 _ = ast.assert_ast_valid();
-                ast.set_children(try args_.default_args(.product, ast.children().*, expanded_expected.?, &compiler.errors, compiler.allocator()));
+                ast.set_children(try args_.default_args(.product, ast.children().*, ast.token().span, expanded_expected.?, &compiler.errors, compiler.allocator()));
                 try args_.validate_args_arity(.product, ast.children(), expanded_expected.?, false, ast.token().span, &compiler.errors);
                 ast.set_children((try typing_.validate_args_type(ast.children(), expanded_expected.?, compiler)).*);
                 ast.common()._type = expected.?;
