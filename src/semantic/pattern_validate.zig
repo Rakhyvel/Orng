@@ -22,7 +22,7 @@ pub fn assert_pattern_matches(
         .unit_value => try typing_.type_check(pattern.token().span, prelude_.unit_type, expr_type, &compiler.errors),
         .int => try typing_.type_check_int(pattern, expr_type, &compiler.errors, compiler.allocator()),
         .char => try typing_.type_check(pattern.token().span, prelude_.char_type, expr_type, &compiler.errors),
-        .string => try typing_.type_check(pattern.token().span, prelude_.string_type, expr_type, &compiler.errors),
+        .string => try typing_.type_check(pattern.token().span, prelude_.string_type, expr_type, &compiler.errors), // TODO: Has to wait until we can match on slices
         .float => try typing_.type_check_float(pattern, expr_type, &compiler.errors),
         .true, .false => try typing_.type_check(pattern.token().span, prelude_.bool_type, expr_type, &compiler.errors),
         .block => {

@@ -522,19 +522,13 @@ fn link_executable(self: *Package, obj_files: std.StringArrayHashMap(void), pack
             .Exited => |c| {
                 retcode = c;
             },
-            .Signal => |c| switch (c) {
-                11 => return error.CompileError,
-                else => return error.CompileError,
-            },
             else => {
-                std.debug.print("{s}\n", .{run_res.stderr});
-                return error.CompileError;
+                std.debug.panic("{s}\n", .{run_res.stderr});
             },
         }
 
         if (retcode != 0) {
-            std.debug.print("err:{s}\n", .{run_res.stderr});
-            return error.CompileError;
+            std.debug.panic("err:{s}\n", .{run_res.stderr});
         }
     }
 }

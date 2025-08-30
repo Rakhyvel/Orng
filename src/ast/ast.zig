@@ -2773,14 +2773,9 @@ pub const AST = union(enum) {
                 var expr_type = self.expr().typeof(allocator);
                 if (expr_type.* != .product or !expr_type.product.is_homotypical()) {
                     return poison_.poisoned;
-                } else {
-                    var child_type = expr_type.children().items[0];
-                    if (child_type.types_match(prelude_.type_type)) {
-                        return prelude_.type_type;
-                    } else {
-                        return create_slice_type(expr_type.children().items[0], self.slice_of.mut, allocator);
-                    }
                 }
+
+                return create_slice_type(expr_type.children().items[0], self.slice_of.mut, allocator);
             },
             .sub_slice => return self.sub_slice.super.typeof(allocator),
             .sum_value => return self.sum_value.base.?.expand_type(allocator),
