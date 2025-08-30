@@ -97,9 +97,17 @@ pub fn entry(self: *const Package) ?*CFG {
 }
 
 pub fn get_build_module(self: *const Package, compiler: *Compiler_Context) ?*Module {
-    const build_module_absolute_path = self.get_build_module_absolute_path(compiler.allocator());
-    const build_module_symbol = compiler.lookup_module(build_module_absolute_path) orelse return null;
+    const build_module_absolute_path: []const u8 = self.get_build_module_absolute_path(compiler.allocator());
+    const build_module_symbol: *Symbol = compiler.lookup_module(build_module_absolute_path) orelse return null;
     return build_module_symbol.init_value.?.module.module;
+}
+
+fn get_required_package(self: *Package, requirement_name: []const u8, packages: std.StringArrayHashMap(*Package)) *Package {
+    const requirement_root_module_symbol: ?*Symbol = self.requirements.get(requirement_name);
+    const requirement_root_module: *Module = requirement_root_module_symbol.?.init_value.?.module.module;
+    const requirement_root_abs_path: []const u8 = requirement_root_module.get_package_abs_path();
+    const required_package: *Package = packages.get(requirement_root_abs_path).?;
+    return required_package;
 }
 
 /// A package is modified if:
@@ -113,10 +121,7 @@ pub fn determine_if_modified(self: *Package, packages: std.StringArrayHashMap(*P
 
     // Check if any packages are modified
     for (self.requirements.keys()) |requirement_name| {
-        const requirement_root_module_symbol = self.requirements.get(requirement_name);
-        const requirement_root_module = requirement_root_module_symbol.?.init_value.?.module.module;
-        const requirement_root_abs_path = requirement_root_module.get_package_abs_path();
-        const required_package: *Package = packages.get(requirement_root_abs_path).?;
+        const required_package = self.get_required_package(requirement_name, packages);
         required_package.determine_if_modified(packages, compiler);
         self.modified = required_package.modified.? or self.modified.?;
     }
@@ -156,10 +161,7 @@ pub fn compile(self: *Package, packages: std.StringArrayHashMap(*Package), extra
     self.visited = true;
 
     for (self.requirements.keys()) |requirement_name| {
-        const requirement_root_module_symbol = self.requirements.get(requirement_name);
-        const requirement_root_module = requirement_root_module_symbol.?.init_value.?.module.module;
-        const requirement_root_abs_path = requirement_root_module.get_package_abs_path();
-        const required_package = packages.get(requirement_root_abs_path).?;
+        const required_package = self.get_required_package(requirement_name, packages);
         try required_package.compile(packages, extra_flags, allocator);
     }
 
@@ -319,10 +321,7 @@ fn compile_test_runner_entry_point(self: *Package, obj_files: *std.StringArrayHa
 
 pub fn append_include_dir(self: *Package, packages: std.StringArrayHashMap(*Package), include_dirs: *std.StringArrayHashMap(void)) void {
     for (self.requirements.keys()) |requirement_name| {
-        const requirement_root_module_symbol = self.requirements.get(requirement_name);
-        const requirement_root_module = requirement_root_module_symbol.?.init_value.?.module.module;
-        const requirement_root_abs_path = requirement_root_module.get_package_abs_path();
-        const required_package = packages.get(requirement_root_abs_path).?;
+        const required_package = self.get_required_package(requirement_name, packages);
         required_package.append_include_dir(packages, &self.include_directories);
     }
     for (self.include_directories.keys()) |dir| {
@@ -446,10 +445,7 @@ fn append_requirements_includes(
     allocator: std.mem.Allocator,
 ) void {
     for (self.requirements.keys()) |requirement_name| {
-        const requirement_root_module_symbol = self.requirements.get(requirement_name);
-        const requirement_root_module = requirement_root_module_symbol.?.init_value.?.module.module;
-        const requirement_root_abs_path = requirement_root_module.get_package_abs_path();
-        const required_package = packages.get(requirement_root_abs_path).?;
+        const required_package = self.get_required_package(requirement_name, packages);
 
         var requirement_include_path = String.init(allocator);
         requirement_include_path.writer().print("-I{s}{c}build", .{ required_package.root.init_value.?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
@@ -598,10 +594,7 @@ fn append_requirement_link(
     requirement_name: []const u8,
     allocator: std.mem.Allocator,
 ) void {
-    const requirement_root_module_symbol = self.requirements.get(requirement_name);
-    const requirement_root_module = requirement_root_module_symbol.?.init_value.?.module.module;
-    const requirement_root_abs_path = requirement_root_module.get_package_abs_path();
-    const required_package = packages.get(requirement_root_abs_path).?;
+    const required_package = self.get_required_package(requirement_name, packages);
 
     try self.append_library_dirs(cmd, required_package, allocator);
     try self.append_library_flags(cmd, required_package, allocator);

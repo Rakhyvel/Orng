@@ -109,6 +109,7 @@ fn type_is_type_type_atom(ast: *ast_.AST) bool {
 fn validate_trait(trait: *Symbol, compiler: *Compiler_Context) Validate_Error_Enum!void {
     var names = std.StringArrayHashMap(*ast_.AST).init(compiler.allocator());
     defer names.deinit();
+
     for (trait.decl.?.trait.method_decls.items) |decl| {
         if (names.get(decl.method_decl.name.token().data)) |other| {
             compiler.errors.add_error(errs_.Error{ .duplicate = .{

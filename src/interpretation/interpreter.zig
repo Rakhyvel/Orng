@@ -341,23 +341,7 @@ inline fn execute_instruction(self: *Self, instr: *Instruction, compiler: *Compi
 
             // Intercept method calls to builtin methods
             if (symbol.represents_method(core_.package_type, "find")) {
-                const arg: *lval_.L_Value = instr.data.lval_list.items[@as(usize, @intCast(0))];
-                const interned_strings = compiler.lookup_interned_string_set(self.modules.get(1).?.uid).?;
-                const src_ast = try self.extract_ast(try self.effective_address(arg), core_.package_source_type, instr.span, &compiler.module_interned_strings);
-                const current_module_path = (self.curr_module() catch unreachable).absolute_path;
-                if (builtin_.package_find(compiler, self, current_module_path, src_ast)) |package_info| {
-                    const adrs = package_info.package_adrs;
-                    // Store the directory of the package inside the package struct before returning
-                    const dir_string = interned_strings.add(package_info.package_dirname, self.modules.get(1).?.uid);
-                    const dir_offset = core_.package_type.product.get_offset_field("dir", self.allocator);
-                    self.memory.store(Interned_String_Set.String_Idx, adrs + dir_offset, dir_string);
-                    // Store the address of the package in the retval
-                    const ret_addr = try self.effective_address(instr.dest.?);
-                    self.memory.store_int(ret_addr, 8, adrs);
-                } else |_| {
-                    return self.interpreter_panic("interpreter error: cannot find package\n", .{});
-                }
-                return;
+                return self.package_find(instr, compiler);
             }
 
             try self.call(symbol, instr.dest.?, instr.data.lval_list);
@@ -380,6 +364,26 @@ inline fn execute_instruction(self: *Self, instr: *Instruction, compiler: *Compi
         },
         else => std.debug.panic("interpreter error: interpreter.zig::interpret(): Unimplemented Instruction for {s}\n", .{@tagName(instr.kind)}),
     }
+}
+
+fn package_find(self: *Self, instr: *Instruction, compiler: *Compiler_Context) !void {
+    const arg: *lval_.L_Value = instr.data.lval_list.items[@as(usize, @intCast(0))];
+    const interned_strings = compiler.lookup_interned_string_set(self.modules.get(1).?.uid).?;
+    const src_ast = try self.extract_ast(try self.effective_address(arg), core_.package_source_type, instr.span, &compiler.module_interned_strings);
+    const current_module_path = (self.curr_module() catch unreachable).absolute_path;
+    if (builtin_.package_find(compiler, self, current_module_path, src_ast)) |package_info| {
+        const adrs = package_info.package_adrs;
+        // Store the directory of the package inside the package struct before returning
+        const dir_string = interned_strings.add(package_info.package_dirname, self.modules.get(1).?.uid);
+        const dir_offset = core_.package_type.product.get_offset_field("dir", self.allocator);
+        self.memory.store(Interned_String_Set.String_Idx, adrs + dir_offset, dir_string);
+        // Store the address of the package in the retval
+        const ret_addr = try self.effective_address(instr.dest.?);
+        self.memory.store_int(ret_addr, 8, adrs);
+    } else |_| {
+        return self.interpreter_panic("interpreter error: cannot find package\n", .{});
+    }
+    return;
 }
 
 pub fn load_module(self: *Self, module: *module_.Module) void {
@@ -455,113 +459,16 @@ pub fn extract_ast(self: *Self, address: i64, _type: *ast_.AST, span: Span, modu
     // FIXME: High Cyclo
     std.debug.assert(address >= 0);
     switch (_type.*) {
-        .identifier => {
-            const info = prelude_.info_from_name(_type.token().data);
-            if (info == null) {
-                return try self.extract_ast(address, _type.symbol().?.init_value.?, span, module_interned_strings);
-            }
-            switch (info.?.type_kind) {
-                .type => {
-                    const stack_value = self.memory.load_unsigned_int(address, 8);
-                    if (stack_value == 0xAAAAAAAAAAAAAAAA) { // NOTE: This only works if the interpreter never overwrites this address...
-                        return prelude_.unit_type;
-                    } else {
-                        return @ptrFromInt(stack_value);
-                    }
-                },
-                .string => {
-                    const idx = self.memory.load(Interned_String_Set.String_Idx, address);
-                    const interned_strings = module_interned_strings.get(idx.module_uid);
-                    std.debug.assert(idx.module_uid == interned_strings.?.uid);
-                    const string = interned_strings.?.items()[idx.string_idx];
-                    return ast_.AST.create_string(Token.init_simple("\""), string, self.allocator);
-                },
-                .none => unreachable,
-                .boolean => {
-                    const val = self.memory.load_int(address, info.?.size);
-                    if (val == 0) {
-                        return ast_.AST.create_false(Token.init_simple("false"), self.allocator).assert_ast_valid();
-                    } else {
-                        return ast_.AST.create_true(Token.init_simple("true"), self.allocator).assert_ast_valid();
-                    }
-                },
-                .signed_integer => {
-                    const retval = ast_.AST.create_int(
-                        Token.init_simple("signed int"),
-                        self.memory.load_int(address, info.?.size),
-                        self.allocator,
-                    ).assert_ast_valid();
-                    retval.set_represents(_type);
-                    return retval;
-                },
-                .unsigned_integer => {
-                    const retval = ast_.AST.create_int(
-                        Token.init_simple("unsigned int"),
-                        self.memory.load_int(address, info.?.size),
-                        self.allocator,
-                    ).assert_ast_valid();
-                    retval.set_represents(_type);
-                    return retval;
-                },
-                .floating_point => {
-                    const retval = ast_.AST.create_float(
-                        Token.init_simple("float"),
-                        self.memory.load_float(address, info.?.size),
-                        self.allocator,
-                    ).assert_ast_valid();
-                    retval.set_represents(_type);
-                    return retval;
-                },
-            }
-        },
+        .identifier => return self.extract_identifier(address, _type, span, module_interned_strings),
         .addr_of => return ast_.AST.create_int(
             Token.init_simple("unsigned int"),
             self.memory.load_int(address, 8),
             self.allocator,
         ).assert_ast_valid(),
-        .function => {
-            const stack_value = @as(usize, @intCast(self.memory.load_int(address, 8)));
-            if (stack_value == 0) {
-                return prelude_.void_type;
-            } else {
-                const symbol: *Symbol = @ptrFromInt(stack_value);
-                const ast = ast_.AST.create_pattern_symbol(
-                    Token.init_simple("function"),
-                    .@"fn",
-                    symbol.name,
-                    self.allocator,
-                );
-                ast.set_symbol(symbol);
-                return ast.assert_ast_valid();
-            }
-        },
+        .function => return self.extract_function(address),
         .unit_type => return ast_.AST.create_unit_value(_type.token(), self.allocator).assert_ast_valid(),
-        .sum_type => {
-            // self.print_memory(@intCast(address), @intCast(address + _type.sizeof()));
-            var retval = ast_.AST.create_sum_value(_type.token(), self.allocator).assert_ast_valid();
-            const tag = self.memory.load_int(address + _type.sizeof() - 8, 8);
-            retval.set_pos(@as(usize, @intCast(tag)));
-            retval.sum_value.base = _type;
-            const proper_term: *ast_.AST = _type.children().items[@as(usize, @intCast(tag))];
-            retval.sum_value.init = try self.extract_ast(address, proper_term, span, module_interned_strings);
-            return retval;
-        },
-        .product => {
-            if (_type.types_match(prelude_.string_type)) {
-                return self.extract_ast(address, prelude_.string_type, span, module_interned_strings);
-            }
-            var value_terms = std.ArrayList(*ast_.AST).init(self.allocator);
-            errdefer value_terms.deinit();
-            for (0.., _type.children().items) |i, term| {
-                // std.debug.print("term:{}\n", .{i});
-                const offset = _type.product.get_offset(i, self.allocator);
-                // std.debug.print("offset:{}\n", .{offset});
-                const extracted_term = try self.extract_ast(address + offset, term, span, module_interned_strings);
-                // std.debug.print("extracted_term:{}\n", .{extracted_term});
-                value_terms.append(extracted_term) catch unreachable;
-            }
-            return ast_.AST.create_product(_type.token(), value_terms, self.allocator).assert_ast_valid();
-        },
+        .sum_type => return self.extract_sum_type(address, _type, span, module_interned_strings),
+        .product => return self.extract_product_type(address, _type, span, module_interned_strings),
         .untagged_sum_type => {
             self.errors.add_error(errs_.Error{ .basic = .{
                 .span = span,
@@ -572,6 +479,111 @@ pub fn extract_ast(self: *Self, address: i64, _type: *ast_.AST, span: Span, modu
         .annotation => return try self.extract_ast(address, _type.annotation.type, span, module_interned_strings),
         else => std.debug.panic("interpreter error: unimplemented extract_ast() for: AST.{s}\n", .{@tagName(_type.*)}),
     }
+}
+
+fn extract_identifier(self: *Self, address: i64, identifier_type: *ast_.AST, span: Span, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set)) Error!*ast_.AST {
+    const info = prelude_.info_from_name(identifier_type.token().data);
+    if (info == null) {
+        return try self.extract_ast(address, identifier_type.symbol().?.init_value.?, span, module_interned_strings);
+    }
+    switch (info.?.type_kind) {
+        .type => {
+            const stack_value = self.memory.load_unsigned_int(address, 8);
+            if (stack_value == 0xAAAAAAAAAAAAAAAA) { // NOTE: This only works if the interpreter never overwrites this address...
+                return prelude_.unit_type;
+            } else {
+                return @ptrFromInt(stack_value);
+            }
+        },
+        .string => {
+            const idx = self.memory.load(Interned_String_Set.String_Idx, address);
+            const interned_strings = module_interned_strings.get(idx.module_uid);
+            std.debug.assert(idx.module_uid == interned_strings.?.uid);
+            const string = interned_strings.?.items()[idx.string_idx];
+            return ast_.AST.create_string(Token.init_simple("\""), string, self.allocator);
+        },
+        .none => unreachable,
+        .boolean => {
+            const val = self.memory.load_int(address, info.?.size);
+            if (val == 0) {
+                return ast_.AST.create_false(Token.init_simple("false"), self.allocator).assert_ast_valid();
+            } else {
+                return ast_.AST.create_true(Token.init_simple("true"), self.allocator).assert_ast_valid();
+            }
+        },
+        .signed_integer => {
+            const retval = ast_.AST.create_int(
+                Token.init_simple("signed int"),
+                self.memory.load_int(address, info.?.size),
+                self.allocator,
+            ).assert_ast_valid();
+            retval.set_represents(identifier_type);
+            return retval;
+        },
+        .unsigned_integer => {
+            const retval = ast_.AST.create_int(
+                Token.init_simple("unsigned int"),
+                self.memory.load_int(address, info.?.size),
+                self.allocator,
+            ).assert_ast_valid();
+            retval.set_represents(identifier_type);
+            return retval;
+        },
+        .floating_point => {
+            const retval = ast_.AST.create_float(
+                Token.init_simple("float"),
+                self.memory.load_float(address, info.?.size),
+                self.allocator,
+            ).assert_ast_valid();
+            retval.set_represents(identifier_type);
+            return retval;
+        },
+    }
+}
+
+fn extract_function(self: *Self, address: i64) Error!*ast_.AST {
+    const stack_value = @as(usize, @intCast(self.memory.load_int(address, 8)));
+    if (stack_value == 0) {
+        return prelude_.void_type;
+    } else {
+        const symbol: *Symbol = @ptrFromInt(stack_value);
+        const ast = ast_.AST.create_pattern_symbol(
+            Token.init_simple("function"),
+            .@"fn",
+            symbol.name,
+            self.allocator,
+        );
+        ast.set_symbol(symbol);
+        return ast.assert_ast_valid();
+    }
+}
+
+fn extract_sum_type(self: *Self, address: i64, sum_type: *ast_.AST, span: Span, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set)) Error!*ast_.AST {
+    // self.print_memory(@intCast(address), @intCast(address + _type.sizeof()));
+    var retval = ast_.AST.create_sum_value(sum_type.token(), self.allocator).assert_ast_valid();
+    const tag = self.memory.load_int(address + sum_type.sizeof() - 8, 8);
+    retval.set_pos(@as(usize, @intCast(tag)));
+    retval.sum_value.base = sum_type;
+    const proper_term: *ast_.AST = sum_type.children().items[@as(usize, @intCast(tag))];
+    retval.sum_value.init = try self.extract_ast(address, proper_term, span, module_interned_strings);
+    return retval;
+}
+
+fn extract_product_type(self: *Self, address: i64, product_type: *ast_.AST, span: Span, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set)) Error!*ast_.AST {
+    if (product_type.types_match(prelude_.string_type)) {
+        return self.extract_ast(address, prelude_.string_type, span, module_interned_strings);
+    }
+    var value_terms = std.ArrayList(*ast_.AST).init(self.allocator);
+    errdefer value_terms.deinit();
+    for (0.., product_type.children().items) |i, term| {
+        // std.debug.print("term:{}\n", .{i});
+        const offset = product_type.product.get_offset(i, self.allocator);
+        // std.debug.print("offset:{}\n", .{offset});
+        const extracted_term = try self.extract_ast(address + offset, term, span, module_interned_strings);
+        // std.debug.print("extracted_term:{}\n", .{extracted_term});
+        value_terms.append(extracted_term) catch unreachable;
+    }
+    return ast_.AST.create_product(product_type.token(), value_terms, self.allocator).assert_ast_valid();
 }
 
 /// Prints the values of the interpreter's registers

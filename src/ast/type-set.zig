@@ -24,13 +24,15 @@ pub fn add(self: *Self, oldast_: *ast_.AST, allocator: std.mem.Allocator) ?*Depe
         // Type is already in the set, return Dependency_Node entry for it
         return dag;
     }
+
+    // Type wasn't in the set, so we'll need to create a Dependency_Node for it and its children
     switch (ast.*) {
         .function => return self.add_function(ast, allocator),
         .product, .sum_type, .untagged_sum_type => return self.add_aggregate(ast, allocator),
-        .dyn_type => return self.add_dyn_type(ast, allocator),
+        .dyn_type => return self.add_dependency_node(ast, allocator),
         .annotation => return self.add(ast.annotation.type, allocator),
         .addr_of => {
-            _ = self.add(ast.expr(), allocator);
+            _ = self.add(ast.expr(), allocator); // Add child to set, but do not create a node for addrs
             return null;
         },
         .identifier, .unit_type, .anyptr_type => return null, // Do not add to Dependency_Node
@@ -40,8 +42,7 @@ pub fn add(self: *Self, oldast_: *ast_.AST, allocator: std.mem.Allocator) ?*Depe
 
 /// Adds a function type to the type set
 fn add_function(self: *Self, function_type_ast: *ast_.AST, allocator: std.mem.Allocator) ?*Dependency_Node {
-    var dag = Dependency_Node.init(function_type_ast, self.types.items.len, allocator);
-    self.types.append(dag) catch unreachable;
+    var dag = self.add_dependency_node(function_type_ast, allocator);
     if (self.add(function_type_ast.lhs(), allocator)) |domain| {
         dag.add_dependency(domain);
     }
@@ -53,21 +54,13 @@ fn add_function(self: *Self, function_type_ast: *ast_.AST, allocator: std.mem.Al
 
 /// Adds an aggregate type (product, sum) to the type set
 fn add_aggregate(self: *Self, aggregate_ast: *ast_.AST, allocator: std.mem.Allocator) ?*Dependency_Node {
-    var dag = Dependency_Node.init(aggregate_ast, self.types.items.len, allocator);
-    self.types.append(dag) catch unreachable;
+    var dag = self.add_dependency_node(aggregate_ast, allocator);
     for (aggregate_ast.children().items) |term| {
         if (self.add(term, allocator)) |dependency| {
             if (term.* != .addr_of)
                 dag.add_dependency(dependency);
         }
     }
-    return dag;
-}
-
-/// Adds a dyn type to the type set
-fn add_dyn_type(self: *Self, dyn_type_ast: *ast_.AST, allocator: std.mem.Allocator) ?*Dependency_Node {
-    const dag = Dependency_Node.init(dyn_type_ast, self.types.items.len, allocator);
-    self.types.append(dag) catch unreachable;
     return dag;
 }
 
@@ -87,4 +80,10 @@ pub fn print(self: *Self) void {
     for (self.types.items) |dag| {
         dag.print();
     }
+}
+
+fn add_dependency_node(self: *Self, ast: *ast_.AST, allocator: std.mem.Allocator) *Dependency_Node {
+    const dag = Dependency_Node.init(ast, self.types.items.len, allocator);
+    self.types.append(dag) catch unreachable;
+    return dag;
 }

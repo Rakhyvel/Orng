@@ -79,8 +79,9 @@ fn create_core(compiler: *Compiler_Context) !void {
         compiler,
     );
 
-    package_type = compiler.module_scope(module.absolute_path).?.lookup("Package", .{}).found.init_value.?;
-    package_source_type = compiler.module_scope(module.absolute_path).?.lookup("Package_Source", .{}).found.init_value.?;
-    test_result_type = compiler.module_scope(module.absolute_path).?.lookup("Test_Result", .{}).found.init_value.?;
-    _ = compiler.module_scope(module.absolute_path).?.lookup("Requirement", .{}).found.init_value.?;
+    const module_scope = compiler.module_scope(module.absolute_path).?;
+    package_type = module_scope.lookup("Package", .{}).found.init_value.?;
+    package_source_type = module_scope.lookup("Package_Source", .{}).found.init_value.?;
+    test_result_type = module_scope.lookup("Test_Result", .{}).found.init_value.?;
+    _ = module_scope.lookup("Requirement", .{}).found.init_value.?;
 }
