@@ -165,20 +165,32 @@ fn create_anon_names(self: Self, terms: *std.ArrayList(*ast_.AST)) std.ArrayList
 /// necessary.
 fn resolve_import(self: Self, pattern_ast: *ast_.AST) walker_.Error!*Symbol {
     std.debug.assert(pattern_ast.* == .pattern_symbol and pattern_ast.pattern_symbol.kind == .import);
+    const import_name = pattern_ast.pattern_symbol.kind.import.real_name;
+    const import_file_path = self.build_import_path(import_name);
+
+    const import_symbol: *Symbol = try self.lookup_import_module(pattern_ast, import_name, import_file_path);
+
+    self.local_imported_modules.put(import_symbol.init_value.?.module.module, void{}) catch unreachable;
+    return import_symbol;
+}
+
+/// Constructs the absolute path of a hypothetical imported local module from the absolute path of this package and the import name
+fn build_import_path(self: Self, import_name: []const u8) []const u8 {
     var import_filename = String.init(self.compiler.allocator());
     defer import_filename.deinit();
-    const import_name = pattern_ast.pattern_symbol.kind.import.real_name;
     import_filename.writer().print("{s}.orng", .{import_name}) catch unreachable;
     const import_file_paths = [_][]const u8{ self.package_absolute_path, import_filename.str() };
-    const import_file_path = std.fs.path.join(self.compiler.allocator(), &import_file_paths) catch unreachable;
+    return std.fs.path.join(self.compiler.allocator(), &import_file_paths) catch unreachable;
+}
 
-    var import_symbol: *Symbol = undefined;
+/// Looks up an import by name, returning the module symbol for either a foreign package or local module
+fn lookup_import_module(self: Self, pattern_ast: *ast_.AST, import_name: []const u8, import_file_path: []const u8) walker_.Error!*Symbol {
     if (self.compiler.lookup_package(self.package_absolute_path) != null and self.compiler.lookup_package_root_module(self.package_absolute_path, import_name) != null) {
         // Foreign import of a package
-        import_symbol = self.compiler.lookup_package_root_module(self.package_absolute_path, import_name).?;
+        return self.compiler.lookup_package_root_module(self.package_absolute_path, import_name).?;
     } else {
         // Local import of a module
-        import_symbol = self.compiler.compile_module(import_file_path, null, false) catch |err| switch (err) {
+        return self.compiler.compile_module(import_file_path, null, false) catch |err| switch (err) {
             error.FileNotFound => {
                 self.compiler.errors.add_error(.{ .import_file_not_found = .{
                     .filename = import_name,
@@ -193,6 +205,4 @@ fn resolve_import(self: Self, pattern_ast: *ast_.AST) walker_.Error!*Symbol {
             else => std.debug.panic("compiler error: this shouldn't be reachable\n", .{}),
         };
     }
-    self.local_imported_modules.put(import_symbol.init_value.?.module.module, void{}) catch unreachable;
-    return import_symbol;
 }
