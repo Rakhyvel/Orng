@@ -9,7 +9,7 @@ const Emitter = @import("emitter.zig");
 const Interned_String_Set = @import("../ir/interned_string_set.zig");
 const Instruction = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
-const primitives_ = @import("../hierarchy/primitives.zig");
+const prelude_ = @import("../hierarchy/prelude.zig");
 const module_ = @import("../hierarchy/module.zig");
 const Span = @import("../util/span.zig");
 const String = @import("../zig-string/zig-string.zig").String;
@@ -134,7 +134,7 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
     var specifier: ?[]const u8 = null;
     switch (codomain.*) {
         .identifier => {
-            const info = primitives_.info_from_name(codomain.token().data).?;
+            const info = prelude_.info_from_name(codomain.token().data).?;
             specifier = switch (info.type_kind) {
                 .boolean, .signed_integer => "d",
                 .unsigned_integer => "u",
@@ -649,7 +649,7 @@ fn output_var_assign_cast(self: *Self, lval: *lval_.L_Value, _type: *ast_.AST) C
 fn output_operator(self: *Self, instr: *Instruction) CodeGen_Error!void {
     try self.output_var_assign(instr.dest.?);
     if (instr.kind.is_checked() and instr.dest.?.get_expanded_type().can_expanded_represent_int()) { // TODO: Check if checked operations are enabled, too
-        try self.writer.print("${s}_{s}(", .{ instr.kind.checked_name(), primitives_.info_from_ast(instr.dest.?.get_expanded_type()).?.c_name });
+        try self.writer.print("${s}_{s}(", .{ instr.kind.checked_name(), prelude_.info_from_ast(instr.dest.?.get_expanded_type()).?.c_name });
         try self.output_rvalue(instr.src1.?, instr.kind.precedence());
         try self.writer.print(", ", .{});
         if (instr.kind.arity() == .binop) {

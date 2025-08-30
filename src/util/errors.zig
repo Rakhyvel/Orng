@@ -351,10 +351,12 @@ pub const Error = union(enum) {
                 err.method_not_in_trait.method_name,
                 err.method_not_in_trait.trait_name,
             }) catch unreachable,
-            .method_not_in_impl => writer.print("missing implementation of method `{s}` from trait `{s}`\n", .{
-                err.method_not_in_impl.method_name,
-                err.method_not_in_impl.trait_name,
-            }) catch unreachable,
+            .method_not_in_impl => {
+                writer.print("missing implementation of method `{s}` from trait `{s}`\n", .{
+                    err.method_not_in_impl.method_name,
+                    err.method_not_in_impl.trait_name,
+                }) catch unreachable;
+            },
             .impl_receiver_mismatch => if (err.impl_receiver_mismatch.trait_receiver != null and err.impl_receiver_mismatch.impl_receiver != null) {
                 writer.print("trait `{s}` specifies receiver `{s}` for method `{s}`, got receiver `{s}`\n", .{
                     err.impl_receiver_mismatch.trait_name,
@@ -435,7 +437,7 @@ pub const Error = union(enum) {
             },
             .duplicate => writer.print("duplicate item `{s}`\n", .{err.duplicate.identifier}) catch unreachable,
             .member_not_in => {
-                writer.print("member `{s}` not in {s}: `", .{ err.member_not_in.identifier, err.member_not_in.name }) catch unreachable;
+                writer.print("member `{s}` not in {s} `", .{ err.member_not_in.identifier, err.member_not_in.name }) catch unreachable;
                 err.member_not_in.group.print_type(writer) catch unreachable;
                 writer.print("`\n", .{}) catch unreachable;
             },

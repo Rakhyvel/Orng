@@ -2,7 +2,7 @@ const std = @import("std");
 const AST = @import("../ast/ast.zig").AST;
 const CFG = @import("../ir/cfg.zig");
 const Module = @import("../hierarchy/module.zig").Module;
-const primitives_ = @import("../hierarchy/primitives.zig");
+const prelude_ = @import("../hierarchy/prelude.zig");
 const Dependency_Node = @import("../ast/dependency_node.zig");
 const Symbol = @import("../symbol/symbol.zig");
 
@@ -30,7 +30,10 @@ pub fn output_type(self: *Self, _type: *AST) CodeGen_Error!void {
         return;
     }
 
-    std.debug.assert(_type.common()._expanded_type == null or _type.common()._expanded_type.?.* != .@"comptime"); // comptime types should never last to C codegen
+    // if (_type.common()._expanded_type != null and _type.common()._expanded_type.?.* == .@"comptime") {
+    //     return try self.output_type(_type.common()._expanded_type.?.@"comptime".result.?);
+    // }
+    std.debug.assert(_type.common()._expanded_type == null or _type.common()._expanded_type.?.* != .@"comptime");
 
     if (_type.common()._expanded_type != null and _type.common()._expanded_type.?.sizeof() == 0) {
         // For zero-size types that are still required to be output, ie pointers to empty untagged unions, structs, or ()
@@ -42,7 +45,7 @@ pub fn output_type(self: *Self, _type: *AST) CodeGen_Error!void {
         .identifier => if (_type.common()._expanded_type != null and _type.common()._expanded_type.? != _type) {
             try self.output_type(_type.common()._expanded_type.?);
         } else {
-            try self.writer.print("{s}", .{primitives_.info_from_name(_type.token().data).?.c_name});
+            try self.writer.print("{s}", .{prelude_.info_from_name(_type.token().data).?.c_name});
         },
         .addr_of => {
             try self.output_type(_type.expr());

@@ -8,7 +8,7 @@ const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const Instruction = @import("../ir/instruction.zig");
 const pipeline_ = @import("../util/pipeline.zig");
-const primitives_ = @import("../hierarchy/primitives.zig");
+const prelude_ = @import("../hierarchy/prelude.zig");
 const Span = @import("../util/span.zig");
 const Scope = @import("../symbol/scope.zig");
 const String = @import("../zig-string/zig-string.zig").String;
@@ -139,12 +139,11 @@ pub const Module = struct {
         // Create the symbol for this module
         const module = Module.init(absolute_path, compiler.allocator());
         var file_root = Scope.init(compiler.prelude, &module.uid_gen, compiler.allocator());
-        file_root.module = module;
         const symbol = Symbol.init(
             compiler.prelude,
             module.name(),
             Span{ .col = 1, .line_number = 1, .filename = absolute_path, .line_text = "" },
-            primitives_.unit_type,
+            prelude_.unit_type,
             ast_.AST.create_module(
                 Token.init_simple(module.name()),
                 file_root,
@@ -158,7 +157,7 @@ pub const Module = struct {
         try compiler.prelude.put_symbol(symbol, &compiler.errors);
         file_root.module = module;
 
-        try fill_contents(absolute_path, entry_name, file_root, module, symbol, fuzz_tokens, compiler);
+        try fill_contents_from_file(absolute_path, entry_name, file_root, module, symbol, fuzz_tokens, compiler);
 
         return module;
     }
@@ -170,7 +169,22 @@ pub const Module = struct {
         return basename[0..i];
     }
 
+    fn fill_contents_from_file(
+        in_name: []const u8,
+        entry_name: ?[]const u8,
+        file_root: *Scope,
+        module: *Module,
+        module_symbol: *Symbol,
+        fuzz_tokens: bool,
+        compiler: *Compiler_Context,
+    ) Module_Errors!void {
+        const read_file = Read_File.init(compiler.allocator());
+        const contents = try read_file.run(in_name);
+        return fill_contents(contents, in_name, entry_name, file_root, module, module_symbol, fuzz_tokens, compiler);
+    }
+
     pub fn fill_contents(
+        contents: []const u8,
         in_name: []const u8,
         entry_name: ?[]const u8,
         file_root: *Scope,
@@ -182,9 +196,24 @@ pub const Module = struct {
         compiler.register_interned_string_set(module.uid);
         compiler.register_module(module.absolute_path, module_symbol);
 
+        if (compiler.core != null) {
+            // Can be null if you're compiling the core module itself!
+            module.local_imported_modules.put(compiler.core.?.module.?, void{}) catch unreachable;
+            const core_import_symbol = Symbol.init(
+                file_root,
+                "core",
+                Span{ .col = 1, .line_number = 1, .filename = "core", .line_text = "" },
+                prelude_.unit_type,
+                prelude_.unit_value,
+                null,
+                .{ .import = .{ .real_name = "core" } },
+                compiler.allocator(),
+            );
+            try file_root.put_symbol(core_import_symbol, &compiler.errors);
+        }
+
         // Setup and run the front-end pipeline
-        _ = try pipeline_.run(in_name, .{
-            Read_File.init(compiler.allocator()),
+        _ = try pipeline_.run(contents, .{
             Hash.init(&module.hash),
             Split_Lines.init(&compiler.errors, compiler.allocator()),
             Tokenize.init(in_name, &compiler.errors, fuzz_tokens, compiler.allocator()),
@@ -208,7 +237,7 @@ pub const Module = struct {
         try module.collect_impl_cfgs(compiler);
         try module.collect_tests(compiler);
         module.collect_trait_types(compiler.allocator());
-        module.collect_cfg_types(compiler.allocator());
+        module.collect_types(compiler.allocator());
     }
 
     fn add_all_cfgs(self: *Module, entry_name: ?[]const u8, compiler: *Compiler_Context) Module_Errors!void {
@@ -283,25 +312,10 @@ pub const Module = struct {
         }
     }
 
-    fn collect_cfg_types(self: *Module, allocator: std.mem.Allocator) void {
+    fn collect_types(self: *Module, allocator: std.mem.Allocator) void {
+        // For all cfgs in the module...
         for (self.cfgs.items) |cfg| {
-            // Add parameter types to type set
-            const decl = cfg.symbol.decl.?;
-            const param_symbols = decl.param_symbols();
-            if (param_symbols != null) {
-                for (param_symbols.?.items) |param| {
-                    _ = self.type_set.add(param.expanded_type.?, allocator);
-                }
-            }
-
-            for (cfg.basic_blocks.items) |bb| {
-                for (bb.instructions.items) |instr| {
-                    if (instr.dest != null) {
-                        _ = self.type_set.add(instr.dest.?.get_expanded_type(), allocator);
-                        _ = self.type_set.add(instr.dest.?.extract_symbver().symbol.expanded_type.?, allocator);
-                    }
-                }
-            }
+            cfg.collect_types(&self.type_set, allocator);
         }
     }
 
@@ -331,7 +345,8 @@ pub const Module = struct {
             return;
         }
 
-        const module_hashes = compiler.lookup_package(self.get_package_abs_path()).?.module_hash;
+        const package_abs_path = self.get_package_abs_path();
+        const module_hashes = compiler.lookup_package(package_abs_path).?.module_hash;
         const old_hash = module_hashes.get_module_stored_hash(self.name());
         const local_module_number_string = std.fmt.allocPrint(compiler.allocator(), "{X}", .{self.hash}) catch unreachable;
         defer compiler.allocator().free(local_module_number_string);

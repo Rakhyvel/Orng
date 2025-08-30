@@ -40,7 +40,7 @@ pub fn stamp(
         fn_decl.set_symbol(fn_symbol);
 
         const domain = Symbol_Tree.extract_domain(template_ast.template.decl.children().*, compiler.allocator());
-        args.* = try args_.default_args(args.*, domain, &compiler.errors, compiler.allocator());
+        args.* = try args_.default_args(.function, args.*, call_span, domain, &compiler.errors, compiler.allocator());
         _ = try args_.validate_args_arity(.function, args, domain, false, call_span, &compiler.errors);
 
         // Go through each comptime arg, evaluate it, and store it in a list along with it's position

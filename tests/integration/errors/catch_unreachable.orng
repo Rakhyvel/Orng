@@ -1,0 +1,8 @@
+// 361
+fn main() -> Int {
+    f() catch unreachable
+}
+
+fn f() -> ()!Int {
+    .ok(361)
+}

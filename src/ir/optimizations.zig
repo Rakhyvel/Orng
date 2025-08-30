@@ -4,6 +4,7 @@ const CFG = @import("../ir/cfg.zig");
 const errs_ = @import("../util/errors.zig");
 const Instruction = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
+const prelude_ = @import("../hierarchy/prelude.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Span = @import("../util/span.zig");
 const Symbol_Version = @import("symbol_version.zig");
@@ -152,6 +153,10 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
                 log("equal; self inequality");
                 try instr.convert_to_load(.load_int, .{ .int = 1 }, errors);
                 retval = true;
+            } else if (instr.src1.?.get_expanded_type().is_c_void_type() and instr.src2.?.get_expanded_type().is_c_void_type()) {
+                log("equal; known unit,unit value");
+                try instr.convert_to_load(.load_int, .{ .int = 1 }, errors);
+                retval = true;
             }
         },
 
@@ -167,6 +172,10 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
             } else if (instr.src1.?.* == .symbver and instr.src2.?.* == .symbver and instr.src1.?.symbver.symbol == instr.src2.?.symbver.symbol) {
                 // `x != x` => `false`
                 log("not_equal; self inequality");
+                try instr.convert_to_load(.load_int, .{ .int = 0 }, errors);
+                retval = true;
+            } else if (instr.src1.?.get_expanded_type().is_c_void_type() and instr.src2.?.get_expanded_type().is_c_void_type()) {
+                log("equal; known unit,unit value");
                 try instr.convert_to_load(.load_int, .{ .int = 0 }, errors);
                 retval = true;
             }

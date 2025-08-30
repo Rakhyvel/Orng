@@ -1,5 +1,3 @@
-import externs
-
 extern const putchar: Byte -> Int32
 
 fn print(s: String) -> () {

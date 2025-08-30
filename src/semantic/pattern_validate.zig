@@ -4,7 +4,7 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
-const primitives_ = @import("../hierarchy/primitives.zig");
+const prelude_ = @import("../hierarchy/prelude.zig");
 const Span = @import("../util/span.zig");
 const poison_ = @import("../ast/poison.zig");
 const validate_AST = @import("ast_validate.zig").validate_AST;
@@ -19,12 +19,12 @@ pub fn assert_pattern_matches(
     compiler: *Compiler_Context,
 ) Validate_Error_Enum!void {
     switch (pattern.*) {
-        .unit_value => try typing_.type_check(pattern.token().span, primitives_.unit_type, expr_type, &compiler.errors),
+        .unit_value => try typing_.type_check(pattern.token().span, prelude_.unit_type, expr_type, &compiler.errors),
         .int => try typing_.type_check_int(pattern, expr_type, &compiler.errors, compiler.allocator()),
-        .char => try typing_.type_check(pattern.token().span, primitives_.char_type, expr_type, &compiler.errors),
-        .string => try typing_.type_check(pattern.token().span, primitives_.string_type, expr_type, &compiler.errors),
+        .char => try typing_.type_check(pattern.token().span, prelude_.char_type, expr_type, &compiler.errors),
+        .string => try typing_.type_check(pattern.token().span, prelude_.string_type, expr_type, &compiler.errors), // TODO: Has to wait until we can match on slices
         .float => try typing_.type_check_float(pattern, expr_type, &compiler.errors),
-        .true, .false => try typing_.type_check(pattern.token().span, primitives_.bool_type, expr_type, &compiler.errors),
+        .true, .false => try typing_.type_check(pattern.token().span, prelude_.bool_type, expr_type, &compiler.errors),
         .block => {
             const new_pattern = validate_AST(pattern, expr_type, compiler);
             try poison_.assert_none_poisoned(new_pattern);

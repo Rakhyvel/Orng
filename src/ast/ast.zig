@@ -10,7 +10,7 @@ const std = @import("std");
 const module_ = @import("../hierarchy/module.zig");
 const alignment_ = @import("../util/alignment.zig");
 const poison_ = @import("poison.zig");
-const primitives_ = @import("../hierarchy/primitives.zig");
+const prelude_ = @import("../hierarchy/prelude.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
@@ -240,7 +240,7 @@ pub const AST = union(enum) {
             }
             var res = true;
             for (self._terms.items) |term| {
-                res = res and term.c_types_match(primitives_.unit_type);
+                res = res and term.c_types_match(prelude_.unit_type);
             }
             self.all_unit = res;
             return res;
@@ -546,7 +546,7 @@ pub const AST = union(enum) {
         return AST.box(AST{ .int = .{
             .common = _common,
             .data = data,
-            ._represents = primitives_.int_type,
+            ._represents = prelude_.int_type,
         } }, allocator);
     }
 
@@ -565,7 +565,7 @@ pub const AST = union(enum) {
         return AST.box(AST{ .float = .{
             .common = _common,
             .data = data,
-            ._represents = primitives_.float_type,
+            ._represents = prelude_.float_type,
         } }, allocator);
     }
 
@@ -2053,7 +2053,7 @@ pub const AST = union(enum) {
         term_types.append(AST.create_annotation(
             of.token(),
             AST.create_identifier(Token.init("length", null, "", "", 0, 0), allocator),
-            primitives_.int_type,
+            prelude_.int_type,
             null,
             null,
             allocator,
@@ -2106,7 +2106,7 @@ pub const AST = union(enum) {
         const none_type = AST.create_annotation(
             of_type.token(),
             AST.create_identifier(Token.init_simple("none"), allocator),
-            primitives_.unit_type,
+            prelude_.unit_type,
             null,
             AST.create_unit_value(Token.init_simple("none init"), allocator),
             allocator,
@@ -2276,7 +2276,7 @@ pub const AST = union(enum) {
     }
 
     /// Determines if an AST can structurally refer to a type. This is looser than if an AST value is Type typed, as
-    /// some ASTs that pass this check might fail `types_match(primitives_.type_type)`.
+    /// some ASTs that pass this check might fail `types_match(prelude_.type_type)`.
     ///
     /// The types_match() function assumes it's arguments pass this test.
     pub fn valid_type(_type: *AST) bool {
@@ -2540,6 +2540,11 @@ pub const AST = union(enum) {
                 try out.print(".", .{});
                 try self.select._rhs.print_type(out);
             },
+            .access => {
+                try self.access._lhs.print_type(out);
+                try out.print("::", .{});
+                try self.access._rhs.print_type(out);
+            },
             .field => try out.print("{s}", .{self.field.common._token.data}),
             .@"union" => {
                 try self.lhs().print_type(out);
@@ -2631,16 +2636,16 @@ pub const AST = union(enum) {
             .lesser,
             .greater_equal,
             .lesser_equal,
-            => return primitives_.bool_type,
+            => return prelude_.bool_type,
 
             // Char type
-            .char => return primitives_.char_type,
+            .char => return prelude_.char_type,
 
             // Int/Float constant type
             .int, .float => return self.represents(),
 
             // String type
-            .string => return primitives_.string_type,
+            .string => return prelude_.string_type,
 
             // Type type
             .anyptr_type,
@@ -2653,7 +2658,7 @@ pub const AST = union(enum) {
             .type_of,
             .array_of,
             .dyn_type,
-            => return primitives_.type_type,
+            => return prelude_.type_type,
 
             // Unit type
             .unit_value,
@@ -2664,14 +2669,14 @@ pub const AST = union(enum) {
             .template,
             .trait,
             .impl,
-            => return primitives_.unit_type,
+            => return prelude_.unit_type,
 
             // Void type
             .@"continue",
             .@"break",
             .@"return",
             .@"unreachable",
-            => return primitives_.void_type,
+            => return prelude_.void_type,
 
             // Binary operators
             .add,
@@ -2687,7 +2692,7 @@ pub const AST = union(enum) {
 
             .@"catch", .@"orelse" => {
                 const rhs_type = self.rhs().typeof(allocator);
-                if (rhs_type.types_match(primitives_.void_type)) {
+                if (rhs_type.types_match(prelude_.void_type)) {
                     return self.lhs().typeof(allocator).children().items[0].annotation.type;
                 } else {
                     return rhs_type;
@@ -2699,9 +2704,9 @@ pub const AST = union(enum) {
 
             .product => {
                 var first_type = self.children().items[0].typeof(allocator);
-                if (first_type.types_match(primitives_.type_type)) {
+                if (first_type.types_match(prelude_.type_type)) {
                     // typeof product type is Type
-                    return primitives_.type_type;
+                    return prelude_.type_type;
                 } else if (self.product.was_slice) {
                     var addr: *AST = self.children().items[0];
                     var retval = create_slice_type(addr.expr().typeof(allocator), addr.addr_of.mut, allocator);
@@ -2721,7 +2726,7 @@ pub const AST = union(enum) {
 
             .index => {
                 var lhs_type = self.lhs().typeof(allocator).expand_type(allocator);
-                if (lhs_type.types_match(primitives_.type_type) and self.lhs().* == .product) {
+                if (lhs_type.types_match(prelude_.type_type) and self.lhs().* == .product) {
                     return self.lhs().children().items[0];
                 } else if (lhs_type.* == .product) {
                     if (lhs_type.product.was_slice) {
@@ -2731,10 +2736,6 @@ pub const AST = union(enum) {
                     }
                 } else if (lhs_type.* == .addr_of and lhs_type.addr_of.multiptr) {
                     return lhs_type.expr();
-                } else if (lhs_type.* == .identifier and std.mem.eql(u8, lhs_type.token().data, "String")) {
-                    return primitives_.byte_type;
-                } else if (lhs_type.* == .poison) {
-                    return poison_.poisoned;
                 } else {
                     std.debug.panic("compiler error: {s} is not indexable", .{@tagName(lhs_type.*)});
                 }
@@ -2762,8 +2763,8 @@ pub const AST = union(enum) {
             },
             .addr_of => {
                 var child_type = self.expr().typeof(allocator);
-                if (child_type.types_match(primitives_.type_type)) {
-                    return primitives_.type_type;
+                if (child_type.types_match(prelude_.type_type)) {
+                    return prelude_.type_type;
                 } else {
                     return create_addr_of(self.token(), child_type, self.addr_of.mut, self.addr_of.multiptr, allocator);
                 }
@@ -2772,14 +2773,9 @@ pub const AST = union(enum) {
                 var expr_type = self.expr().typeof(allocator);
                 if (expr_type.* != .product or !expr_type.product.is_homotypical()) {
                     return poison_.poisoned;
-                } else {
-                    var child_type = expr_type.children().items[0];
-                    if (child_type.types_match(primitives_.type_type)) {
-                        return primitives_.type_type;
-                    } else {
-                        return create_slice_type(expr_type.children().items[0], self.slice_of.mut, allocator);
-                    }
                 }
+
+                return create_slice_type(expr_type.children().items[0], self.slice_of.mut, allocator);
             },
             .sub_slice => return self.sub_slice.super.typeof(allocator),
             .sum_value => return self.sum_value.base.?.expand_type(allocator),
@@ -2789,9 +2785,11 @@ pub const AST = union(enum) {
             // Control-flow expressions
             .@"while", .@"if" => {
                 const body_type = self.body_block().typeof(allocator);
-                if (self.else_block() != null or
-                    primitives_.unit_type.types_match(body_type.expand_type(allocator)) or
-                    body_type.expand_type(allocator).types_match(primitives_.void_type))
+                if (body_type.is_ident_type("Void") and self.else_block() != null) {
+                    return self.else_block().?.typeof(allocator);
+                } else if (self.else_block() != null or
+                    prelude_.unit_type.types_match(body_type.expand_type(allocator)) or
+                    body_type.expand_type(allocator).types_match(prelude_.void_type))
                 {
                     return body_type;
                 } else {
@@ -2800,17 +2798,17 @@ pub const AST = union(enum) {
             },
             .match => {
                 for (self.children().items) |child| {
-                    const child_type = child.typeof(allocator);
-                    if (!(child_type.* == .identifier and std.mem.eql(u8, "Void", child_type.token().data))) {
+                    const child_type: *AST = child.typeof(allocator);
+                    if (!child_type.is_ident_type("Void")) {
                         return child_type;
                     }
                 }
-                return primitives_.void_type; // all arms are void
+                return prelude_.void_type; // all arms are void
             },
             .block => if (self.block.final) |_| {
-                return primitives_.void_type;
+                return prelude_.void_type;
             } else if (self.children().items.len == 0) {
-                return primitives_.unit_type;
+                return prelude_.unit_type;
             } else {
                 return self.children().items[self.children().items.len - 1].typeof(allocator);
             },
@@ -2845,7 +2843,7 @@ pub const AST = union(enum) {
                 } else if (self.symbol() != null and self.symbol().?.init_value == null and self.symbol().?.kind == .@"extern") {
                     return 4;
                 } else {
-                    return primitives_.info_from_name(self.token().data).?.size;
+                    return prelude_.info_from_name(self.token().data).?.size;
                 }
             },
 
@@ -2901,7 +2899,7 @@ pub const AST = union(enum) {
             .identifier => if (self.symbol() != null and self.symbol().?.init_value == null and self.symbol().?.kind == .@"extern") {
                 return 4;
             } else {
-                return primitives_.info_from_name(self.token().data).?._align;
+                return prelude_.info_from_name(self.token().data).?._align;
             },
 
             .product => {
@@ -2944,7 +2942,7 @@ pub const AST = union(enum) {
     /// - `Void <: T`
     /// - `let x: Void = y` is never type sound (there is no possible value `y` can be)
     /// - `let x: T = void_typed_expression` is always type-sound.
-    /// - `types_match(primitives_.void_type, T)` is always true
+    /// - `types_match(prelude_.void_type, T)` is always true
     ///
     /// Thus, we have the following type map:
     /// ```txt
@@ -2969,6 +2967,11 @@ pub const AST = union(enum) {
         } else if (B.* == .annotation) {
             return types_match(A, B.annotation.type);
         }
+        if (A.* == .access) {
+            return types_match(A.symbol().?.init_value.?, B);
+        } else if (B.* == .access) {
+            return types_match(A, B.symbol().?.init_value.?);
+        }
         if (B.* == .anyptr_type and A.* == .addr_of) {
             return true;
         }
@@ -2986,18 +2989,18 @@ pub const AST = union(enum) {
             // If only B is an identifier, and B isn't an atom type, dive
             return types_match(A, B.expand_identifier());
         }
-        if (A.* == .type_of and B.* == .identifier and std.mem.eql(u8, B.token().data, "Type")) {
+        if (A.* == .type_of and B.is_ident_type("Type")) {
             // @type_of(t) : $T -> Type
             return true;
         }
-        if (B.* == .type_of and A.* == .identifier and std.mem.eql(u8, A.token().data, "Type")) {
+        if (B.* == .type_of and A.is_ident_type("Type")) {
             // @type_of(t) : $T -> Type
             return true;
         }
         if (A.* == .poison or B.* == .poison) {
             return true; // Whatever
         }
-        if (A.* == .identifier and std.mem.eql(u8, "Void", A.token().data)) {
+        if (A.is_ident_type("Void")) {
             return true; // Bottom type - vacuously true
         }
         // std.debug.assert(A.common().validation_state == .valid);
@@ -3047,7 +3050,7 @@ pub const AST = union(enum) {
 
     /// Determines if an expanded AST type can represent a floating-point number value
     pub fn can_expanded_represent_int(self: *AST) bool {
-        const info = primitives_.info_from_ast(self) orelse return false;
+        const info = prelude_.info_from_ast(self) orelse return false;
         return info.type_kind == .signed_integer or info.type_kind == .unsigned_integer;
     }
 
@@ -3058,7 +3061,7 @@ pub const AST = union(enum) {
 
     /// Determines if an expanded AST type can represent a floating-point number value
     pub fn can_expanded_represent_float(self: *AST) bool {
-        const info = primitives_.info_from_ast(self) orelse return false;
+        const info = prelude_.info_from_ast(self) orelse return false;
         return info.type_kind == .floating_point;
     }
 
@@ -3082,7 +3085,7 @@ pub const AST = union(enum) {
         } else if (expanded.* != .identifier) {
             return false;
         }
-        return primitives_.info_from_ast(expanded).?.is_eq();
+        return prelude_.info_from_ast(expanded).?.is_eq();
     }
 
     /// Determines if an AST type has the operators `<` and `>` defined.
@@ -3095,7 +3098,7 @@ pub const AST = union(enum) {
         if (expanded.* != .identifier) {
             return false;
         }
-        return primitives_.info_from_ast(expanded).?.is_ord();
+        return prelude_.info_from_ast(expanded).?.is_ord();
     }
 
     /// Determines if an AST type has the operators `+`, `-`, `/` and `*` defined.
@@ -3108,7 +3111,7 @@ pub const AST = union(enum) {
         if (expanded.* != .identifier) {
             return false;
         }
-        return primitives_.info_from_ast(expanded).?.is_num();
+        return prelude_.info_from_ast(expanded).?.is_num();
     }
 
     /// Determines if an AST type has the operator `%` defined.
@@ -3121,7 +3124,7 @@ pub const AST = union(enum) {
         if (expanded.* != .identifier) {
             return false;
         }
-        return primitives_.info_from_ast(expanded).?.is_int();
+        return prelude_.info_from_ast(expanded).?.is_int();
     }
 
     pub fn is_bits_type(self: *AST) bool {
@@ -3132,7 +3135,7 @@ pub const AST = union(enum) {
         if (expanded.* != .identifier) {
             return false;
         }
-        return primitives_.info_from_ast(expanded).?.is_bits();
+        return prelude_.info_from_ast(expanded).?.is_bits();
     }
 
     /// Determines if an AST expression can be evaluated at compile-time without having to specify a `comptime`
@@ -3202,7 +3205,11 @@ pub const AST = union(enum) {
     }
 
     pub fn is_c_void_type(self: *AST) bool {
-        return primitives_.unit_type.c_types_match(self);
+        return prelude_.unit_type.c_types_match(self);
+    }
+
+    pub fn is_ident_type(self: *AST, name: []const u8) bool {
+        return self.* == .identifier and std.mem.eql(u8, self.token().data, name);
     }
 
     // TODO: Use Tree Writer, don't call writer print, recursively call pprint

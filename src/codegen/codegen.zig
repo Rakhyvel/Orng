@@ -1,9 +1,9 @@
 const std = @import("std");
+const core_ = @import("../hierarchy/core.zig");
 const Module_Iterator = @import("../util/dfs.zig").Dfs_Iterator(*Module);
 const String = @import("../zig-string/zig-string.zig").String;
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const Interned_String_Set = @import("../ir/interned_string_set.zig");
-const primitives_ = @import("../hierarchy/primitives.zig");
 const Module = @import("../hierarchy/module.zig").Module;
 const Header_Emitter = @import("header_emitter.zig");
 const Source_Emitter = @import("source_emitter.zig");
@@ -122,7 +122,7 @@ fn output_testrunner(modules: std.ArrayList(*Module), build_path: []const u8, al
         \\typedef 
     , .{}) catch return error.CompileError;
     var mod_0_emitter = Emitter.init(modules.items[0], testrunner_writer);
-    mod_0_emitter.output_type(primitives_.test_result_type) catch return error.CompileError;
+    mod_0_emitter.output_type(core_.test_result_type) catch return error.CompileError;
     testrunner_writer.print(
         \\ test_result;
         \\

@@ -1,12 +1,6 @@
-// args_named_not_annot.orng:13:9: error: expected an inferred member, got `[`
+// args_named_not_annot.orng:7:9: error: expected an named argument, got `[`
 //     f(y[2] = 5, y[2] = 5)
 //        ^
-// args_named_not_annot.orng:13:13: error: expected a value of type `Int`, got a value of type `()`
-//     f(y[2] = 5, y[2] = 5)
-//            ^
-// args_named_not_annot.orng:13:23: error: expected a value of type `Int`, got a value of type `()`
-//     f(y[2] = 5, y[2] = 5)
-//                      ^
 // 
 fn main() -> Int {
     let mut y: [2]Int

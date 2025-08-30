@@ -6,7 +6,7 @@ const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const module_ = @import("../hierarchy/module.zig");
 const poison_ = @import("../ast/poison.zig");
-const primitives_ = @import("../hierarchy/primitives.zig");
+const prelude_ = @import("../hierarchy/prelude.zig");
 const Span = @import("../util/span.zig");
 const validate_scope_ = @import("scope_validate.zig");
 
@@ -15,7 +15,7 @@ const Validate_Error_Enum = error{ LexerError, ParseError, CompileError };
 pub fn validate(module: *module_.Module, compiler: *Compiler_Context) Validate_Error_Enum!void {
     try validate_scope_.validate(compiler.module_scope(module.absolute_path).?, compiler);
     for (0..module.cincludes.items.len) |i| {
-        module.cincludes.items[i] = validate_AST(module.cincludes.items[i], primitives_.string_type, compiler);
+        module.cincludes.items[i] = validate_AST(module.cincludes.items[i], prelude_.string_type, compiler);
     }
     try poison_.assert_none_poisoned(module.cincludes.items);
     if (compiler.errors.errors_list.items.len > 0) {

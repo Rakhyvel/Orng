@@ -27,7 +27,9 @@ def calculate_congitive_complexities(file, maybe_fn=None):
     fns = [maybe_fn] if maybe_fn else parser.functions
     ratings = []
     for fn in fns:
-        (token_complexity, nodes) = calculate_token_cognitive_complexity(parser.functions[fn].tokens)
+        (token_complexity, nodes) = calculate_token_cognitive_complexity(
+            parser.functions[fn].tokens
+        )
         call_chain = longest_call_chain(parser.digraph(), fn)
         recursion_complexity = len(call_chain) if call_chain else 0
         total_complexity = token_complexity + recursion_complexity
@@ -37,13 +39,15 @@ def calculate_congitive_complexities(file, maybe_fn=None):
     ratings.sort(key=lambda t: -t[1][0])
     ratings = list(filter(lambda t: t[1][0] >= 15, ratings))
     if len(ratings) == 0:
-        print('All good!')
+        print("All good!")
     else:
         for rating in ratings:
             print(f"{rating[0]}: {rating[1][0]}")
             rating[1][1].sort(key=lambda t: (-t[1], t[0].line))
             for node in rating[1][1]:
-                print(f"  - {file}:{node[0].line} [{node[1]}]: {node[0].line_text.strip()}")
+                print(
+                    f"  - {file}:{node[0].line} [{node[1]}]: {node[0].line_text.strip()}"
+                )
             print(rating[1][2])
 
 
@@ -81,7 +85,7 @@ control_flow_tokens = [
     "break",
     "continue",
     "return",
-    "loop"
+    "loop",
 ]
 
 nesting_control_flow_tokens = ["if", "switch", "match", "for", "while", "catch", "loop"]

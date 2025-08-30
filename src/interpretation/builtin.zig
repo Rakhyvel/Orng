@@ -1,9 +1,9 @@
 const std = @import("std");
 const AST = @import("../ast/ast.zig").AST;
 const Compiler_Context = @import("../hierarchy/compiler.zig");
+const core_ = @import("../hierarchy/core.zig");
 const Interpreter_Context = @import("../interpretation/interpreter.zig");
 const lval_ = @import("../ir/lval.zig");
-const primitives_ = @import("../hierarchy/primitives.zig");
 const repo_ = @import("../util/repo.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 
@@ -37,7 +37,7 @@ pub fn package_find(compiler: *Compiler_Context, interpreter: *Interpreter_Conte
     interpreter.load_module(build_cfg.symbol.scope.module.?);
 
     // Allocate space for the package to be placed
-    const package_len: usize = @intCast(primitives_.package_type.sizeof());
+    const package_len: usize = @intCast(core_.package_type.sizeof());
     const adrs: i64 = @intCast(try interpreter.alloc(@intCast(package_len), 8));
     const retval_place = lval_.L_Value.create_raw_address_lval(adrs, compiler.allocator());
 
@@ -59,9 +59,9 @@ fn package_find_relative(current_module_path: []const u8, package_src: *AST, all
     return std.fs.cwd().realpath(required_package_path, package_buffer) catch return error.CompileError;
 }
 
-/// Implements `builtin::Package::find` for the git variant
+/// Implements `core::Package::find` for the git variant
 fn package_find_git(compiler: *Compiler_Context, package_src: *AST) Error![]const u8 {
-    const git_source_type = compiler.get_builtin_type("Git_Source");
+    const git_source_type = compiler.get_core_type("Git_Source");
     const url = package_src.get_field(git_source_type, "url");
     const subdir = package_src.get_field(git_source_type, "subdir");
 

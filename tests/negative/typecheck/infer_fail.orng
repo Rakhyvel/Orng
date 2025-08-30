@@ -1,4 +1,4 @@
-// infer_fail.orng:6:17: error: cannot infer the sum type
+// infer_fail.orng:6:17: error: cannot infer type for initializer
 //     let x = .lol
 //                ^
 // 

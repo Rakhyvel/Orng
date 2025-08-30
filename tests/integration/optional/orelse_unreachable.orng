@@ -1,0 +1,8 @@
+// 362
+fn main() -> Int {
+    f() orelse unreachable
+}
+
+fn f() -> ?Int {
+    .some(362)
+}

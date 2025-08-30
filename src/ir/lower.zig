@@ -10,7 +10,7 @@ const Interned_String_Set = @import("../ir/interned_string_set.zig");
 const Instruction = @import("../ir/instruction.zig");
 const lval_ = @import("lval.zig");
 const module_ = @import("../hierarchy/module.zig");
-const primitives_ = @import("../hierarchy/primitives.zig");
+const prelude_ = @import("../hierarchy/prelude.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Span = @import("../util/span.zig");
 const Symbol = @import("../symbol/symbol.zig");
@@ -159,7 +159,7 @@ fn lower_AST_inner(
             }
             if (symbol.kind == .@"fn") {
                 return try self.lval_from_symbol_cfg(symbol, ast.token().span);
-            } else if (symbol.expanded_type.?.types_match(primitives_.type_type)) {
+            } else if (symbol.expanded_type.?.types_match(prelude_.type_type)) {
                 return self.lval_from_ast(ast);
             } else if (symbol.kind == .@"const") {
                 return try self.lower_AST(symbol.init_value.?, labels);
@@ -187,7 +187,7 @@ fn lower_AST_inner(
 
             var expanded_expr_type = expr.get_expanded_type();
             // Trying error sum, runtime check if error, branch to error path
-            const condition = self.create_temp_lvalue(primitives_.word64_type);
+            const condition = self.create_temp_lvalue(prelude_.word64_type);
             self.instructions.append(Instruction.init_get_tag(condition, expr, ast.token().span, self.allocator)) catch unreachable; // `ok` is zero, `err`s are nonzero
             self.instructions.append(Instruction.init_branch(condition, err_label, ast.token().span, self.allocator)) catch unreachable;
 
@@ -342,7 +342,7 @@ fn lower_AST_inner(
             var tag: ?*lval_.L_Value = null;
             if (lhs_expanded_type.* == .sum_type) {
                 // Check that the sum value has the proper tag before a selection
-                tag = self.create_temp_lvalue(primitives_.word64_type);
+                tag = self.create_temp_lvalue(prelude_.word64_type);
                 self.instructions.append(Instruction.init_get_tag(tag.?, ast_lval.?, ast.token().span, self.allocator)) catch unreachable;
             }
 
@@ -352,7 +352,7 @@ fn lower_AST_inner(
             return ast_lval.?.create_select_lval(field, offset, expanded_type, tag, self.allocator);
         },
         .product => {
-            if (ast.children().items[0].typeof(self.allocator).types_match(primitives_.type_type)) {
+            if (ast.children().items[0].typeof(self.allocator).types_match(prelude_.type_type)) {
                 return self.lval_from_ast(ast);
             } else {
                 const temp = self.create_temp_lvalue(ast.typeof(self.allocator));
@@ -372,7 +372,7 @@ fn lower_AST_inner(
 
             self.generate_subslice_check(lower, upper, ast.token().span);
 
-            const new_size = self.create_temp_lvalue(primitives_.int_type);
+            const new_size = self.create_temp_lvalue(prelude_.int_type);
             self.instructions.append(Instruction.init(.sub_int, new_size, upper, lower, ast.token().span, self.allocator)) catch unreachable;
 
             const data_type = ast.typeof(self.allocator).children().items[0];
@@ -624,7 +624,7 @@ fn lval_from_unit_value(
     self: *Self,
     ast: *ast_.AST, // TODO: Just accept span
 ) *lval_.L_Value {
-    const lval = self.create_temp_lvalue(primitives_.unit_type);
+    const lval = self.create_temp_lvalue(prelude_.unit_type);
     self.instructions.append(Instruction.init(.load_unit, lval, null, null, ast.token().span, self.allocator)) catch unreachable;
     return lval;
 }
@@ -658,7 +658,7 @@ fn unop(
     ast: *ast_.AST, // TODO: Create some sort of context for these parameters?
     labels: Labels,
 ) Lower_Errors!?*lval_.L_Value {
-    if (ast.typeof(self.allocator).types_match(primitives_.type_type)) {
+    if (ast.typeof(self.allocator).types_match(prelude_.type_type)) {
         return self.lval_from_ast(ast); // for addr_of types, ex: `&T`
     }
     const expr = try self.lower_AST(ast.expr(), labels) orelse return null;
@@ -791,7 +791,7 @@ fn tuple_equality_flow(
 ) void {
     const new_lhs = lhs; // try L_Value.create_unversioned_symbver(lhs.symbol, lhs.symbol._type.?, allocator);
     const new_rhs = rhs; // try L_Value.create_unversioned_symbver(rhs.symbol, rhs.symbol._type.?, allocator);
-    const temp = self.create_temp_lvalue(primitives_.bool_type);
+    const temp = self.create_temp_lvalue(prelude_.bool_type);
     var lhs_type = lhs.get_expanded_type();
     if (lhs_type.* == .product) {
         for (0..lhs_type.children().items.len) |field| {
@@ -802,8 +802,8 @@ fn tuple_equality_flow(
             self.tuple_equality_flow(lhs_select, rhs_select, fail_label);
         }
     } else if (lhs_type.* == .sum_type) {
-        const lhs_tag = self.create_temp_lvalue(primitives_.word64_type);
-        const rhs_tag = self.create_temp_lvalue(primitives_.word64_type);
+        const lhs_tag = self.create_temp_lvalue(prelude_.word64_type);
+        const rhs_tag = self.create_temp_lvalue(prelude_.word64_type);
         self.instructions.append(Instruction.init_get_tag(lhs_tag, new_lhs, lhs.extract_symbver().symbol.span, self.allocator)) catch unreachable;
         self.instructions.append(Instruction.init_get_tag(rhs_tag, new_rhs, lhs.extract_symbver().symbol.span, self.allocator)) catch unreachable;
         self.instructions.append(Instruction.init(.equal, temp, lhs_tag, rhs_tag, lhs.extract_symbver().symbol.span, self.allocator)) catch unreachable;
@@ -827,7 +827,7 @@ fn coalesce_op(
     // Test if lhs tag is 0 (`ok` or `some`)
     const lhs = (try self.lower_AST(ast.lhs(), labels)) orelse return null;
 
-    const condition = self.create_temp_lvalue(primitives_.word64_type);
+    const condition = self.create_temp_lvalue(prelude_.word64_type);
     self.instructions.append(Instruction.init_get_tag(condition, lhs, ast.token().span, self.allocator)) catch unreachable;
     self.instructions.append(Instruction.init_branch(condition, zero_label, ast.token().span, self.allocator)) catch unreachable;
 
@@ -907,9 +907,9 @@ fn generate_indexable_length(
         return null;
     } else if (_type.* == .product and _type.product.was_slice) {
         const offset = _type.product.get_offset(1, self.allocator);
-        return lhs.create_select_lval(1, offset, primitives_.int64_type, null, self.allocator);
+        return lhs.create_select_lval(1, offset, prelude_.int64_type, null, self.allocator);
     } else if (_type.* == .product and !_type.product.was_slice) {
-        const retval = self.create_temp_lvalue(primitives_.int_type);
+        const retval = self.create_temp_lvalue(prelude_.int_type);
         self.instructions.append(Instruction.init_int(retval, _type.children().items.len, span, self.allocator)) catch unreachable;
         return retval;
     } else {
@@ -925,7 +925,7 @@ fn generate_subslice_check(
     span: Span,
 ) void {
     const end_label = Instruction.init_label("subslice-bounds-check.end", span, self.allocator);
-    const compare = self.create_temp_lvalue(primitives_.bool_type);
+    const compare = self.create_temp_lvalue(prelude_.bool_type);
     self.instructions.append(Instruction.init(.greater_int, compare, lower, upper, span, self.allocator)) catch unreachable;
     self.instructions.append(Instruction.init_branch(compare, end_label, span, self.allocator)) catch unreachable;
     self.instructions.append(Instruction.init_stack_push(span, self.allocator)) catch unreachable;
@@ -971,7 +971,7 @@ fn flow(
         },
         else => if (sense) {
             const condition_lval = try self.lower_AST(condition, labels) orelse return;
-            const not_condition_lval = self.create_temp_lvalue(primitives_.bool_type);
+            const not_condition_lval = self.create_temp_lvalue(prelude_.bool_type);
             self.instructions.append(Instruction.init(.not, not_condition_lval, condition_lval, null, span, self.allocator)) catch unreachable; // Will be optimized out!
             self.instructions.append(Instruction.init_branch(not_condition_lval, label, span, self.allocator)) catch unreachable;
         } else {
@@ -1066,7 +1066,7 @@ fn generate_match_pattern_check(
         .block,
         => {
             const value = (try self.lower_AST(pattern.?, labels)) orelse return;
-            const condition = self.create_temp_lvalue(primitives_.bool_type);
+            const condition = self.create_temp_lvalue(prelude_.bool_type);
             self.instructions.append(Instruction.init(.equal, condition, expr, value, pattern.?.token().span, self.allocator)) catch unreachable;
             self.instructions.append(Instruction.init_branch(condition, next_pattern, pattern.?.token().span, self.allocator)) catch unreachable;
         },
@@ -1081,15 +1081,15 @@ fn generate_match_pattern_check(
         },
         .select, .sum_value => {
             // Get tag of pattern
-            const sel = self.create_temp_lvalue(primitives_.word64_type);
+            const sel = self.create_temp_lvalue(prelude_.word64_type);
             self.instructions.append(Instruction.init_int(sel, pattern.?.pos().?, pattern.?.token().span, self.allocator)) catch unreachable;
 
             // Get tag of expr
-            const tag = self.create_temp_lvalue(primitives_.word64_type);
+            const tag = self.create_temp_lvalue(prelude_.word64_type);
             self.instructions.append(Instruction.init_get_tag(tag, expr, pattern.?.token().span, self.allocator)) catch unreachable;
 
             // Compare them, jump to next pattern if they are not equal
-            const neql = self.create_temp_lvalue(primitives_.bool_type);
+            const neql = self.create_temp_lvalue(prelude_.bool_type);
             self.instructions.append(Instruction.init(.equal, neql, tag, sel, pattern.?.token().span, self.allocator)) catch unreachable;
             self.instructions.append(Instruction.init_branch(neql, next_pattern, pattern.?.token().span, self.allocator)) catch unreachable;
         },
@@ -1130,9 +1130,9 @@ fn wrap_error_return(
     const expanded_temp_type = expr.get_expanded_type();
     if (labels.error_label != null and expanded_temp_type.* == .sum_type and expanded_temp_type.sum_type.from == .@"error") {
         // Returning error sum, runtime check if error, branch to error path
-        const condition = self.create_temp_lvalue(primitives_.word64_type);
+        const condition = self.create_temp_lvalue(prelude_.word64_type);
         self.instructions.append(Instruction.init_get_tag(condition, expr, span, self.allocator)) catch unreachable; // `ok` is 0 `err`s nonzero
-        const not_condition = self.create_temp_lvalue(primitives_.bool_type);
+        const not_condition = self.create_temp_lvalue(prelude_.bool_type);
         self.instructions.append(Instruction.init(.not, not_condition, condition, null, span, self.allocator)) catch unreachable;
         self.instructions.append(Instruction.init_branch(not_condition, labels.error_label, span, self.allocator)) catch unreachable;
     }

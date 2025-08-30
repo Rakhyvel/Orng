@@ -10,6 +10,7 @@ const Instruction = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
 const Span = @import("../util/span.zig");
 const Symbol = @import("../symbol/symbol.zig");
+const Type_Set = @import("../ast/type-set.zig");
 
 const Self = @This();
 
@@ -290,5 +291,15 @@ pub fn set_offset(self: *Self, instructions_list: *std.ArrayList(*Instruction), 
             )) catch unreachable;
         },
         .panic => {},
+    }
+}
+
+pub fn collect_types(self: *Self, type_set: *Type_Set, allocator: std.mem.Allocator) void {
+    // For all instructions in the basic block...
+    for (self.instructions.items) |instr| {
+        if (instr.dest != null) {
+            _ = type_set.add(instr.dest.?.get_expanded_type(), allocator);
+            _ = type_set.add(instr.dest.?.extract_symbver().symbol.expanded_type.?, allocator);
+        }
     }
 }

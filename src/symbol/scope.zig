@@ -51,6 +51,12 @@ pub const Lookup_Flags = struct {
 };
 
 pub fn lookup(self: *Self, name: []const u8, flags: Lookup_Flags) Lookup_Result {
+    if (false) {
+        const found = self.symbols.get(name) != null;
+        std.debug.print("searching for: {s} {}({})\n", .{ name, found, flags });
+        self.pprint();
+    }
+
     if (self.symbols.get(name)) |symbol| {
         if (!flags.allow_modules and symbol.kind == .module) {
             if (self.parent) |parent| {
@@ -139,6 +145,24 @@ pub fn lookup_impl_member(self: *Self, for_type: *ast_.AST, name: []const u8) ?*
         for (impl.impl.const_defs.items) |const_def| {
             if (std.mem.eql(u8, const_def.decl.symbols.items[0].name, name)) {
                 return const_def;
+            }
+        }
+    }
+
+    // Search for any imports
+    for (self.symbols.keys()) |symbol_name| {
+        const symbol = self.symbols.get(symbol_name).?;
+        if (symbol.kind == .import) {
+            const res = self.parent.?.lookup(symbol.kind.import.real_name, .{ .allow_modules = true });
+            switch (res) {
+                .found => {
+                    const module_scope = res.found.init_value.?.scope().?;
+                    const module_scope_lookup = module_scope.lookup_impl_member(for_type, name);
+                    if (module_scope_lookup != null) {
+                        return module_scope_lookup;
+                    }
+                },
+                else => std.debug.panic("compiler error: import didn't resolve to a module: {s}", .{symbol.kind.import.real_name}),
             }
         }
     }

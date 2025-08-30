@@ -3,7 +3,7 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const errs_ = @import("../util/errors.zig");
-const primitives_ = @import("../hierarchy/primitives.zig");
+const prelude_ = @import("../hierarchy/prelude.zig");
 const Span = @import("../util/span.zig");
 
 const Validate_Error_Enum = error{ LexerError, ParseError, CompileError };
@@ -21,7 +21,7 @@ fn generate_default_unvalidated(_type: *ast_.AST, span: Span, errors: *errs_.Err
         .identifier => {
             const expanded_type = _type.expand_type(allocator);
             if (expanded_type == _type) {
-                const primitive_info = primitives_.info_from_name(_type.token().data) orelse {
+                const primitive_info = prelude_.info_from_name(_type.token().data) orelse {
                     errors.add_error(errs_.Error{ .no_default = .{ .span = span, ._type = _type } });
                     return error.CompileError;
                 };

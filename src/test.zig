@@ -1,9 +1,10 @@
 const std = @import("std");
 const Compiler_Context = @import("hierarchy/compiler.zig");
 const Codegen_Context = @import("codegen/codegen.zig");
+const core_ = @import("hierarchy/core.zig");
 const exec = @import("util/exec.zig").exec;
 const module_ = @import("hierarchy/module.zig");
-const primitives_ = @import("hierarchy/primitives.zig");
+const prelude_ = @import("hierarchy/prelude.zig");
 const Read_File = @import("lexer/read_file.zig");
 const String = @import("zig-string/zig-string.zig").String;
 const term_ = @import("util/term.zig");
@@ -126,15 +127,14 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
     const absolute_filename = std.fs.cwd().realpathAlloc(allocator, filename) catch unreachable;
 
     // Try to compile Orng (make sure no errors)
-    var compiler = Compiler_Context.init(debug_alloc.allocator()) catch unreachable;
+    var compiler = Compiler_Context.init(get_std_out(), debug_alloc.allocator()) catch unreachable;
     defer compiler.deinit();
-    defer primitives_.deinit();
+    defer prelude_.deinit();
+    defer core_.deinit();
 
     const module = module_.Module.compile(absolute_filename, "main", false, compiler) catch {
         if (mode == .regular) {
-            compiler.errors.print_errors(get_std_out(), .{});
             get_std_out().print("Orng -> C.\n", .{}) catch unreachable;
-            std.debug.dumpCurrentStackTrace(128);
         }
         return false;
     };
@@ -191,9 +191,10 @@ fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug
 
     const absolute_filename = std.fs.cwd().realpathAlloc(allocator, filename) catch unreachable;
     // Try to compile Orng (make sure no errors)
-    var compiler = Compiler_Context.init(debug_alloc.allocator()) catch unreachable;
+    var compiler = Compiler_Context.init(if (mode != .coverage) get_std_out() else null, debug_alloc.allocator()) catch unreachable;
     defer compiler.deinit();
-    defer primitives_.deinit();
+    defer prelude_.deinit();
+    defer core_.deinit();
     const contents = Read_File.init(compiler.allocator()).run(absolute_filename) catch unreachable;
     const head = header_comment(contents, debug_alloc.allocator()) catch unreachable;
     defer debug_alloc.allocator().free(head);
@@ -221,18 +222,15 @@ fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug
                 error.LexerError,
                 error.CompileError,
                 => {
-                    compiler.errors.print_errors(get_std_out(), .{});
                     return errors_match;
                 },
                 error.ParseError, error.FileNotFound => {
                     var str = String.init_with_contents(allocator, filename) catch unreachable;
                     defer str.deinit();
-                    compiler.errors.print_errors(get_std_out(), .{ .print_full_path = false });
                     if (str.find("parser") != null) {
                         return errors_match;
                     } else {
                         get_std_out().print("Non-parser negative tests should parse!\n", .{}) catch unreachable;
-                        compiler.errors.print_errors(get_std_out(), .{});
                         return false;
                     }
                 },
@@ -313,14 +311,14 @@ fn fuzz_tests() !void { // TODO: Uninfer error
             var debug_alloc = std.heap.GeneralPurposeAllocator(.{ .never_unmap = false, .safety = true }){};
             var arena_alloc = std.heap.ArenaAllocator.init(debug_alloc.allocator());
             errdefer arena_alloc.deinit();
-            var compiler = Compiler_Context.init(arena_alloc.allocator()) catch unreachable;
-            defer primitives_.deinit();
+            var compiler = Compiler_Context.init(get_std_out(), arena_alloc.allocator()) catch unreachable;
+            defer prelude_.deinit();
             defer compiler.deinit();
+            defer core_.deinit();
             var lines = std.ArrayList([]const u8).init(allocator);
             defer lines.deinit();
             i += 1;
             const module = module_.Module.compile("fuzz", "main", false, compiler) catch |err| {
-                compiler.errors.print_errors(get_std_out(), .{});
                 switch (err) {
                     error.LexerError,
                     error.CompileError,

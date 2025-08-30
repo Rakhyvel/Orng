@@ -48,7 +48,7 @@ pub fn git_clone(repo_url: []const u8, allocator: std.mem.Allocator) Error!void 
     }
 }
 
-fn ensure_packages_dir_exists(allocator: std.mem.Allocator) void {
+pub fn ensure_packages_dir_exists(allocator: std.mem.Allocator) void {
     const orng_dir = get_orng_dir(allocator);
     defer allocator.free(orng_dir);
     _ = std.fs.Dir.openDir(std.fs.cwd(), orng_dir, .{}) catch {

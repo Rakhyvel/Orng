@@ -1,0 +1,7 @@
+// 364
+fn main() -> Int {
+    match 'x' {
+        'x' => 364
+        _   => unreachable
+    }
+}

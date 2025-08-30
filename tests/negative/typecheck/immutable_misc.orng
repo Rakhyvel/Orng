@@ -1,4 +1,4 @@
-// immutable_misc.orng:6:6: error: the type `Int` is not indexable
+// immutable_misc.orng:6:6: error: not an l-value
 //     0[0] = 4
 //     ^
 // 

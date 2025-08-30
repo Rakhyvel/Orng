@@ -9,6 +9,7 @@ const lval_ = @import("../ir/lval.zig");
 const Span = @import("../util/span.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Symbol_Version = @import("symbol_version.zig");
+const Type_Set = @import("../ast/type-set.zig");
 
 const Self = @This();
 
@@ -135,6 +136,23 @@ pub fn collect_generated_symbvers(self: *Self) void {
                 _ = instr.dest.?.extract_symbver().put_symbol_version_set(&self.symbvers);
             }
         }
+    }
+}
+
+pub fn collect_types(self: *Self, type_set: *Type_Set, allocator: std.mem.Allocator) void {
+    // Add parameter types to type set
+    const decl = self.symbol.decl.?;
+    const param_symbols = decl.param_symbols();
+    if (param_symbols != null) {
+        for (param_symbols.?.items) |param| {
+            _ = type_set.add(param.expanded_type.?, allocator);
+        }
+    }
+    _ = type_set.add(self.return_symbol.expanded_type.?, allocator);
+
+    // For all basic blocks in the cfg...
+    for (self.basic_blocks.items) |bb| {
+        bb.collect_types(type_set, allocator);
     }
 }
 

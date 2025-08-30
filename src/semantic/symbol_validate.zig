@@ -5,7 +5,7 @@ const ast_ = @import("../ast/ast.zig");
 const validate_AST = @import("ast_validate.zig").validate_AST;
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
-const primitives_ = @import("../hierarchy/primitives.zig");
+const prelude_ = @import("../hierarchy/prelude.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
@@ -24,7 +24,7 @@ pub fn validate(symbol: *Symbol, compiler: *Compiler_Context) Validate_Error_Enu
 
     // std.debug.assert(symbol.init.* != .poison);
     // std.debug.print("validating type for: {s}\n", .{symbol.name});
-    symbol._type = validate_AST(symbol._type, primitives_.type_type, compiler);
+    symbol._type = validate_AST(symbol._type, prelude_.type_type, compiler);
     // std.debug.print("type for: {s}: {}\n", .{ symbol.name, symbol._type });
     if (symbol._type.* != .poison) {
         _ = symbol.assert_symbol_valid();
@@ -86,7 +86,7 @@ pub fn validate(symbol: *Symbol, compiler: *Compiler_Context) Validate_Error_Enu
     }
     if (symbol.kind == .@"extern") {
         if (symbol.kind.@"extern".c_name != null) {
-            symbol.kind.@"extern".c_name = validate_AST(symbol.kind.@"extern".c_name.?, primitives_.string_type, compiler);
+            symbol.kind.@"extern".c_name = validate_AST(symbol.kind.@"extern".c_name.?, prelude_.string_type, compiler);
         } else {
             symbol.kind.@"extern".c_name = ast_.AST.create_string(Token.init_simple(symbol.name), symbol.name, compiler.allocator());
         }
@@ -109,6 +109,7 @@ fn type_is_type_type_atom(ast: *ast_.AST) bool {
 fn validate_trait(trait: *Symbol, compiler: *Compiler_Context) Validate_Error_Enum!void {
     var names = std.StringArrayHashMap(*ast_.AST).init(compiler.allocator());
     defer names.deinit();
+
     for (trait.decl.?.trait.method_decls.items) |decl| {
         if (names.get(decl.method_decl.name.token().data)) |other| {
             compiler.errors.add_error(errs_.Error{ .duplicate = .{
@@ -122,9 +123,10 @@ fn validate_trait(trait: *Symbol, compiler: *Compiler_Context) Validate_Error_En
         }
 
         for (decl.method_decl._params.items) |param| {
-            _ = validate_AST(param.decl.type, primitives_.type_type, compiler);
+            param.decl.type = validate_AST(param.decl.type, prelude_.type_type, compiler);
         }
-        _ = validate_AST(decl.method_decl.ret_type, primitives_.type_type, compiler);
+        decl.method_decl.ret_type = validate_AST(decl.method_decl.ret_type, prelude_.type_type, compiler);
+        decl.method_decl.c_type = validate_AST(decl.method_decl.c_type.?, prelude_.type_type, compiler);
 
         if (decl.method_decl.is_virtual) {
             if (decl.method_decl.c_type.?.refers_to_self()) {

@@ -1,6 +1,7 @@
 const std = @import("std");
 const AST = @import("../ast/ast.zig").AST;
 const CFG = @import("../ir/cfg.zig");
+const core_ = @import("core.zig");
 const errs_ = @import("../util/errors.zig");
 const Interned_String_Set = @import("../ir/interned_string_set.zig");
 const Module = @import("../hierarchy/module.zig").Module;
@@ -9,7 +10,8 @@ const Package = @import("../hierarchy/package.zig");
 const Package_Iterator = @import("../util/dfs.zig").Dfs_Iterator(Package_Iterator_Node);
 const Package_Iterator_Node = @import("../hierarchy/package.zig").Package_Iterator_Node;
 const poison_ = @import("../ast/poison.zig");
-const primitives_ = @import("../hierarchy/primitives.zig");
+const prelude_ = @import("../hierarchy/prelude.zig");
+const repo_ = @import("../util/repo.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
 const Scope = @import("../symbol/scope.zig");
@@ -27,8 +29,11 @@ arena: std.heap.ArenaAllocator,
 
 /// List of errors found during compilation
 errors: errs_.Errors,
+stderr: ?std.fs.File.Writer,
 
 prelude: *Scope,
+
+core: ?*Scope, // Null when compiling prelude and core module itself!
 
 /// Maps module absolute paths to their symbol
 modules: std.StringArrayHashMap(*Symbol),
@@ -40,7 +45,7 @@ module_interned_strings: std.AutoArrayHashMap(u32, *Interned_String_Set),
 packages: std.StringArrayHashMap(*Package),
 
 /// Throws an error if the prelude could not be compiled
-pub fn init(alloc: std.mem.Allocator) Error!*Self {
+pub fn init(stderr: ?std.fs.File.Writer, alloc: std.mem.Allocator) Error!*Self {
     var retval: *Self = alloc.create(Self) catch unreachable;
     retval.arena = std.heap.ArenaAllocator.init(alloc);
 
@@ -49,16 +54,23 @@ pub fn init(alloc: std.mem.Allocator) Error!*Self {
     retval.module_interned_strings = std.AutoArrayHashMap(u32, *Interned_String_Set).init(retval.allocator());
     retval.modules = std.StringArrayHashMap(*Symbol).init(retval.allocator());
     retval.packages = std.StringArrayHashMap(*Package).init(retval.allocator());
-    retval.prelude = primitives_.get_scope(retval) catch {
-        // Prelude compilation can sometimes fail :(
-        retval.errors.print_errors(errs_.get_std_err(), .{});
-        return error.CompileError;
-    };
+    retval.core = null;
+    retval.stderr = stderr;
+
+    retval.prelude = try prelude_.get_scope(retval);
+    retval.core = try core_.get_scope(retval);
+
+    retval.register_package(core_.core_package_name, .static_library);
+    const core_module_symbol = retval.lookup_module(retval.core.?.module.?.absolute_path).?;
+    retval.set_package_root(core_.core_package_name, core_module_symbol);
 
     return retval;
 }
 
 pub fn deinit(self: *Self) void {
+    if (self.stderr) |stderr| {
+        self.errors.print_errors(stderr, .{});
+    }
     self.arena.deinit();
     self.arena.child_allocator.destroy(self);
 }
@@ -94,14 +106,12 @@ pub fn compile_module(
             error.ParseError,
             error.FileNotFound,
             => {
-                self.errors.print_errors(errs_.get_std_err(), .{});
                 return err;
             },
 
             // Only print these errors if NOT fuzz testing
             error.CompileError,
             => if (!fuzz_tokens) {
-                self.errors.print_errors(errs_.get_std_err(), .{});
                 return err;
             } else {
                 return err;
@@ -131,8 +141,8 @@ pub fn register_interned_string_set(self: *Self, module_uid: u32) void {
     self.module_interned_strings.put(module_uid, interned_strings) catch unreachable;
 }
 
-pub fn get_builtin_type(self: *Self, name: []const u8) *AST {
-    const prelude_abs_path = self.prelude.module.?.absolute_path;
+pub fn get_core_type(self: *Self, name: []const u8) *AST {
+    const prelude_abs_path = self.core.?.module.?.absolute_path;
     return self.module_scope(prelude_abs_path).?.lookup(name, .{}).found.init_value.?;
 }
 
@@ -146,7 +156,6 @@ pub fn lookup_package(self: *Self, package_absolute_path: []const u8) ?*Package 
 }
 
 pub fn lookup_package_root_module(self: *Self, package_absolute_path: []const u8, requirement_name: []const u8) ?*Symbol {
-    std.debug.assert(std.fs.path.isAbsolute(package_absolute_path));
     const package = self.lookup_package(package_absolute_path);
     if (package == null) {
         return null;
@@ -155,35 +164,32 @@ pub fn lookup_package_root_module(self: *Self, package_absolute_path: []const u8
 }
 
 pub fn register_package(self: *Self, package_absolute_path: []const u8, kind: Package.Package_Kind) void {
-    std.debug.assert(std.fs.path.isAbsolute(package_absolute_path));
     if (self.lookup_package(package_absolute_path) == null) {
         const package = Package.new(self.allocator(), package_absolute_path, kind);
         self.packages.put(package_absolute_path, package) catch unreachable;
+        if (!std.mem.eql(u8, package_absolute_path, core_.core_package_name)) {
+            self.make_package_requirement_link(package_absolute_path, "core", core_.core_package_name);
+        }
     }
 }
 
 pub fn make_package_requirement_link(self: *Self, package_absolute_path: []const u8, requirement_name: []const u8, requirement_absolute_path: []const u8) void {
-    std.debug.assert(std.fs.path.isAbsolute(package_absolute_path));
-    std.debug.assert(std.fs.path.isAbsolute(requirement_absolute_path));
     const package = self.lookup_package(package_absolute_path).?;
     const requirement = self.lookup_package(requirement_absolute_path).?;
     package.requirements.put(requirement_name, requirement.root) catch unreachable;
 }
 
 pub fn set_package_root(self: *Self, package_absolute_path: []const u8, root: *Symbol) void {
-    std.debug.assert(std.fs.path.isAbsolute(package_absolute_path));
     const package = self.lookup_package(package_absolute_path).?;
     package.root = root;
 }
 
 pub fn propagate_include_directories(self: *Self, root_package_absolute_path: []const u8) void {
-    std.debug.assert(std.fs.path.isAbsolute(root_package_absolute_path));
     const package = self.lookup_package(root_package_absolute_path).?;
     package.append_include_dir(self.packages, &package.include_directories);
 }
 
 pub fn set_package_kind(self: *Self, package_absolute_path: []const u8, kind: Package.Package_Kind) void {
-    std.debug.assert(std.fs.path.isAbsolute(package_absolute_path));
     const package = self.lookup_package(package_absolute_path).?;
     package.kind = kind;
     package.set_executable_name(self.allocator()) catch unreachable;
@@ -227,6 +233,5 @@ pub fn determine_if_modified(self: *Self, root_package_absolute_path: []const u8
 }
 
 pub fn compile(self: *Self, root_package_absolute_path: []const u8, extra_flags: bool) !void {
-    std.debug.assert(std.fs.path.isAbsolute(root_package_absolute_path));
     try self.lookup_package(root_package_absolute_path).?.compile(self.packages, extra_flags, self.allocator());
 }
