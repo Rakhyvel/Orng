@@ -2703,9 +2703,6 @@ pub const AST = union(enum) {
             => return self.rhs().typeof(allocator),
 
             .product => {
-                if (self.children().items.len == 0) {
-                    return prelude_.unit_type;
-                }
                 var first_type = self.children().items[0].typeof(allocator);
                 if (first_type.types_match(prelude_.type_type)) {
                     // typeof product type is Type
@@ -2739,10 +2736,6 @@ pub const AST = union(enum) {
                     }
                 } else if (lhs_type.* == .addr_of and lhs_type.addr_of.multiptr) {
                     return lhs_type.expr();
-                } else if (lhs_type.is_ident_type("String")) {
-                    return prelude_.byte_type;
-                } else if (lhs_type.* == .poison) {
-                    return poison_.poisoned;
                 } else {
                     std.debug.panic("compiler error: {s} is not indexable", .{@tagName(lhs_type.*)});
                 }

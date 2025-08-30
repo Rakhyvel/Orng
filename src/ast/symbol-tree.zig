@@ -53,6 +53,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         } else {
             // TODO: an error
         },
+
         .@"errdefer" => if (self.errdefers) |errdefers| {
             errdefers.append(ast.statement()) catch unreachable;
         } else {

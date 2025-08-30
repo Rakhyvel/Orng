@@ -1,0 +1,11 @@
+// 363
+fn main() -> Int {
+    let str = "Hello, World!"
+    let b = str[3]
+    _ = b
+    if @typeof(b) == Byte {
+        str.length + 350
+    } else {
+        unreachable
+    }
+}
