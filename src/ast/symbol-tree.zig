@@ -190,6 +190,11 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 );
                 ast.impl.impls_anon_trait = true;
             }
+
+            for (ast.impl.with_decls.items) |with_decl| {
+                try walk_.walk_ast(with_decl, new_self);
+            }
+
             const self_type_decl = ast_.AST.create_decl(
                 ast.token(),
                 ast_.AST.create_pattern_symbol(

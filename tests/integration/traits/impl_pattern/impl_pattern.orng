@@ -1,0 +1,15 @@
+// 365
+fn Wrapper(const T: Type) -> Type {
+    (value: T,)
+}
+
+impl for Wrapper(Int) {
+    fn get(&self) -> Int {
+        self.value
+    }
+}
+
+fn main() -> Int {
+    let x: Wrapper(Int) = (.value = 365,)
+    x.>get()
+}

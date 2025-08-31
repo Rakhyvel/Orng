@@ -1,0 +1,9 @@
+// 365
+fn Wrapper(const T: Type) -> Type {
+    (value: T,)
+}
+
+fn main() -> Int {
+    let x: Wrapper(Int) = (.value = 365,)
+    x.value
+}

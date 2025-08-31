@@ -133,6 +133,12 @@ pub fn lookup_impl_member(self: *Self, for_type: *ast_.AST, name: []const u8) ?*
             // This is an edge case for badly formed programs
             return null;
         }
+
+        // TODO:
+        // - attempt to unify for_type and impl._type given impl's `with` list that defines type parameters (nop for concrete impl), or continue
+        // - check types/constraints (nop for concrete impl), or continue
+        // - let TheImpl = the instantiation given the unification parameters (nop for concrete impl), create if doesnt exist (Q: Where are these stored? In the impl? How is lookup based on unification parameters done?)
+        // - perform normal method lookup on TheImpl
         if (!impl.impl._type.types_match(for_type) or !for_type.types_match(impl.impl._type)) {
             // The type for this impl does not equal the given type
             continue;

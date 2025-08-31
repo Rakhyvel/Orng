@@ -56,5 +56,6 @@ pub fn interpret(
     try context.run(compiler);
 
     // Extract the retval
-    return try context.extract_ast(0, ret_type, ast.token().span, &compiler.module_interned_strings);
+    const retval = try context.extract_ast(0, ret_type, ast.token().span, &compiler.module_interned_strings);
+    return retval.expand_type(compiler.allocator());
 }

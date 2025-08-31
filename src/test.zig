@@ -127,7 +127,7 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
     const absolute_filename = std.fs.cwd().realpathAlloc(allocator, filename) catch unreachable;
 
     // Try to compile Orng (make sure no errors)
-    var compiler = Compiler_Context.init(get_std_out(), debug_alloc.allocator()) catch unreachable;
+    var compiler = Compiler_Context.init(if (mode != .coverage) get_std_out() else null, debug_alloc.allocator()) catch unreachable;
     defer compiler.deinit();
     defer prelude_.deinit();
     defer core_.deinit();
