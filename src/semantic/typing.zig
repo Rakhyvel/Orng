@@ -58,9 +58,9 @@ pub fn type_check_int(
     ast: *ast_.AST,
     expected: ?*ast_.AST, // This should NOT be expanded < it is, though...
     errors: *errs_.Errors,
-    compiler: *Compiler_Context,
+    allocator: std.mem.Allocator,
 ) Validate_Error_Enum!void {
-    const expanded_expected = if (expected != null) try expected.?.expand_type(compiler) else null;
+    const expanded_expected = if (expected != null) expected.?.expand_type(allocator) else null;
     if (expanded_expected != null) { //and !try checked_types_match(prelude_.unit_type, expanded_expected.?, errors)
         const info = prelude_.info_from_ast(expanded_expected.?);
         if (info != null and info.?.bounds != null) {
@@ -195,7 +195,7 @@ pub fn binary_operator_open(
     compiler: *Compiler_Context,
 ) Validate_Error_Enum!*ast_.AST {
     ast.set_lhs(validate_AST(ast.lhs(), expected, compiler));
-    const lhs_type = try ast.lhs().typeof(compiler);
+    const lhs_type = ast.lhs().typeof(compiler.allocator());
     try poison_.assert_none_poisoned(lhs_type);
     ast.set_rhs(validate_AST(ast.rhs(), lhs_type, compiler));
     try poison_.assert_none_poisoned(.{ ast.lhs(), ast.rhs() });
@@ -277,7 +277,7 @@ pub fn implicit_dereference(
     var lhs_type = old_lhs_type;
     if (lhs_type.* == .addr_of and !lhs_type.addr_of.multiptr) {
         ast.set_lhs(validate_AST(ast_.AST.create_dereference(ast.token(), ast.lhs(), compiler.allocator()), null, compiler));
-        lhs_type = try (try ast.lhs().typeof(compiler)).expand_type(compiler);
+        lhs_type = ast.lhs().typeof(compiler.allocator()).expand_type(compiler.allocator());
     }
     try poison_.assert_none_poisoned(.{ ast.lhs(), lhs_type });
     return lhs_type;

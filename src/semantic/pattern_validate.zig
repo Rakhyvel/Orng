@@ -20,7 +20,7 @@ pub fn assert_pattern_matches(
 ) Validate_Error_Enum!void {
     switch (pattern.*) {
         .unit_value => try typing_.type_check(pattern.token().span, prelude_.unit_type, expr_type, &compiler.errors),
-        .int => try typing_.type_check_int(pattern, expr_type, &compiler.errors, compiler),
+        .int => try typing_.type_check_int(pattern, expr_type, &compiler.errors, compiler.allocator()),
         .char => try typing_.type_check(pattern.token().span, prelude_.char_type, expr_type, &compiler.errors),
         .string => try typing_.type_check(pattern.token().span, prelude_.string_type, expr_type, &compiler.errors), // TODO: Has to wait until we can match on slices
         .float => try typing_.type_check_float(pattern, expr_type, &compiler.errors),
@@ -28,18 +28,18 @@ pub fn assert_pattern_matches(
         .block => {
             const new_pattern = validate_AST(pattern, expr_type, compiler);
             try poison_.assert_none_poisoned(new_pattern);
-            try typing_.type_check(pattern.token().span, try new_pattern.typeof(compiler), expr_type, &compiler.errors);
+            try typing_.type_check(pattern.token().span, new_pattern.typeof(compiler.allocator()), expr_type, &compiler.errors);
         },
         .select, .sum_value => {
             const new_pattern = validate_AST(pattern, expr_type, compiler);
             try poison_.assert_none_poisoned(new_pattern);
             pattern.set_pos(new_pattern.pos().?);
-            try typing_.type_check(pattern.token().span, try new_pattern.typeof(compiler), expr_type, &compiler.errors);
+            try typing_.type_check(pattern.token().span, new_pattern.typeof(compiler.allocator()), expr_type, &compiler.errors);
         },
         .product => {
-            const expanded_expr_type = try expr_type.expand_type(compiler);
+            const expanded_expr_type = expr_type.expand_type(compiler.allocator());
             if (expanded_expr_type.* != .product or expanded_expr_type.children().items.len != pattern.children().items.len) {
-                return typing_.throw_unexpected_type(pattern.token().span, expr_type, try pattern.typeof(compiler), &compiler.errors);
+                return typing_.throw_unexpected_type(pattern.token().span, expr_type, pattern.typeof(compiler.allocator()), &compiler.errors);
             }
             for (pattern.children().items, expanded_expr_type.children().items) |term, expanded_term| {
                 try assert_pattern_matches(term, expanded_term, compiler);

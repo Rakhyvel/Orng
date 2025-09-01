@@ -6,14 +6,12 @@ const Compiler_Context = @import("../hierarchy/compiler.zig");
 const Interpreter_Context = @import("../interpretation/interpreter.zig");
 const Decorate = @import("../ast/decorate.zig");
 const Decorate_Access = @import("../ast/decorate-access.zig");
-const prelude_ = @import("../hierarchy/prelude.zig");
 const Span = @import("../util/span.zig");
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const scope_validate_ = @import("../semantic/scope_validate.zig");
 const Symbol_Tree = @import("../ast/symbol-tree.zig");
 const Token = @import("../lexer/token.zig");
-const typing_ = @import("typing.zig");
 const UID_Gen = @import("../util/uid_gen.zig");
 const walker_ = @import("../ast/walker.zig");
 
@@ -33,7 +31,7 @@ pub fn interpret(
     ret_type: *ast_.AST,
     scope: *Scope,
     compiler: *Compiler_Context,
-) error{ CompileError, LexerError, ParseError }!*ast_.AST {
+) !*ast_.AST {
     const symbol: *Symbol = (try Symbol_Tree.create_temp_comptime_symbol(
         ast,
         ret_type,
@@ -59,24 +57,5 @@ pub fn interpret(
 
     // Extract the retval
     const retval = try context.extract_ast(0, ret_type, ast.token().span, &compiler.module_interned_strings);
-    return retval.expand_type(compiler);
-}
-
-pub fn eval_comptime(ast: *ast_.AST, expected: ?*ast_.AST, compiler: *Compiler_Context) error{ LexerError, ParseError, CompileError }!*ast_.AST {
-    if (ast.@"comptime".result != null) {
-        return ast.@"comptime".result.?;
-    }
-    const ast_type = try ast.expr().typeof(compiler);
-    const expanded_ast_type = try ast_type.expand_type(compiler);
-    if (try typing_.checked_types_match(expanded_ast_type, prelude_.void_type, &compiler.errors)) {
-        return typing_.throw_unexpected_void_type(ast.expr().token().span, &compiler.errors);
-    }
-    try typing_.type_check(ast.token().span, expanded_ast_type, expected, &compiler.errors);
-
-    var expanded_expected = expected;
-    if (expected != null and expected.?.* == .type_of) {
-        expanded_expected = try expected.?.expand_type(compiler);
-    }
-    ast.@"comptime".result = try interpret(ast.expr(), expanded_expected orelse expanded_ast_type, ast.scope().?, compiler);
-    return ast.@"comptime".result.?;
+    return retval.expand_type(compiler.allocator());
 }

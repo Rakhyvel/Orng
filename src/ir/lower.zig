@@ -110,13 +110,13 @@ fn lower_AST_inner(
         .untagged_sum_type,
         .annotation,
         .dyn_type,
-        => return self.lval_from_ast(ast.get_expanded_type()),
+        => return self.lval_from_ast(ast.expand_type(self.allocator)),
         // Unit-values
         .unit_value, .template, .trait, .impl => return self.lval_from_unit_value(ast),
         // Literals
-        .int => return self.lval_from_int(ast.int.data, ast.get_typeof(), ast.token().span),
+        .int => return self.lval_from_int(ast.int.data, ast.typeof(self.allocator), ast.token().span),
         .char => {
-            const temp = self.create_temp_lvalue(ast.get_typeof());
+            const temp = self.create_temp_lvalue(ast.typeof(self.allocator));
             // Convert the character inside to a codepoint
             var codepoint: u21 = undefined;
             switch (ast.token().data[1]) {
@@ -138,13 +138,13 @@ fn lower_AST_inner(
             return temp;
         },
         .float => {
-            const temp = self.create_temp_lvalue(ast.get_typeof());
+            const temp = self.create_temp_lvalue(ast.typeof(self.allocator));
             self.instructions.append(Instruction.init_float(temp, ast.float.data, ast.token().span, self.allocator)) catch unreachable;
             return temp;
         },
         .string => {
             const id: Interned_String_Set.String_Idx = self.interned_strings.add(ast.string.data, self.cfg.symbol.scope.module.?.uid);
-            const temp = self.create_temp_lvalue(ast.get_typeof());
+            const temp = self.create_temp_lvalue(ast.typeof(self.allocator));
             self.instructions.append(Instruction.init_string(temp, id, ast.token().span, self.allocator)) catch unreachable;
             return temp;
         },
@@ -169,13 +169,13 @@ fn lower_AST_inner(
             }
         },
         .pattern_symbol => return try self.lval_from_symbol_cfg(ast.symbol().?, ast.token().span),
-        .true => return self.lval_from_int(1, ast.get_typeof(), ast.token().span),
-        .false => return self.lval_from_int(0, ast.get_typeof(), ast.token().span),
+        .true => return self.lval_from_int(1, ast.typeof(self.allocator), ast.token().span),
+        .false => return self.lval_from_int(0, ast.typeof(self.allocator), ast.token().span),
         // Unary operators
         .not, .negate, .addr_of, .bit_not => return try self.unop(ast, labels),
         .dereference => {
             const expr = try self.lower_AST(ast.expr(), labels) orelse return null;
-            const expanded_type = ast.get_typeof().get_expanded_type();
+            const expanded_type = ast.typeof(self.allocator).expand_type(self.allocator);
             const temp = expr.create_dereference_lval(expanded_type, self.allocator);
             return temp;
         },
@@ -199,7 +199,7 @@ fn lower_AST_inner(
             // Else, store the error in retval, return through error
             self.instructions.append(err_label) catch unreachable;
 
-            const ok_type = expanded_expr_type.get_ok_type().get_expanded_type();
+            const ok_type = expanded_expr_type.get_ok_type().expand_type(self.allocator);
             const ok_lval = expr.create_select_lval(0, 0, ok_type, null, self.allocator);
             self.instructions.append(Instruction.init_jump(end_label, ast.token().span, self.allocator)) catch unreachable;
             self.instructions.append(end_label) catch unreachable;
@@ -240,7 +240,7 @@ fn lower_AST_inner(
             var src1 = (try self.lower_AST(ast.children().items[0], labels)) orelse return null;
 
             for (1..ast.children().items.len) |i| {
-                temp = self.create_temp_lvalue(ast.get_typeof());
+                temp = self.create_temp_lvalue(ast.typeof(self.allocator));
                 const src2 = (try self.lower_AST(ast.children().items[i], labels)) orelse continue;
                 self.instructions.append(Instruction.init(bit_ir_kind_from_ast_kind(ast), temp, src1, src2, ast.token().span, self.allocator)) catch unreachable;
                 src1 = temp;
@@ -249,7 +249,7 @@ fn lower_AST_inner(
         },
         .call => {
             const lhs = (try self.lower_AST(ast.lhs(), labels)) orelse return null;
-            var temp = self.create_temp_lvalue(ast.get_typeof());
+            var temp = self.create_temp_lvalue(ast.typeof(self.allocator));
             temp.extract_symbver().symbol.span = ast.token().span;
 
             var instr = Instruction.init_call(temp, lhs, ast.token().span, self.allocator);
@@ -262,7 +262,7 @@ fn lower_AST_inner(
             return temp;
         },
         .invoke => {
-            var temp = self.create_temp_lvalue(ast.get_typeof());
+            var temp = self.create_temp_lvalue(ast.typeof(self.allocator));
             temp.extract_symbver().symbol.span = ast.token().span;
 
             // dyn_value is the method receiver that will be passed in
@@ -270,7 +270,7 @@ fn lower_AST_inner(
             var lval_list = std.ArrayList(*lval_.L_Value).init(self.allocator);
             if (ast.children().items.len == 0) {
                 // dyn_value should be the receiver
-                if (ast.lhs().get_typeof().expand_identifier().* == .dyn_type) {
+                if (ast.lhs().typeof(self.allocator).expand_identifier().* == .dyn_type) {
                     dyn_value = (try self.lower_AST(ast.lhs(), labels)) orelse return null;
                 }
             } else {
@@ -280,7 +280,7 @@ fn lower_AST_inner(
                     lval_list.append(term_lval) catch unreachable;
 
                     // Try to find the first child, it's possibly the receiver
-                    if (ast.lhs().get_typeof().expand_identifier().* == .dyn_type and i == 0) {
+                    if (ast.lhs().typeof(self.allocator).expand_identifier().* == .dyn_type and i == 0) {
                         if (term == ast.lhs()) {
                             // UFCS-like, receiver was prepended to the children list
                             dyn_value = term_lval;
@@ -303,7 +303,7 @@ fn lower_AST_inner(
         },
         .dyn_value => {
             const expr = try self.lower_AST(ast.expr(), labels) orelse return null;
-            const temp = self.create_temp_lvalue(ast.get_typeof());
+            const temp = self.create_temp_lvalue(ast.typeof(self.allocator));
             self.instructions.append(Instruction.init_dyn(temp, expr, ast.dyn_value.mut, ast.dyn_value.impl.?, ast.token().span, self.allocator)) catch unreachable;
             return temp;
         },
@@ -313,29 +313,29 @@ fn lower_AST_inner(
             var new_lhs = lhs;
 
             // Get the type of the index ast. This will determine if this is an array index or a slice index
-            const ast_expanded_type = ast.lhs().get_typeof().get_expanded_type();
-            const _type = ast.get_typeof();
+            const ast_expanded_type = ast.lhs().typeof(self.allocator).expand_type(self.allocator);
+            const _type = ast.typeof(self.allocator);
             if (ast_expanded_type.* == .addr_of) {
                 // Indexing a multi-ptr, don't change lhs
                 std.debug.assert(ast_expanded_type.addr_of.multiptr);
             } else if (ast_expanded_type.* == .product and ast_expanded_type.product.was_slice) {
                 // Indexing a slice; index_val := lhs._0^[rhs]
-                new_lhs = new_lhs.create_select_lval(0, 0, _type.get_expanded_type(), null, self.allocator);
-                new_lhs = new_lhs.create_dereference_lval(_type.get_expanded_type(), self.allocator);
+                new_lhs = new_lhs.create_select_lval(0, 0, _type.expand_type(self.allocator), null, self.allocator);
+                new_lhs = new_lhs.create_dereference_lval(_type.expand_type(self.allocator), self.allocator);
             }
 
             // Surround with L_Value node
             const length: ?*lval_.L_Value = self.generate_indexable_length(lhs, ast_expanded_type, ast.token().span);
-            return new_lhs.create_index_lval(rhs, length, _type.get_expanded_type(), self.allocator);
+            return new_lhs.create_index_lval(rhs, length, _type.expand_type(self.allocator), self.allocator);
         },
         .select => {
             // Recursively get select's ast L_Value node
             const ast_lval = try self.lower_AST(ast.lhs(), labels); // cannot be unreachable, since unreachable isn't selectable
 
             // Get the offset into the struct that this select does
-            var lhs_expanded_type = ast.lhs().get_typeof().get_expanded_type();
+            var lhs_expanded_type = ast.lhs().typeof(self.allocator).expand_type(self.allocator);
             const offset = if (lhs_expanded_type.* == .product)
-                lhs_expanded_type.product.get_offset(ast.pos().?)
+                lhs_expanded_type.product.get_offset(ast.pos().?, self.allocator)
             else
                 0;
 
@@ -348,14 +348,14 @@ fn lower_AST_inner(
 
             // Surround with L_Value node
             const field = ast.pos().?;
-            const expanded_type = ast.get_typeof().get_expanded_type();
+            const expanded_type = ast.typeof(self.allocator).expand_type(self.allocator);
             return ast_lval.?.create_select_lval(field, offset, expanded_type, tag, self.allocator);
         },
         .product => {
-            if (ast.children().items[0].get_typeof().types_match(prelude_.type_type)) {
+            if (ast.children().items[0].typeof(self.allocator).types_match(prelude_.type_type)) {
                 return self.lval_from_ast(ast);
             } else {
-                const temp = self.create_temp_lvalue(ast.get_typeof());
+                const temp = self.create_temp_lvalue(ast.typeof(self.allocator));
                 var instr = Instruction.init_load_struct(temp, ast.token().span, self.allocator);
                 for (ast.children().items) |term| {
                     instr.data.lval_list.append((try self.lower_AST(term, labels)) orelse return null) catch unreachable;
@@ -375,13 +375,13 @@ fn lower_AST_inner(
             const new_size = self.create_temp_lvalue(prelude_.int_type);
             self.instructions.append(Instruction.init(.sub_int, new_size, upper, lower, ast.token().span, self.allocator)) catch unreachable;
 
-            const data_type = ast.get_typeof().children().items[0];
-            const data_ptr = arr.create_select_lval(0, 0, data_type.get_expanded_type(), null, self.allocator);
+            const data_type = ast.typeof(self.allocator).children().items[0];
+            const data_ptr = arr.create_select_lval(0, 0, data_type.expand_type(self.allocator), null, self.allocator);
 
             const new_data_ptr = self.create_temp_lvalue(data_type);
             self.instructions.append(Instruction.init(.add_int, new_data_ptr, data_ptr, lower, ast.token().span, self.allocator)) catch unreachable;
 
-            const temp = self.create_temp_lvalue(ast.get_typeof());
+            const temp = self.create_temp_lvalue(ast.typeof(self.allocator));
             var load_struct = Instruction.init_load_struct(temp, ast.token().span, self.allocator);
             load_struct.data.lval_list.append(new_data_ptr) catch unreachable;
             load_struct.data.lval_list.append(new_size) catch unreachable;
@@ -391,7 +391,7 @@ fn lower_AST_inner(
         .sum_value => {
             var _init: ?*lval_.L_Value = null;
             const pos: usize = ast.pos().?;
-            const ast_type = ast.get_typeof();
+            const ast_type = ast.typeof(self.allocator);
             const proper_term: *ast_.AST = if (ast_type.* == .sum_type or ast_type.* == .untagged_sum_type)
                 ast_type.children().items[pos]
             else if (ast_type.* == .annotation)
@@ -404,14 +404,14 @@ fn lower_AST_inner(
                     _init = sum_init;
                 }
             }
-            const temp = self.create_temp_lvalue(ast.get_typeof());
+            const temp = self.create_temp_lvalue(ast.typeof(self.allocator));
             self.instructions.append(Instruction.init_union(temp, _init, ast.pos().?, ast.token().span, self.allocator)) catch unreachable;
             return temp;
         },
         // Control-flow expressions
         .@"if" => {
             // Create the result symbol and labels used
-            const symbol = self.create_temp_symbol(ast.get_typeof());
+            const symbol = self.create_temp_symbol(ast.typeof(self.allocator));
             const else_label = Instruction.init_label("if.else", ast.token().span, self.allocator);
             const end_label = Instruction.init_label("if.end", ast.token().span, self.allocator);
 
@@ -437,7 +437,7 @@ fn lower_AST_inner(
         },
         .match => {
             // Create the result symbol and labels used
-            const symbol = self.create_temp_symbol(ast.get_typeof());
+            const symbol = self.create_temp_symbol(ast.typeof(self.allocator));
             const end_label = Instruction.init_label("match.end", ast.token().span, self.allocator); // Exit label of match
             const fail_label = Instruction.init_label("match.fail", ast.token().span, self.allocator); // jumped to if all tests fail and no `else` mapping
 
@@ -461,7 +461,7 @@ fn lower_AST_inner(
         },
         .@"while" => {
             // Create the result symbol and labels used
-            const symbol = self.create_temp_symbol(ast.get_typeof());
+            const symbol = self.create_temp_symbol(ast.typeof(self.allocator));
             const cond_label = Instruction.init_label("while.cond", ast.token().span, self.allocator);
             const current_continue_label = Instruction.init_label("while.continue", ast.token().span, self.allocator);
             const else_label = Instruction.init_label("while.else", ast.token().span, self.allocator);
@@ -576,7 +576,7 @@ fn lower_AST_inner(
                 if (def == null) {
                     return null;
                 }
-                try self.generate_pattern(ast.decl.pattern, ast.decl.type.get_expanded_type(), def.?);
+                try self.generate_pattern(ast.decl.pattern, ast.decl.type.expand_type(self.allocator), def.?);
             }
             return self.lval_from_unit_value(ast);
         },
@@ -658,11 +658,11 @@ fn unop(
     ast: *ast_.AST, // TODO: Create some sort of context for these parameters?
     labels: Labels,
 ) Lower_Errors!?*lval_.L_Value {
-    if (ast.get_typeof().types_match(prelude_.type_type)) {
+    if (ast.typeof(self.allocator).types_match(prelude_.type_type)) {
         return self.lval_from_ast(ast); // for addr_of types, ex: `&T`
     }
     const expr = try self.lower_AST(ast.expr(), labels) orelse return null;
-    const temp = self.create_temp_lvalue(ast.get_typeof());
+    const temp = self.create_temp_lvalue(ast.typeof(self.allocator));
     self.instructions.append(Instruction.init_int_float_kind(int_kind(ast), float_kind(ast), temp, expr, null, ast.token().span, self.allocator)) catch unreachable;
     return temp;
 }
@@ -677,7 +677,7 @@ fn binop(
     if (lhs_lval == null or rhs_lval == null) {
         return null;
     }
-    const temp = self.create_temp_lvalue(ast.get_typeof());
+    const temp = self.create_temp_lvalue(ast.typeof(self.allocator));
     self.instructions.append(Instruction.init_int_float_kind(int_kind(ast), float_kind(ast), temp, lhs_lval, rhs_lval, ast.token().span, self.allocator)) catch unreachable;
     return temp;
 }
@@ -730,7 +730,7 @@ fn or_and_op(
     labels: Labels,
 ) Lower_Errors!?*lval_.L_Value {
     // Create the result symbol and labels used
-    const or_and_symbol = self.create_temp_symbol(ast.get_typeof());
+    const or_and_symbol = self.create_temp_symbol(ast.typeof(self.allocator));
     const jump_label = Instruction.init_label("or/and.jump", ast.token().span, self.allocator);
     const end_label = Instruction.init_label("or/and.end", ast.token().span, self.allocator);
 
@@ -765,7 +765,7 @@ fn tuple_equality_check(
     if (lhs == null or rhs == null) {
         return null;
     }
-    const temp = self.create_temp_lvalue(ast.get_typeof());
+    const temp = self.create_temp_lvalue(ast.typeof(self.allocator));
 
     // Labels used
     const fail_label = Instruction.init_label("tuple-eq.fail", ast.token().span, self.allocator);
@@ -795,8 +795,8 @@ fn tuple_equality_flow(
     var lhs_type = lhs.get_expanded_type();
     if (lhs_type.* == .product) {
         for (0..lhs_type.children().items.len) |field| {
-            const expanded_type = lhs_type.children().items[field].get_expanded_type();
-            const offset = lhs_type.product.get_offset(field);
+            const expanded_type = lhs_type.children().items[field].expand_type(self.allocator);
+            const offset = lhs_type.product.get_offset(field, self.allocator);
             const lhs_select = new_lhs.create_select_lval(field, offset, expanded_type, null, self.allocator);
             const rhs_select = new_rhs.create_select_lval(field, offset, expanded_type, null, self.allocator);
             self.tuple_equality_flow(lhs_select, rhs_select, fail_label);
@@ -820,7 +820,7 @@ fn coalesce_op(
     labels: Labels, // The current labels to use
 ) Lower_Errors!?*lval_.L_Value {
     // Create the result symbol and labels
-    const coalesce_symbol = self.create_temp_symbol(ast.get_typeof());
+    const coalesce_symbol = self.create_temp_symbol(ast.typeof(self.allocator));
     const zero_label = Instruction.init_label("coalesce.zero", ast.token().span, self.allocator);
     const end_label = Instruction.init_label("coalesce.end", ast.token().span, self.allocator);
 
@@ -841,7 +841,7 @@ fn coalesce_op(
 
     // tag was `.ok` or `.some`, store lhs in temp
     self.instructions.append(zero_label) catch unreachable;
-    const expanded_type = ast.get_typeof().get_expanded_type();
+    const expanded_type = ast.typeof(self.allocator).expand_type(self.allocator);
     const val = lhs.create_select_lval(0, 0, expanded_type, null, self.allocator);
     const ok_lval = lval_.L_Value.create_unversioned_symbver(coalesce_symbol, self.allocator);
     self.instructions.append(Instruction.init_simple_copy(ok_lval, val, ast.token().span, self.allocator)) catch unreachable;
@@ -870,20 +870,20 @@ fn generate_assign(
         // product-assigns may be nested, for example:
         //     ((x, y), (a, b)) = get_tuple()
         // So it's important that this is recursive
-        var lhs_expanded_type = lhs.get_typeof().get_expanded_type();
+        var lhs_expanded_type = lhs.typeof(self.allocator).expand_type(self.allocator);
         for (lhs.children().items, 0..) |term, field| {
             const product_lhs = try self.lower_AST(term, labels);
             if (product_lhs == null) {
                 continue;
             }
-            const expanded_type = rhs.get_expanded_type().children().items[field].get_expanded_type();
-            const offset = lhs_expanded_type.product.get_offset(field);
+            const expanded_type = rhs.get_expanded_type().children().items[field].expand_type(self.allocator);
+            const offset = lhs_expanded_type.product.get_offset(field, self.allocator);
             const select = rhs.create_select_lval(field, offset, expanded_type, null, self.allocator);
             try self.generate_assign(term, select, labels);
         }
-    } else if (lhs.* == .select and lhs.lhs().get_typeof().get_expanded_type().* == .sum_type) {
+    } else if (lhs.* == .select and lhs.lhs().typeof(self.allocator).expand_type(self.allocator).* == .sum_type) {
         // Select on a sum-type, convert to a copy of a sum_value
-        const sum_value = self.create_temp_lvalue(lhs.lhs().get_typeof().get_expanded_type());
+        const sum_value = self.create_temp_lvalue(lhs.lhs().typeof(self.allocator).expand_type(self.allocator));
         self.instructions.append(Instruction.init_union(sum_value, rhs, lhs.pos().?, lhs.token().span, self.allocator)) catch unreachable;
         try self.generate_assign(lhs.lhs(), sum_value, labels);
     } else {
@@ -906,7 +906,7 @@ fn generate_indexable_length(
         std.debug.assert(_type.addr_of.multiptr);
         return null;
     } else if (_type.* == .product and _type.product.was_slice) {
-        const offset = _type.product.get_offset(1);
+        const offset = _type.product.get_offset(1, self.allocator);
         return lhs.create_select_lval(1, offset, prelude_.int64_type, null, self.allocator);
     } else if (_type.* == .product and !_type.product.was_slice) {
         const retval = self.create_temp_lvalue(prelude_.int_type);
@@ -1072,9 +1072,9 @@ fn generate_match_pattern_check(
         },
         .product => {
             for (pattern.?.children().items, 0..) |term, field| {
-                const expanded_type = expr.get_expanded_type().children().items[field].get_expanded_type();
-                const pattern_type = pattern.?.get_typeof().get_expanded_type();
-                const offset = pattern_type.product.get_offset(field);
+                const expanded_type = expr.get_expanded_type().children().items[field].expand_type(self.allocator);
+                const pattern_type = pattern.?.typeof(self.allocator).expand_type(self.allocator);
+                const offset = pattern_type.product.get_offset(field, self.allocator);
                 const lval = expr.create_select_lval(field, offset, expanded_type, null, self.allocator);
                 try self.generate_match_pattern_check(term, lval, next_pattern, labels);
             }
@@ -1158,7 +1158,7 @@ fn create_temp_symbol(self: *Self, _type: *ast_.AST) *Symbol {
         .mut,
         self.allocator,
     );
-    temp_symbol.expanded_type = _type.get_expanded_type();
+    temp_symbol.expanded_type = _type.expand_type(self.allocator);
     temp_symbol.is_temp = true;
     return temp_symbol;
 }
@@ -1189,13 +1189,13 @@ fn generate_pattern(
         }
     } else if (pattern.* == .product) {
         for (pattern.children().items, 0..) |term, field| {
-            const expanded_type = _type.children().items[field].get_expanded_type();
-            const offset = _type.product.get_offset(field);
+            const expanded_type = _type.children().items[field].expand_type(self.allocator);
+            const offset = _type.product.get_offset(field, self.allocator);
             const lval = def.create_select_lval(field, offset, expanded_type, null, self.allocator);
             try self.generate_pattern(term, expanded_type, lval);
         }
     } else if (pattern.* == .sum_value) {
-        const expanded_type = pattern.sum_value.domain.?.annotation.type.get_expanded_type();
+        const expanded_type = pattern.sum_value.domain.?.annotation.type.expand_type(self.allocator);
         const field = pattern.pos().?;
         const lval = def.create_select_lval(field, 0, expanded_type, null, self.allocator);
         try self.generate_pattern(pattern.sum_value.init.?, expanded_type, lval);
