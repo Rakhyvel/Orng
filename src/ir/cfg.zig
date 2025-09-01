@@ -78,7 +78,7 @@ pub fn init(symbol: *Symbol, allocator: std.mem.Allocator) *Self {
         .mut,
         allocator,
     );
-    retval.return_symbol.expanded_type = retval.return_symbol._type.expand_type(allocator);
+    retval.return_symbol.expanded_type = retval.return_symbol._type.get_expanded_type();
     retval.needed_at_runtime = false;
     retval.offset = null;
     retval.locals_size = null;

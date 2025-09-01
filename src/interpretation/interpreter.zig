@@ -375,7 +375,7 @@ fn package_find(self: *Self, instr: *Instruction, compiler: *Compiler_Context) !
         const adrs = package_info.package_adrs;
         // Store the directory of the package inside the package struct before returning
         const dir_string = interned_strings.add(package_info.package_dirname, self.modules.get(1).?.uid);
-        const dir_offset = core_.package_type.product.get_offset_field("dir", self.allocator);
+        const dir_offset = core_.package_type.product.get_offset_field("dir");
         self.memory.store(Interned_String_Set.String_Idx, adrs + dir_offset, dir_string);
         // Store the address of the package in the retval
         const ret_addr = try self.effective_address(instr.dest.?);
@@ -577,7 +577,7 @@ fn extract_product_type(self: *Self, address: i64, product_type: *ast_.AST, span
     errdefer value_terms.deinit();
     for (0.., product_type.children().items) |i, term| {
         // std.debug.print("term:{}\n", .{i});
-        const offset = product_type.product.get_offset(i, self.allocator);
+        const offset = product_type.product.get_offset(i);
         // std.debug.print("offset:{}\n", .{offset});
         const extracted_term = try self.extract_ast(address + offset, term, span, module_interned_strings);
         // std.debug.print("extracted_term:{}\n", .{extracted_term});

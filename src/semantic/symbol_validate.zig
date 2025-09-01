@@ -28,7 +28,7 @@ pub fn validate(symbol: *Symbol, compiler: *Compiler_Context) Validate_Error_Enu
     // std.debug.print("type for: {s}: {}\n", .{ symbol.name, symbol._type });
     if (symbol._type.* != .poison) {
         _ = symbol.assert_symbol_valid();
-        symbol.expanded_type = symbol._type.expand_type(compiler.allocator());
+        symbol.expanded_type = try symbol._type.expand_type(compiler);
         // std.debug.print("expanded type for: {s}: {?}\n", .{ symbol.name, symbol.expanded_type });
         if (type_is_type_type(symbol.expanded_type.?)) {
             switch (symbol.kind) {

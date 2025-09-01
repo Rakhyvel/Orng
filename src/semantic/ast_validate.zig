@@ -7,7 +7,7 @@ const cfg_builder_ = @import("../ir/cfg_builder.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const defaults_ = @import("defaults.zig");
 const errs_ = @import("../util/errors.zig");
-const interpret = @import("interpret.zig").interpret;
+const interpret_ = @import("interpret.zig");
 const Interpreter_Context = @import("../interpretation/interpreter.zig");
 const module_ = @import("../hierarchy/module.zig");
 const poison_ = @import("../ast/poison.zig");
@@ -53,7 +53,7 @@ pub fn validate_AST(ast: *ast_.AST, old_expected_type: ?*ast_.AST, compiler: *Co
         // expected must be a valid Type type
         std.debug.assert(expected_type.?.* != .poison); // expected type is poisoned
         std.debug.assert(expected_type.?.common().validation_state == .valid); // expected type isn't determined to be valid
-        const expected_type_type = expected_type.?.typeof(compiler.allocator());
+        const expected_type_type = expected_type.?.typeof(compiler) catch return ast.enpoison();
         // std.debug.print("typeof({?}) = {}\n", .{ expected_type, expected_type_type });
         const expected_type_is_type = typing_.checked_types_match(expected_type_type, prelude_.type_type, &compiler.errors) catch return ast.enpoison();
         std.debug.assert(expected_type_is_type); // expected type isn't of type Type
@@ -78,7 +78,7 @@ pub fn validate_AST(ast: *ast_.AST, old_expected_type: ?*ast_.AST, compiler: *Co
     } else {
         // Might as well memoize expanded_type
         if (expected_type != null and typing_.checked_types_match(prelude_.type_type, expected_type.?, &compiler.errors) catch unreachable) {
-            _ = retval.expand_type(compiler.allocator());
+            _ = retval.expand_type(compiler) catch return ast.enpoison();
         }
 
         ast.common().validation_state = ast_.AST_Validation_State{ .valid = .{ .valid_form = retval } };
@@ -113,7 +113,7 @@ fn validate_AST_internal(
         },
         .int => {
             if (expected != null and !try typing_.checked_types_match(prelude_.unit_type, expected.?, &compiler.errors)) {
-                try typing_.type_check_int(ast, expected, &compiler.errors, compiler.allocator());
+                try typing_.type_check_int(ast, expected, &compiler.errors, compiler);
             }
             return ast;
         },
@@ -152,8 +152,9 @@ fn validate_AST_internal(
         .negate => {
             ast.set_expr(validate_AST(ast.expr(), expected, compiler));
             try poison_.assert_none_poisoned(ast.expr());
-            try typing_.type_check_arithmetic(ast.token().span, ast.expr().typeof(compiler.allocator()), &compiler.errors);
-            try typing_.type_check(ast.token().span, ast.expr().typeof(compiler.allocator()), expected, &compiler.errors);
+            const expr_type = try ast.expr().typeof(compiler);
+            try typing_.type_check_arithmetic(ast.token().span, expr_type, &compiler.errors);
+            try typing_.type_check(ast.token().span, expr_type, expected, &compiler.errors);
             return ast;
         },
         .dereference => {
@@ -165,7 +166,7 @@ fn validate_AST_internal(
                 ast.set_expr(validate_AST(ast.expr(), null, compiler));
             }
             try poison_.assert_none_poisoned(ast.expr());
-            const expanded_expr_type = ast.expr().typeof(compiler.allocator()).expand_type(compiler.allocator());
+            const expanded_expr_type = try (try ast.expr().typeof(compiler)).expand_type(compiler);
             if (expanded_expr_type.* != .addr_of) {
                 return typing_.throw_wrong_from("address", "dereference", expanded_expr_type, expr_span, &compiler.errors);
             } else {
@@ -176,12 +177,12 @@ fn validate_AST_internal(
             const expr_span = ast.expr().token().span;
             ast.set_expr(validate_AST(ast.expr(), null, compiler));
             try poison_.assert_none_poisoned(ast.expr());
-            var expanded_expr_type = ast.expr().typeof(compiler.allocator()).expand_type(compiler.allocator());
+            var expanded_expr_type = try (try ast.expr().typeof(compiler)).expand_type(compiler);
             if (expanded_expr_type.* != .sum_type or expanded_expr_type.sum_type.from != .@"error") {
                 return typing_.throw_wrong_from("error", "try", expanded_expr_type, expr_span, &compiler.errors);
             }
             try typing_.type_check(ast.token().span, expanded_expr_type.get_ok_type().annotation.type, expected, &compiler.errors);
-            const expanded_function_codomain = ast.symbol().?._type.rhs().expand_type(compiler.allocator());
+            const expanded_function_codomain = try ast.symbol().?._type.rhs().expand_type(compiler);
             if (expanded_function_codomain.* != .sum_type or expanded_function_codomain.sum_type.from != .@"error") {
                 compiler.errors.add_error(errs_.Error{ .basic = .{
                     .span = ast.token().span,
@@ -209,50 +210,38 @@ fn validate_AST_internal(
             ast.set_expr(validate_AST(ast.expr(), null, compiler));
             try poison_.assert_none_poisoned(ast.expr());
             try typing_.type_check(ast.token().span, prelude_.type_type, expected, &compiler.errors);
-            return ast.expr().typeof(compiler.allocator());
+            return ast.expr().typeof(compiler);
         },
         .default => {
             ast.set_expr(validate_AST(ast.expr(), prelude_.type_type, compiler));
             try poison_.assert_none_poisoned(ast.expr());
-            const ast_type = ast.typeof(compiler.allocator());
+            const ast_type = try ast.typeof(compiler);
             try typing_.type_check(ast.token().span, ast_type, expected, &compiler.errors);
-            const retval = defaults_.generate_default(ast_type.expand_type(compiler.allocator()), ast.expr().token().span, &compiler.errors, compiler.allocator());
+            const retval = defaults_.generate_default(try ast_type.expand_type(compiler), ast.expr().token().span, compiler);
             return retval;
         },
         .size_of => {
             ast.set_expr(validate_AST(ast.expr(), prelude_.type_type, compiler));
             try poison_.assert_none_poisoned(ast.expr());
             try typing_.type_check(ast.token().span, prelude_.int_type, expected, &compiler.errors);
-            return ast_.AST.create_int(ast.token(), ast.expr().expand_type(compiler.allocator()).sizeof(), compiler.allocator());
+            return ast_.AST.create_int(ast.token(), (try ast.expr().expand_type(compiler)).sizeof(), compiler.allocator());
         },
         .@"comptime" => {
             if (ast.@"comptime".result != null) {
                 return ast.@"comptime".result.?;
             }
             ast.set_expr(validate_AST(ast.expr(), expected, compiler));
-            const ast_type = ast.expr().typeof(compiler.allocator());
-            const expanded_ast_type = ast_type.expand_type(compiler.allocator());
-            if (try typing_.checked_types_match(expanded_ast_type, prelude_.void_type, &compiler.errors)) {
-                return typing_.throw_unexpected_void_type(ast.expr().token().span, &compiler.errors);
-            }
-            try typing_.type_check(ast.token().span, expanded_ast_type, expected, &compiler.errors);
-
-            var expanded_expected = expected;
-            if (expected != null and expected.?.* == .type_of) {
-                expanded_expected = expected.?.expand_type(compiler.allocator());
-            }
-            ast.@"comptime".result = try interpret(ast.expr(), expanded_expected orelse expanded_ast_type, ast.scope().?, compiler);
-            return ast.@"comptime".result.?;
+            return interpret_.eval_comptime(ast, expected, compiler);
         },
         .assign => {
             try validate_L_Value(ast.lhs(), &compiler.errors);
             ast.set_lhs(validate_AST(ast.lhs(), null, compiler));
-            const lhs_type = ast.lhs().typeof(compiler.allocator());
+            const lhs_type = try ast.lhs().typeof(compiler);
             try poison_.assert_none_poisoned(lhs_type);
             const rhs_expected: ?*ast_.AST = if (ast.lhs().* == .identifier and std.mem.eql(u8, ast.lhs().token().data, "_")) null else lhs_type;
             ast.set_rhs(validate_AST(ast.rhs(), rhs_expected, compiler));
             try poison_.assert_none_poisoned(.{ ast.lhs(), ast.rhs() });
-            try assert_mutable(ast.lhs(), &compiler.errors, compiler.allocator());
+            try assert_mutable(ast.lhs(), compiler);
             try typing_.type_check(ast.token().span, prelude_.unit_type, expected, &compiler.errors);
             return ast;
         },
@@ -272,7 +261,7 @@ fn validate_AST_internal(
         },
         .equal, .not_equal => {
             const lhs_type = try typing_.binary_operator_open(ast, null, compiler);
-            const expanded_lhs_type = lhs_type.expand_type(compiler.allocator());
+            const expanded_lhs_type = try lhs_type.expand_type(compiler);
             if (try typing_.checked_types_match(prelude_.type_type, expanded_lhs_type, &compiler.errors)) {
                 return try typing_.type_equality_operation(ast, &compiler.errors, compiler.allocator());
             }
@@ -291,7 +280,7 @@ fn validate_AST_internal(
             ast.set_lhs(validate_AST(ast.lhs(), null, compiler));
             ast.set_rhs(validate_AST(ast.rhs(), expected, compiler));
             try poison_.assert_none_poisoned(.{ ast.lhs(), ast.rhs() });
-            var expanded_lhs_type = ast.lhs().typeof(compiler.allocator()).expand_type(compiler.allocator());
+            var expanded_lhs_type = try (try ast.lhs().typeof(compiler)).expand_type(compiler);
             try typing_.coalesce_operator(expanded_lhs_type, ast, lhs_span, &compiler.errors);
             try typing_.type_check(ast.token().span, expanded_lhs_type.get_nominal_type().annotation.type, expected, &compiler.errors);
             return ast;
@@ -300,7 +289,7 @@ fn validate_AST_internal(
             for (0..ast.children().items.len) |i| {
                 ast.children().items[i] = validate_AST(ast.children().items[i], expected, compiler);
                 try poison_.assert_none_poisoned(ast.children().items[i]);
-                const arg_type = ast.children().items[i].typeof(compiler.allocator());
+                const arg_type = try ast.children().items[i].typeof(compiler);
                 try typing_.type_check_bits(ast.token().span, arg_type, &compiler.errors);
                 try typing_.type_check(ast.token().span, arg_type, expected, &compiler.errors);
             }
@@ -309,14 +298,15 @@ fn validate_AST_internal(
         .bit_not => {
             ast.set_expr(validate_AST(ast.expr(), expected, compiler));
             try poison_.assert_none_poisoned(ast.expr());
-            try typing_.type_check_bits(ast.token().span, ast.expr().typeof(compiler.allocator()), &compiler.errors);
-            try typing_.type_check(ast.token().span, ast.expr().typeof(compiler.allocator()), expected, &compiler.errors);
+            const expr_type = try ast.expr().typeof(compiler);
+            try typing_.type_check_bits(ast.token().span, expr_type, &compiler.errors);
+            try typing_.type_check(ast.token().span, expr_type, expected, &compiler.errors);
             return ast;
         },
         .left_shift, .right_shift => {
             ast.set_lhs(validate_AST(ast.lhs(), expected, compiler));
             ast.set_rhs(validate_AST(ast.rhs(), expected, compiler));
-            const lhs_type = ast.typeof(compiler.allocator());
+            const lhs_type = try ast.typeof(compiler);
             try typing_.type_check_bits(ast.token().span, lhs_type, &compiler.errors);
             try typing_.type_check(ast.token().span, lhs_type, expected, &compiler.errors);
             return ast;
@@ -334,7 +324,7 @@ fn validate_AST_internal(
                 ast.set_lhs(stamped_fn_identifier);
                 remove_const_args(template_decl.template.decl.fn_decl._params, ast.children());
             }
-            var lhs_type = ast.lhs().typeof(compiler.allocator());
+            var lhs_type = try ast.lhs().typeof(compiler);
             const expanded_lhs_type = lhs_type.expand_identifier();
             if (ast.lhs().* != .sum_value and expanded_lhs_type.* != .function) {
                 return typing_.throw_wrong_from(
@@ -367,8 +357,9 @@ fn validate_AST_internal(
                 expected != null and
                 try typing_.checked_types_match(expected.?, prelude_.type_type, &compiler.errors))
             {
+                // A call-type's expanded type is set here
                 const scope = ast.lhs().symbol().?.scope;
-                ast.call.common._expanded_type = try interpret(ast, prelude_.type_type, scope, compiler);
+                ast.call.common._expanded_type = try interpret_.interpret(ast, prelude_.type_type, scope, compiler);
             }
             return ast;
         },
@@ -382,8 +373,8 @@ fn validate_AST_internal(
             ast.set_rhs(validate_AST(ast.rhs(), prelude_.int_type, compiler));
             try poison_.assert_none_poisoned(.{ ast.lhs(), ast.rhs() });
 
-            const lhs_type = ast.lhs().typeof(compiler.allocator());
-            const expanded_lhs_type = try typing_.implicit_dereference(ast, lhs_type.expand_type(compiler.allocator()), compiler);
+            const lhs_type = try ast.lhs().typeof(compiler);
+            const expanded_lhs_type = try typing_.implicit_dereference(ast, try lhs_type.expand_type(compiler), compiler);
 
             if (try typing_.checked_types_match(lhs_type, prelude_.type_type, &compiler.errors) and
                 ast.lhs().* == .product and
@@ -423,9 +414,9 @@ fn validate_AST_internal(
         .select => {
             ast.set_lhs(validate_AST(ast.lhs(), null, compiler));
             try poison_.assert_none_poisoned(ast.lhs());
-            const lhs_type = ast.lhs().typeof(compiler.allocator());
-            const expanded_lhs_type = try typing_.implicit_dereference(ast, lhs_type.expand_type(compiler.allocator()), compiler);
-            if (try typing_.checked_types_match(expanded_lhs_type, prelude_.type_type, &compiler.errors) and ast.lhs().expand_type(compiler.allocator()).* == .sum_type) {
+            const lhs_type = try ast.lhs().typeof(compiler);
+            const expanded_lhs_type = try typing_.implicit_dereference(ast, try lhs_type.expand_type(compiler), compiler);
+            if (try typing_.checked_types_match(expanded_lhs_type, prelude_.type_type, &compiler.errors) and (try ast.lhs().expand_type(compiler)).* == .sum_type) {
                 // Select on a Type (only valid for a sum type), change to sum value
                 const sum_value = ast_.AST.create_sum_value(ast.rhs().token(), compiler.allocator());
                 sum_value.sum_value.base = ast.lhs();
@@ -438,7 +429,7 @@ fn validate_AST_internal(
             }
 
             _ = ast.assert_ast_valid();
-            const ast_type = ast.typeof(compiler.allocator());
+            const ast_type = try ast.typeof(compiler);
             try typing_.type_check(ast.token().span, ast_type, expected, &compiler.errors);
             return ast;
         },
@@ -454,7 +445,7 @@ fn validate_AST_internal(
             try validate_symbol_.validate(symbol, compiler);
 
             _ = ast.assert_ast_valid();
-            const ast_type = ast.typeof(compiler.allocator());
+            const ast_type = try ast.typeof(compiler);
             try typing_.type_check(ast.token().span, ast_type, expected, &compiler.errors);
             return ast;
         },
@@ -463,7 +454,7 @@ fn validate_AST_internal(
             ast.set_lhs(validate_AST(ast.lhs(), null, compiler));
             try poison_.assert_none_poisoned(ast.lhs());
             // true_lhs_type is lhs's type
-            const true_lhs_type = ast.lhs().typeof(compiler.allocator());
+            const true_lhs_type = try ast.lhs().typeof(compiler);
             // method_decl is the method_decl AST of the method being invoked
             var method_decl: ?*ast_.AST = undefined;
             if (true_lhs_type.expand_identifier().* == .dyn_type) {
@@ -518,7 +509,7 @@ fn validate_AST_internal(
             ast.set_children((try typing_.validate_args_type(ast.children(), domain, compiler)).*);
 
             _ = ast.assert_ast_valid();
-            const ast_type = ast.typeof(compiler.allocator());
+            const ast_type = try ast.typeof(compiler);
             try typing_.type_check(ast.token().span, ast_type, expected, &compiler.errors);
             return ast;
         },
@@ -538,7 +529,7 @@ fn validate_AST_internal(
         .dyn_value => {
             ast.set_expr(validate_AST(ast.expr(), null, compiler));
             ast.dyn_value.dyn_type = validate_AST(ast.dyn_value.dyn_type, prelude_.type_type, compiler);
-            const expr_type = ast.expr().typeof(compiler.allocator());
+            const expr_type = try ast.expr().typeof(compiler);
 
             const impl = ast.scope().?.impl_trait_lookup(expr_type, ast.dyn_value.dyn_type.expr().symbol().?);
             if (impl.ast == null) {
@@ -565,17 +556,18 @@ fn validate_AST_internal(
             return ast;
         },
         .untagged_sum_type => {
-            ast.set_expr(validate_AST(ast.expr(), prelude_.type_type, compiler).expand_type(compiler.allocator()));
+            ast.set_expr(try validate_AST(ast.expr(), prelude_.type_type, compiler).expand_type(compiler));
             try poison_.assert_none_poisoned(ast.expr());
             if (ast.expr().* != .sum_type) {
                 compiler.errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "not a sum type" } });
                 return ast.enpoison();
             }
-            try typing_.type_check(ast.token().span, ast.expr().typeof(compiler.allocator()), expected, &compiler.errors);
+            try typing_.type_check(ast.token().span, try ast.expr().typeof(compiler), expected, &compiler.errors);
             return ast;
         },
         .product => {
-            const expanded_expected: ?*ast_.AST = if (expected == null) null else expected.?.expand_type(compiler.allocator());
+            var expanded_expected: ?*ast_.AST = if (expected == null) null else try expected.?.expand_type(compiler);
+            expanded_expected = if (expanded_expected == null) null else validate_AST(expanded_expected.?, prelude_.type_type, compiler);
             if (expanded_expected == null or try typing_.checked_types_match(expanded_expected.?, prelude_.type_type, &compiler.errors)) {
                 // Not expecting anything OR expecting ast to be a product type
                 for (0..ast.children().items.len) |i| {
@@ -604,8 +596,8 @@ fn validate_AST_internal(
 
             const new_ast = try typing_.binary_operator_closed(ast, prelude_.type_type, expected, compiler);
 
-            const expanded_lhs = new_ast.lhs().expand_type(compiler.allocator());
-            const expanded_rhs = new_ast.rhs().expand_type(compiler.allocator());
+            const expanded_lhs = try new_ast.lhs().expand_type(compiler);
+            const expanded_rhs = try new_ast.rhs().expand_type(compiler);
             if (expanded_lhs.* != .sum_type) {
                 return typing_.throw_wrong_from("sum", "union", expanded_lhs, lhs_span, &compiler.errors);
             } else if (expanded_rhs.* != .sum_type) {
@@ -624,9 +616,9 @@ fn validate_AST_internal(
             } else if (try typing_.checked_types_match(prelude_.type_type, expected.?, &compiler.errors)) {
                 // Address type, type of this ast must be a type, inner must be a type
                 if (ast.expr().* == .identifier) {
-                    _ = ast.expr().expand_type(compiler.allocator());
+                    _ = try ast.expr().expand_type(compiler);
                     const span = ast.expr().token().span;
-                    const got = ast.expr().typeof(compiler.allocator());
+                    const got = try ast.expr().typeof(compiler);
                     if (got.* != .type_of) {
                         if (!try typing_.checked_types_match(got, prelude_.type_type, &compiler.errors)) {
                             return typing_.throw_unexpected_type(span, prelude_.type_type, got, &compiler.errors);
@@ -639,7 +631,7 @@ fn validate_AST_internal(
                 }
             } else {
                 // Address value, expected must be an address, inner must match with expected's inner
-                const expanded_expected = expected.?.expand_type(compiler.allocator());
+                const expanded_expected = try expected.?.expand_type(compiler);
                 if (expanded_expected.* == .dyn_type) {
                     return validate_AST(
                         ast_.AST.create_dyn_value(
@@ -657,7 +649,7 @@ fn validate_AST_internal(
                     // Didn't expect an address type. Validate expr and report error
                     return typing_.throw_unexpected_type(ast.token().span, expected.?, poison_.poisoned, &compiler.errors);
                 }
-                _ = expanded_expected.expr().expand_type(compiler.allocator());
+                _ = try expanded_expected.expr().expand_type(compiler);
 
                 // Everythings Ok.
                 ast.set_expr(validate_AST(ast.expr(), expanded_expected.expr().assert_ast_valid(), compiler));
@@ -670,7 +662,7 @@ fn validate_AST_internal(
                     try validate_L_Value(ast.expr(), &compiler.errors);
                 }
                 if (ast.addr_of.mut) {
-                    try assert_mutable(ast.expr(), &compiler.errors, compiler.allocator());
+                    try assert_mutable(ast.expr(), compiler);
                 }
             }
 
@@ -679,11 +671,11 @@ fn validate_AST_internal(
         .slice_of => {
             ast.set_expr(validate_AST(ast.expr(), null, compiler));
             try poison_.assert_none_poisoned(ast.expr());
-            var expr_type = ast.expr().typeof(compiler.allocator());
+            var expr_type = try ast.expr().typeof(compiler);
             if (expr_type.* != .unit_type and try typing_.checked_types_match(prelude_.type_type, expr_type, &compiler.errors)) {
                 // Regular slice type, change to product of data address and length
                 const retval = ast_.AST.create_slice_type(ast.expr(), ast.slice_of.mut, compiler.allocator()).assert_ast_valid();
-                const retval_type = retval.typeof(compiler.allocator());
+                const retval_type = try retval.typeof(compiler);
                 try typing_.type_check(ast.token().span, retval_type, expected, &compiler.errors);
                 return retval;
             } else { // Slice-of value, expected must be an slice, inner must match with expected's inner
@@ -697,7 +689,7 @@ fn validate_AST_internal(
                 }
 
                 _ = ast.assert_ast_valid();
-                const ast_type = ast.typeof(compiler.allocator());
+                const ast_type = try ast.typeof(compiler);
                 try typing_.type_check(ast.token().span, ast_type, expected, &compiler.errors);
 
                 if (ast.expr().* != .product) {
@@ -707,7 +699,7 @@ fn validate_AST_internal(
                     try validate_L_Value(ast.expr(), &compiler.errors);
                 }
                 if (ast.slice_of.mut) {
-                    try assert_mutable(ast.expr(), &compiler.errors, compiler.allocator());
+                    try assert_mutable(ast.expr(), compiler);
                 }
                 return ast_.AST.create_slice_value(ast.expr(), ast.slice_of.mut, expr_type, compiler.allocator());
             }
@@ -740,7 +732,7 @@ fn validate_AST_internal(
             ast.sub_slice.lower = validate_AST(ast.sub_slice.lower.?, null, compiler); // lower and upper should exist
             ast.sub_slice.upper = validate_AST(ast.sub_slice.upper.?, null, compiler); // they are set in expand phase
             try poison_.assert_none_poisoned(.{ ast.sub_slice.super, ast.sub_slice.lower, ast.sub_slice.upper });
-            const super_type = ast.sub_slice.super.typeof(compiler.allocator());
+            const super_type = try ast.sub_slice.super.typeof(compiler);
             if (super_type.* != .product or !super_type.product.was_slice) {
                 compiler.errors.add_error(errs_.Error{ .basic = .{
                     .span = ast.token().span,
@@ -773,7 +765,7 @@ fn validate_AST_internal(
                 ast.sum_value.base = expected;
             }
 
-            const expanded_base: *ast_.AST = ast.sum_value.base.?.expand_type(compiler.allocator());
+            const expanded_base: *ast_.AST = try ast.sum_value.base.?.expand_type(compiler);
             if (expanded_base.* != .sum_type) {
                 return typing_.throw_wrong_from("sum", "sum value", expanded_base, ast.token().span, &compiler.errors);
             }
@@ -789,7 +781,7 @@ fn validate_AST_internal(
             if (ast.sum_value.init == null) {
                 // This may be usurped by a .call node
                 ast.sum_value.init = ast.sum_value.domain.?.annotation.init orelse
-                    try defaults_.generate_default(ast.sum_value.domain.?.annotation.type, ast.token().span, &compiler.errors, compiler.allocator());
+                    try defaults_.generate_default(ast.sum_value.domain.?.annotation.type, ast.token().span, compiler);
             } else {
                 ast.sum_value.init = validate_AST(ast.sum_value.init.?, ast.sum_value.domain.?.annotation.type, compiler);
             }
@@ -812,7 +804,7 @@ fn validate_AST_internal(
             if (expected == null) {
                 expected_type = null;
             } else {
-                expanded_expected = expected.?.expand_type(compiler.allocator());
+                expanded_expected = try expected.?.expand_type(compiler);
                 is_result_optional = expanded_expected.* == .sum_type and
                     expanded_expected.sum_type.from == .optional and
                     !try typing_.checked_types_match(expanded_expected, prelude_.void_type, &compiler.errors);
@@ -842,7 +834,7 @@ fn validate_AST_internal(
             } else if (ast.@"if".condition.* == .true and ast.else_block() == null) {
                 // condition is true and theres no else => return {let; some(body)}
                 inset_let_into_if(ast, compiler.allocator());
-                const opt_type = ast_.AST.create_optional_type(ast.body_block().typeof(compiler.allocator()), compiler.allocator());
+                const opt_type = ast_.AST.create_optional_type(try ast.body_block().typeof(compiler), compiler.allocator());
                 const retval = ast_.AST.create_some_value(opt_type, ast.body_block(), compiler.allocator());
                 return retval;
             } else if (ast.@"if".condition.* == .false and ast.else_block() != null) {
@@ -864,11 +856,11 @@ fn validate_AST_internal(
                 if (ast.@"if".let != null) {
                     statements.append(ast.@"if".let.?) catch unreachable;
                 }
-                if (try typing_.checked_types_match(ast.body_block().typeof(compiler.allocator()), prelude_.void_type, &compiler.errors)) {
+                if (try typing_.checked_types_match(try ast.body_block().typeof(compiler), prelude_.void_type, &compiler.errors)) {
                     // condition is false and theres no else and void type => return {let}
                 } else {
                     // condition is false and theres no else => return {let; none()}
-                    const opt_type = ast_.AST.create_optional_type(ast.body_block().typeof(compiler.allocator()), compiler.allocator());
+                    const opt_type = ast_.AST.create_optional_type(try ast.body_block().typeof(compiler), compiler.allocator());
                     statements.append(ast_.AST.create_none_value(opt_type, compiler.allocator())) catch unreachable;
                 }
                 const ret_block = ast_.AST.create_block(Token.init_simple("{"), statements, null, compiler.allocator());
@@ -886,7 +878,7 @@ fn validate_AST_internal(
             ast.set_expr(validate_AST(ast.expr(), null, compiler));
             try poison_.assert_none_poisoned(.{ ast.match.let, ast.expr() });
 
-            const expanded_expr_type = ast.expr().typeof(compiler.allocator()).expand_type(compiler.allocator());
+            const expanded_expr_type = try (try ast.expr().typeof(compiler)).expand_type(compiler);
             try poison_.assert_none_poisoned(expanded_expr_type);
 
             for (0..ast.children().items.len) |i| {
@@ -917,7 +909,7 @@ fn validate_AST_internal(
 
             var is_optional_type = false; //< Set if expected is an optional type
             if (expected != null) {
-                const expanded_expected = expected.?.expand_type(compiler.allocator());
+                const expanded_expected = try expected.?.expand_type(compiler);
                 if (expanded_expected.* == .sum_type and expanded_expected.sum_type.from == .optional) {
                     ast.set_body_block(validate_AST(ast.body_block(), expanded_expected.get_some_type(), compiler));
                     is_optional_type = true;
@@ -942,7 +934,7 @@ fn validate_AST_internal(
                 const is_middle_statement = if (ast.block.final == null) i < ast.children().items.len - 1 else true;
                 if ((statement.* != .fn_decl or statement.fn_decl.name == null) and is_middle_statement) {
                     // Don't worry about fn_decl's, those should be allowed to be "discarded"
-                    const expanded_statement_type = statement.typeof(compiler.allocator()).expand_type(compiler.allocator());
+                    const expanded_statement_type = try (try statement.typeof(compiler)).expand_type(compiler);
                     try typing_.middle_statement_check(statement.token().span, expanded_statement_type, &compiler.errors);
                 }
             }
@@ -952,7 +944,7 @@ fn validate_AST_internal(
                 try poison_.assert_none_poisoned(ast.block.final);
             } else {
                 _ = ast.assert_ast_valid();
-                try typing_.type_check(ast.token().span, ast.typeof(compiler.allocator()), expected, &compiler.errors);
+                try typing_.type_check(ast.token().span, try ast.typeof(compiler), expected, &compiler.errors);
             }
             return ast;
         },
@@ -964,7 +956,7 @@ fn validate_AST_internal(
             if (ast.@"return"._ret_expr) |expr| {
                 ast.@"return"._ret_expr = validate_AST(expr, ast.symbol().?._type.rhs(), compiler);
                 try poison_.assert_none_poisoned(ast.@"return"._ret_expr);
-            } else if (expected != null and (expected.?.expand_type(compiler.allocator())).* != .unit_type) {
+            } else if (expected != null and (try expected.?.expand_type(compiler)).* != .unit_type) {
                 return typing_.throw_unexpected_type(ast.token().span, expected.?, prelude_.void_type, &compiler.errors);
             }
             return ast;
@@ -979,8 +971,8 @@ fn validate_AST_internal(
             try validate_symbol_.validate(ast.symbol().?, compiler);
             try poison_.assert_none_poisoned(ast.symbol().?._type);
             if (expected) |_expected| {
-                const expanded_expected = _expected.expand_type(compiler.allocator());
-                const ast_type = ast.typeof(compiler.allocator());
+                const expanded_expected = try _expected.expand_type(compiler);
+                const ast_type = try ast.typeof(compiler);
                 try typing_.type_check(ast.token().span, ast_type, expanded_expected, &compiler.errors);
             }
             return ast;
@@ -1078,37 +1070,37 @@ fn validate_L_Value(ast: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!v
     }
 }
 
-fn assert_mutable(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!void {
+fn assert_mutable(ast: *ast_.AST, compiler: *Compiler_Context) Validate_Error_Enum!void {
     switch (ast.*) {
         .identifier => {
             const symbol = ast.symbol().?;
             if (!std.mem.eql(u8, symbol.name, "_") and symbol.kind != .mut) {
-                errors.add_error(errs_.Error{ .modify_immutable = .{ .identifier = ast.token() } });
+                compiler.errors.add_error(errs_.Error{ .modify_immutable = .{ .identifier = ast.token() } });
                 return error.CompileError;
             }
         },
 
         .dereference => {
-            const expr_expanded_type = ast.expr().typeof(allocator).expand_type(allocator);
-            try assert_mutable_address(expr_expanded_type, errors);
+            const expr_expanded_type = try (try ast.expr().typeof(compiler)).expand_type(compiler);
+            try assert_mutable_address(expr_expanded_type, &compiler.errors);
         },
 
         .index => {
-            const lhs_type = ast.lhs().typeof(allocator);
+            const lhs_type = try ast.lhs().typeof(compiler);
             if (lhs_type.* == .product and lhs_type.product.was_slice) {
-                try assert_mutable_address(lhs_type.children().items[0].annotation.type, errors);
+                try assert_mutable_address(lhs_type.children().items[0].annotation.type, &compiler.errors);
             } else if (lhs_type.* == .addr_of and lhs_type.addr_of.multiptr) {
-                try assert_mutable_address(lhs_type, errors);
+                try assert_mutable_address(lhs_type, &compiler.errors);
             } else {
-                try assert_mutable(ast.lhs(), errors, allocator);
+                try assert_mutable(ast.lhs(), compiler);
             }
         },
 
         .product => for (ast.children().items) |term| {
-            try assert_mutable(term, errors, allocator);
+            try assert_mutable(term, compiler);
         },
 
-        .select => try assert_mutable(ast.lhs(), errors, allocator),
+        .select => try assert_mutable(ast.lhs(), compiler),
 
         else => {},
     }

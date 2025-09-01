@@ -9,6 +9,8 @@
 const std = @import("std");
 const module_ = @import("../hierarchy/module.zig");
 const alignment_ = @import("../util/alignment.zig");
+const Compiler_Context = @import("../hierarchy/compiler.zig");
+const interpret_ = @import("../semantic/interpret.zig");
 const poison_ = @import("poison.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const String = @import("../zig-string/zig-string.zig").String;
@@ -287,20 +289,20 @@ pub const AST = union(enum) {
             return true;
         }
 
-        pub fn get_offset_field(self: *@This(), field_name: []const u8, allocator: std.mem.Allocator) i64 {
+        pub fn get_offset_field(self: *@This(), field_name: []const u8) i64 {
             for (0.., self._terms.items) |i, term| {
                 if (term.* == .annotation and std.mem.eql(u8, field_name, term.annotation.pattern.token().data)) {
-                    return self.get_offset(i, allocator);
+                    return self.get_offset(i);
                 }
             }
             std.debug.panic("compiler error: couldn't get offset; product didn't have the field `{s}`", .{field_name});
         }
 
         /// Retrieves the offset in bytes given a field's index
-        pub fn get_offset(self: *@This(), field: usize, allocator: std.mem.Allocator) i64 {
+        pub fn get_offset(self: *@This(), field: usize) i64 {
             var offset: i64 = 0;
             for (0..field) |i| {
-                var item = self._terms.items[i].expand_type(allocator);
+                var item = self._terms.items[i].get_expanded_type();
                 if (self._terms.items[i + 1].alignof() == 0) {
                     continue;
                 }
@@ -2373,12 +2375,16 @@ pub const AST = union(enum) {
         }
     }
 
+    pub fn get_expanded_type(self: *AST) *AST {
+        return self.common()._expanded_type.?;
+    }
+
     /// Expand the type of an AST value. This call is memoized for ASTs besides identifiers.
-    pub fn expand_type(self: *AST, allocator: std.mem.Allocator) *AST {
+    pub fn expand_type(self: *AST, compiler: *Compiler_Context) error{ LexerError, ParseError, CompileError }!*AST {
         if (self.common()._expanded_type != null and self.* != .identifier) {
             return self.common()._expanded_type.?;
         }
-        var retval = expand_type_internal(self, allocator).assert_ast_valid();
+        var retval = try expand_type_internal(self, compiler);
         self.common()._expanded_type = retval;
         retval.common()._expanded_type = retval;
         retval.common()._unexpanded_type = self.common()._unexpanded_type orelse self;
@@ -2386,7 +2392,7 @@ pub const AST = union(enum) {
     }
 
     /// Non-memoized slow path for expanding the type of an AST value.
-    fn expand_type_internal(self: *AST, allocator: std.mem.Allocator) *AST {
+    fn expand_type_internal(self: *AST, compiler: *Compiler_Context) error{ LexerError, ParseError, CompileError }!*AST {
         // FIXME: High Cyclo
         switch (self.*) {
             .access, .identifier => {
@@ -2396,12 +2402,12 @@ pub const AST = union(enum) {
                 } else if (_symbol.kind == .@"extern" and _symbol.init_value == null) {
                     return self;
                 } else {
-                    return _symbol.init_value.?.expand_type(allocator);
+                    return _symbol.init_value.?.expand_type(compiler);
                 }
             },
             .product => {
-                if (expand_type_list(self.children(), allocator)) |new_terms| {
-                    var retval = AST.create_product(self.token(), new_terms, allocator);
+                if (try expand_type_list(self.children(), compiler)) |new_terms| {
+                    var retval = AST.create_product(self.token(), new_terms, compiler.allocator());
                     retval.product.was_slice = self.product.was_slice;
                     return retval;
                 } else {
@@ -2409,8 +2415,8 @@ pub const AST = union(enum) {
                 }
             },
             .sum_type => {
-                if (expand_type_list(self.children(), allocator)) |new_terms| {
-                    var retval = AST.create_sum_type(self.token(), new_terms, allocator);
+                if (try expand_type_list(self.children(), compiler)) |new_terms| {
+                    var retval = AST.create_sum_type(self.token(), new_terms, compiler.allocator());
                     retval.sum_type.from = self.sum_type.from;
                     return retval;
                 } else {
@@ -2418,30 +2424,39 @@ pub const AST = union(enum) {
                 }
             },
             .untagged_sum_type => {
-                return AST.create_untagged_sum_type(self.token(), self.expr().expand_type(allocator), allocator);
+                return AST.create_untagged_sum_type(self.token(), try self.expr().expand_type(compiler), compiler.allocator());
             },
             .function => {
-                const _lhs = self.lhs().expand_type(allocator);
-                const _rhs = self.rhs().expand_type(allocator);
-                return AST.create_function(self.token(), _lhs, _rhs, allocator);
+                const _lhs = try self.lhs().expand_type(compiler);
+                const _rhs = try self.rhs().expand_type(compiler);
+                return AST.create_function(self.token(), _lhs, _rhs, compiler.allocator());
             },
             .annotation => {
-                const _expr = self.annotation.type.expand_type(allocator);
+                const _expr = try self.annotation.type.expand_type(compiler);
                 return AST.create_annotation(
                     self.token(),
                     self.annotation.pattern,
                     _expr,
                     self.annotation.predicate,
                     self.annotation.init,
-                    allocator,
+                    compiler.allocator(),
                 );
             },
             .index => {
-                const _expr = self.lhs().expand_type(allocator);
+                const _expr = try self.lhs().expand_type(compiler);
                 return _expr.children().items[@as(usize, @intCast(self.rhs().int.data))];
             },
-            .addr_of, .poison, .unit_type => return self,
-            .type_of => return self.typeof(allocator),
+            .addr_of => {
+                const _expr = try self.expr().expand_type(compiler);
+                var retval = AST.create_addr_of(self.token(), _expr, self.addr_of.mut, self.addr_of.multiptr, compiler.allocator());
+                retval.addr_of.anytptr = self.addr_of.anytptr;
+                retval.addr_of._scope = self.addr_of._scope;
+                return retval;
+            },
+            .poison, .unit_type => return self,
+            .type_of => return self.typeof(compiler),
+
+            .@"comptime" => return try interpret_.eval_comptime(self, prelude_.type_type, compiler),
 
             else => return self,
         }
@@ -2450,12 +2465,12 @@ pub const AST = union(enum) {
     /// Expand the types of each AST in a list
     fn expand_type_list(
         asts: *std.ArrayList(*AST),
-        allocator: std.mem.Allocator,
-    ) ?std.ArrayList(*AST) {
-        var terms = std.ArrayList(*AST).init(allocator);
+        compiler: *Compiler_Context,
+    ) !?std.ArrayList(*AST) {
+        var terms = std.ArrayList(*AST).init(compiler.allocator());
         var change = false;
         for (asts.items) |term| {
-            const new_term = term.expand_type(allocator);
+            const new_term = try term.expand_type(compiler);
             terms.append(new_term) catch unreachable;
             change = new_term != term or change;
         }
@@ -2632,20 +2647,24 @@ pub const AST = union(enum) {
         }
     }
 
+    pub fn get_typeof(self: *AST) *AST {
+        return self.common()._type.?;
+    }
+
     /// Determine the type of an AST value. Call is memoized.
     /// Must always return a valid type!
-    pub fn typeof(self: *AST, allocator: std.mem.Allocator) *AST {
+    pub fn typeof(self: *AST, compiler: *Compiler_Context) error{ LexerError, ParseError, CompileError }!*AST {
         // std.debug.assert(self.common().validation_state != .unvalidated);
         if (self.common()._type) |_type| {
             return _type;
         }
-        const retval: *AST = self.typeof_internal(allocator).assert_ast_valid();
+        const retval: *AST = (try self.typeof_internal(compiler)).assert_ast_valid();
         self.common()._type = retval;
         return retval;
     }
 
     /// Non-memoized slow-path for determining the type of an AST value.
-    fn typeof_internal(self: *AST, allocator: std.mem.Allocator) *AST {
+    fn typeof_internal(self: *AST, compiler: *Compiler_Context) error{ LexerError, ParseError, CompileError }!*AST {
         switch (self.*) {
             // Poisoned type
             .poison => return poison_.poisoned,
@@ -2712,46 +2731,45 @@ pub const AST = union(enum) {
             .mod,
             .left_shift,
             .right_shift,
-            => return self.lhs().typeof(allocator),
+            => return self.lhs().typeof(compiler),
 
-            .bit_and, .bit_or, .bit_xor => return self.children().items[0].typeof(allocator),
+            .bit_and, .bit_or, .bit_xor => return self.children().items[0].typeof(compiler),
 
             .@"catch", .@"orelse" => {
-                const rhs_type = self.rhs().typeof(allocator);
+                const rhs_type = try self.rhs().typeof(compiler);
                 if (rhs_type.types_match(prelude_.void_type)) {
-                    return self.lhs().typeof(allocator).children().items[0].annotation.type;
+                    return (try self.lhs().typeof(compiler)).children().items[0].annotation.type;
                 } else {
                     return rhs_type;
                 }
             },
 
-            .mapping,
-            => return self.rhs().typeof(allocator),
+            .mapping => return try self.rhs().typeof(compiler),
 
             .product => {
-                var first_type = self.children().items[0].typeof(allocator);
+                var first_type = try self.children().items[0].typeof(compiler);
                 if (first_type.types_match(prelude_.type_type)) {
                     // typeof product type is Type
                     return prelude_.type_type;
                 } else if (self.product.was_slice) {
                     var addr: *AST = self.children().items[0];
-                    var retval = create_slice_type(addr.expr().typeof(allocator), addr.addr_of.mut, allocator);
+                    var retval = create_slice_type(try addr.expr().typeof(compiler), addr.addr_of.mut, compiler.allocator());
                     retval.product.was_slice = true;
                     return retval;
                 } else {
-                    var terms = std.ArrayList(*AST).init(allocator);
+                    var terms = std.ArrayList(*AST).init(compiler.allocator());
                     for (self.children().items) |term| {
-                        const term_type = term.typeof(allocator);
+                        const term_type = try term.typeof(compiler);
                         terms.append(term_type) catch unreachable;
                     }
-                    var retval = AST.create_product(self.token(), terms, allocator);
+                    var retval = AST.create_product(self.token(), terms, compiler.allocator());
                     retval.product.was_slice = self.product.was_slice;
                     return retval;
                 }
             },
 
             .index => {
-                var lhs_type = self.lhs().typeof(allocator).expand_type(allocator);
+                var lhs_type = try (try self.lhs().typeof(compiler)).expand_type(compiler);
                 if (lhs_type.types_match(prelude_.type_type) and self.lhs().* == .product) {
                     return self.lhs().children().items[0];
                 } else if (lhs_type.* == .product) {
@@ -2768,7 +2786,7 @@ pub const AST = union(enum) {
             },
 
             .select => {
-                var select_lhs_type = self.lhs().typeof(allocator).expand_type(allocator);
+                var select_lhs_type = try (try self.lhs().typeof(compiler)).expand_type(compiler);
                 var retval = select_lhs_type.children().items[self.pos().?];
                 while (retval.* == .annotation) {
                     retval = retval.annotation.type;
@@ -2782,49 +2800,49 @@ pub const AST = union(enum) {
             .access, .identifier => return self.symbol().?._type,
 
             // Unary Operators
-            .@"comptime", .negate, .bit_not => return self.expr().typeof(allocator),
+            .@"comptime", .negate, .bit_not => return try self.expr().typeof(compiler),
             .dereference => {
-                const _type = self.expr().typeof(allocator).expand_type(allocator);
+                const _type = try (try self.expr().typeof(compiler)).expand_type(compiler);
                 return _type.expr();
             },
             .addr_of => {
-                var child_type = self.expr().typeof(allocator);
+                var child_type = try self.expr().typeof(compiler);
                 if (child_type.types_match(prelude_.type_type)) {
                     return prelude_.type_type;
                 } else {
-                    return create_addr_of(self.token(), child_type, self.addr_of.mut, self.addr_of.multiptr, allocator);
+                    return create_addr_of(self.token(), child_type, self.addr_of.mut, self.addr_of.multiptr, compiler.allocator());
                 }
             },
             .slice_of => {
-                var expr_type = self.expr().typeof(allocator);
+                var expr_type = try self.expr().typeof(compiler);
                 if (expr_type.* != .product or !expr_type.product.is_homotypical()) {
                     return poison_.poisoned;
                 }
 
-                return create_slice_type(expr_type.children().items[0], self.slice_of.mut, allocator);
+                return create_slice_type(expr_type.children().items[0], self.slice_of.mut, compiler.allocator());
             },
-            .sub_slice => return self.sub_slice.super.typeof(allocator),
-            .sum_value => return self.sum_value.base.?.expand_type(allocator),
-            .@"try" => return self.expr().typeof(allocator).expand_type(allocator).get_ok_type(),
+            .sub_slice => return try self.sub_slice.super.typeof(compiler),
+            .sum_value => return try self.sum_value.base.?.expand_type(compiler),
+            .@"try" => return (try (try self.expr().typeof(compiler)).expand_type(compiler)).get_ok_type(),
             .default => return self.expr(),
 
             // Control-flow expressions
             .@"while", .@"if" => {
-                const body_type = self.body_block().typeof(allocator);
+                const body_type = try self.body_block().typeof(compiler);
                 if (body_type.is_ident_type("Void") and self.else_block() != null) {
-                    return self.else_block().?.typeof(allocator);
+                    return try self.else_block().?.typeof(compiler);
                 } else if (self.else_block() != null or
-                    prelude_.unit_type.types_match(body_type.expand_type(allocator)) or
-                    body_type.expand_type(allocator).types_match(prelude_.void_type))
+                    prelude_.unit_type.types_match(try body_type.expand_type(compiler)) or
+                    (try body_type.expand_type(compiler)).types_match(prelude_.void_type))
                 {
                     return body_type;
                 } else {
-                    return create_optional_type(body_type, allocator);
+                    return create_optional_type(body_type, compiler.allocator());
                 }
             },
             .match => {
                 for (self.children().items) |child| {
-                    const child_type: *AST = child.typeof(allocator);
+                    const child_type: *AST = try child.typeof(compiler);
                     if (!child_type.is_ident_type("Void")) {
                         return child_type;
                     }
@@ -2836,10 +2854,10 @@ pub const AST = union(enum) {
             } else if (self.children().items.len == 0) {
                 return prelude_.unit_type;
             } else {
-                return self.children().items[self.children().items.len - 1].typeof(allocator);
+                return try self.children().items[self.children().items.len - 1].typeof(compiler);
             },
             .call => {
-                const fn_type: *AST = self.lhs().typeof(allocator).expand_identifier();
+                const fn_type: *AST = (try self.lhs().typeof(compiler)).expand_identifier();
                 return fn_type.rhs();
             },
             .fn_decl => return self.symbol().?._type,
@@ -3198,6 +3216,11 @@ pub const AST = union(enum) {
             return c_types_match(self.annotation.type, other);
         } else if (other.* == .annotation) {
             return c_types_match(self, other.annotation.type);
+        }
+        if (self.* == .call) {
+            return c_types_match(self.common()._expanded_type.?, other);
+        } else if (other.* == .call) {
+            return c_types_match(self, other.common()._expanded_type.?);
         }
         if (other.* == .anyptr_type and self.* == .addr_of) {
             return true;

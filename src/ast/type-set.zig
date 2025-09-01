@@ -19,7 +19,7 @@ pub fn deinit(self: *Self) void {
 
 /// Adds a type to the type set. Returns the dependency node for the corresponding type
 pub fn add(self: *Self, oldast_: *ast_.AST, allocator: std.mem.Allocator) ?*Dependency_Node {
-    const ast = oldast_.expand_type(allocator);
+    const ast = oldast_.common()._expanded_type.?;
     if (self.get(ast)) |dag| {
         // Type is already in the set, return Dependency_Node entry for it
         return dag;
@@ -31,7 +31,7 @@ pub fn add(self: *Self, oldast_: *ast_.AST, allocator: std.mem.Allocator) ?*Depe
         .product, .sum_type, .untagged_sum_type => return self.add_aggregate(ast, allocator),
         .dyn_type => return self.add_dependency_node(ast, allocator),
         .annotation => return self.add(ast.annotation.type, allocator),
-        .addr_of => {
+        .addr_of, .@"comptime" => {
             _ = self.add(ast.expr(), allocator); // Add child to set, but do not create a node for addrs
             return null;
         },
