@@ -130,6 +130,7 @@ pub const AST = union(enum) {
         _expr: *AST,
         name: ?*AST = null,
         result: ?*AST = null,
+        expanding: bool = false,
         _scope: ?*Scope = null, // Surrounding scope. Filled in at symbol-tree creation. Used to create a comptime symbol
     },
 
@@ -2453,6 +2454,10 @@ pub const AST = union(enum) {
                 retval.addr_of._scope = self.addr_of._scope;
                 return retval;
             },
+            .array_of => {
+                const _expr = try self.expr().expand_type(compiler);
+                return AST.create_array_of(self.token(), _expr, self.array_of.len, compiler.allocator());
+            },
             .poison, .unit_type => return self,
             .type_of => return self.typeof(compiler),
 
@@ -2973,6 +2978,8 @@ pub const AST = union(enum) {
 
             .annotation => return self.annotation.type.alignof(),
 
+            .array_of => return self.expr().alignof(),
+
             else => std.debug.panic("compiler error: unimplemented alignof for {s}", .{@tagName(self.*)}),
         }
     }
@@ -3015,6 +3022,11 @@ pub const AST = union(enum) {
             return types_match(A.symbol().?.init_value.?, B);
         } else if (B.* == .access) {
             return types_match(A, B.symbol().?.init_value.?);
+        }
+        if (A.* == .@"comptime") {
+            return types_match(A.@"comptime".result.?, B);
+        } else if (B.* == .@"comptime") {
+            return types_match(A, B.@"comptime".result.?);
         }
         if (B.* == .anyptr_type and A.* == .addr_of) {
             return true;

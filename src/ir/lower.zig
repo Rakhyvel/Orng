@@ -615,7 +615,7 @@ fn lval_from_ast(
     self: *Self,
     ast: *ast_.AST,
 ) *lval_.L_Value {
-    const lval = self.create_temp_lvalue(ast);
+    const lval = self.create_temp_lvalue(ast.get_typeof());
     self.instructions.append(Instruction.init_ast(lval, ast, ast.token().span, self.allocator)) catch unreachable;
     return lval;
 }
