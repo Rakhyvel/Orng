@@ -77,7 +77,7 @@ fn err_if_chain_undefd(maybe_lval: ?*lval_.L_Value, errors: *errs_.Errors, retur
 }
 
 fn valid_lvalue_expanded_type_check(span: Span, lvalue: ?*lval_.L_Value, errors: *errs_.Errors) error{CompileError}!void {
-    if (false and lvalue != null and !lvalue.?.get_expanded_type().valid_type()) {
+    if (lvalue != null and !lvalue.?.get_expanded_type().valid_type()) {
         errors.add_error(errs_.Error{ .recursive_definition = .{
             .span = span,
             .symbol_name = null,

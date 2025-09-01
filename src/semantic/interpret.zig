@@ -44,7 +44,6 @@ pub fn interpret(
     // Get the cfg from the symbol, and embed into the module
     const module = symbol.scope.module.?;
     const intered_strings = compiler.lookup_interned_string_set(module.uid).?;
-
     const cfg = try cfg_builder_.get_cfg(symbol, intered_strings, &compiler.errors, compiler.allocator());
     defer cfg.deinit(); // Remove the cfg so that it isn't output
 
@@ -67,11 +66,6 @@ pub fn eval_comptime(ast: *ast_.AST, expected: ?*ast_.AST, compiler: *Compiler_C
     if (ast.@"comptime".result != null) {
         return ast.@"comptime".result.?;
     }
-    if (ast.@"comptime".expanding) {
-        return ast;
-    }
-    ast.@"comptime".expanding = true;
-    std.debug.print("{}\n\n", .{ast.expr()});
     const ast_type = try ast.expr().typeof(compiler);
     const expanded_ast_type = try ast_type.expand_type(compiler);
     if (try typing_.checked_types_match(expanded_ast_type, prelude_.void_type, &compiler.errors)) {
