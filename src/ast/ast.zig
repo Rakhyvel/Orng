@@ -3199,6 +3199,11 @@ pub const AST = union(enum) {
         } else if (other.* == .annotation) {
             return c_types_match(self, other.annotation.type);
         }
+        if (self.* == .call) {
+            return c_types_match(self.common()._expanded_type.?, other);
+        } else if (other.* == .call) {
+            return c_types_match(self, other.common()._expanded_type.?);
+        }
         if (other.* == .anyptr_type and self.* == .addr_of) {
             return true;
         }

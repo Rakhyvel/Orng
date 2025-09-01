@@ -30,6 +30,10 @@ pub fn output_type(self: *Self, _type: *AST) CodeGen_Error!void {
         return;
     }
 
+    if (_type.* == .call) {
+        return try self.output_type(_type.common()._expanded_type.?);
+    }
+
     // if (_type.common()._expanded_type != null and _type.common()._expanded_type.?.* == .@"comptime") {
     //     return try self.output_type(_type.common()._expanded_type.?.@"comptime".result.?);
     // }
