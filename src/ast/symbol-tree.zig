@@ -9,6 +9,7 @@ const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
+const Type_Map = @import("../ast/type_map.zig").Type_Map;
 const walk_ = @import("../ast/walker.zig");
 
 scope: *Scope,
@@ -127,7 +128,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 ast.* = ast_.AST{ .template = .{
                     .common = common,
                     .decl = template_pattern_fn_decl,
-                    .memo = null,
+                    .memo = Type_Map(*Symbol).init(self.allocator),
                 } };
                 const symbol = try create_template_symbol(ast, self.scope, self.allocator);
                 try self.register_symbol(ast, symbol);

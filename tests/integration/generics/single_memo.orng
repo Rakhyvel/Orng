@@ -1,0 +1,10 @@
+// 367
+fn Wrapper(const T: Type) -> Type {
+    (value: T,)
+}
+
+fn main() -> Int {
+    let a: Wrapper(Int) = (.value = 300,)
+    let b: Wrapper(Int) = (.value = 67,)
+    a.value + b.value
+}

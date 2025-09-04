@@ -1,0 +1,10 @@
+// 370
+fn Ptr_Wrapper(const T: Type) -> Type {
+    (ptr: &T,)
+}
+
+fn main() -> Int {
+    let x = 370
+    let pw: Ptr_Wrapper(Int) = (.ptr = &x,)
+    pw.ptr^
+}

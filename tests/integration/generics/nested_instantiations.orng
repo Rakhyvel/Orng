@@ -1,0 +1,13 @@
+// 368
+fn Wrapper(const T: Type) -> Type {
+    (value: T,)
+}
+
+fn Double(const T: Type) -> Type {
+    (first: T, second: T)
+}
+
+fn main() -> Int {
+    let d: Double(Wrapper(Int)) = (.first = (.value = 300,), .second = (.value = 68,))
+    d.first.value + d.second.value
+}

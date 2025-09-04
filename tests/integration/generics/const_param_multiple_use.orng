@@ -1,0 +1,13 @@
+// 369
+fn Pair(const T: Type) -> Type {
+    (left: T, right: T)
+}
+
+fn main() -> Int {
+    let p: Pair(Bool) = (.left = true, .right = false)
+    if p.left and not p.right {
+        369
+    } else {
+        unreachable
+    }
+}

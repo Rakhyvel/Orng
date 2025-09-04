@@ -15,6 +15,7 @@ const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
+const Type_Map = @import("../ast/type_map.zig").Type_Map;
 const validation_state_ = @import("../util/validation_state.zig");
 
 pub const AST_Validation_State = validation_state_.Validation_State(*AST);
@@ -258,7 +259,7 @@ pub const AST = union(enum) {
         base: ?*AST = null,
         _pos: ?usize = null,
 
-        pub fn get_name(self: *@This()) []const u8 {
+        pub fn get_name(self: *const @This()) []const u8 {
             return self.common._token.data;
         }
     },
@@ -508,7 +509,7 @@ pub const AST = union(enum) {
     template: struct {
         common: AST_Common,
         decl: *AST, // The decl of the symbol(s) that is being templated
-        memo: ?*Symbol, // TODO: This should be some sort of map that maps const parameters to stamped-out anonymous function symbols
+        memo: Type_Map(*Symbol),
         _symbol: ?*Symbol = null, // The symbol for this template
     },
     @"defer": struct { common: AST_Common, _statement: *AST },
@@ -3273,7 +3274,9 @@ pub const AST = union(enum) {
             .domain_of => try out.writer().print("domainof()", .{}),
             .@"comptime" => try out.writer().print("comptime({})", .{self.expr()}),
 
-            .assign => try out.writer().print("assign()", .{}),
+            .assign => {
+                try out.writer().print("assign({}, {})", .{ self.lhs(), self.rhs() });
+            },
             .@"or" => try out.writer().print("or()", .{}),
             .@"and" => try out.writer().print("and()", .{}),
             .add => try out.writer().print("add()", .{}),
@@ -3359,7 +3362,7 @@ pub const AST = union(enum) {
                 try out.writer().print("@Untagged({})", .{self.untagged_sum_type._expr});
             },
             .sum_value => {
-                try out.writer().print("sum_value(.init={?}, .tag={?})", .{ self.sum_value.init, self.sum_value._pos });
+                try out.writer().print("sum_value(.name={s}, .init={?}, .tag={?})", .{ self.sum_value.get_name(), self.sum_value.init, self.sum_value._pos });
             },
             .product => {
                 try out.writer().print("product(", .{});

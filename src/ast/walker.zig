@@ -37,7 +37,7 @@ pub fn Apply_Flat_Ast_Walk(Context_Type: type) type {
     };
 }
 
-pub fn walk_asts(asts: *std.ArrayList(*ast_.AST), context: anytype) Error!void {
+pub fn walk_asts(asts: *const std.ArrayList(*ast_.AST), context: anytype) Error!void {
     for (asts.items) |ast| {
         try walk_ast(ast, context);
     }
