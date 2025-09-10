@@ -40,7 +40,8 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         else => {},
 
         // Capture scope
-        .access, .invoke, .addr_of, .@"comptime" => ast.set_scope(self.scope),
+        // .@"comptime",
+        .access, .invoke, .addr_of => ast.set_scope(self.scope),
 
         // Check that AST is inside a loop
         .@"break", .@"continue" => try self.in_loop_check(ast, self.errors),
@@ -95,6 +96,51 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 self.allocator,
             );
             try self.scope.put_all_symbols(&ast.decl.symbols, self.errors);
+        },
+
+        .@"struct" => {
+            var symbols = std.ArrayList(*Symbol).init(self.allocator);
+            try create_symbol(
+                &symbols,
+                ast.@"struct".name,
+                ast,
+                prelude_.type_type,
+                ast.@"struct".get_product_type(self.allocator),
+                self.scope,
+                self.errors,
+                self.allocator,
+            );
+            try self.scope.put_all_symbols(&symbols, self.errors);
+        },
+
+        .@"enum" => {
+            var symbols = std.ArrayList(*Symbol).init(self.allocator);
+            try create_symbol(
+                &symbols,
+                ast.@"enum".name,
+                ast,
+                prelude_.type_type,
+                ast.@"enum".get_sum_type(self.allocator),
+                self.scope,
+                self.errors,
+                self.allocator,
+            );
+            try self.scope.put_all_symbols(&symbols, self.errors);
+        },
+
+        .type_alias => {
+            var symbols = std.ArrayList(*Symbol).init(self.allocator);
+            try create_symbol(
+                &symbols,
+                ast.type_alias.name,
+                ast,
+                prelude_.type_type,
+                ast.expr(),
+                self.scope,
+                self.errors,
+                self.allocator,
+            );
+            try self.scope.put_all_symbols(&symbols, self.errors);
         },
 
         .@"test" => {
@@ -178,22 +224,25 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             new_self.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
             ast.set_scope(new_self.scope);
 
+            for (ast.impl.with_decls.items) |with_decl| {
+                try walk_.walk_ast(with_decl, new_self);
+            }
+
             if (ast.impl.trait == null) {
                 // impl'd for an anon trait, create an anon trait for it
+                // TODO: if there is a withlist, define the withs in the traits scope (?)
                 var token = ast.token();
                 token.kind = .identifier;
                 token.data = next_anon_name("trait", self.allocator);
-                ast.impl.trait = ast_.AST.create_trait(
+                const anon_trait = ast_.AST.create_trait(
                     token,
                     ast.impl.method_defs,
                     ast.impl.const_defs,
                     self.allocator,
                 );
+                try walk_.walk_ast(anon_trait, new_self);
+                ast.impl.trait = ast_.AST.create_identifier(token, self.allocator);
                 ast.impl.impls_anon_trait = true;
-            }
-
-            for (ast.impl.with_decls.items) |with_decl| {
-                try walk_.walk_ast(with_decl, new_self);
             }
 
             const self_type_decl = ast_.AST.create_decl(
@@ -338,20 +387,12 @@ fn create_symbol(
                 }
             }
 
-            const symbol_init = if (pattern.pattern_symbol.kind != .@"const" or decl != null and decl.?.decl.is_alias)
-                init
-            else if (init != null)
-                // Wrap init in comptime if symbol is const and non-alias
-                try create_comptime_init(init.?, scope, allocator)
-            else
-                null;
-
             const symbol = Symbol.init(
                 scope,
                 pattern.pattern_symbol.name,
                 pattern.token().span,
                 _type,
-                symbol_init,
+                init,
                 decl,
                 pattern.pattern_symbol.kind,
                 allocator,
@@ -503,7 +544,7 @@ pub fn create_test_symbol(
 }
 
 var num_anons: usize = 0;
-fn next_anon_name(class: []const u8, allocator: std.mem.Allocator) []const u8 {
+pub fn next_anon_name(class: []const u8, allocator: std.mem.Allocator) []const u8 {
     defer num_anons += 1;
     var out = String.init(allocator);
     defer out.deinit();
@@ -576,15 +617,15 @@ fn create_receiver_annot(receiver_addr: *ast_.AST, receiver: *ast_.AST, allocato
 }
 
 /// Creates the comptime context symbol for `const` initializers
-fn create_comptime_init(
-    old_init: *ast_.AST,
-    scope: *Scope,
-    allocator: std.mem.Allocator,
-) Error!*ast_.AST {
-    const retval = ast_.AST.create_comptime(old_init.token(), old_init, allocator);
-    retval.set_scope(scope);
-    return retval;
-}
+// fn create_comptime_init(
+//     old_init: *ast_.AST,
+//     scope: *Scope,
+//     allocator: std.mem.Allocator,
+// ) Error!*ast_.AST {
+//     const retval = ast_.AST.create_comptime(old_init.token(), old_init, allocator);
+//     retval.set_scope(scope);
+//     return retval;
+// }
 
 /// Creates a symbol which represents the comptime function to be ran.
 pub fn create_temp_comptime_symbol(

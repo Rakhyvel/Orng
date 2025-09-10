@@ -124,13 +124,13 @@ pub const AST = union(enum) {
         _expr: *AST,
         _symbol: ?*Symbol, // `try`'s must be in functions. This is the function's symbol.
     },
-    @"comptime": struct {
-        common: AST_Common,
-        _expr: *AST,
-        name: ?*AST = null,
-        result: ?*AST = null,
-        _scope: ?*Scope = null, // Surrounding scope. Filled in at symbol-tree creation. Used to create a comptime symbol
-    },
+    // @"comptime": struct {
+    //     common: AST_Common,
+    //     _expr: *AST,
+    //     name: ?*AST = null,
+    //     result: ?*AST = null,
+    //     _scope: ?*Scope = null, // Surrounding scope. Filled in at symbol-tree creation. Used to create a comptime symbol
+    // },
 
     // Binary operators
     // TODO: We could de-duplicate this, I suppose.
@@ -197,7 +197,7 @@ pub const AST = union(enum) {
     },
     impl: struct {
         common: AST_Common,
-        trait: ?*AST,
+        trait: ?*AST, // Identifier-like ast which refers to the trait
         _type: *AST, // The `for` type for this impl
         method_defs: std.ArrayList(*AST),
         const_defs: std.ArrayList(*AST),
@@ -205,6 +205,7 @@ pub const AST = union(enum) {
         num_virtual_methods: i64 = 0,
         _scope: ?*Scope = null, // Scope used for `impl` methods, rooted in `impl`'s scope.
         impls_anon_trait: bool = false, // true when this impl implements an anonymous trait
+        instantiations: Type_Map(*AST),
     },
     invoke: struct {
         common: AST_Common,
@@ -472,6 +473,35 @@ pub const AST = union(enum) {
             }
         }
     },
+    @"struct": struct {
+        common: AST_Common,
+        name: *AST,
+        fields: std.ArrayList(*AST),
+        _type: ?*AST = null, // The backing product type to use
+        pub fn get_product_type(self: *@This(), allocator: std.mem.Allocator) *AST {
+            if (self._type == null) {
+                self._type = AST.create_product(self.common._token, self.fields, allocator);
+            }
+            return self._type.?;
+        }
+    },
+    @"enum": struct {
+        common: AST_Common,
+        name: *AST,
+        fields: std.ArrayList(*AST),
+        _type: ?*AST = null, // The backing sum type to use
+        pub fn get_sum_type(self: *@This(), allocator: std.mem.Allocator) *AST {
+            if (self._type == null) {
+                self._type = AST.create_sum_type(self.common._token, self.fields, allocator);
+            }
+            return self._type.?;
+        }
+    },
+    type_alias: struct {
+        common: AST_Common,
+        name: *AST,
+        _expr: *AST,
+    },
     method_decl: struct {
         common: AST_Common,
         name: *AST,
@@ -643,13 +673,13 @@ pub const AST = union(enum) {
         return AST.box(AST{ .@"try" = .{ .common = _common, ._expr = _expr, ._symbol = null } }, allocator);
     }
 
-    pub fn create_comptime(_token: Token, _expr: *AST, allocator: std.mem.Allocator) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(
-            AST{ .@"comptime" = .{ .common = _common, ._expr = _expr, .name = null } },
-            allocator,
-        );
-    }
+    // pub fn create_comptime(_token: Token, _expr: *AST, allocator: std.mem.Allocator) *AST {
+    //     const _common: AST_Common = .{ ._token = _token };
+    //     return AST.box(
+    //         AST{ .@"comptime" = .{ .common = _common, ._expr = _expr, .name = null } },
+    //         allocator,
+    //     );
+    // }
 
     pub fn create_type_of(_token: Token, _expr: *AST, allocator: std.mem.Allocator) *AST {
         return AST.box(AST{ .type_of = .{
@@ -945,6 +975,7 @@ pub const AST = union(enum) {
                 .method_defs = method_defs,
                 .const_defs = const_defs,
                 .with_decls = with_decls,
+                .instantiations = Type_Map(*AST).init(allocator),
             } },
             allocator,
         );
@@ -1282,6 +1313,45 @@ pub const AST = union(enum) {
         } }, allocator);
     }
 
+    pub fn create_struct(
+        _token: Token,
+        name: *AST,
+        fields: std.ArrayList(*AST),
+        allocator: std.mem.Allocator,
+    ) *AST {
+        return AST.box(AST{ .@"struct" = .{
+            .common = AST_Common{ ._token = _token, ._type = null },
+            .name = name,
+            .fields = fields,
+        } }, allocator);
+    }
+
+    pub fn create_enum(
+        _token: Token,
+        name: *AST,
+        fields: std.ArrayList(*AST),
+        allocator: std.mem.Allocator,
+    ) *AST {
+        return AST.box(AST{ .@"enum" = .{
+            .common = AST_Common{ ._token = _token, ._type = null },
+            .name = name,
+            .fields = fields,
+        } }, allocator);
+    }
+
+    pub fn create_type_alias(
+        _token: Token,
+        name: *AST,
+        _expr: *AST,
+        allocator: std.mem.Allocator,
+    ) *AST {
+        return AST.box(AST{ .type_alias = .{
+            .common = AST_Common{ ._token = _token, ._type = null },
+            .name = name,
+            ._expr = _expr,
+        } }, allocator);
+    }
+
     pub fn create_method_decl(
         _token: Token,
         name: *AST,
@@ -1406,7 +1476,7 @@ pub const AST = union(enum) {
                 self.expr().clone(allocator),
                 allocator,
             ),
-            .@"comptime" => return create_comptime(self.token(), self.expr().clone(allocator), allocator),
+            // .@"comptime" => return create_comptime(self.token(), self.expr().clone(allocator), allocator),
 
             .assign => return create_assign(
                 self.token(),
@@ -1561,7 +1631,7 @@ pub const AST = union(enum) {
                 const cloned_method_defs = clone_children(self.impl.method_defs, allocator);
                 const cloned_const_defs = clone_children(self.impl.const_defs, allocator);
                 const cloned_with_decls = clone_children(self.impl.with_decls, allocator);
-                return create_impl(
+                var retval = create_impl(
                     self.token(),
                     if (self.impl.trait) |_trait| _trait.clone(allocator) else null,
                     self.impl._type.clone(allocator),
@@ -1570,6 +1640,8 @@ pub const AST = union(enum) {
                     cloned_with_decls,
                     allocator,
                 );
+                retval.impl.impls_anon_trait = self.impl.impls_anon_trait;
+                return retval;
             },
             .invoke => {
                 const cloned_args = clone_children(self.children().*, allocator);
@@ -1610,6 +1682,32 @@ pub const AST = union(enum) {
                 );
                 retval.product.was_slice = self.product.was_slice;
                 return retval;
+            },
+            .@"struct" => {
+                const cloned_terms = clone_children(self.children().*, allocator);
+                return create_struct(
+                    self.token(),
+                    self.@"struct".name.clone(allocator),
+                    cloned_terms,
+                    allocator,
+                );
+            },
+            .@"enum" => {
+                const cloned_terms = clone_children(self.children().*, allocator);
+                return create_enum(
+                    self.token(),
+                    self.@"enum".name.clone(allocator),
+                    cloned_terms,
+                    allocator,
+                );
+            },
+            .type_alias => {
+                return create_type_alias(
+                    self.token(),
+                    self.type_alias.name.clone(allocator),
+                    self.type_alias._expr.clone(allocator),
+                    allocator,
+                );
             },
             .@"union" => return create_union(
                 self.token(),
@@ -1736,7 +1834,7 @@ pub const AST = union(enum) {
             },
             .method_decl => {
                 const cloned_params = clone_children(self.children().*, allocator);
-                return create_method_decl(
+                var retval = create_method_decl(
                     self.token(),
                     self.method_decl.name.clone(allocator),
                     self.method_decl.is_virtual,
@@ -1747,6 +1845,8 @@ pub const AST = union(enum) {
                     if (self.method_decl.init) |init| init.clone(allocator) else null,
                     allocator,
                 );
+                retval.method_decl.impl = self.method_decl.impl;
+                return retval;
             },
             .@"test" => return create_test(
                 self.token(),
@@ -1847,6 +1947,8 @@ pub const AST = union(enum) {
             .bit_and => &self.bit_and._args,
             .bit_or => &self.bit_or._args,
             .bit_xor => &self.bit_xor._args,
+            .@"struct" => &self.@"struct".fields,
+            .@"enum" => &self.@"enum".fields,
             else => std.debug.panic("compiler error: cannot call `.children()` on the AST `{}`", .{self.*}),
         };
     }
@@ -2374,12 +2476,21 @@ pub const AST = union(enum) {
         }
     }
 
+    pub fn unexpand_type(self: *AST) *AST {
+        if (self.common()._unexpanded_type) |unexpanded| {
+            return unexpanded.unexpand_type();
+        } else {
+            return self;
+        }
+    }
+
     /// Expand the type of an AST value. This call is memoized for ASTs besides identifiers.
     pub fn expand_type(self: *AST, allocator: std.mem.Allocator) *AST {
         if (self.common()._expanded_type != null and self.* != .identifier) {
             return self.common()._expanded_type.?;
         }
         var retval = expand_type_internal(self, allocator).assert_ast_valid();
+        std.debug.print("{}\n", .{retval});
         self.common()._expanded_type = retval;
         retval.common()._expanded_type = retval;
         retval.common()._unexpanded_type = self.common()._unexpanded_type orelse self;
@@ -2443,6 +2554,8 @@ pub const AST = union(enum) {
             },
             .addr_of, .poison, .unit_type => return self,
             .type_of => return self.typeof(allocator),
+
+            .array_of => std.debug.panic("you did it wrong", .{}),
 
             else => return self,
         }
@@ -2625,10 +2738,10 @@ pub const AST = union(enum) {
             .module => {
                 try out.print("{s}::{s}", .{ self.module.module.package_name, self.module.module.name() });
             },
-            .@"comptime" => {
-                try out.print("comptime{{.result={?}", .{self.@"comptime".result});
-                try out.print("}}", .{});
-            },
+            // .@"comptime" => {
+            //     try out.print("comptime{{.result={?}", .{self.@"comptime".result});
+            //     try out.print("}}", .{});
+            // },
             else => std.debug.panic("compiler error: unimplemented or not a type: {s}", .{@tagName(self.*)}),
         }
     }
@@ -2783,7 +2896,8 @@ pub const AST = union(enum) {
             .access, .identifier => return self.symbol().?._type,
 
             // Unary Operators
-            .@"comptime", .negate, .bit_not => return self.expr().typeof(allocator),
+            // .@"comptime",
+            .negate, .bit_not => return self.expr().typeof(allocator),
             .dereference => {
                 const _type = self.expr().typeof(allocator).expand_type(allocator);
                 return _type.expr();
@@ -2925,6 +3039,10 @@ pub const AST = union(enum) {
         switch (self.*) {
             .identifier => if (self.symbol() != null and self.symbol().?.init_value == null and self.symbol().?.kind == .@"extern") {
                 return 4;
+            } else if (self.symbol() != null and self.symbol().?.is_alias()) {
+                // return self.symbol().?.init_value.?.alignof();
+                std.debug.print("{}\n", .{self.token()});
+                unreachable;
             } else {
                 return prelude_.info_from_name(self.token().data).?._align;
             },
@@ -3001,6 +3119,9 @@ pub const AST = union(enum) {
         }
         if (B.* == .anyptr_type and A.* == .addr_of) {
             return true;
+        }
+        if (A.* == .identifier and A.symbol() == null) {
+            std.debug.print("{}\n", .{A});
         }
         if (A.* == .identifier and A.symbol().?.is_alias() and A != A.expand_identifier()) {
             // If A is a type alias, expand
@@ -3188,6 +3309,7 @@ pub const AST = union(enum) {
 
     /// Sets an ASTs validation status to valid.
     pub fn assert_ast_valid(self: *AST) *AST {
+        std.debug.print("NOW ASSERTED VALID: {*}\n", .{self});
         self.common().validation_state = AST_Validation_State{ .valid = .{ .valid_form = self } };
         return self;
     }
@@ -3272,7 +3394,7 @@ pub const AST = union(enum) {
             .default => try out.writer().print("default({})", .{self.expr()}),
             .size_of => try out.writer().print("size_of({})", .{self.expr()}),
             .domain_of => try out.writer().print("domainof()", .{}),
-            .@"comptime" => try out.writer().print("comptime({})", .{self.expr()}),
+            // .@"comptime" => try out.writer().print("comptime({})", .{self.expr()}),
 
             .assign => {
                 try out.writer().print("assign({}, {})", .{ self.lhs(), self.rhs() });
@@ -3293,14 +3415,14 @@ pub const AST = union(enum) {
             .@"catch" => try out.writer().print("catch()", .{}),
             .@"orelse" => try out.writer().print("orelse()", .{}),
             .call => {
-                try out.writer().print("call({},", .{self.call._lhs});
+                try out.writer().print("call(lhs={},args=[", .{self.call._lhs});
                 for (self.call._args.items, 0..) |item, i| {
                     try out.writer().print("{}", .{item});
                     if (i < self.call._args.items.len - 1) {
                         try out.writer().print(",", .{});
                     }
                 }
-                try out.writer().print(")", .{});
+                try out.writer().print("])", .{});
             },
             .bit_and => {
                 try out.writer().print("@bit_and(", .{});
@@ -3343,7 +3465,7 @@ pub const AST = union(enum) {
                 try out.writer().print("access({},{})", .{ self.lhs(), self.rhs() });
             },
             .function => try out.writer().print("function({},{})", .{ self.lhs(), self.rhs() }),
-            .trait => try out.writer().print("trait()", .{}),
+            .trait => try out.writer().print("trait({*})", .{if (self.symbol() != null) self.symbol() else null}),
             .impl => try out.writer().print("impl(.trait={?}, .type={})", .{ self.impl.trait, self.impl._type }),
             .invoke => try out.writer().print("invoke()", .{}),
             .dyn_type => try out.writer().print("dyn_type()", .{}),
@@ -3363,6 +3485,15 @@ pub const AST = union(enum) {
             },
             .sum_value => {
                 try out.writer().print("sum_value(.name={s}, .init={?}, .tag={?})", .{ self.sum_value.get_name(), self.sum_value.init, self.sum_value._pos });
+            },
+            .@"struct" => {
+                try out.writer().print("struct()", .{});
+            },
+            .@"enum" => {
+                try out.writer().print("enum()", .{});
+            },
+            .type_alias => {
+                try out.writer().print("type_alias()", .{});
             },
             .product => {
                 try out.writer().print("product(", .{});

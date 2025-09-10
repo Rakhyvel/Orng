@@ -23,13 +23,13 @@ pub fn validate(symbol: *Symbol, compiler: *Compiler_Context) Validate_Error_Enu
     symbol.init_validation_state = .validating;
 
     // std.debug.assert(symbol.init.* != .poison);
-    // std.debug.print("validating type for: {s}\n", .{symbol.name});
+    std.debug.print("validating type for: {s}\n", .{symbol.name});
     symbol._type = validate_AST(symbol._type, prelude_.type_type, compiler);
-    // std.debug.print("type for: {s}: {}\n", .{ symbol.name, symbol._type });
+    std.debug.print("type for: {s}: {}\n", .{ symbol.name, symbol._type });
     if (symbol._type.* != .poison) {
         _ = symbol.assert_symbol_valid();
         symbol.expanded_type = symbol._type.expand_type(compiler.allocator());
-        // std.debug.print("expanded type for: {s}: {?}\n", .{ symbol.name, symbol.expanded_type });
+        std.debug.print("expanded type for: {s}: {?}\n", .{ symbol.name, symbol.expanded_type });
         if (type_is_type_type(symbol.expanded_type.?)) {
             switch (symbol.kind) {
                 .let, .mut => {
@@ -48,12 +48,12 @@ pub fn validate(symbol: *Symbol, compiler: *Compiler_Context) Validate_Error_Enu
             }
         }
         const expected: ?*ast_.AST = if (symbol.kind == .@"fn" or symbol.kind == .@"comptime" or symbol.kind == .@"test") symbol._type.rhs() else symbol._type;
-        // std.debug.print("validating init for: {s}\n", .{symbol.name});
+        std.debug.print("validating init for: {s}: {?}\n", .{ symbol.name, expected });
         if (symbol.init_value) |init| {
             // might be null for parameters
             symbol.init_value = validate_AST(init, expected, compiler);
         }
-        // std.debug.print("init for: {s}: {?}\n", .{ symbol.name, symbol.init });
+        std.debug.print("init for: {s}: {?}\n", .{ symbol.name, symbol.init_value });
         if (symbol.kind == .trait) {
             try validate_trait(symbol, compiler);
         } else if (symbol.init_value != null and symbol.init_value.?.* == .poison) {
@@ -69,22 +69,24 @@ pub fn validate(symbol: *Symbol, compiler: *Compiler_Context) Validate_Error_Enu
     }
 
     // Symbol's name must be capitalized iff its type is Type
-    if (symbol.expanded_type != null and !std.mem.eql(u8, symbol.name, "_") and symbol.kind != .trait and symbol.kind != .import_inner and symbol.name[0] != '$') {
-        if (symbol.kind != .import and type_is_type_type(symbol.expanded_type.?) and !is_capitalized(symbol.name)) {
-            compiler.errors.add_error(errs_.Error{ .symbol_error = .{
-                .problem = "of type `Type` must start with an uppercase letter",
-                .span = symbol.span,
-                .name = symbol.name,
-            } });
-        } else if (!(symbol.kind != .import and type_is_type_type(symbol.expanded_type.?)) and is_capitalized(symbol.name) and symbol.kind != .template) {
-            // TODO: Make it so that these rules apply to templates. I think we'll need to stamp first, of course. Are symbols re-validated when they're stamped? They probably should be
-            compiler.errors.add_error(errs_.Error{ .symbol_error = .{
-                .problem = "of type other than `Type` must start with a lowercase letter",
-                .span = symbol.span,
-                .name = symbol.name,
-            } });
-        }
-    }
+    // TODO: Re-work the errors for structs, enums, and type aliases
+    // if (symbol.expanded_type != null and !std.mem.eql(u8, symbol.name, "_") and symbol.kind != .trait and symbol.kind != .import_inner and symbol.name[0] != '$') {
+    //     if (symbol.kind != .import and type_is_type_type(symbol.expanded_type.?) and !is_capitalized(symbol.name)) {
+    //         compiler.errors.add_error(errs_.Error{ .symbol_error = .{
+    //             .problem = "of type `Type` must start with an uppercase letter",
+    //             .span = symbol.span,
+    //             .name = symbol.name,
+    //         } });
+    //     } else if (!(symbol.kind != .import and type_is_type_type(symbol.expanded_type.?)) and is_capitalized(symbol.name) and symbol.kind != .template) {
+    //         // TODO: Make it so that these rules apply to templates. I think we'll need to stamp first, of course. Are symbols re-validated when they're stamped? They probably should be
+    //         compiler.errors.add_error(errs_.Error{ .symbol_error = .{
+    //             .problem = "of type other than `Type` must start with a lowercase letter",
+    //             .span = symbol.span,
+    //             .name = symbol.name,
+    //         } });
+    //     }
+    // }
+
     if (symbol.kind == .@"extern") {
         if (symbol.kind.@"extern".c_name != null) {
             symbol.kind.@"extern".c_name = validate_AST(symbol.kind.@"extern".c_name.?, prelude_.string_type, compiler);

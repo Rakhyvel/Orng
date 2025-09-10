@@ -1,8 +1,8 @@
-const Package: Type = (
-    root: String,
-    kind: (executable | static_library),
-    dir: String = ".",
-    num_requirements: Int = 0,
+struct Package {
+    root: String
+    kind: (executable | static_library)
+    dir: String = "."
+    num_requirements: Int = 0
     requirements: [8]?Requirement = ( // TODO: Replace with an Arraylist
         (?Requirement).none,
         (?Requirement).none,
@@ -12,8 +12,8 @@ const Package: Type = (
         (?Requirement).none,
         (?Requirement).none,
         (?Requirement).none
-    ),
-    include_dirs: [8]?String = ( // TODO: Replace with an Arraylist
+    )
+    include_dirs: [8]?String = (
         (?String).none,
         (?String).none,
         (?String).none,
@@ -22,8 +22,8 @@ const Package: Type = (
         (?String).none,
         (?String).none,
         (?String).none,
-    ),
-    libs: [8]?String = ( // TODO: Replace with an Arraylist
+    )
+    libs: [8]?String = (
         (?String).none,
         (?String).none,
         (?String).none,
@@ -32,8 +32,8 @@ const Package: Type = (
         (?String).none,
         (?String).none,
         (?String).none,
-    ),
-    lib_dirs: [8]?String = ( // TODO: Replace with an Arraylist
+    )
+    lib_dirs: [8]?String = (
         (?String).none,
         (?String).none,
         (?String).none,
@@ -42,19 +42,30 @@ const Package: Type = (
         (?String).none,
         (?String).none,
         (?String).none,
-    ),
-)
+    )
+}
 
-const Requirement: Type = (String, &Package)
+struct Requirement {
+    name: String
+    package: &Package
+}
 
-const Package_Source: Type = (
-    | relative: String
-    | git: Git_Source
-)
+enum Package_Source {
+    relative: String
+    git: Git_Source
+}
 
-const Git_Source: Type = (url: String, subdir: String = "", reference: Git_Reference = .branch("main"))
+struct Git_Source {
+    url: String
+    subdir: String = ""
+    reference: Git_Reference = .branch("main")
+}
 
-const Git_Reference: Type = (branch: String | tag: String | rev: String)
+enum Git_Reference {
+    branch: String
+    tag: String
+    rev: String
+}
 
 impl for Package {
     /// Creates an executable package
@@ -106,7 +117,7 @@ impl for Package {
     }
 }
 
-const Test_Result: Type = ()!()
+type Test_Result = ()!()
 
 trait Allocator {
     virtual fn alloc(&mut self, nbytes: Int) -> ?[*mut]Byte

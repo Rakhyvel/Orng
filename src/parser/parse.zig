@@ -161,9 +161,15 @@ fn top_level_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
         return try self.impl_declaration();
     } else if (self.peek_kind(.@"test")) {
         return try self.test_declaration();
+    } else if (self.peek_kind(.@"struct")) {
+        return self.struct_declaration();
+    } else if (self.peek_kind(.@"enum")) {
+        return self.enum_declaration();
+    } else if (self.peek_kind(.type)) {
+        return self.type_alias_declaration();
     } else {
         self.errors.add_error(errs_.Error{ .expected_basic_token = .{
-            .expected = "`fn`, `trait`, `impl`, or `const` here",
+            .expected = "top-level declaration here",
             .got = self.peek(),
         } });
         return Parser_Error_Enum.ParseError;
@@ -384,6 +390,12 @@ fn statement(self: *Self) Parser_Error_Enum!*ast_.AST {
         return self.const_declaration();
     } else if (self.peek_kind(.@"extern")) {
         return self.extern_const_declaration();
+    } else if (self.peek_kind(.@"struct")) {
+        return self.struct_declaration();
+    } else if (self.peek_kind(.@"enum")) {
+        return self.enum_declaration();
+    } else if (self.peek_kind(.type)) {
+        return self.type_alias_declaration();
     } else if (self.peek_kind(.trait)) {
         return self.trait_declaration();
     } else if (self.peek_kind(.impl)) {
@@ -464,12 +476,12 @@ fn annotation_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
             predicate = try self.arrow_expr();
         }
         if (self.accept(.single_equals)) |_| {
-            const pre__init = try self.arrow_expr();
-            if (!pre__init.is_comptime_expr()) {
-                self.errors.add_error(errs_.Error{ .comptime_known = .{ .span = pre__init.token().span, .what = "default values" } });
-                return error.ParseError;
-            }
-            _init = ast_.AST.create_comptime(token, pre__init, self.allocator);
+            _init = try self.arrow_expr();
+            // if (!pre__init.is_comptime_expr()) {
+            //     self.errors.add_error(errs_.Error{ .comptime_known = .{ .span = pre__init.token().span, .what = "default values" } });
+            //     return error.ParseError;
+            // }
+            // _init = ast_.AST.create_comptime(token, pre__init, self.allocator);
         }
         return ast_.AST.create_annotation(token, exp, _type, predicate, _init, self.allocator);
     } else {
@@ -868,9 +880,11 @@ fn control_flow(self: *Self) Parser_Error_Enum!*ast_.AST {
         return try self.match_expr();
     } else if (self.peek_kind(.@"for")) {
         return try self.for_expr();
-    } else if (self.accept(.@"comptime")) |token| {
-        return ast_.AST.create_comptime(token, try self.block_expr(), self.allocator);
-    } else {
+    }
+    // else if (self.accept(.@"comptime")) |token| {
+    //     return ast_.AST.create_comptime(token, try self.block_expr(), self.allocator);
+    // }
+    else {
         return try self.factor();
     }
 }
@@ -1117,6 +1131,70 @@ fn param(self: *Self) Parser_Error_Enum!*ast_.AST {
     );
 }
 
+fn struct_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
+    _ = try self.expect(.@"struct");
+    const identifier = try self.expect(.identifier);
+    const name = ast_.AST.create_pattern_symbol(identifier, .@"const", identifier.data, self.allocator);
+    _ = try self.expect(.left_brace);
+
+    var fields = std.ArrayList(*ast_.AST).init(self.allocator);
+
+    self.newlines();
+    while (self.accept(.identifier)) |field_token| {
+        _ = try self.expect(.single_colon);
+        const field_ident = ast_.AST.create_identifier(field_token, self.allocator);
+        const _type = try self.arrow_expr();
+        var _init: ?*ast_.AST = null;
+        if (self.accept(.single_equals)) |_| {
+            _init = try self.arrow_expr();
+        }
+
+        const field = ast_.AST.create_annotation(field_token, field_ident, _type, null, _init, self.allocator);
+
+        fields.append(field) catch unreachable;
+        self.newlines();
+    }
+
+    _ = try self.expect(.right_brace);
+    return ast_.AST.create_struct(identifier, name, fields, self.allocator);
+}
+
+fn enum_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
+    _ = try self.expect(.@"enum");
+    const identifier = try self.expect(.identifier);
+    const name = ast_.AST.create_pattern_symbol(identifier, .@"const", identifier.data, self.allocator);
+    _ = try self.expect(.left_brace);
+
+    var fields: std.ArrayList(*ast_.AST) = std.ArrayList(*ast_.AST).init(self.allocator);
+
+    self.newlines();
+    while (self.accept(.identifier)) |field_token| {
+        _ = try self.expect(.single_colon);
+        const field_ident = ast_.AST.create_identifier(field_token, self.allocator);
+        const _type = try self.arrow_expr();
+
+        const field = ast_.AST.create_annotation(field_token, field_ident, _type, null, null, self.allocator);
+
+        fields.append(field) catch unreachable;
+        self.newlines();
+    }
+    self.newlines();
+
+    _ = try self.expect(.right_brace);
+    return ast_.AST.create_enum(identifier, name, fields, self.allocator);
+}
+
+fn type_alias_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
+    _ = try self.expect(.type);
+    const identifier = try self.expect(.identifier);
+    const name = ast_.AST.create_pattern_symbol(identifier, .@"const", identifier.data, self.allocator);
+
+    _ = try self.expect(.single_equals);
+    const _init = try self.arrow_expr();
+
+    return ast_.AST.create_type_alias(identifier, name, _init, self.allocator);
+}
+
 fn trait_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     _ = try self.expect(.trait);
     const trait_name: Token = try self.expect(.identifier);
@@ -1151,6 +1229,7 @@ fn impl_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
             try self.withlist()
         else
             std.ArrayList(*ast_.AST).init(self.allocator);
+    self.newlines();
     _ = try self.expect(.left_brace);
     var method_defs = std.ArrayList(*ast_.AST).init(self.allocator);
     errdefer method_defs.deinit();

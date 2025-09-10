@@ -1,9 +1,16 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
+const Compiler_Context = @import("../hierarchy/compiler.zig");
+const Decorate = @import("../ast/decorate.zig");
+const Decorate_Access = @import("../ast/decorate-access.zig");
 const errs_ = @import("../util/errors.zig");
+const scope_validate_ = @import("../semantic/scope_validate.zig");
 const Symbol = @import("symbol.zig");
+const Symbol_Tree = @import("../ast/symbol-tree.zig");
 const module_ = @import("../hierarchy/module.zig");
+const unification_ = @import("../semantic/unification.zig");
 const UID_Gen = @import("../util/uid_gen.zig");
+const walker_ = @import("../ast/walker.zig");
 
 const Self = @This();
 
@@ -121,8 +128,8 @@ pub fn impl_trait_lookup(self: *Self, for_type: *ast_.AST, trait: *Symbol) Impl_
 }
 
 /// Looks up the impl's decl/method_decl ast for a given type, with a given name
-pub fn lookup_impl_member(self: *Self, for_type: *ast_.AST, name: []const u8) ?*ast_.AST {
-    std.debug.assert(for_type.* != .@"comptime"); // these must be in expanded form
+pub fn lookup_impl_member(self: *Self, for_type: *ast_.AST, name: []const u8, compiler: *Compiler_Context) !?*ast_.AST {
+    // std.debug.assert(for_type.* != .@"comptime"); // these must be in expanded form
     if (!for_type.valid_type()) {
         return null;
     }
@@ -131,28 +138,78 @@ pub fn lookup_impl_member(self: *Self, for_type: *ast_.AST, name: []const u8) ?*
         if (!impl.impl._type.valid_type()) {
             // The type of the impl isn't even valid
             // This is an edge case for badly formed programs
-            return null;
+            continue;
         }
+
+        var subst = unification_.Substitutions.init(std.heap.page_allocator);
+        defer subst.deinit();
+        unification_.unify(impl.impl._type, for_type, impl.impl.with_decls, &subst) catch continue;
 
         // TODO:
         // - attempt to unify for_type and impl._type given impl's `with` list that defines type parameters (nop for concrete impl), or continue
         // - check types/constraints (nop for concrete impl), or continue
         // - let TheImpl = the instantiation given the unification parameters (nop for concrete impl), create if doesnt exist (Q: Where are these stored? In the impl? How is lookup based on unification parameters done?)
         // - perform normal method lookup on TheImpl
-        if (!impl.impl._type.types_match(for_type) or !for_type.types_match(impl.impl._type)) {
-            // The type for this impl does not equal the given type
-            continue;
-        }
-        for (impl.impl.method_defs.items) |method_def| {
-            if (std.mem.eql(u8, method_def.method_decl.name.token().data, name)) {
-                return method_def;
+        var the_impl = impl;
+        if (impl.impl.with_decls.items.len > 0) {
+            const with_list = unification_.with_list_from_subst_map(&subst, impl.impl.with_decls, std.heap.page_allocator);
+            if (impl.impl.instantiations.get(with_list) == null) {
+                const new_impl: *ast_.AST = impl.clone(std.heap.page_allocator); // TODO: Stamp new impl with type parameter aliases
+                const new_scope = init(self, self.uid_gen, std.heap.page_allocator);
+
+                new_impl.set_scope(new_scope);
+
+                // Define each parameter in the new scope
+                var const_decls = std.ArrayList(*ast_.AST).init(compiler.allocator());
+                for (impl.impl.with_decls.items) |with_decl| {
+                    const decl_init = subst.get(with_decl.decl.pattern.token().data);
+                    const decl = ast_.AST.create_decl(
+                        with_decl.token(),
+                        with_decl.decl.pattern,
+                        with_decl.decl.type,
+                        decl_init,
+                        true,
+                        compiler.allocator(),
+                    );
+                    const_decls.append(decl) catch unreachable;
+                }
+
+                try walker_.walk_asts(&const_decls, Symbol_Tree.new(new_scope, &compiler.errors, compiler.allocator()));
+
+                if (new_impl.impl.trait == null or new_impl.impl.impls_anon_trait) {
+                    // impl'd for an anon trait, create an anon trait for it
+                    // TODO: if there is a withlist, define the withs in the traits scope (?)
+                    var token = new_impl.token();
+                    token.kind = .identifier;
+                    token.data = Symbol_Tree.next_anon_name("trait", compiler.allocator());
+                    const anon_trait = ast_.AST.create_trait(
+                        token,
+                        new_impl.impl.method_defs,
+                        new_impl.impl.const_defs,
+                        compiler.allocator(),
+                    );
+                    try walker_.walk_ast(anon_trait, Symbol_Tree.new(new_scope, &compiler.errors, compiler.allocator()));
+                    new_impl.impl.trait = ast_.AST.create_identifier(token, compiler.allocator());
+                    new_impl.impl.impls_anon_trait = true;
+                }
+
+                // Decorate identifiers, validate
+                const decorate_context = Decorate.new(new_scope, &compiler.errors, compiler.allocator());
+                const decorate_access_context = Decorate_Access.new(new_scope, &compiler.errors, compiler);
+                for (const_decls.items) |decl| {
+                    try walker_.walk_ast(decl, decorate_context);
+                    try walker_.walk_ast(decl, decorate_access_context);
+                }
+                std.debug.print("now the impls!\n", .{});
+                try walker_.walk_ast(new_impl, decorate_context); // this doesn't know about the anonymous trait
+                try walker_.walk_ast(new_impl, decorate_access_context);
+                try scope_validate_.validate(new_scope, compiler);
+
+                impl.impl.instantiations.put(with_list, new_impl);
             }
+            the_impl = impl.impl.instantiations.get(with_list).?; // TODO: substitutions need to be in the same order as withs
         }
-        for (impl.impl.const_defs.items) |const_def| {
-            if (std.mem.eql(u8, const_def.decl.symbols.items[0].name, name)) {
-                return const_def;
-            }
-        }
+        return search_impl(the_impl, name) orelse continue;
     }
 
     // Search for any imports
@@ -163,7 +220,7 @@ pub fn lookup_impl_member(self: *Self, for_type: *ast_.AST, name: []const u8) ?*
             switch (res) {
                 .found => {
                     const module_scope = res.found.init_value.?.scope().?;
-                    const module_scope_lookup = module_scope.lookup_impl_member(for_type, name);
+                    const module_scope_lookup = try module_scope.lookup_impl_member(for_type, name, compiler);
                     if (module_scope_lookup != null) {
                         return module_scope_lookup;
                     }
@@ -175,18 +232,32 @@ pub fn lookup_impl_member(self: *Self, for_type: *ast_.AST, name: []const u8) ?*
 
     if (self.parent != null) {
         // Did not match in this scope. Try parent scope
-        return self.parent.?.lookup_impl_member(for_type, name);
+        return self.parent.?.lookup_impl_member(for_type, name, compiler);
     } else {
         // Not found, parent scope is null
         return null;
     }
 }
 
+fn search_impl(impl: *ast_.AST, name: []const u8) ?*ast_.AST {
+    for (impl.impl.method_defs.items) |method_def| {
+        if (std.mem.eql(u8, method_def.method_decl.name.token().data, name)) {
+            return method_def;
+        }
+    }
+    for (impl.impl.const_defs.items) |const_def| {
+        if (std.mem.eql(u8, const_def.decl.symbols.items[0].name, name)) {
+            return const_def;
+        }
+    }
+    return null;
+}
+
 pub fn pprint(self: *Self) void {
     std.debug.print("scope_{}:\n", .{self.uid});
     for (self.symbols.keys()) |name| {
         const symbol = self.symbols.get(name).?;
-        std.debug.print("  {s} {s}\n", .{ @tagName(symbol.kind), name });
+        std.debug.print("  {s} {s} = {?}\n", .{ @tagName(symbol.kind), name, symbol.init_value });
     }
 }
 

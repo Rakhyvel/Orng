@@ -3,8 +3,10 @@ fn Wrapper(const T: Type) -> Type {
     (value: T,)
 }
 
-impl for Wrapper(Int) {
-    fn get(&self) -> Int {
+impl for Wrapper(A)
+with A: Type 
+{
+    fn get(&self) -> A {
         self.value
     }
 }

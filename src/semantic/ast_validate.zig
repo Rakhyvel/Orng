@@ -42,7 +42,9 @@ pub fn validate_AST(ast: *ast_.AST, old_expected_type: ?*ast_.AST, compiler: *Co
         return poison_.poisoned;
     } else if (ast.common().validation_state == .invalid) {
         return poison_.poisoned;
-    } else if (ast.* != .@"comptime" and ast.common().validation_state == .valid) {
+    } else if (
+    // ast.* != .@"comptime" and
+    ast.common().validation_state == .valid) {
         // TODO: Why do we need comptime here?
         return ast.common().validation_state.valid.valid_form;
     }
@@ -80,6 +82,8 @@ pub fn validate_AST(ast: *ast_.AST, old_expected_type: ?*ast_.AST, compiler: *Co
         if (expected_type != null and typing_.checked_types_match(prelude_.type_type, expected_type.?, &compiler.errors) catch unreachable) {
             _ = retval.expand_type(compiler.allocator());
         }
+
+        std.debug.print("NOW  VALID: {*} {*}\n", .{ ast, retval });
 
         ast.common().validation_state = ast_.AST_Validation_State{ .valid = .{ .valid_form = retval } };
         retval.common().validation_state = ast_.AST_Validation_State{ .valid = .{ .valid_form = retval } };
@@ -225,25 +229,25 @@ fn validate_AST_internal(
             try typing_.type_check(ast.token().span, prelude_.int_type, expected, &compiler.errors);
             return ast_.AST.create_int(ast.token(), ast.expr().expand_type(compiler.allocator()).sizeof(), compiler.allocator());
         },
-        .@"comptime" => {
-            if (ast.@"comptime".result != null) {
-                return ast.@"comptime".result.?;
-            }
-            ast.set_expr(validate_AST(ast.expr(), expected, compiler));
-            const ast_type = ast.expr().typeof(compiler.allocator());
-            const expanded_ast_type = ast_type.expand_type(compiler.allocator());
-            if (try typing_.checked_types_match(expanded_ast_type, prelude_.void_type, &compiler.errors)) {
-                return typing_.throw_unexpected_void_type(ast.expr().token().span, &compiler.errors);
-            }
-            try typing_.type_check(ast.token().span, expanded_ast_type, expected, &compiler.errors);
+        // .@"comptime" => {
+        //     if (ast.@"comptime".result != null) {
+        //         return ast.@"comptime".result.?;
+        //     }
+        //     ast.set_expr(validate_AST(ast.expr(), expected, compiler));
+        //     const ast_type = ast.expr().typeof(compiler.allocator());
+        //     const expanded_ast_type = ast_type.expand_type(compiler.allocator());
+        //     if (try typing_.checked_types_match(expanded_ast_type, prelude_.void_type, &compiler.errors)) {
+        //         return typing_.throw_unexpected_void_type(ast.expr().token().span, &compiler.errors);
+        //     }
+        //     try typing_.type_check(ast.token().span, expanded_ast_type, expected, &compiler.errors);
 
-            var expanded_expected = expected;
-            if (expected != null and expected.?.* == .type_of) {
-                expanded_expected = expected.?.expand_type(compiler.allocator());
-            }
-            ast.@"comptime".result = try interpret(ast.expr(), expanded_expected orelse expanded_ast_type, ast.scope().?, compiler);
-            return ast.@"comptime".result.?;
-        },
+        //     var expanded_expected = expected;
+        //     if (expected != null and expected.?.* == .type_of) {
+        //         expanded_expected = expected.?.expand_type(compiler.allocator());
+        //     }
+        //     ast.@"comptime".result = try interpret(ast.expr(), expanded_expected orelse expanded_ast_type, ast.scope().?, compiler);
+        //     return ast.@"comptime".result.?;
+        // },
         .assign => {
             try validate_L_Value(ast.lhs(), &compiler.errors);
             ast.set_lhs(validate_AST(ast.lhs(), null, compiler));
@@ -326,6 +330,7 @@ fn validate_AST_internal(
             ast.set_lhs(validate_AST(ast.lhs(), null, compiler));
             try poison_.assert_none_poisoned(ast.lhs());
             if (ast.lhs().* == .identifier and ast.lhs().identifier.refers_to_template()) {
+                ast.common()._unexpanded_type = ast.clone(compiler.allocator());
                 const template_symbol = ast.lhs().symbol().?;
                 const template_decl = template_symbol.decl.?;
                 // ast should remain a call, but the lhs and rhs should change
@@ -473,7 +478,7 @@ fn validate_AST_internal(
             } else {
                 // The receiver is a regular type. STRIP AWAY ADDRs!
                 const lhs_type = if (true_lhs_type.* == .addr_of) true_lhs_type.expr() else true_lhs_type;
-                method_decl = ast.scope().?.lookup_impl_member(lhs_type, ast.rhs().token().data);
+                method_decl = try ast.scope().?.lookup_impl_member(lhs_type, ast.rhs().token().data, compiler);
             }
             if (method_decl == null) {
                 compiler.errors.add_error(errs_.Error{
@@ -624,7 +629,7 @@ fn validate_AST_internal(
             } else if (try typing_.checked_types_match(prelude_.type_type, expected.?, &compiler.errors)) {
                 // Address type, type of this ast must be a type, inner must be a type
                 if (ast.expr().* == .identifier) {
-                    _ = ast.expr().expand_type(compiler.allocator());
+                    _ = ast.expr().expand_identifier();
                     const span = ast.expr().token().span;
                     const got = ast.expr().typeof(compiler.allocator());
                     if (got.* != .type_of) {
@@ -756,6 +761,7 @@ fn validate_AST_internal(
                 return error.CompileError;
             }
             ast.annotation.type = validate_AST(ast.annotation.type, prelude_.type_type, compiler);
+            std.debug.print("ANNOT TYPE: {} {*}\n", .{ ast.annotation.type, ast.annotation.type });
             try poison_.assert_none_poisoned(.{ast.annotation.type});
             if (ast.annotation.init != null) {
                 ast.annotation.init = validate_AST(ast.annotation.init.?, ast.annotation.type, compiler);

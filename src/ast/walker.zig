@@ -100,7 +100,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .negate,
         .dereference,
         .@"try",
-        .@"comptime",
+        // .@"comptime",
         .addr_of,
         .slice_of,
         .dyn_type,
@@ -108,6 +108,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .bit_not,
         .cinclude,
         .untagged_sum_type,
+        .type_alias,
         => try walk_ast(ast.expr(), new_context),
 
         .assign,
@@ -146,7 +147,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             try walk_ast(ast.lhs(), new_context);
             try walk_asts(ast.children(), new_context);
         },
-        .sum_type, .product, .bit_and, .bit_or, .bit_xor => try walk_asts(ast.children(), new_context),
+        .sum_type, .product, .bit_and, .bit_or, .bit_xor, .@"enum", .@"struct" => try walk_asts(ast.children(), new_context),
         .sum_value => {
             try walk_ast(ast.sum_value.init, new_context);
             try walk_ast(ast.sum_value.base, new_context);
@@ -226,7 +227,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         },
         .impl => {
             try walk_ast(ast.impl._type, new_context);
-            try walk_ast(ast.impl.trait, context);
+            try walk_ast(ast.impl.trait, new_context);
             try walk_asts(&ast.impl.method_defs, new_context);
             try walk_asts(&ast.impl.const_defs, new_context);
         },

@@ -121,7 +121,7 @@ fn create_prelude(compiler: *Compiler_Context) !void {
     int32_type = create_primitive_identifier("Int32", compiler.allocator());
     int64_type = create_primitive_identifier("Int64", compiler.allocator());
     string_type = create_primitive_identifier("String", compiler.allocator());
-    type_type = create_primitive_identifier("Type", compiler.allocator());
+    type_type = create_primitive_identifier("$Type", compiler.allocator());
     unit_type = create_unit_type(compiler.allocator());
     unit_value = create_unit_value(compiler.allocator());
     void_type = create_primitive_identifier("Void", compiler.allocator());
