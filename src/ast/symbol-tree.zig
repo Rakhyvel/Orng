@@ -135,7 +135,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 ast.type_alias.name,
                 ast,
                 prelude_.type_type,
-                ast.expr(),
+                ast.type_alias.init,
                 self.scope,
                 self.errors,
                 self.allocator,

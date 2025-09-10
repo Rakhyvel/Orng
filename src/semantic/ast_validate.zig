@@ -83,8 +83,6 @@ pub fn validate_AST(ast: *ast_.AST, old_expected_type: ?*ast_.AST, compiler: *Co
             _ = retval.expand_type(compiler.allocator());
         }
 
-        std.debug.print("NOW  VALID: {*} {*}\n", .{ ast, retval });
-
         ast.common().validation_state = ast_.AST_Validation_State{ .valid = .{ .valid_form = retval } };
         retval.common().validation_state = ast_.AST_Validation_State{ .valid = .{ .valid_form = retval } };
         return retval;
@@ -761,7 +759,6 @@ fn validate_AST_internal(
                 return error.CompileError;
             }
             ast.annotation.type = validate_AST(ast.annotation.type, prelude_.type_type, compiler);
-            std.debug.print("ANNOT TYPE: {} {*}\n", .{ ast.annotation.type, ast.annotation.type });
             try poison_.assert_none_poisoned(.{ast.annotation.type});
             if (ast.annotation.init != null) {
                 ast.annotation.init = validate_AST(ast.annotation.init.?, ast.annotation.type, compiler);

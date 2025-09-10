@@ -1,7 +1,7 @@
 // 342
 
 cinclude "helper.h"
-extern ("Some_Type") const C_Int: Type = (x: Int, y: Int)
+extern ("Some_Type") type C_Int = (x: Int, y: Int)
 
 fn main() -> Int {
     let mut xs: [5]C_Int = ((0, 0), (0, 0), (0, 0), (0, 0), (0, 0))

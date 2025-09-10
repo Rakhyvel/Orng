@@ -1,5 +1,5 @@
 // 348
-const My_Untagged_Union: Type = @Untagged((x | y))
+type My_Untagged_Union = @Untagged((x | y))
 
 fn main() -> Int {
     let mut x: My_Untagged_Union = undefined

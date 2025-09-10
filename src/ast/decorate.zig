@@ -49,7 +49,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 },
             }
 
-            try ast.symbol().?.err_if_undefined(self.errors);
+            // try ast.symbol().?.err_if_undefined(self.errors);
 
             return self;
         },

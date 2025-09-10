@@ -108,8 +108,13 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .bit_not,
         .cinclude,
         .untagged_sum_type,
-        .type_alias,
         => try walk_ast(ast.expr(), new_context),
+
+        .type_alias => {
+            if (ast.type_alias.init) |init| {
+                try walk_ast(init, new_context);
+            }
+        },
 
         .assign,
         .@"or",

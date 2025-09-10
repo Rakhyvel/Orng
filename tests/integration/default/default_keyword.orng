@@ -1,8 +1,8 @@
 // 250
-const My_Type: Type = (
-    x: Int = 450,
-    y: Int = 50,
-)
+struct My_Type {
+    x: Int = 450
+    y: Int = 50
+}
 
 fn main() -> Int {
     add_fields(2)

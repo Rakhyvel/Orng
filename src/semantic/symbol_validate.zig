@@ -23,13 +23,13 @@ pub fn validate(symbol: *Symbol, compiler: *Compiler_Context) Validate_Error_Enu
     symbol.init_validation_state = .validating;
 
     // std.debug.assert(symbol.init.* != .poison);
-    std.debug.print("validating type for: {s}\n", .{symbol.name});
+    // std.debug.print("validating type for: {s}\n", .{symbol.name});
     symbol._type = validate_AST(symbol._type, prelude_.type_type, compiler);
-    std.debug.print("type for: {s}: {}\n", .{ symbol.name, symbol._type });
+    // std.debug.print("type for: {s}: {}\n", .{ symbol.name, symbol._type });
     if (symbol._type.* != .poison) {
         _ = symbol.assert_symbol_valid();
         symbol.expanded_type = symbol._type.expand_type(compiler.allocator());
-        std.debug.print("expanded type for: {s}: {?}\n", .{ symbol.name, symbol.expanded_type });
+        // std.debug.print("expanded type for: {s}: {?}\n", .{ symbol.name, symbol.expanded_type });
         if (type_is_type_type(symbol.expanded_type.?)) {
             switch (symbol.kind) {
                 .let, .mut => {
@@ -48,12 +48,12 @@ pub fn validate(symbol: *Symbol, compiler: *Compiler_Context) Validate_Error_Enu
             }
         }
         const expected: ?*ast_.AST = if (symbol.kind == .@"fn" or symbol.kind == .@"comptime" or symbol.kind == .@"test") symbol._type.rhs() else symbol._type;
-        std.debug.print("validating init for: {s}: {?}\n", .{ symbol.name, expected });
+        // std.debug.print("validating init for: {s}: {?}\n", .{ symbol.name, expected });
         if (symbol.init_value) |init| {
             // might be null for parameters
             symbol.init_value = validate_AST(init, expected, compiler);
         }
-        std.debug.print("init for: {s}: {?}\n", .{ symbol.name, symbol.init_value });
+        // std.debug.print("init for: {s}: {?}\n", .{ symbol.name, symbol.init_value });
         if (symbol.kind == .trait) {
             try validate_trait(symbol, compiler);
         } else if (symbol.init_value != null and symbol.init_value.?.* == .poison) {

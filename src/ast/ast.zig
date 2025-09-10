@@ -500,7 +500,7 @@ pub const AST = union(enum) {
     type_alias: struct {
         common: AST_Common,
         name: *AST,
-        _expr: *AST,
+        init: ?*AST,
     },
     method_decl: struct {
         common: AST_Common,
@@ -1342,13 +1342,13 @@ pub const AST = union(enum) {
     pub fn create_type_alias(
         _token: Token,
         name: *AST,
-        _expr: *AST,
+        init: ?*AST,
         allocator: std.mem.Allocator,
     ) *AST {
         return AST.box(AST{ .type_alias = .{
             .common = AST_Common{ ._token = _token, ._type = null },
             .name = name,
-            ._expr = _expr,
+            .init = init,
         } }, allocator);
     }
 
@@ -1705,7 +1705,7 @@ pub const AST = union(enum) {
                 return create_type_alias(
                     self.token(),
                     self.type_alias.name.clone(allocator),
-                    self.type_alias._expr.clone(allocator),
+                    if (self.type_alias.init == null) null else self.type_alias.init.?.clone(allocator),
                     allocator,
                 );
             },
@@ -2490,7 +2490,6 @@ pub const AST = union(enum) {
             return self.common()._expanded_type.?;
         }
         var retval = expand_type_internal(self, allocator).assert_ast_valid();
-        std.debug.print("{}\n", .{retval});
         self.common()._expanded_type = retval;
         retval.common()._expanded_type = retval;
         retval.common()._unexpanded_type = self.common()._unexpanded_type orelse self;
@@ -3309,7 +3308,6 @@ pub const AST = union(enum) {
 
     /// Sets an ASTs validation status to valid.
     pub fn assert_ast_valid(self: *AST) *AST {
-        std.debug.print("NOW ASSERTED VALID: {*}\n", .{self});
         self.common().validation_state = AST_Validation_State{ .valid = .{ .valid_form = self } };
         return self;
     }

@@ -141,7 +141,9 @@ fn top_level_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
         if (!self.peek_kind(.EOF)) {
             _ = try self.expect(.newline);
         }
-        decl.decl._top_level = true;
+        if (decl.* == .decl) {
+            decl.decl._top_level = true;
+        }
         return decl;
     } else if (self.peek_kind(.import)) {
         const import: *ast_.AST = try self.import_declaration();
@@ -213,7 +215,7 @@ fn cinclude_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
 }
 
 fn extern_const_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
-    const token = try self.expect(.@"extern");
+    _ = try self.expect(.@"extern");
 
     var c_name: ?*ast_.AST = null;
     if (self.accept(.left_parenthesis) != null) {
@@ -221,27 +223,29 @@ fn extern_const_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
         _ = try self.expect(.right_parenthesis);
     }
 
-    _ = try self.expect(.@"const");
-
-    const identifier = try self.expect(.identifier);
-    const pattern = ast_.AST.create_pattern_symbol(identifier, .{ .@"extern" = .{ .c_name = c_name } }, identifier.data, self.allocator);
-    _ = try self.expect(.single_colon);
-    const _type: *ast_.AST = try self.arrow_expr();
-    var _init: ?*ast_.AST = null;
-    if (self.accept(.single_equals)) |_| {
-        _init = try self.arrow_expr();
+    if (self.peek_kind(.@"const")) {
+        var retval = try self.const_declaration();
+        retval.decl.pattern = ast_.AST.create_pattern_symbol(
+            retval.decl.pattern.token(),
+            .{ .@"extern" = .{ .c_name = c_name } },
+            retval.decl.pattern.token().data,
+            self.allocator,
+        );
+        retval.decl.init = null;
+        retval.decl.prohibit_defaults = true;
+        return retval;
+    } else if (self.peek_kind(.type)) {
+        var retval = try self.type_alias_declaration();
+        retval.type_alias.name = ast_.AST.create_pattern_symbol(
+            retval.type_alias.name.token(),
+            .{ .@"extern" = .{ .c_name = c_name } },
+            retval.type_alias.name.token().data,
+            self.allocator,
+        );
+        return retval;
+    } else {
+        std.debug.panic("some other day...", .{});
     }
-
-    var retval = ast_.AST.create_decl(
-        token,
-        pattern,
-        _type,
-        _init,
-        false,
-        self.allocator,
-    );
-    retval.decl.prohibit_defaults = true;
-    return retval;
 }
 
 fn const_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
@@ -1189,8 +1193,11 @@ fn type_alias_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     const identifier = try self.expect(.identifier);
     const name = ast_.AST.create_pattern_symbol(identifier, .@"const", identifier.data, self.allocator);
 
-    _ = try self.expect(.single_equals);
-    const _init = try self.arrow_expr();
+    var _init: ?*ast_.AST = null;
+
+    if (self.accept(.single_equals)) |_| {
+        _init = try self.arrow_expr();
+    }
 
     return ast_.AST.create_type_alias(identifier, name, _init, self.allocator);
 }

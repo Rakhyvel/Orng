@@ -1,11 +1,12 @@
 // fizzbuzz
-fn main()-> String {
+fn main() -> String {
     fizzbuzz(30).string
 }
 
-const Fizz_Buzz_Result: Type = (
+enum Fizz_Buzz_Result {
     string: String
-    | integer: Int)
+    integer: Int
+}
 
 fn fizzbuzz(n: Int) -> Fizz_Buzz_Result {
     match 0 {

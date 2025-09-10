@@ -1,7 +1,7 @@
 // 341
 
 cinclude "helper.h"
-extern const Some_Type: Type = (x: Int, y: Int)
+extern type Some_Type = (x: Int, y: Int)
 extern const sum: Some_Type -> Int
 
 fn main() -> Int {

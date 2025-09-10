@@ -1,9 +1,9 @@
 // 336
 
-const Inner: Type = (String, Int)
+type Inner = (String, Int)
 
-const Outer: Type = (
-  dummy: Int,
+struct Outer {
+  dummy: Int
   requirements: [8]?Inner = ( 
     (?Inner).none,
     (?Inner).none,
@@ -14,7 +14,7 @@ const Outer: Type = (
     (?Inner).none,
     (?Inner).none
   )
-)
+}
 
 impl for Outer {
     fn new() -> Self { (.dummy = 4, .requirements = ( 
@@ -40,10 +40,8 @@ impl for Outer {
 }
 
 fn main() -> Int {
-    comptime {
-        let mut package: Outer
-        package.>add_entry("Entry 1", 633)
-        package.>add_entry("Entry 2", 336)
-        package.requirements[1].some[1]
-    }
+    let mut package: Outer
+    package.>add_entry("Entry 1", 633)
+    package.>add_entry("Entry 2", 336)
+    package.requirements[1].some[1]
 }
