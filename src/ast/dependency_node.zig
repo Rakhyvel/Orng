@@ -3,16 +3,16 @@
 //! types. This is used to generate types in C in a way that doesn't require forward declarations.
 
 const std = @import("std");
-const ast_ = @import("ast.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 
 const Self = @This();
 
-base: *ast_.AST,
+base: *Type_AST,
 uid: usize,
 dependencies: std.ArrayList(*Self),
 visited: bool,
 
-pub fn init(base: *ast_.AST, uid: usize, allocator: std.mem.Allocator) *Self {
+pub fn init(base: *Type_AST, uid: usize, allocator: std.mem.Allocator) *Self {
     var retval = allocator.create(Self) catch unreachable;
     retval.base = base;
     retval.uid = uid;

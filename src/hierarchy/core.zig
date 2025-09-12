@@ -14,11 +14,13 @@ const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
 const UID_Gen = @import("../util/uid_gen.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 
 // TODO: Think about how to remove these public variables. They're only variable because they need to be constructed later.
-pub var package_type: *ast_.AST = undefined;
-pub var package_source_type: *ast_.AST = undefined;
-pub var test_result_type: *ast_.AST = undefined;
+pub var package_type: *Type_AST = undefined;
+pub var package_source_type: *Type_AST = undefined;
+pub var test_result_type: *Type_AST = undefined;
+pub var test_type: *Type_AST = undefined;
 
 var core: ?*Scope = null;
 pub var core_symbol: ?*Symbol = null;
@@ -52,15 +54,12 @@ fn create_core(compiler: *Compiler_Context) !void {
     core_symbol = Symbol.init(
         compiler.prelude,
         "core",
-        Span{ .col = 1, .line_number = 1, .filename = "core", .line_text = "" },
-        prelude_.unit_type,
         ast_.AST.create_module(
             Token.init_simple("core"),
             core.?,
             module,
             compiler.allocator(),
         ),
-        null,
         .module,
         compiler.allocator(),
     );
@@ -80,8 +79,15 @@ fn create_core(compiler: *Compiler_Context) !void {
     );
 
     const module_scope = compiler.module_scope(module.absolute_path).?;
-    package_type = module_scope.lookup("Package", .{}).found.init_value.?;
-    package_source_type = module_scope.lookup("Package_Source", .{}).found.init_value.?;
-    test_result_type = module_scope.lookup("Test_Result", .{}).found.init_value.?;
-    _ = module_scope.lookup("Requirement", .{}).found.init_value.?;
+    package_type = module_scope.lookup("Package", .{}).found.init_typedef().?;
+    package_source_type = module_scope.lookup("Package_Source", .{}).found.init_typedef().?;
+    test_result_type = module_scope.lookup("Test_Result", .{}).found.init_typedef().?;
+    test_type = Type_AST.create_function(
+        test_result_type.token(),
+        prelude_.unit_type,
+        test_result_type,
+        compiler.allocator(),
+    );
+
+    _ = module_scope.lookup("Requirement", .{}).found.init_typedef().?;
 }

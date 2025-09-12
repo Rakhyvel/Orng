@@ -299,7 +299,7 @@ pub fn collect_types(self: *Self, type_set: *Type_Set, allocator: std.mem.Alloca
     for (self.instructions.items) |instr| {
         if (instr.dest != null) {
             _ = type_set.add(instr.dest.?.get_expanded_type(), allocator);
-            _ = type_set.add(instr.dest.?.extract_symbver().symbol.expanded_type.?, allocator);
+            _ = type_set.add(instr.dest.?.extract_symbver().symbol.expanded_type(), allocator);
         }
     }
 }

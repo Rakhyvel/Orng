@@ -11,30 +11,31 @@ const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
 const Symbol_Tree = @import("../ast/symbol-tree.zig");
 const Token = @import("../lexer/token.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 const UID_Gen = @import("../util/uid_gen.zig");
 
 // TODO: Think about how to remove these public variables. They're only variable because they need to be constructed later.
-pub var anyptr_type: *ast_.AST = undefined;
-pub var bool_type: *ast_.AST = undefined;
-pub var byte_type: *ast_.AST = undefined;
-pub var byte_slice_type: *ast_.AST = undefined;
-pub var char_type: *ast_.AST = undefined;
-pub var float_type: *ast_.AST = undefined;
-pub var float32_type: *ast_.AST = undefined;
-pub var float64_type: *ast_.AST = undefined;
-pub var int_type: *ast_.AST = undefined;
-pub var int8_type: *ast_.AST = undefined;
-pub var int16_type: *ast_.AST = undefined;
-pub var int32_type: *ast_.AST = undefined;
-pub var int64_type: *ast_.AST = undefined;
-pub var string_type: *ast_.AST = undefined;
-pub var type_type: *ast_.AST = undefined;
-pub var unit_type: *ast_.AST = undefined;
+pub var anyptr_type: *Type_AST = undefined;
+pub var bool_type: *Type_AST = undefined;
+pub var byte_type: *Type_AST = undefined;
+pub var byte_slice_type: *Type_AST = undefined;
+pub var char_type: *Type_AST = undefined;
+pub var float_type: *Type_AST = undefined;
+pub var float32_type: *Type_AST = undefined;
+pub var float64_type: *Type_AST = undefined;
+pub var int_type: *Type_AST = undefined;
+pub var int8_type: *Type_AST = undefined;
+pub var int16_type: *Type_AST = undefined;
+pub var int32_type: *Type_AST = undefined;
+pub var int64_type: *Type_AST = undefined;
+pub var string_type: *Type_AST = undefined;
+pub var type_type: *Type_AST = undefined;
+pub var unit_type: *Type_AST = undefined;
 pub var unit_value: *ast_.AST = undefined;
-pub var void_type: *ast_.AST = undefined;
-pub var word16_type: *ast_.AST = undefined;
-pub var word32_type: *ast_.AST = undefined;
-pub var word64_type: *ast_.AST = undefined;
+pub var void_type: *Type_AST = undefined;
+pub var word16_type: *Type_AST = undefined;
+pub var word32_type: *Type_AST = undefined;
+pub var word64_type: *Type_AST = undefined;
 
 pub var blackhole: *Symbol = undefined;
 
@@ -129,16 +130,16 @@ fn create_prelude(compiler: *Compiler_Context) !void {
     word32_type = create_primitive_identifier("Word32", compiler.allocator());
     word64_type = create_primitive_identifier("Word64", compiler.allocator());
     // Slice types must be AFTER int_type
-    byte_slice_type = ast_.AST.create_slice_type(byte_type, false, compiler.allocator()).assert_ast_valid();
+    byte_slice_type = Type_AST.create_slice_type(byte_type, false, compiler.allocator());
 
     // Create prelude scope
     var uid_gen = UID_Gen.init();
     prelude = Scope.init(null, &uid_gen, compiler.allocator());
 
     // Create Symbols for primitives
-    _ = create_prelude_symbol("String", type_type, byte_slice_type, compiler.allocator());
-    _ = create_prelude_symbol("Type", type_type, type_type, compiler.allocator());
-    _ = create_prelude_symbol("Void", type_type, void_type, compiler.allocator());
+    _ = create_type_alias_symbol("String", byte_slice_type, compiler.allocator());
+    _ = create_type_alias_symbol("Type", type_type, compiler.allocator());
+    _ = create_type_alias_symbol("Void", void_type, compiler.allocator());
     blackhole = create_prelude_symbol("_", unit_type, unit_value, compiler.allocator());
 
     // Setup default values
@@ -388,50 +389,74 @@ fn create_prelude(compiler: *Compiler_Context) !void {
     const symbol = Symbol.init(
         compiler.prelude,
         "prelude",
-        Span{ .col = 1, .line_number = 1, .filename = "prelude", .line_text = "" },
-        unit_type,
         ast_.AST.create_module(
             Token.init_simple("prelude"),
             prelude.?,
             module,
             compiler.allocator(),
         ),
-        null,
         .module,
         compiler.allocator(),
     );
     try prelude.?.put_symbol(symbol, &compiler.errors);
 }
 
-fn create_primitive_identifier(name: []const u8, allocator: std.mem.Allocator) *ast_.AST {
-    return ast_.AST.create_identifier(Token.init_simple(name), allocator).assert_ast_valid();
+fn create_primitive_identifier(name: []const u8, allocator: std.mem.Allocator) *Type_AST {
+    return Type_AST.create_identifier(Token.init_simple(name), allocator);
 }
 
-fn create_unit_type(allocator: std.mem.Allocator) *ast_.AST {
-    return ast_.AST.create_unit_type(Token.init_simple("("), allocator).assert_ast_valid();
+fn create_unit_type(allocator: std.mem.Allocator) *Type_AST {
+    return Type_AST.create_unit_type(Token.init_simple("("), allocator);
 }
 
-fn create_anyptr_type_primitive(allocator: std.mem.Allocator) *ast_.AST {
-    return ast_.AST.create_anyptr_type(Token.init_simple("anyptr_type"), allocator).assert_ast_valid();
+fn create_anyptr_type_primitive(allocator: std.mem.Allocator) *Type_AST {
+    return Type_AST.create_anyptr_type(Token.init_simple("anyptr_type"), allocator);
 }
 
 fn create_unit_value(allocator: std.mem.Allocator) *ast_.AST {
     return ast_.AST.create_unit_value(Token.init_simple("{"), allocator).assert_ast_valid();
 }
 
-fn create_prelude_symbol(name: []const u8, _type: *ast_.AST, init: *ast_.AST, allocator: std.mem.Allocator) *Symbol {
+fn create_prelude_symbol(name: []const u8, _type: *Type_AST, init: *ast_.AST, allocator: std.mem.Allocator) *Symbol {
+    const token = Token.init_simple(name);
+    const decl = ast_.AST.create_decl(
+        token,
+        ast_.AST.create_pattern_symbol(token, .@"const", name, allocator),
+        _type,
+        init,
+        true,
+        allocator,
+    );
     var symbol = Symbol.init(
         prelude.?,
         name,
-        Span.phony,
-        _type,
-        init,
-        null,
+        decl,
         .@"const",
         allocator,
     ).assert_symbol_valid();
     symbol.is_temp = true;
-    symbol.expanded_type = _type;
+    _type.common()._expanded_type = _type;
+    prelude.?.symbols.put(name, symbol) catch unreachable;
+    return symbol;
+}
+
+fn create_type_alias_symbol(name: []const u8, _type: *Type_AST, allocator: std.mem.Allocator) *Symbol {
+    const token = Token.init_simple(name);
+    const decl = ast_.AST.create_type_alias(
+        token,
+        ast_.AST.create_pattern_symbol(token, .@"const", name, allocator),
+        _type,
+        allocator,
+    );
+    var symbol = Symbol.init(
+        prelude.?,
+        name,
+        decl,
+        .@"const",
+        allocator,
+    ).assert_symbol_valid();
+    symbol.is_temp = true;
+    _type.common()._expanded_type = _type;
     prelude.?.symbols.put(name, symbol) catch unreachable;
     return symbol;
 }
@@ -440,8 +465,8 @@ fn create_info(
     name: []const u8, // Name of the primitive type identifier
     bounds: ?Bounds, // Optional bounds info for integral types
     c_name: []const u8, // Name to use when generating the primitive to C
-    _ast: *ast_.AST, // The AST representation of the type
-    definition: ?*ast_.AST, // Optional definition for primitive (not an alias, but a newtype)
+    _ast: *Type_AST, // The AST representation of the type
+    definition: ?*Type_AST, // Optional definition for primitive (not an alias, but a newtype)
     type_class: Type_Class, // Typeclass this primitive belongs to
     type_kind: Type_Kind, // What kind of type this type is
     default_value: ?*ast_.AST, // Optional AST of default value for the primitive
@@ -453,7 +478,7 @@ fn create_info(
     if (symbol_lookup_res == .found) {
         symbol = symbol_lookup_res.found;
     } else {
-        symbol = create_prelude_symbol(name, type_type, definition orelse _ast, allocator);
+        symbol = create_type_alias_symbol(name, definition orelse _ast, allocator);
     }
     _ast.set_symbol(symbol);
     primitives.put(name, Primitive_Info{
@@ -471,7 +496,7 @@ pub fn info_from_name(name: []const u8) ?Primitive_Info {
     return primitives.get(name);
 }
 
-pub fn bounds_from_ast(_type: *ast_.AST) ?Bounds {
+pub fn bounds_from_ast(_type: *Type_AST) ?Bounds {
     // _type is expanded
     switch (_type.*) {
         .identifier => return bounds_from_identifier(_type),
@@ -480,7 +505,7 @@ pub fn bounds_from_ast(_type: *ast_.AST) ?Bounds {
     }
 }
 
-fn bounds_from_identifier(ident_type: *ast_.AST) ?Bounds {
+fn bounds_from_identifier(ident_type: *Type_AST) ?Bounds {
     const info = primitives.get(ident_type.token().data) orelse return null;
     if (info.bounds == null) {
         return null;
@@ -493,7 +518,7 @@ fn bounds_from_identifier(ident_type: *ast_.AST) ?Bounds {
     };
 }
 
-pub fn info_from_ast(expanded_type: *ast_.AST) ?Primitive_Info {
+pub fn info_from_ast(expanded_type: *Type_AST) ?Primitive_Info {
     var unwrapped = expanded_type;
     while (unwrapped.* == .annotation) {
         unwrapped = unwrapped.annotation.type;

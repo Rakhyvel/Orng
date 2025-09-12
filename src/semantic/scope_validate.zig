@@ -10,6 +10,7 @@ const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const typing_ = @import("typing.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 const validate_symbol_ = @import("symbol_validate.zig");
 
 const Validate_Error_Enum = error{ LexerError, ParseError, CompileError };
@@ -40,12 +41,12 @@ fn validate_impl(impl: *ast_.AST, compiler: *Compiler_Context) Validate_Error_En
         return error.CompileError;
     }
 
-    impl.impl._type = validate_AST(impl.impl._type, prelude_.type_type, compiler);
+    // impl.impl._type = validate_AST(impl.impl._type, prelude_.type_type, compiler);
 
     const trait_symbol: *Symbol = impl.impl.trait.?.symbol().?;
     if (trait_symbol.kind != .trait) {
         compiler.errors.add_error(errs_.Error{ .basic = .{
-            .span = trait_symbol.span,
+            .span = trait_symbol.span(),
             .msg = "cannot implement for this, not a trait",
         } });
         return error.CompileError;
@@ -112,11 +113,14 @@ fn validate_impl(impl: *ast_.AST, compiler: *Compiler_Context) Validate_Error_En
         }
 
         // Check that parameters match
+        var subst = std.StringArrayHashMap(*Type_AST).init(compiler.allocator());
+        defer subst.deinit();
+        subst.put("Self", impl.impl._type) catch unreachable;
+
         for (def.children().items, trait_decl.?.children().items) |impl_param, trait_param| {
-            _ = try typing_.checked_types_match(trait_param.decl.type, prelude_.type_type, &compiler.errors);
             const impl_type = impl_param.decl.type;
-            const trait_type = ast_.AST.convert_self_type(trait_param.decl.type, impl.impl._type, compiler.allocator());
-            if (!try typing_.checked_types_match(impl_type, trait_type, &compiler.errors)) {
+            const trait_type = Type_AST.clone(trait_param.decl.type, &subst, compiler.allocator());
+            if (!impl_type.types_match(trait_type)) {
                 compiler.errors.add_error(errs_.Error{ .mismatch_method_type = .{
                     .span = impl_param.decl.type.token().span,
                     .method_name = def.method_decl.name.token().data,
@@ -129,8 +133,8 @@ fn validate_impl(impl: *ast_.AST, compiler: *Compiler_Context) Validate_Error_En
         }
 
         // Check that return type matches
-        const trait_method_ret_type = ast_.AST.convert_self_type(trait_decl.?.method_decl.ret_type, impl.impl._type, compiler.allocator());
-        if (!try typing_.checked_types_match(def.method_decl.ret_type, trait_method_ret_type, &compiler.errors)) {
+        const trait_method_ret_type = Type_AST.clone(trait_decl.?.method_decl.ret_type, &subst, compiler.allocator());
+        if (!def.method_decl.ret_type.types_match(trait_method_ret_type)) {
             compiler.errors.add_error(errs_.Error{ .mismatch_method_type = .{
                 .span = def.method_decl.ret_type.token().span,
                 .method_name = def.method_decl.name.token().data,

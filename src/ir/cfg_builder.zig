@@ -19,7 +19,7 @@ pub fn get_cfg(
     std.debug.assert(symbol.validation_state == .valid);
     if (symbol.init_validation_state == .validating) {
         errors.add_error(errs_.Error{ .recursive_definition = .{
-            .span = symbol.span,
+            .span = symbol.span(),
             .symbol_name = symbol.name,
         } });
         return error.CompileError;

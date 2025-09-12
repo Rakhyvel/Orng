@@ -81,7 +81,7 @@ pub fn allocator(self: *Self) std.mem.Allocator {
 
 pub fn compile_build_file(self: *Self, absolute_path: []const u8) Error!*CFG {
     const build_module = try self.compile_module(absolute_path, "build", false);
-    return build_module.init_value.?.scope().?.lookup("build", .{}).found.cfg.?;
+    return build_module.init_value().?.scope().?.lookup("build", .{}).found.cfg.?;
 }
 
 /// Compiles a module from a file
@@ -132,7 +132,7 @@ pub fn register_module(self: *Self, absolute_path: []const u8, module: *Symbol) 
 
 pub fn module_scope(self: *Self, absolute_path: []const u8) ?*Scope {
     const module_symbol = self.lookup_module(absolute_path) orelse return null;
-    return module_symbol.init_value.?.scope();
+    return module_symbol.init_value().?.scope();
 }
 
 pub fn register_interned_string_set(self: *Self, module_uid: u32) void {
@@ -143,7 +143,7 @@ pub fn register_interned_string_set(self: *Self, module_uid: u32) void {
 
 pub fn get_core_type(self: *Self, name: []const u8) *AST {
     const prelude_abs_path = self.core.?.module.?.absolute_path;
-    return self.module_scope(prelude_abs_path).?.lookup(name, .{}).found.init_value.?;
+    return self.module_scope(prelude_abs_path).?.lookup(name, .{}).found.init_value().?;
 }
 
 pub fn lookup_interned_string_set(self: *Self, module_uid: u32) ?*Interned_String_Set {
@@ -210,7 +210,7 @@ pub fn clean_package(self: *Self, package_absolute_path: []const u8) void {
 pub fn collect_package_local_modules(self: *Self) void {
     for (self.packages.keys()) |package_name| {
         const package = self.lookup_package(package_name).?;
-        const module = package.root.init_value.?.module.module;
+        const module = package.root.init_value().?.module.module;
 
         const package_path = module.get_package_abs_path();
         const build_paths = [_][]const u8{ package_path, "build" };

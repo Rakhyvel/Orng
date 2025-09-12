@@ -9,6 +9,7 @@ const prelude_ = @import("../hierarchy/prelude.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 const walker_ = @import("../ast/walker.zig");
 
 package_absolute_path: []const u8,
@@ -53,7 +54,7 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
             .symbols = std.ArrayList(*Symbol).init(self.compiler.allocator()),
             .pattern = ast.import.pattern,
             .type = prelude_.type_type,
-            .init = prelude_.unit_type,
+            .init = null,
             ._top_level = true,
             .is_alias = false,
             .prohibit_defaults = false,
@@ -98,7 +99,7 @@ fn unwrap_access_imports(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.
                     anon_names.items[i],
                     self.compiler.allocator(),
                 ),
-                ast_.AST.create_type_of(ast.token(), init, self.compiler.allocator()),
+                Type_AST.create_type_of(ast.token(), init, self.compiler.allocator()),
                 init,
                 false,
                 self.compiler.allocator(),
@@ -117,7 +118,7 @@ fn unwrap_access_imports(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.
                     self.compiler.allocator(),
                 ),
                 .type = prelude_.type_type,
-                .init = prelude_.unit_type,
+                .init = null,
                 ._top_level = true,
                 .is_alias = false,
                 .prohibit_defaults = false,
@@ -170,7 +171,7 @@ fn resolve_import(self: Self, pattern_ast: *ast_.AST) walker_.Error!*Symbol {
 
     const import_symbol: *Symbol = try self.lookup_import_module(pattern_ast, import_name, import_file_path);
 
-    self.local_imported_modules.put(import_symbol.init_value.?.module.module, void{}) catch unreachable;
+    self.local_imported_modules.put(import_symbol.init_value().?.module.module, void{}) catch unreachable;
     return import_symbol;
 }
 

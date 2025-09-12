@@ -5,6 +5,7 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const errs_ = @import("../util/errors.zig");
 const Span = @import("../util/span.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 
 const Validate_Error_Enum = error{ LexerError, ParseError, CompileError };
 
@@ -37,7 +38,7 @@ pub fn default_args(
     thing: Validate_Args_Thing,
     asts: std.ArrayList(*ast_.AST), // The args for a call, or the terms for a product
     call_span: Span,
-    expected: *ast_.AST,
+    expected: *Type_AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Validate_Error_Enum!std.ArrayList(*ast_.AST) {
@@ -92,7 +93,7 @@ fn positional_args(
     thing: Validate_Args_Thing,
     asts: std.ArrayList(*ast_.AST),
     call_span: Span,
-    expected: *ast_.AST,
+    expected: *Type_AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) error{NoDefault}!std.ArrayList(*ast_.AST) {
@@ -171,7 +172,7 @@ fn named_args(
     thing: Validate_Args_Thing,
     asts: std.ArrayList(*ast_.AST),
     call_span: Span,
-    expected: *ast_.AST,
+    expected: *Type_AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) (Validate_Error_Enum || error{NoDefault})!std.ArrayList(*ast_.AST) {
@@ -276,7 +277,7 @@ pub fn put_ast_map(
 pub fn validate_args_arity(
     thing: Validate_Args_Thing,
     args: *std.ArrayList(*ast_.AST),
-    expected: *ast_.AST,
+    expected: *Type_AST,
     variadic: bool,
     span: Span,
     errors: *errs_.Errors,

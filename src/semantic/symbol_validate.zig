@@ -11,6 +11,7 @@ const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
 const typing_ = @import("typing.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 
 const Validate_Error_Enum = error{ LexerError, ParseError, CompileError };
 
@@ -24,39 +25,22 @@ pub fn validate(symbol: *Symbol, compiler: *Compiler_Context) Validate_Error_Enu
 
     // std.debug.assert(symbol.init.* != .poison);
     // std.debug.print("validating type for: {s}\n", .{symbol.name});
-    symbol._type = validate_AST(symbol._type, prelude_.type_type, compiler);
+    // symbol._type = validate_AST(symbol._type, prelude_.type_type, compiler);
     // std.debug.print("type for: {s}: {}\n", .{ symbol.name, symbol._type });
-    if (symbol._type.* != .poison) {
+    if (symbol.type().* != .poison) {
         _ = symbol.assert_symbol_valid();
-        symbol.expanded_type = symbol._type.expand_type(compiler.allocator());
+        // symbol.expanded_type = symbol._type.expand_type(compiler.allocator());
         // std.debug.print("expanded type for: {s}: {?}\n", .{ symbol.name, symbol.expanded_type });
-        if (type_is_type_type(symbol.expanded_type.?)) {
-            switch (symbol.kind) {
-                .let, .mut => {
-                    // let and mut cannot be Type typed
-                    compiler.errors.add_error(errs_.Error{ .basic = .{
-                        .span = symbol.span,
-                        .msg = "non-constant variable with `Type` type",
-                    } });
-                    symbol.validation_state = .invalid;
-                    symbol.init_validation_state = .invalid;
-                    return error.CompileError;
-                },
-                // Allow these inits to be non-comptime, since they're interpreted at comptime anyway
-                .@"fn", .@"comptime", .@"const", .@"test" => symbol.init_value.?.common().ok_for_comptime = true,
-                else => {},
-            }
-        }
-        const expected: ?*ast_.AST = if (symbol.kind == .@"fn" or symbol.kind == .@"comptime" or symbol.kind == .@"test") symbol._type.rhs() else symbol._type;
+        const expected: ?*Type_AST = if (symbol.kind == .@"fn" or symbol.kind == .@"comptime" or symbol.kind == .@"test") symbol.type().rhs() else symbol.type();
         // std.debug.print("validating init for: {s}: {?}\n", .{ symbol.name, expected });
-        if (symbol.init_value) |init| {
+        if (symbol.init_value()) |init| {
             // might be null for parameters
-            symbol.init_value = validate_AST(init, expected, compiler);
+            symbol.decl.?.set_decl_init(validate_AST(init, expected, compiler));
         }
         // std.debug.print("init for: {s}: {?}\n", .{ symbol.name, symbol.init_value });
         if (symbol.kind == .trait) {
             try validate_trait(symbol, compiler);
-        } else if (symbol.init_value != null and symbol.init_value.?.* == .poison) {
+        } else if (symbol.init_value() != null and symbol.init_value().?.* == .poison) {
             symbol.validation_state = .invalid;
             symbol.init_validation_state = .invalid;
             return error.CompileError;
@@ -71,13 +55,13 @@ pub fn validate(symbol: *Symbol, compiler: *Compiler_Context) Validate_Error_Enu
     // Symbol's name must be capitalized iff its type is Type
     // TODO: Re-work the errors for structs, enums, and type aliases
     // if (symbol.expanded_type != null and !std.mem.eql(u8, symbol.name, "_") and symbol.kind != .trait and symbol.kind != .import_inner and symbol.name[0] != '$') {
-    //     if (symbol.kind != .import and type_is_type_type(symbol.expanded_type.?) and !is_capitalized(symbol.name)) {
+    //     if (symbol.kind != .import and type_is_type_type(symbol.expanded_type()) and !is_capitalized(symbol.name)) {
     //         compiler.errors.add_error(errs_.Error{ .symbol_error = .{
     //             .problem = "of type `Type` must start with an uppercase letter",
     //             .span = symbol.span,
     //             .name = symbol.name,
     //         } });
-    //     } else if (!(symbol.kind != .import and type_is_type_type(symbol.expanded_type.?)) and is_capitalized(symbol.name) and symbol.kind != .template) {
+    //     } else if (!(symbol.kind != .import and type_is_type_type(symbol.expanded_type())) and is_capitalized(symbol.name) and symbol.kind != .template) {
     //         // TODO: Make it so that these rules apply to templates. I think we'll need to stamp first, of course. Are symbols re-validated when they're stamped? They probably should be
     //         compiler.errors.add_error(errs_.Error{ .symbol_error = .{
     //             .problem = "of type other than `Type` must start with a lowercase letter",
@@ -125,11 +109,11 @@ fn validate_trait(trait: *Symbol, compiler: *Compiler_Context) Validate_Error_En
             names.put(decl.method_decl.name.token().data, decl) catch unreachable;
         }
 
-        for (decl.method_decl._params.items) |param| {
-            param.decl.type = validate_AST(param.decl.type, prelude_.type_type, compiler);
-        }
-        decl.method_decl.ret_type = validate_AST(decl.method_decl.ret_type, prelude_.type_type, compiler);
-        decl.method_decl.c_type = validate_AST(decl.method_decl.c_type.?, prelude_.type_type, compiler);
+        // for (decl.method_decl._params.items) |param| {
+        // param.decl.type = validate_AST(param.decl.type, prelude_.type_type, compiler);
+        // }
+        // decl.method_decl.ret_type = validate_AST(decl.method_decl.ret_type, prelude_.type_type, compiler);
+        // decl.method_decl.c_type = validate_AST(decl.method_decl.c_type.?, prelude_.type_type, compiler);
 
         if (decl.method_decl.is_virtual) {
             if (decl.method_decl.c_type.?.refers_to_self()) {

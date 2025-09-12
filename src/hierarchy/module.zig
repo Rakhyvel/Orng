@@ -142,15 +142,12 @@ pub const Module = struct {
         const symbol = Symbol.init(
             compiler.prelude,
             module.name(),
-            Span{ .col = 1, .line_number = 1, .filename = absolute_path, .line_text = "" },
-            prelude_.unit_type,
             ast_.AST.create_module(
                 Token.init_simple(module.name()),
                 file_root,
                 module,
                 compiler.allocator(),
             ),
-            null,
             .module,
             compiler.allocator(),
         );
@@ -202,10 +199,12 @@ pub const Module = struct {
             const core_import_symbol = Symbol.init(
                 file_root,
                 "core",
-                Span{ .col = 1, .line_number = 1, .filename = "core", .line_text = "" },
-                prelude_.unit_type,
-                prelude_.unit_value,
-                null,
+                ast_.AST.create_module(
+                    Token.init_simple("core"),
+                    compiler.core.?,
+                    module,
+                    compiler.allocator(),
+                ),
                 .{ .import = .{ .real_name = "core" } },
                 compiler.allocator(),
             );

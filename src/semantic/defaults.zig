@@ -5,19 +5,19 @@ const ast_ = @import("../ast/ast.zig");
 const errs_ = @import("../util/errors.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const Span = @import("../util/span.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 
 const Validate_Error_Enum = error{ LexerError, ParseError, CompileError };
 
-pub fn generate_default(_type: *ast_.AST, span: Span, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
+pub fn generate_default(_type: *Type_AST, span: Span, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
     var retval = (try generate_default_unvalidated(_type, span, errors, allocator)).assert_ast_valid();
     retval.common()._type = _type;
     return retval;
 }
 
-fn generate_default_unvalidated(_type: *ast_.AST, span: Span, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
+fn generate_default_unvalidated(_type: *Type_AST, span: Span, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
     // TODO: Too long
     switch (_type.*) {
-        .anyptr_type => return _type,
         .identifier => {
             const expanded_type = _type.expand_type(allocator);
             if (expanded_type == _type) {
@@ -49,15 +49,12 @@ fn generate_default_unvalidated(_type: *ast_.AST, span: Span, errors: *errs_.Err
                 retval.set_pos(0); // if nothing's wrong, then everything's `.ok`!
             }
             retval.sum_value.base = _type;
-            const proper_term: *ast_.AST = _type.children().items[0];
+            const proper_term: *Type_AST = _type.children().items[0];
             retval.sum_value.init = try generate_default(proper_term, span, errors, allocator);
             return retval;
         },
         .untagged_sum_type => {
             return try generate_default_unvalidated(_type.expr(), span, errors, allocator);
-        },
-        .call => {
-            return try generate_default(_type.expand_type(allocator), span, errors, allocator);
         },
         .product => {
             var value_terms = std.ArrayList(*ast_.AST).init(allocator);

@@ -8,9 +8,10 @@ const scope_validate_ = @import("../semantic/scope_validate.zig");
 const Symbol = @import("symbol.zig");
 const Symbol_Tree = @import("../ast/symbol-tree.zig");
 const module_ = @import("../hierarchy/module.zig");
-const unification_ = @import("../semantic/unification.zig");
+const unification_ = @import("../types/unification.zig");
 const UID_Gen = @import("../util/uid_gen.zig");
 const walker_ = @import("../ast/walker.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 
 const Self = @This();
 
@@ -102,7 +103,7 @@ pub fn lookup(self: *Self, name: []const u8, flags: Lookup_Flags) Lookup_Result 
 const Impl_Trait_Lookup_Result = struct { count: u8, ast: ?*ast_.AST };
 
 /// Returns the number of impls found for a given type-trait pair, and the impl ast. The impl is unique if count == 1.
-pub fn impl_trait_lookup(self: *Self, for_type: *ast_.AST, trait: *Symbol) Impl_Trait_Lookup_Result {
+pub fn impl_trait_lookup(self: *Self, for_type: *Type_AST, trait: *Symbol) Impl_Trait_Lookup_Result {
     var retval: Impl_Trait_Lookup_Result = .{ .count = 0, .ast = null };
 
     // Go through the scope's list of implementations, check to see if the types and traits match
@@ -128,19 +129,9 @@ pub fn impl_trait_lookup(self: *Self, for_type: *ast_.AST, trait: *Symbol) Impl_
 }
 
 /// Looks up the impl's decl/method_decl ast for a given type, with a given name
-pub fn lookup_impl_member(self: *Self, for_type: *ast_.AST, name: []const u8, compiler: *Compiler_Context) !?*ast_.AST {
-    // std.debug.assert(for_type.* != .@"comptime"); // these must be in expanded form
-    if (!for_type.valid_type()) {
-        return null;
-    }
+pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, compiler: *Compiler_Context) !?*ast_.AST {
     // Go through the list of implementations, check to see if the types and traits match
     for (self.impls.items) |impl| {
-        if (!impl.impl._type.valid_type()) {
-            // The type of the impl isn't even valid
-            // This is an edge case for badly formed programs
-            continue;
-        }
-
         var subst = unification_.Substitutions.init(std.heap.page_allocator);
         defer subst.deinit();
         unification_.unify(impl.impl._type, for_type, impl.impl.with_decls, &subst) catch continue;
@@ -154,7 +145,7 @@ pub fn lookup_impl_member(self: *Self, for_type: *ast_.AST, name: []const u8, co
         if (impl.impl.with_decls.items.len > 0) {
             const with_list = unification_.with_list_from_subst_map(&subst, impl.impl.with_decls, std.heap.page_allocator);
             if (impl.impl.instantiations.get(with_list) == null) {
-                const new_impl: *ast_.AST = impl.clone(std.heap.page_allocator); // TODO: Stamp new impl with type parameter aliases
+                const new_impl: *ast_.AST = impl.clone(&subst, std.heap.page_allocator);
                 const new_scope = init(self, self.uid_gen, std.heap.page_allocator);
 
                 new_impl.set_scope(new_scope);
@@ -163,12 +154,10 @@ pub fn lookup_impl_member(self: *Self, for_type: *ast_.AST, name: []const u8, co
                 var const_decls = std.ArrayList(*ast_.AST).init(compiler.allocator());
                 for (impl.impl.with_decls.items) |with_decl| {
                     const decl_init = subst.get(with_decl.decl.pattern.token().data);
-                    const decl = ast_.AST.create_decl(
+                    const decl = ast_.AST.create_type_alias(
                         with_decl.token(),
                         with_decl.decl.pattern,
-                        with_decl.decl.type,
                         decl_init,
-                        true,
                         compiler.allocator(),
                     );
                     const_decls.append(decl) catch unreachable;
@@ -219,7 +208,7 @@ pub fn lookup_impl_member(self: *Self, for_type: *ast_.AST, name: []const u8, co
             const res = self.parent.?.lookup(symbol.kind.import.real_name, .{ .allow_modules = true });
             switch (res) {
                 .found => {
-                    const module_scope = res.found.init_value.?.scope().?;
+                    const module_scope = res.found.init_value().?.scope().?;
                     const module_scope_lookup = try module_scope.lookup_impl_member(for_type, name, compiler);
                     if (module_scope_lookup != null) {
                         return module_scope_lookup;
@@ -267,8 +256,8 @@ pub fn put_symbol(scope: *Self, symbol: *Symbol, errors: *errs_.Errors) error{Co
         .found => {
             const first = res.found;
             errors.add_error(errs_.Error{ .redefinition = .{
-                .first_defined_span = first.span,
-                .redefined_span = symbol.span,
+                .first_defined_span = first.span(),
+                .redefined_span = symbol.span(),
                 .name = symbol.name,
             } });
             return error.CompileError;

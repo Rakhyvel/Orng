@@ -15,6 +15,7 @@ const String = @import("../zig-string/zig-string.zig").String;
 const Type_Set = @import("../ast/type-set.zig");
 const Dependency_Node = @import("../ast/dependency_node.zig");
 const Symbol = @import("../symbol/symbol.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 
 const Self = @This();
 
@@ -187,7 +188,7 @@ fn output_typedef(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
 }
 
 /// Outputs the fields of a structure or union type based on the provided list of AST types.
-fn output_field_list(self: *Self, fields: *std.ArrayList(*ast_.AST), spaces: usize) CodeGen_Error!void {
+fn output_field_list(self: *Self, fields: *std.ArrayList(*Type_AST), spaces: usize) CodeGen_Error!void {
     // output each field in the list
     for (fields.items, 0..) |term, i| {
         if (!term.is_c_void_type()) {

@@ -9,13 +9,14 @@ const Span = @import("../util/span.zig");
 const poison_ = @import("../ast/poison.zig");
 const validate_AST = @import("ast_validate.zig").validate_AST;
 const typing_ = @import("typing.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 
 const Validate_Error_Enum = error{ LexerError, ParseError, CompileError };
 
 /// Validates that `pattern` is valid given a match's `expr`
 pub fn assert_pattern_matches(
     pattern: *ast_.AST,
-    expr_type: *ast_.AST,
+    expr_type: *Type_AST,
     compiler: *Compiler_Context,
 ) Validate_Error_Enum!void {
     switch (pattern.*) {
@@ -56,7 +57,7 @@ pub fn assert_pattern_matches(
 /// Currently only checks that all sums are covered.
 /// HUGE TODO: Figure out how to do this fr for products
 pub fn exhaustive_check(
-    _type: *ast_.AST,
+    _type: *Type_AST,
     mappings: *std.ArrayList(*ast_.AST),
     match_span: Span,
     errors: *errs_.Errors,
@@ -77,7 +78,7 @@ pub fn exhaustive_check(
         }
         // If there were any IDs that weren't removed, they weren't covered with a pattern match
         if (total_sum_ids.items.len > 0) {
-            var forgotten_sum_variants = std.ArrayList(*ast_.AST).init(allocator); // Not deallocated, lives until error emission
+            var forgotten_sum_variants = std.ArrayList(*Type_AST).init(allocator); // Not deallocated, lives until error emission
             for (total_sum_ids.items) |id| {
                 forgotten_sum_variants.append(_type.children().items[id]) catch unreachable;
             }

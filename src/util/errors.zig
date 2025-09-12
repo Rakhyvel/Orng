@@ -7,6 +7,7 @@ const Symbol = @import("../symbol/symbol.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const term_ = @import("term.zig");
 const Token = @import("../lexer/token.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 
 pub const Error_Config = struct {
     print_full_path: bool = true,
@@ -85,17 +86,17 @@ pub const Error = union(enum) {
         first_defined_span: Span,
         redefined_span: Span,
         name: ?[]const u8,
-        _type: *ast_.AST,
+        _type: *Type_AST,
     },
     type_not_impl_method: struct { // TODO: This should take in an enum to determine if the name is of a method or of a member
         span: Span,
         method_name: []const u8,
-        _type: *ast_.AST,
+        _type: *Type_AST,
     },
     type_not_impl_trait: struct {
         span: Span,
         trait_name: []const u8,
-        _type: *ast_.AST,
+        _type: *Type_AST,
     },
     method_not_in_trait: struct {
         method_span: Span,
@@ -119,7 +120,7 @@ pub const Error = union(enum) {
         receiver_span: Span,
         method_receiver: ast_.Receiver_Kind,
         method_name: []const u8,
-        lhs_type: *ast_.AST,
+        lhs_type: *Type_AST,
     },
     mismatch_method_param_arity: struct {
         span: Span,
@@ -130,8 +131,8 @@ pub const Error = union(enum) {
     },
     mismatch_method_type: struct {
         span: Span,
-        trait_type: *ast_.AST,
-        impl_type: *ast_.AST,
+        trait_type: *Type_AST,
+        impl_type: *Type_AST,
         method_name: []const u8,
         trait_name: []const u8,
     },
@@ -151,13 +152,13 @@ pub const Error = union(enum) {
     // Typecheck
     unexpected_type: struct {
         span: Span,
-        expected: *ast_.AST,
-        got: *ast_.AST,
+        expected: *Type_AST,
+        got: *Type_AST,
     },
     expected_builtin_typeclass: struct {
         span: Span,
         expected: []const u8, // name of the type class
-        got: *ast_.AST,
+        got: *Type_AST,
     },
     duplicate: struct {
         span: Span,
@@ -168,7 +169,7 @@ pub const Error = union(enum) {
         span: Span,
         identifier: []const u8,
         name: []const u8,
-        group: *ast_.AST,
+        group: *Type_AST,
     },
     undeclared_identifier: struct {
         identifier: Token,
@@ -188,11 +189,11 @@ pub const Error = union(enum) {
     },
     not_indexable: struct {
         span: Span,
-        _type: *ast_.AST,
+        _type: *Type_AST,
     },
     non_exhaustive_sum: struct {
         span: Span,
-        forgotten: std.ArrayList(*ast_.AST),
+        forgotten: std.ArrayList(*Type_AST),
     },
     mismatch_arity: struct {
         span: Span,
@@ -204,22 +205,22 @@ pub const Error = union(enum) {
     },
     no_default: struct {
         span: Span,
-        _type: *ast_.AST,
+        _type: *Type_AST,
     },
     wrong_from: struct {
         span: Span,
         operator: []const u8, // either "orelse" or "catch"
         from: []const u8, // either "optional" or "error"
-        got: *ast_.AST, // What the type actually was
+        got: *Type_AST, // What the type actually was
     },
     integer_out_of_bounds: struct {
         span: Span,
-        expected: *ast_.AST,
+        expected: *Type_AST,
         value: i128,
     },
     invalid_type: struct {
         span: Span,
-        got: *ast_.AST,
+        got: *Type_AST,
     },
     recursive_definition: struct {
         span: Span,

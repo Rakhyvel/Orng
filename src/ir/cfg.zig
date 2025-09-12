@@ -71,14 +71,11 @@ pub fn init(symbol: *Symbol, allocator: std.mem.Allocator) *Self {
     retval.return_symbol = Symbol.init(
         symbol.scope,
         "$retval",
-        Span.phony,
-        symbol._type.rhs(),
-        undefined,
-        null,
+        null, // TODO: Create a decl
         .mut,
         allocator,
     );
-    retval.return_symbol.expanded_type = retval.return_symbol._type.expand_type(allocator);
+    _ = retval.return_symbol.type().expand_type(allocator);
     retval.needed_at_runtime = false;
     retval.offset = null;
     retval.locals_size = null;
@@ -145,10 +142,10 @@ pub fn collect_types(self: *Self, type_set: *Type_Set, allocator: std.mem.Alloca
     const param_symbols = decl.param_symbols();
     if (param_symbols != null) {
         for (param_symbols.?.items) |param| {
-            _ = type_set.add(param.expanded_type.?, allocator);
+            _ = type_set.add(param.expanded_type(), allocator);
         }
     }
-    _ = type_set.add(self.return_symbol.expanded_type.?, allocator);
+    _ = type_set.add(self.return_symbol.expanded_type(), allocator);
 
     // For all basic blocks in the cfg...
     for (self.basic_blocks.items) |bb| {
@@ -502,8 +499,8 @@ pub fn calculate_offsets(self: *Self) i64 //< Number of bytes used for locals by
         var i: i64 = @as(i64, @intCast(param_symbols.len)) - 1;
         while (i >= 0) : (i -= 1) {
             var param: *Symbol = param_symbols[@as(usize, @intCast(i))];
-            const size = param.expanded_type.?.sizeof();
-            const alignof = param.expanded_type.?.alignof();
+            const size = param.expanded_type().sizeof();
+            const alignof = param.expanded_type().alignof();
             phony_sp = alignment_.next_alignment(phony_sp, alignof);
             param.offset = phony_sp;
             phony_sp += size;
@@ -523,7 +520,7 @@ pub fn calculate_offsets(self: *Self) i64 //< Number of bytes used for locals by
     var local_offsets: i64 = locals_starting_offset;
     for (self.symbvers.items) |symbver| {
         if (symbver.symbol.offset == null and !std.mem.eql(u8, symbver.symbol.name, "$retval")) {
-            local_offsets = alignment_.next_alignment(local_offsets, symbver.symbol.expanded_type.?.alignof());
+            local_offsets = alignment_.next_alignment(local_offsets, symbver.symbol.expanded_type().alignof());
             local_offsets += symbver.symbol.set_offset(local_offsets);
         }
     }

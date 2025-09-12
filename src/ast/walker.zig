@@ -69,8 +69,6 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
     }
 
     switch (ast.*) {
-        .anyptr_type,
-        .unit_type,
         .unit_value,
         .int,
         .char,
@@ -84,16 +82,17 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .@"continue",
         .poison,
         .pattern_symbol,
-        .domain_of,
         .receiver,
         .template,
         .identifier,
         .import,
+        .@"struct",
+        .@"enum",
+        .type_alias,
         => {},
 
         .module => std.debug.panic("compiler error: walking over modules not implemented!\n", .{}),
 
-        .type_of,
         .default,
         .size_of,
         .not,
@@ -103,18 +102,10 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         // .@"comptime",
         .addr_of,
         .slice_of,
-        .dyn_type,
         .dyn_value,
         .bit_not,
         .cinclude,
-        .untagged_sum_type,
         => try walk_ast(ast.expr(), new_context),
-
-        .type_alias => {
-            if (ast.type_alias.init) |init| {
-                try walk_ast(init, new_context);
-            }
-        },
 
         .assign,
         .@"or",
@@ -135,8 +126,6 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .index,
         .select,
         .access,
-        .function,
-        .@"union",
         .left_shift,
         .right_shift,
         => {
@@ -152,24 +141,14 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             try walk_ast(ast.lhs(), new_context);
             try walk_asts(ast.children(), new_context);
         },
-        .sum_type, .product, .bit_and, .bit_or, .bit_xor, .@"enum", .@"struct" => try walk_asts(ast.children(), new_context),
+        .product, .bit_and, .bit_or, .bit_xor => try walk_asts(ast.children(), new_context),
         .sum_value => {
             try walk_ast(ast.sum_value.init, new_context);
-            try walk_ast(ast.sum_value.base, new_context);
-        },
-        .array_of => {
-            try walk_ast(ast.expr(), new_context);
-            try walk_ast(ast.array_of.len, new_context);
         },
         .sub_slice => {
             try walk_ast(ast.sub_slice.super, new_context);
             try walk_ast(ast.sub_slice.lower, new_context);
             try walk_ast(ast.sub_slice.upper, new_context);
-        },
-        .annotation => {
-            try walk_ast(ast.annotation.type, new_context);
-            try walk_ast(ast.annotation.predicate, new_context);
-            try walk_ast(ast.annotation.init, new_context);
         },
         .@"if" => {
             try walk_ast(ast.@"if".let, context);
@@ -208,19 +187,19 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         },
         .@"return" => try walk_ast(ast.@"return"._ret_expr, new_context),
         .decl => {
-            if (!(ast.decl.type.* == .type_of and ast.decl.type.expr() == ast.decl.init)) {
-                // Don't double-walk
-                try walk_ast(ast.decl.type, new_context);
+            if (!(ast.decl.type.* == .type_of and ast.decl.type.type_of._expr == ast.decl.init)) {
+                // Don't double-walk when decl's type is a typeof of its init
+                // try walk_ast(ast.decl.type, new_context);
             }
-            if (!(ast.decl.init != null and ast.decl.init.?.* == .default and ast.decl.init.?.expr() == ast.decl.type)) {
-                // Don't double-walk
+            if (!(ast.decl.init != null and ast.decl.init.?.* == .default and ast.decl.init.?.default._type == ast.decl.type)) {
+                // Don't double-walk when decl's init is a default of its type
                 try walk_ast(ast.decl.init, new_context);
             }
         },
         .fn_decl => {
             try walk_ast(ast.fn_decl.init, new_context);
             try walk_asts(ast.children(), new_context);
-            try walk_ast(ast.fn_decl.ret_type, new_context);
+            // try walk_ast(ast.fn_decl.ret_type, new_context);
         },
         .@"test" => {
             try walk_ast(ast.@"test".name, new_context);
@@ -231,7 +210,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             try walk_asts(&ast.trait.const_decls, new_context);
         },
         .impl => {
-            try walk_ast(ast.impl._type, new_context);
+            // try walk_ast(ast.impl._type, new_context);
             try walk_ast(ast.impl.trait, new_context);
             try walk_asts(&ast.impl.method_defs, new_context);
             try walk_asts(&ast.impl.const_defs, new_context);
@@ -239,7 +218,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .method_decl => {
             try walk_ast(ast.method_decl.init, new_context);
             try walk_asts(ast.children(), new_context);
-            try walk_ast(ast.method_decl.ret_type, new_context);
+            // try walk_ast(ast.method_decl.ret_type, new_context);
         },
         .@"defer", .@"errdefer" => try walk_ast(ast.statement(), new_context),
     }

@@ -5,6 +5,7 @@ const errs_ = @import("../util/errors.zig");
 const Scope = @import("../symbol/scope.zig");
 const Span = @import("../util/span.zig");
 const Token = @import("../lexer/token.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 const validation_state_ = @import("../util/validation_state.zig");
 
 const Self = @This();
@@ -34,10 +35,10 @@ var number_of_comptime: usize = 0;
 // TODO: Much like AST, create a symbol-create.zig, and usingnamespace it here with `create_comptime_init`, `create_symbol`, `create_method_type`, `create_temp_comptime_symbol`, `create_template_symbol`, `create_function_symbol`, and any other supporting infra
 scope: *Scope, // Enclosing parent scope
 name: []const u8,
-span: Span,
-_type: *ast_.AST,
-expanded_type: ?*ast_.AST,
-init_value: ?*ast_.AST,
+// span: Span,
+// _type: *Type_AST,
+// expanded_type: ?*Type_AST,
+// init_value: ?*ast_.AST,
 kind: Kind,
 cfg: ?*CFG,
 decl: ?*ast_.AST,
@@ -52,17 +53,14 @@ defined: bool, // Used for decorating identifiers. True when the symbol is defin
 validation_state: Symbol_Validation_State,
 init_validation_state: Symbol_Validation_State,
 param: bool, // True when the symbol is a parameter in a function
-is_temp: bool = false, // True
+is_temp: bool = false, // Whether this symbol is a temporary when lowered
 
 // Offset
-offset: ?i64, // The offset from the BP that this symbol
+offset: ?i64, // The offset from the BP that this symbol, for local variables and parameters
 
 pub fn init(
     scope: *Scope,
     name: []const u8,
-    span: Span,
-    _type: *ast_.AST,
-    _init: ?*ast_.AST,
     decl: ?*ast_.AST,
     kind: Kind,
     allocator: std.mem.Allocator,
@@ -70,10 +68,6 @@ pub fn init(
     var retval = allocator.create(Self) catch unreachable;
     retval.scope = scope;
     retval.name = name;
-    retval.span = span;
-    retval._type = _type;
-    retval.expanded_type = null;
-    retval.init_value = _init;
     retval.decl = decl;
     retval.aliases = 0;
     retval.roots = 0;
@@ -101,6 +95,30 @@ pub fn assert_init_valid(self: *Self) *Self {
     return self;
 }
 
+pub fn @"type"(self: *const Self) *Type_AST {
+    return self.decl.?.decl.type;
+}
+
+pub fn init_value(self: *const Self) ?*ast_.AST {
+    return self.decl.?.decl_init();
+}
+
+pub fn init_typedef(self: *const Self) ?*Type_AST {
+    return self.decl.?.decl_typedef();
+}
+
+pub fn span(self: *const Self) Span {
+    return self.decl.?.token().span;
+}
+
+pub fn set_span(self: *Self, _span: Span) void {
+    self.decl.?.common()._token.span = _span;
+}
+
+pub fn expanded_type(self: *const Self) *Type_AST {
+    return self.type().expanded_type();
+}
+
 /// when this is true, this symbol is a type-alias, and should be expanded before use
 pub fn is_alias(self: *Self) bool {
     return if (self.decl != null and self.decl.?.* == .decl) self.decl.?.decl.is_alias else false;
@@ -125,7 +143,7 @@ pub fn err_if_unused(self: *Self, errors: *errs_.Errors) error{CompileError}!voi
         self.uses == 0)
     {
         errors.add_error(errs_.Error{ .symbol_error = .{
-            .span = self.span,
+            .span = self.span(),
             .context_span = null,
             .name = self.name,
             .problem = "is never used",
@@ -144,7 +162,7 @@ pub fn err_if_undefd(self: *Self, errors: *errs_.Errors, use: Span) error{Compil
     ) {
         errors.add_error(errs_.Error{ .symbol_error = .{
             .span = use,
-            .context_span = self.span,
+            .context_span = self.span(),
             .name = self.name,
             .problem = "is never defined",
             .context_message = "declared here",
@@ -164,7 +182,7 @@ pub fn err_if_var_not_mutated(self: *Self, errors: *errs_.Errors) error{CompileE
         self.roots == 0)
     {
         errors.add_error(errs_.Error{ .symbol_error = .{
-            .span = self.span,
+            .span = self.span(),
             .context_span = null,
             .name = self.name,
             .problem = "is marked `mut` but is never mutated",
@@ -176,7 +194,7 @@ pub fn err_if_var_not_mutated(self: *Self, errors: *errs_.Errors) error{CompileE
 
 pub fn set_offset(self: *Self, local_offsets: i64) i64 {
     self.offset = local_offsets;
-    return @as(i64, @intCast(self.expanded_type.?.sizeof()));
+    return @as(i64, @intCast(self.expanded_type().sizeof()));
 }
 
 pub fn represents_method(self: *Self, impl_for_type: *ast_.AST, method_name: []const u8) bool {

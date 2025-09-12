@@ -4,6 +4,7 @@ const CFG = @import("../ir/cfg.zig");
 const Module = @import("../hierarchy/module.zig").Module;
 const prelude_ = @import("../hierarchy/prelude.zig");
 const Dependency_Node = @import("../ast/dependency_node.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 const Symbol = @import("../symbol/symbol.zig");
 
 const Writer = std.fs.File.Writer;
@@ -19,7 +20,7 @@ pub fn init(module: *Module, writer: Writer) Self {
 }
 
 /// Outputs the C type which corresponds to an AST type.
-pub fn output_type(self: *Self, _type: *AST) CodeGen_Error!void {
+pub fn output_type(self: *Self, _type: *Type_AST) CodeGen_Error!void {
     if (_type.common()._unexpanded_type != null and
         _type.common()._unexpanded_type.?.* == .identifier and
         _type.common()._unexpanded_type.?.symbol() != null and
@@ -28,10 +29,6 @@ pub fn output_type(self: *Self, _type: *AST) CodeGen_Error!void {
         // Output simply the C name for an extern type
         try self.writer.print("{s}", .{_type.common()._unexpanded_type.?.symbol().?.kind.@"extern".c_name.?.string.data});
         return;
-    }
-
-    if (_type.* == .call) {
-        return try self.output_type(_type.common()._expanded_type.?);
     }
 
     // if (_type.common()._expanded_type != null and _type.common()._expanded_type.?.* == .@"comptime") {
@@ -125,7 +122,7 @@ pub fn output_function_prototype(
     cfg: *CFG, // TODO: Accept cfg symbol
 ) CodeGen_Error!void {
     // Output function return type and name
-    try self.output_type(cfg.symbol.expanded_type.?.rhs());
+    try self.output_type(cfg.symbol.expanded_type().rhs());
     try self.writer.print(" ", .{});
     try self.output_symbol(cfg.symbol);
 
@@ -136,7 +133,7 @@ pub fn output_function_prototype(
     const param_symbols = decl.param_symbols();
     if (param_symbols != null) {
         for (param_symbols.?.items, 0..) |term, i| {
-            if (!term.expanded_type.?.is_c_void_type()) {
+            if (!term.expanded_type().is_c_void_type()) {
                 if (decl.* == .method_decl and decl.method_decl.receiver != null and i == 0) {
                     // Print out method receiver
                     try self.writer.print("void* ", .{});
@@ -145,7 +142,7 @@ pub fn output_function_prototype(
                     // Print out parameter declarations
                     try self.output_var_decl(term, true);
                 }
-                if (i + 1 < param_symbols.?.items.len and !param_symbols.?.items[i + 1].expanded_type.?.is_c_void_type()) {
+                if (i + 1 < param_symbols.?.items.len and !param_symbols.?.items[i + 1].expanded_type().is_c_void_type()) {
                     try self.writer.print(", ", .{});
                 }
                 num_non_unit_params += 1;
@@ -170,7 +167,7 @@ pub fn output_var_decl(
     if (!is_parameter) {
         try self.writer.print("    ", .{});
     }
-    try self.output_type(symbol.expanded_type.?);
+    try self.output_type(symbol.expanded_type());
     try self.writer.print(" ", .{});
     try self.output_symbol(symbol);
     if (!is_parameter) {

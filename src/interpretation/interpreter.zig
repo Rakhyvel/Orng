@@ -106,7 +106,7 @@ pub fn set_entry_point(
     self.memory.store_int(frame_address + 2 * @sizeOf(i64), @sizeOf(i64), 0); // Set the prev-sp to 0
     self.memory.store(Instruction_Pointer, frame_address + 3 * @sizeOf(i64), .{ .module_uid = 0, .inst_idx = halt_trap_instruction }); // Set the return address to halt trap value
 
-    self.debug_call_stack.append(entry.symbol.span) catch unreachable;
+    self.debug_call_stack.append(entry.symbol.span()) catch unreachable;
 
     self.load_module(module);
 }
@@ -484,7 +484,7 @@ pub fn extract_ast(self: *Self, address: i64, _type: *ast_.AST, span: Span, modu
 fn extract_identifier(self: *Self, address: i64, identifier_type: *ast_.AST, span: Span, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set)) Error!*ast_.AST {
     const info = prelude_.info_from_name(identifier_type.token().data);
     if (info == null) {
-        return try self.extract_ast(address, identifier_type.symbol().?.init_value.?, span, module_interned_strings);
+        return try self.extract_ast(address, identifier_type.symbol().?.init_value().?, span, module_interned_strings);
     }
     switch (info.?.type_kind) {
         .type => {
@@ -677,7 +677,7 @@ fn effective_address(self: *Self, lval: *lval_.L_Value) error{CompileError}!i64 
                     return self.interpreter_panic("interpreter error: variable `{s}` isn't comptime known\n", .{lval.symbver.symbol.name});
                 } else {
                     // symbver def is null, use symbol span instead (bad fortune!! curse on family)
-                    self.debug_call_stack.append(lval.symbver.symbol.span) catch unreachable;
+                    self.debug_call_stack.append(lval.symbver.symbol.span()) catch unreachable;
                     return self.interpreter_panic("interpreter error: variable `{s}` isn't comptime known\n", .{lval.symbver.symbol.name});
                 }
             } else {

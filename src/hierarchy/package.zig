@@ -44,7 +44,7 @@ pub const Package_Iterator_Node = struct {
 
         for (self.package.requirements.keys()) |requirement_name| {
             const requirement_root_module_symbol = self.package.requirements.get(requirement_name);
-            const requirement_root_module = requirement_root_module_symbol.?.init_value.?.module.module;
+            const requirement_root_module = requirement_root_module_symbol.?.init_value().?.module.module;
             const requirement_root_abs_path = requirement_root_module.get_package_abs_path();
             list.append(Package_Iterator_Node.init(self.compiler, requirement_root_abs_path)) catch unreachable;
         }
@@ -79,32 +79,32 @@ pub fn new(allocator: std.mem.Allocator, package_absolute_path: []const u8, kind
 }
 
 pub fn get_build_path(self: *const Package, allocator: std.mem.Allocator) []const u8 {
-    const package_root_module = self.root.init_value.?.module.module;
+    const package_root_module = self.root.init_value().?.module.module;
     const package_path = package_root_module.get_package_abs_path();
     const build_paths = [_][]const u8{ package_path, "build" };
     return std.fs.path.join(allocator, &build_paths) catch unreachable;
 }
 
 pub fn get_build_module_absolute_path(self: *const Package, allocator: std.mem.Allocator) []const u8 {
-    const package_root_module = self.root.init_value.?.module.module;
+    const package_root_module = self.root.init_value().?.module.module;
     const package_path = package_root_module.get_package_abs_path();
     const build_paths = [_][]const u8{ package_path, "build.orng" };
     return std.fs.path.join(allocator, &build_paths) catch unreachable;
 }
 
 pub fn entry(self: *const Package) ?*CFG {
-    return self.root.init_value.?.module.module.entry;
+    return self.root.init_value().?.module.module.entry;
 }
 
 pub fn get_build_module(self: *const Package, compiler: *Compiler_Context) ?*Module {
     const build_module_absolute_path: []const u8 = self.get_build_module_absolute_path(compiler.allocator());
     const build_module_symbol: *Symbol = compiler.lookup_module(build_module_absolute_path) orelse return null;
-    return build_module_symbol.init_value.?.module.module;
+    return build_module_symbol.init_value().?.module.module;
 }
 
 fn get_required_package(self: *Package, requirement_name: []const u8, packages: std.StringArrayHashMap(*Package)) *Package {
     const requirement_root_module_symbol: ?*Symbol = self.requirements.get(requirement_name);
-    const requirement_root_module: *Module = requirement_root_module_symbol.?.init_value.?.module.module;
+    const requirement_root_module: *Module = requirement_root_module_symbol.?.init_value().?.module.module;
     const requirement_root_abs_path: []const u8 = requirement_root_module.get_package_abs_path();
     const required_package: *Package = packages.get(requirement_root_abs_path).?;
     return required_package;
@@ -448,7 +448,7 @@ fn append_requirements_includes(
         const required_package = self.get_required_package(requirement_name, packages);
 
         var requirement_include_path = String.init(allocator);
-        requirement_include_path.writer().print("-I{s}{c}build", .{ required_package.root.init_value.?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
+        requirement_include_path.writer().print("-I{s}{c}build", .{ required_package.root.init_value().?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
         cc_cmd.append(requirement_include_path.str()) catch unreachable;
     }
 }
@@ -607,7 +607,7 @@ fn append_library_dirs(
     allocator: std.mem.Allocator,
 ) !void {
     var requirement_library_path = String.init(allocator);
-    requirement_library_path.writer().print("{s}{c}build", .{ required_package.root.init_value.?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
+    requirement_library_path.writer().print("{s}{c}build", .{ required_package.root.init_value().?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
     cmd.append("-L") catch unreachable;
     cmd.append(requirement_library_path.str()) catch unreachable;
 

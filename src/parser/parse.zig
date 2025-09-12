@@ -4,6 +4,7 @@ const errs_ = @import("../util/errors.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 
 const Self: type = @This();
 
@@ -209,7 +210,7 @@ fn cinclude_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     const token = try self.expect(.cinclude);
     return ast_.AST.create_cinclude(
         token,
-        try self.arrow_expr(),
+        try self.bool_expr(),
         self.allocator,
     );
 }
@@ -219,7 +220,7 @@ fn extern_const_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
 
     var c_name: ?*ast_.AST = null;
     if (self.accept(.left_parenthesis) != null) {
-        c_name = try self.arrow_expr();
+        c_name = try self.bool_expr();
         _ = try self.expect(.right_parenthesis);
     }
 
@@ -248,22 +249,202 @@ fn extern_const_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     }
 }
 
+fn product_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
+    const exp = try self.type_expr();
+    var terms: ?std.ArrayList(*Type_AST) = null;
+    var firsttoken_: ?Token = null;
+    while (self.accept(.comma)) |token| {
+        if (terms == null) {
+            terms = std.ArrayList(*Type_AST).init(self.allocator);
+            firsttoken_ = token;
+            terms.?.append(exp) catch unreachable;
+        }
+        if (self.peek_kind(.right_parenthesis)) {
+            // Trailing comma, break out
+            break;
+        }
+        terms.?.append(try self.type_expr()) catch unreachable;
+    }
+    if (terms) |terms_list| {
+        return Type_AST.create_product(firsttoken_.?, terms_list, self.allocator);
+    } else {
+        return exp;
+    }
+}
+
+fn type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
+    return self.function_type_expr();
+}
+
+fn function_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
+    var exp = try self.error_type_expr();
+    while (self.accept(.skinny_arrow) orelse self.accept(.variadic)) |token| {
+        var variadic = false;
+        if (token.kind == .variadic) {
+            _ = try self.expect(.skinny_arrow);
+            variadic = true;
+        }
+        exp = Type_AST.create_function(token, exp, try self.error_type_expr(), self.allocator);
+        exp.function.variadic = true;
+    }
+    return exp;
+}
+
+fn error_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
+    var exp = try self.union_type_expr();
+    while (true) {
+        if (self.accept(.exclamation_mark)) |_| {
+            exp = Type_AST.create_error_type(exp, try self.union_type_expr(), self.allocator);
+        } else {
+            return exp;
+        }
+    }
+}
+
+fn union_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
+    var exp = try self.prefix_type_expr();
+    while (true) {
+        if (self.accept(.double_bar)) |token| {
+            exp = Type_AST.create_union(token, exp, try self.prefix_type_expr(), self.allocator);
+        } else {
+            return exp;
+        }
+    }
+}
+
+fn prefix_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
+    if (self.accept(.ampersand)) |token| {
+        const mut = self.accept(.mut);
+        if (self.accept(.dyn)) |token2| {
+            return Type_AST.create_dyn_type(
+                token2,
+                Type_AST.create_identifier(try self.expect(.identifier), self.allocator),
+                mut != null,
+                self.allocator,
+            );
+        } else {
+            return Type_AST.create_addr_of(token, try self.prefix_type_expr(), mut != null, false, self.allocator);
+        }
+    } else if (self.accept(.at_symbol)) |_| {
+        const token = try self.expect(.identifier);
+
+        const args = try self.call_args();
+
+        // TODO: Would be nice to make a table of this, somehow!
+        if (std.mem.eql(u8, token.data, "typeof")) {
+            if (args.items.len != 1) {
+                self.errors.add_error(errs_.Error{ .mismatch_arity = .{
+                    .span = token.span,
+                    .takes = 1,
+                    .given = args.items.len,
+                    .thing_name = "built-in function",
+                    .takes_name = "parameter",
+                    .given_name = "argument",
+                } });
+                return error.ParseError;
+            }
+            return Type_AST.create_type_of(token, args.items[0], self.allocator);
+        } else {
+            self.errors.add_error(errs_.Error{ .basic = .{ .msg = "unknown built-in function", .span = token.span } }); // TODO: Unique error message that says the builtin function name
+            return error.ParseError;
+        }
+    } else if (self.accept(.left_square)) |token| {
+        var slice_kind: enum { multiptr, array, slice } = undefined;
+        var mut = false;
+        var len: ?*ast_.AST = null;
+        if (self.accept(.star)) |_| {
+            slice_kind = .multiptr;
+        } else if (self.next_is_expr()) {
+            slice_kind = .array;
+            len = try self.bool_expr();
+            if (!len.?.is_comptime_expr()) {
+                self.errors.add_error(errs_.Error{ .comptime_known = .{ .span = len.?.token().span, .what = "array lengths" } });
+                return error.ParseError;
+            }
+        } else {
+            slice_kind = .slice;
+        }
+        if (self.accept(.mut)) |_| {
+            mut = true;
+        }
+        if (self.peek_kind(.right_square)) {
+            _ = self.expect(.right_square) catch {};
+        } else {
+            self.errors.add_error(errs_.Error{ .missing_close = .{ .expected = .right_square, .got = self.peek(), .open = token } });
+            return error.ParseError;
+        }
+        switch (slice_kind) {
+            .multiptr => return Type_AST.create_addr_of(token, try self.prefix_type_expr(), mut, true, self.allocator),
+            .slice => return Type_AST.create_slice_of(token, try self.prefix_type_expr(), mut, self.allocator),
+            .array => return Type_AST.create_array_of(token, try self.prefix_type_expr(), len.?, self.allocator),
+        }
+    } else if (self.accept(.question_mark)) |_| {
+        return Type_AST.create_optional_type(try self.prefix_type_expr(), self.allocator);
+    } else {
+        return try self.postfix_type_expr();
+    }
+}
+
+fn postfix_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
+    // FIXME: High Cyclo
+    var exp = try self.terminal_type_expr();
+    while (true) {
+        if (self.accept(.double_colon)) |token| {
+            exp = Type_AST.create_access(
+                token,
+                exp,
+                ast_.AST.create_field(try self.expect(.identifier), self.allocator),
+                self.allocator,
+            );
+        } else {
+            return exp;
+        }
+    }
+}
+
+fn terminal_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
+    if (self.accept(.identifier)) |token| {
+        return Type_AST.create_identifier(token, self.allocator);
+    } else if (self.peek_kind(.left_parenthesis)) {
+        return try self.paren_type_expr();
+    } else {
+        self.errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "an expression here", .got = self.peek() } });
+        return Parser_Error_Enum.ParseError;
+    }
+}
+
+fn paren_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
+    const token = try self.expect(.left_parenthesis);
+    var exp: ?*Type_AST = null;
+    if (self.next_is_expr()) {
+        exp = try self.product_type_expr();
+    }
+    if (self.peek_kind(.right_parenthesis)) {
+        _ = self.expect(.right_parenthesis) catch {};
+    } else {
+        self.errors.add_error(errs_.Error{ .missing_close = .{ .expected = .right_parenthesis, .got = self.peek(), .open = token } });
+        return error.ParseError;
+    }
+
+    return exp orelse Type_AST.create_unit_type(token, self.allocator);
+}
+
 fn const_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     const token = try self.expect(.@"const");
 
     const identifier = try self.expect(.identifier);
     const pattern = ast_.AST.create_pattern_symbol(identifier, .@"const", identifier.data, self.allocator);
-    var _type: ?*ast_.AST = null;
+    var _type: ?*Type_AST = null;
     var _init: ?*ast_.AST = null;
 
     if (self.accept(.single_colon)) |_| {
-        _type = try self.arrow_expr();
+        _type = try self.type_expr();
         if (self.peek_kind(.single_equals)) {
             _ = try self.expect(.single_equals);
-            _init = try self.arrow_expr();
+            _init = try self.bool_expr();
         }
     } else if (self.accept(.single_equals)) |_| {
-        _init = try self.arrow_expr();
+        _init = try self.bool_expr();
     } else {
         self.errors.add_error(errs_.Error{ .basic = .{
             .span = self.peek().span,
@@ -275,7 +456,7 @@ fn const_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     return ast_.AST.create_decl(
         token,
         pattern,
-        _type orelse ast_.AST.create_type_of(token, _init.?, self.allocator), // type inference done here!
+        _type orelse Type_AST.create_type_of(token, _init.?, self.allocator), // type inference done here!
         _init orelse ast_.AST.create_default(token, _type.?, self.allocator), // default value generate done here!
         false,
         self.allocator,
@@ -286,22 +467,22 @@ fn let_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     const token = try self.expect(.let);
 
     const ident = try self.let_pattern_atom();
-    var _type: ?*ast_.AST = null;
+    var _type: ?*Type_AST = null;
     var _init: ?*ast_.AST = null;
     var is_undefined = false;
 
     if (self.accept(.single_colon)) |_| {
-        _type = try self.arrow_expr();
+        _type = try self.type_expr();
         if (self.peek_kind(.single_equals)) {
             _ = try self.expect(.single_equals);
             if (self.accept(.undefined)) |_| {
                 is_undefined = true;
             } else {
-                _init = try self.arrow_expr();
+                _init = try self.bool_expr();
             }
         }
     } else if (self.accept(.single_equals)) |_| {
-        _init = try self.arrow_expr();
+        _init = try self.bool_expr();
     } else {
         self.errors.add_error(errs_.Error{ .basic = .{
             .span = self.peek().span,
@@ -313,7 +494,7 @@ fn let_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     var decl = ast_.AST.create_decl(
         token,
         ident,
-        _type orelse ast_.AST.create_type_of(token, _init.?, self.allocator), // type inference done here!
+        _type orelse Type_AST.create_type_of(token, _init.?, self.allocator), // type inference done here!
         _init orelse if (is_undefined) null else ast_.AST.create_default(token, _type.?, self.allocator), // default value generate done here!
         false,
         self.allocator,
@@ -417,38 +598,11 @@ fn statement(self: *Self) Parser_Error_Enum!*ast_.AST {
 }
 
 fn parse_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
-    return self.sum_type();
+    return self.product_expr();
 }
 
-// [|] expr {| expr}
-fn sum_type(self: *Self) Parser_Error_Enum!*ast_.AST {
-    const prefix_bar: ?Token = self.accept(.bar);
-    const exp = try self.product_expr();
-    var terms: ?std.ArrayList(*ast_.AST) = null;
-    var firsttoken_: ?Token = null;
-    if (prefix_bar) |_prefix_bar| {
-        terms = std.ArrayList(*ast_.AST).init(self.allocator);
-        firsttoken_ = _prefix_bar;
-        terms.?.append(exp) catch unreachable;
-    }
-    while (self.accept(.bar)) |token| {
-        if (terms == null) {
-            terms = std.ArrayList(*ast_.AST).init(self.allocator);
-            firsttoken_ = token;
-            terms.?.append(exp) catch unreachable;
-        }
-        terms.?.append(try self.annotation_expr()) catch unreachable;
-    }
-    if (terms) |terms_list| {
-        return ast_.AST.create_sum_type(firsttoken_.?, terms_list, self.allocator);
-    } else {
-        return exp;
-    }
-}
-
-// TODO: Basically identical to sum_type, fix it!
 fn product_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
-    const exp = try self.annotation_expr();
+    const exp = try self.assignment_expr();
     var terms: ?std.ArrayList(*ast_.AST) = null;
     var firsttoken_: ?Token = null;
     while (self.accept(.comma)) |token| {
@@ -461,7 +615,7 @@ fn product_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
             // Trailing comma, break out
             break;
         }
-        terms.?.append(try self.annotation_expr()) catch unreachable;
+        terms.?.append(try self.assignment_expr()) catch unreachable;
     }
     if (terms) |terms_list| {
         return ast_.AST.create_product(firsttoken_.?, terms_list, self.allocator);
@@ -470,60 +624,23 @@ fn product_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
     }
 }
 
-fn annotation_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
-    const exp = try self.assignment_expr();
-    if (self.accept(.single_colon)) |token| {
-        const _type = try self.arrow_expr();
-        var predicate: ?*ast_.AST = null;
-        var _init: ?*ast_.AST = null;
-        if (self.accept(.where)) |_| {
-            predicate = try self.arrow_expr();
-        }
-        if (self.accept(.single_equals)) |_| {
-            _init = try self.arrow_expr();
-            // if (!pre__init.is_comptime_expr()) {
-            //     self.errors.add_error(errs_.Error{ .comptime_known = .{ .span = pre__init.token().span, .what = "default values" } });
-            //     return error.ParseError;
-            // }
-            // _init = ast_.AST.create_comptime(token, pre__init, self.allocator);
-        }
-        return ast_.AST.create_annotation(token, exp, _type, predicate, _init, self.allocator);
-    } else {
-        return exp;
-    }
-}
-
 fn assignment_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
-    const exp = try self.arrow_expr();
+    const exp = try self.bool_expr();
     if (self.accept(.single_equals)) |token| {
-        return ast_.AST.create_assign(token, exp, try self.arrow_expr(), self.allocator);
+        return ast_.AST.create_assign(token, exp, try self.bool_expr(), self.allocator);
     } else if (self.accept(.plus_equals)) |token| {
-        return ast_.AST.create_assign(token, exp, ast_.AST.create_binop(token, exp, try self.arrow_expr(), self.allocator), self.allocator);
+        return ast_.AST.create_assign(token, exp, ast_.AST.create_binop(token, exp, try self.bool_expr(), self.allocator), self.allocator);
     } else if (self.accept(.minus_equals)) |token| {
-        return ast_.AST.create_assign(token, exp, ast_.AST.create_binop(token, exp, try self.arrow_expr(), self.allocator), self.allocator);
+        return ast_.AST.create_assign(token, exp, ast_.AST.create_binop(token, exp, try self.bool_expr(), self.allocator), self.allocator);
     } else if (self.accept(.star_equals)) |token| {
-        return ast_.AST.create_assign(token, exp, ast_.AST.create_binop(token, exp, try self.arrow_expr(), self.allocator), self.allocator);
+        return ast_.AST.create_assign(token, exp, ast_.AST.create_binop(token, exp, try self.bool_expr(), self.allocator), self.allocator);
     } else if (self.accept(.slash_equals)) |token| {
-        return ast_.AST.create_assign(token, exp, ast_.AST.create_binop(token, exp, try self.arrow_expr(), self.allocator), self.allocator);
+        return ast_.AST.create_assign(token, exp, ast_.AST.create_binop(token, exp, try self.bool_expr(), self.allocator), self.allocator);
     } else if (self.accept(.percent_equals)) |token| {
-        return ast_.AST.create_assign(token, exp, ast_.AST.create_binop(token, exp, try self.arrow_expr(), self.allocator), self.allocator);
+        return ast_.AST.create_assign(token, exp, ast_.AST.create_binop(token, exp, try self.bool_expr(), self.allocator), self.allocator);
     } else {
         return exp;
     }
-}
-
-fn arrow_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
-    var exp = try self.bool_expr();
-    while (self.accept(.skinny_arrow) orelse self.accept(.variadic)) |token| {
-        var variadic = false;
-        if (token.kind == .variadic) {
-            _ = try self.expect(.skinny_arrow);
-            variadic = true;
-        }
-        exp = ast_.AST.create_function(token, exp, try self.bool_expr(), self.allocator);
-        exp.function.variadic = true;
-    }
-    return exp;
 }
 
 fn bool_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
@@ -577,8 +694,6 @@ fn int_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
             exp = ast_.AST.create_add(token, exp, try self.term_expr(), self.allocator);
         } else if (self.accept(.minus)) |token| {
             exp = ast_.AST.create_sub(token, exp, try self.term_expr(), self.allocator);
-        } else if (self.accept(.exclamation_mark)) |_| {
-            exp = ast_.AST.create_error_type(exp, try self.term_expr(), self.allocator);
         } else {
             return exp;
         }
@@ -594,8 +709,6 @@ fn term_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
             exp = ast_.AST.create_div(token, exp, try self.prefix_expr(), self.allocator);
         } else if (self.accept(.percent)) |token| {
             exp = ast_.AST.create_mod(token, exp, try self.prefix_expr(), self.allocator);
-        } else if (self.accept(.double_bar)) |token| {
-            exp = ast_.AST.create_union(token, exp, try self.prefix_expr(), self.allocator);
         } else {
             return exp;
         }
@@ -612,46 +725,7 @@ fn prefix_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
         const args = try self.call_args();
 
         // TODO: Would be nice to make a table of this, somehow!
-        if (std.mem.eql(u8, token.data, "typeof")) {
-            if (args.items.len != 1) {
-                self.errors.add_error(errs_.Error{ .mismatch_arity = .{
-                    .span = token.span,
-                    .takes = 1,
-                    .given = args.items.len,
-                    .thing_name = "built-in function",
-                    .takes_name = "parameter",
-                    .given_name = "argument",
-                } });
-                return error.ParseError;
-            }
-            return ast_.AST.create_type_of(token, args.items[0], self.allocator);
-        } else if (std.mem.eql(u8, token.data, "default")) {
-            if (args.items.len != 1) {
-                self.errors.add_error(errs_.Error{ .mismatch_arity = .{
-                    .span = token.span,
-                    .takes = 1,
-                    .given = args.items.len,
-                    .thing_name = "built-in function",
-                    .takes_name = "parameter",
-                    .given_name = "argument",
-                } });
-                return error.ParseError;
-            }
-            return ast_.AST.create_default(token, args.items[0], self.allocator);
-        } else if (std.mem.eql(u8, token.data, "sizeof")) {
-            if (args.items.len != 1) {
-                self.errors.add_error(errs_.Error{ .mismatch_arity = .{
-                    .span = token.span,
-                    .takes = 1,
-                    .given = args.items.len,
-                    .thing_name = "built-in function",
-                    .takes_name = "parameter",
-                    .given_name = "argument",
-                } });
-                return error.ParseError;
-            }
-            return ast_.AST.create_size_of(token, args.items[0], self.allocator);
-        } else if (std.mem.eql(u8, token.data, "bit_and")) {
+        if (std.mem.eql(u8, token.data, "bit_and")) {
             if (args.items.len < 2) {
                 self.errors.add_error(errs_.Error{ .mismatch_arity = .{
                     .span = token.span,
@@ -729,19 +803,6 @@ fn prefix_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
                 return error.ParseError;
             }
             return ast_.AST.create_right_shift(token, args.items[0], args.items[1], self.allocator);
-        } else if (std.mem.eql(u8, token.data, "Untagged")) {
-            if (args.items.len != 1) {
-                self.errors.add_error(errs_.Error{ .mismatch_arity = .{
-                    .span = token.span,
-                    .takes = 2,
-                    .given = args.items.len,
-                    .thing_name = "built-in function",
-                    .takes_name = "parameter",
-                    .given_name = "argument",
-                } });
-                return error.ParseError;
-            }
-            return ast_.AST.create_untagged_sum_type(token, args.items[0], self.allocator);
         } else {
             self.errors.add_error(errs_.Error{ .basic = .{ .msg = "unknown built-in function", .span = token.span } }); // TODO: Unique error message that says the builtin function name
             return error.ParseError;
@@ -750,48 +811,14 @@ fn prefix_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
         return ast_.AST.create_negate(token, try self.prefix_expr(), self.allocator);
     } else if (self.accept(.ampersand)) |token| {
         const mut = self.accept(.mut);
-        if (self.accept(.dyn)) |token2| {
-            return ast_.AST.create_dyn_type(
-                token2,
-                ast_.AST.create_identifier(try self.expect(.identifier), self.allocator),
-                mut != null,
-                self.allocator,
-            );
-        } else {
-            return ast_.AST.create_addr_of(token, try self.prefix_expr(), mut != null, false, self.allocator);
-        }
+        return ast_.AST.create_addr_of(token, try self.prefix_expr(), mut != null, false, self.allocator);
     } else if (self.accept(.left_square)) |token| {
-        var slice_kind: enum { multiptr, array, slice } = undefined;
         var mut = false;
-        var len: ?*ast_.AST = null;
-        if (self.accept(.star)) |_| {
-            slice_kind = .multiptr;
-        } else if (self.next_is_expr()) {
-            slice_kind = .array;
-            len = try self.arrow_expr();
-            if (!len.?.is_comptime_expr()) {
-                self.errors.add_error(errs_.Error{ .comptime_known = .{ .span = len.?.token().span, .what = "array lengths" } });
-                return error.ParseError;
-            }
-        } else {
-            slice_kind = .slice;
-        }
         if (self.accept(.mut)) |_| {
             mut = true;
         }
-        if (self.peek_kind(.right_square)) {
-            _ = self.expect(.right_square) catch {};
-        } else {
-            self.errors.add_error(errs_.Error{ .missing_close = .{ .expected = .right_square, .got = self.peek(), .open = token } });
-            return error.ParseError;
-        }
-        switch (slice_kind) {
-            .multiptr => return ast_.AST.create_addr_of(token, try self.prefix_expr(), mut, true, self.allocator),
-            .slice => return ast_.AST.create_slice_of(token, try self.prefix_expr(), mut, self.allocator),
-            .array => return ast_.AST.create_array_of(token, try self.prefix_expr(), len.?, self.allocator),
-        }
-    } else if (self.accept(.question_mark)) |_| {
-        return ast_.AST.create_optional_type(try self.prefix_expr(), self.allocator);
+        _ = try self.expect(.right_square);
+        return ast_.AST.create_slice_of(token, try self.prefix_expr(), mut, self.allocator);
     } else if (self.accept(.@"try")) |token| {
         return ast_.AST.create_try(token, try self.postfix_expr(), self.allocator);
     } else {
@@ -1059,10 +1086,10 @@ fn fn_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     }
     const params = try self.paramlist();
     _ = try self.expect(.skinny_arrow);
-    const ret_type = try self.bool_expr();
+    const ret_type = try self.type_expr();
     const refinement: ?*ast_.AST = null;
     if (self.accept(.where)) |_| {
-        _ = try self.arrow_expr();
+        _ = try self.bool_expr();
     }
 
     const _init = try self.block_expr();
@@ -1112,17 +1139,14 @@ fn param(self: *Self) Parser_Error_Enum!*ast_.AST {
     const identifier = try self.expect(.identifier);
     const ident = ast_.AST.create_pattern_symbol(identifier, kind, identifier.data, self.allocator);
 
-    var _type: *ast_.AST = undefined;
+    var _type: *Type_AST = undefined;
     var _init: ?*ast_.AST = null;
 
     _ = try self.expect(.single_colon);
-    _type = try self.arrow_expr();
-    // if (_type.* == .call) {
-    //     _type = ast_.AST.create_comptime(_type.token(), _type, self.allocator);
-    // }
+    _type = try self.type_expr();
     if (self.peek_kind(.single_equals)) {
         _ = try self.expect(.single_equals);
-        _init = try self.arrow_expr();
+        _init = try self.bool_expr();
     }
 
     return ast_.AST.create_decl(
@@ -1141,19 +1165,19 @@ fn struct_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     const name = ast_.AST.create_pattern_symbol(identifier, .@"const", identifier.data, self.allocator);
     _ = try self.expect(.left_brace);
 
-    var fields = std.ArrayList(*ast_.AST).init(self.allocator);
+    var fields = std.ArrayList(*Type_AST).init(self.allocator);
 
     self.newlines();
     while (self.accept(.identifier)) |field_token| {
         _ = try self.expect(.single_colon);
         const field_ident = ast_.AST.create_identifier(field_token, self.allocator);
-        const _type = try self.arrow_expr();
+        const _type = try self.type_expr();
         var _init: ?*ast_.AST = null;
         if (self.accept(.single_equals)) |_| {
-            _init = try self.arrow_expr();
+            _init = try self.bool_expr();
         }
 
-        const field = ast_.AST.create_annotation(field_token, field_ident, _type, null, _init, self.allocator);
+        const field = Type_AST.create_annotation(field_token, field_ident, _type, _init, self.allocator);
 
         fields.append(field) catch unreachable;
         self.newlines();
@@ -1169,15 +1193,15 @@ fn enum_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     const name = ast_.AST.create_pattern_symbol(identifier, .@"const", identifier.data, self.allocator);
     _ = try self.expect(.left_brace);
 
-    var fields: std.ArrayList(*ast_.AST) = std.ArrayList(*ast_.AST).init(self.allocator);
+    var fields: std.ArrayList(*Type_AST) = std.ArrayList(*Type_AST).init(self.allocator);
 
     self.newlines();
     while (self.accept(.identifier)) |field_token| {
         _ = try self.expect(.single_colon);
         const field_ident = ast_.AST.create_identifier(field_token, self.allocator);
-        const _type = try self.arrow_expr();
+        const _type = try self.type_expr();
 
-        const field = ast_.AST.create_annotation(field_token, field_ident, _type, null, null, self.allocator);
+        const field = Type_AST.create_annotation(field_token, field_ident, _type, null, self.allocator);
 
         fields.append(field) catch unreachable;
         self.newlines();
@@ -1193,10 +1217,10 @@ fn type_alias_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     const identifier = try self.expect(.identifier);
     const name = ast_.AST.create_pattern_symbol(identifier, .@"const", identifier.data, self.allocator);
 
-    var _init: ?*ast_.AST = null;
+    var _init: ?*Type_AST = null;
 
     if (self.accept(.single_equals)) |_| {
-        _init = try self.arrow_expr();
+        _init = try self.type_expr();
     }
 
     return ast_.AST.create_type_alias(identifier, name, _init, self.allocator);
@@ -1227,9 +1251,9 @@ fn trait_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
 
 fn impl_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     const token = try self.expect(.impl);
-    const trait_ident: ?*ast_.AST = if (!self.peek_kind(.@"for")) (try self.arrow_expr()) else null;
+    const trait_ident: ?*ast_.AST = if (!self.peek_kind(.@"for")) (try self.bool_expr()) else null;
     _ = try self.expect(.@"for");
-    const _type = try self.arrow_expr();
+    const _type = try self.type_expr();
     self.newlines();
     const with_decls =
         if (self.accept(.with) != null)
@@ -1278,7 +1302,7 @@ fn with_decl(self: *Self) Parser_Error_Enum!*ast_.AST {
     const identifier = try self.expect(.identifier);
     const ident = ast_.AST.create_pattern_symbol(identifier, .@"const", identifier.data, self.allocator);
     _ = try self.expect(.single_colon);
-    const _type = try self.arrow_expr();
+    const _type = try self.type_expr();
 
     return ast_.AST.create_decl(
         ident.token(),
@@ -1292,7 +1316,7 @@ fn with_decl(self: *Self) Parser_Error_Enum!*ast_.AST {
 
 fn test_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     const token = try self.expect(.@"test");
-    const name = try self.arrow_expr();
+    const name = try self.bool_expr();
     const body = try self.block_expr();
     return ast_.AST.create_test(
         token,
@@ -1312,14 +1336,14 @@ fn method_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     const _receiver = params_and_receiver.receiver;
 
     _ = try self.expect(.skinny_arrow);
-    const ret_type = try self.bool_expr();
+    const ret_type = try self.type_expr();
 
     const refinement: ?*ast_.AST = null;
     if (self.accept(.where)) |_| {
-        _ = try self.arrow_expr();
+        _ = try self.bool_expr();
     }
 
-    return ast_.AST.create_method_decl( // TODO: create `method_decl` ast
+    return ast_.AST.create_method_decl(
         introducer,
         name,
         virtual != null,
@@ -1342,11 +1366,11 @@ fn method_definition(self: *Self) Parser_Error_Enum!*ast_.AST {
     const _receiver = params_and_receiver.receiver;
 
     _ = try self.expect(.skinny_arrow);
-    const ret_type = try self.bool_expr();
+    const ret_type = try self.type_expr();
 
     const refinement: ?*ast_.AST = null;
     if (self.accept(.where)) |_| {
-        _ = try self.arrow_expr();
+        _ = try self.bool_expr();
     }
 
     const _init = try self.block_expr();
@@ -1445,10 +1469,10 @@ fn match_pattern_sum_value(self: *Self) Parser_Error_Enum!*ast_.AST {
     const exp = try self.match_pattern_atom();
     if (self.accept(.left_parenthesis)) |_| {
         const retval = ast_.AST.create_sum_value(exp.token(), self.allocator);
-        if (exp.* == .select) {
-            retval.sum_value.base = exp.lhs();
-            retval.common()._token = exp.rhs().token();
-        }
+        // if (exp.* == .select) { // TODO: Figure out how Enum.ctor works
+        //     retval.sum_value.base = exp.lhs();
+        //     retval.common()._token = exp.rhs().token();
+        // }
         retval.sum_value.init = try self.match_pattern_atom();
         _ = try self.expect(.right_parenthesis);
         return retval;
@@ -1526,7 +1550,7 @@ fn parens(self: *Self) Parser_Error_Enum!*ast_.AST {
         return error.ParseError;
     }
 
-    return exp orelse ast_.AST.create_unit_type(token, self.allocator);
+    return exp orelse ast_.AST.create_unit_value(token, self.allocator);
 }
 
 fn resolve_escapes(input: []const u8, allocator: std.mem.Allocator) []const u8 {

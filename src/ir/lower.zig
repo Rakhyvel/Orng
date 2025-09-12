@@ -15,6 +15,7 @@ const String = @import("../zig-string/zig-string.zig").String;
 const Span = @import("../util/span.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Symbol_Version = @import("symbol_version.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 
 pub const Lower_Errors = error{CompileError};
 
@@ -47,7 +48,7 @@ pub fn init(cfg: *CFG, interned_strings: *Interned_String_Set, errors: *errs_.Er
 }
 
 pub fn lower_AST_into_cfg(self: *Self) Lower_Errors!void {
-    const eval: ?*lval_.L_Value = try self.lower_AST(self.cfg.symbol.init_value.?, Labels.null_labels);
+    const eval: ?*lval_.L_Value = try self.lower_AST(self.cfg.symbol.init_value().?, Labels.null_labels);
     if (self.cfg.symbol.decl.?.* == .fn_decl or self.cfg.symbol.decl.?.* == .method_decl) {
         // `_comptime` symbols don't have parameters anyway
         const param_symbols = self.cfg.symbol.decl.?.param_symbols();
@@ -59,9 +60,9 @@ pub fn lower_AST_into_cfg(self: *Self) Lower_Errors!void {
     }
     const return_version = lval_.L_Value.create_unversioned_symbver(self.cfg.return_symbol, self.allocator);
     if (eval != null) {
-        self.instructions.append(Instruction.init_simple_copy(return_version, eval.?, self.cfg.symbol.span, self.allocator)) catch unreachable;
+        self.instructions.append(Instruction.init_simple_copy(return_version, eval.?, self.cfg.symbol.span(), self.allocator)) catch unreachable;
     }
-    self.instructions.append(Instruction.init_jump(null, self.cfg.symbol.span, self.allocator)) catch unreachable;
+    self.instructions.append(Instruction.init_jump(null, self.cfg.symbol.span(), self.allocator)) catch unreachable;
 
     if (false) {
         // Print symbol Instruction after lowering, before breaking up into basic blocks
@@ -103,14 +104,6 @@ fn lower_AST_inner(
     labels: Labels,
 ) Lower_Errors!?*lval_.L_Value {
     switch (ast.*) {
-        // Straight up types, yo
-        .function,
-        .unit_type,
-        .sum_type,
-        .untagged_sum_type,
-        .annotation,
-        .dyn_type,
-        => return self.lval_from_ast(ast.expand_type(self.allocator)),
         // Unit-values
         .unit_value, .template, .trait, .impl => return self.lval_from_unit_value(ast),
         // Literals
@@ -152,17 +145,15 @@ fn lower_AST_inner(
             const symbol = ast.symbol().?;
             if (symbol.init_validation_state == .validating) {
                 self.errors.add_error(errs_.Error{ .recursive_definition = .{
-                    .span = symbol.span,
+                    .span = symbol.span(),
                     .symbol_name = symbol.name,
                 } });
                 return error.CompileError;
             }
             if (symbol.kind == .@"fn") {
                 return try self.lval_from_symbol_cfg(symbol, ast.token().span);
-            } else if (symbol.expanded_type.?.types_match(prelude_.type_type)) {
-                return self.lval_from_ast(ast);
             } else if (symbol.kind == .@"const") {
-                return try self.lower_AST(symbol.init_value.?, labels);
+                return try self.lower_AST(symbol.init_value().?, labels);
             } else {
                 const src = lval_.L_Value.create_unversioned_symbver(symbol, self.allocator);
                 return src;
@@ -250,7 +241,7 @@ fn lower_AST_inner(
         .call => {
             const lhs = (try self.lower_AST(ast.lhs(), labels)) orelse return null;
             var temp = self.create_temp_lvalue(ast.typeof(self.allocator));
-            temp.extract_symbver().symbol.span = ast.token().span;
+            temp.extract_symbver().symbol.set_span(ast.token().span);
 
             var instr = Instruction.init_call(temp, lhs, ast.token().span, self.allocator);
             for (ast.children().items) |term| {
@@ -263,7 +254,7 @@ fn lower_AST_inner(
         },
         .invoke => {
             var temp = self.create_temp_lvalue(ast.typeof(self.allocator));
-            temp.extract_symbver().symbol.span = ast.token().span;
+            temp.extract_symbver().symbol.set_span(ast.token().span);
 
             // dyn_value is the method receiver that will be passed in
             var dyn_value: ?*lval_.L_Value = null;
@@ -352,17 +343,13 @@ fn lower_AST_inner(
             return ast_lval.?.create_select_lval(field, offset, expanded_type, tag, self.allocator);
         },
         .product => {
-            if (ast.children().items[0].typeof(self.allocator).types_match(prelude_.type_type)) {
-                return self.lval_from_ast(ast);
-            } else {
-                const temp = self.create_temp_lvalue(ast.typeof(self.allocator));
-                var instr = Instruction.init_load_struct(temp, ast.token().span, self.allocator);
-                for (ast.children().items) |term| {
-                    instr.data.lval_list.append((try self.lower_AST(term, labels)) orelse return null) catch unreachable;
-                }
-                self.instructions.append(instr) catch unreachable;
-                return temp;
+            const temp = self.create_temp_lvalue(ast.typeof(self.allocator));
+            var instr = Instruction.init_load_struct(temp, ast.token().span, self.allocator);
+            for (ast.children().items) |term| {
+                instr.data.lval_list.append((try self.lower_AST(term, labels)) orelse return null) catch unreachable;
             }
+            self.instructions.append(instr) catch unreachable;
+            return temp;
         },
         // Fancy Operators
         .sub_slice => {
@@ -392,7 +379,7 @@ fn lower_AST_inner(
             var _init: ?*lval_.L_Value = null;
             const pos: usize = ast.pos().?;
             const ast_type = ast.typeof(self.allocator);
-            const proper_term: *ast_.AST = if (ast_type.* == .sum_type or ast_type.* == .untagged_sum_type)
+            const proper_term: *Type_AST = if (ast_type.* == .sum_type or ast_type.* == .untagged_sum_type)
                 ast_type.children().items[pos]
             else if (ast_type.* == .annotation)
                 ast_type
@@ -611,15 +598,6 @@ fn lower_AST_inner(
     }
 }
 
-fn lval_from_ast(
-    self: *Self,
-    ast: *ast_.AST,
-) *lval_.L_Value {
-    const lval = self.create_temp_lvalue(ast);
-    self.instructions.append(Instruction.init_ast(lval, ast, ast.token().span, self.allocator)) catch unreachable;
-    return lval;
-}
-
 fn lval_from_unit_value(
     self: *Self,
     ast: *ast_.AST, // TODO: Just accept span
@@ -632,7 +610,7 @@ fn lval_from_unit_value(
 fn lval_from_int(
     self: *Self,
     int: i128,
-    _type: *ast_.AST,
+    _type: *Type_AST,
     span: Span,
 ) *lval_.L_Value {
     const temp = self.create_temp_lvalue(_type);
@@ -647,7 +625,7 @@ fn lval_from_symbol_cfg(
 ) Lower_Errors!*lval_.L_Value {
     const callee = try cfg_builder_.get_cfg(symbol, self.interned_strings, self.errors, self.allocator);
     self.cfg.children.put(callee, {}) catch unreachable;
-    const lval = self.create_temp_lvalue(symbol._type);
+    const lval = self.create_temp_lvalue(symbol.type());
     const instr = Instruction.init_symbol(lval, symbol, span, self.allocator);
     self.instructions.append(instr) catch unreachable;
     return lval;
@@ -658,9 +636,6 @@ fn unop(
     ast: *ast_.AST, // TODO: Create some sort of context for these parameters?
     labels: Labels,
 ) Lower_Errors!?*lval_.L_Value {
-    if (ast.typeof(self.allocator).types_match(prelude_.type_type)) {
-        return self.lval_from_ast(ast); // for addr_of types, ex: `&T`
-    }
     const expr = try self.lower_AST(ast.expr(), labels) orelse return null;
     const temp = self.create_temp_lvalue(ast.typeof(self.allocator));
     self.instructions.append(Instruction.init_int_float_kind(int_kind(ast), float_kind(ast), temp, expr, null, ast.token().span, self.allocator)) catch unreachable;
@@ -804,13 +779,13 @@ fn tuple_equality_flow(
     } else if (lhs_type.* == .sum_type) {
         const lhs_tag = self.create_temp_lvalue(prelude_.word64_type);
         const rhs_tag = self.create_temp_lvalue(prelude_.word64_type);
-        self.instructions.append(Instruction.init_get_tag(lhs_tag, new_lhs, lhs.extract_symbver().symbol.span, self.allocator)) catch unreachable;
-        self.instructions.append(Instruction.init_get_tag(rhs_tag, new_rhs, lhs.extract_symbver().symbol.span, self.allocator)) catch unreachable;
-        self.instructions.append(Instruction.init(.equal, temp, lhs_tag, rhs_tag, lhs.extract_symbver().symbol.span, self.allocator)) catch unreachable;
-        self.instructions.append(Instruction.init_branch(temp, fail_label, lhs.extract_symbver().symbol.span, self.allocator)) catch unreachable;
+        self.instructions.append(Instruction.init_get_tag(lhs_tag, new_lhs, lhs.extract_symbver().symbol.span(), self.allocator)) catch unreachable;
+        self.instructions.append(Instruction.init_get_tag(rhs_tag, new_rhs, lhs.extract_symbver().symbol.span(), self.allocator)) catch unreachable;
+        self.instructions.append(Instruction.init(.equal, temp, lhs_tag, rhs_tag, lhs.extract_symbver().symbol.span(), self.allocator)) catch unreachable;
+        self.instructions.append(Instruction.init_branch(temp, fail_label, lhs.extract_symbver().symbol.span(), self.allocator)) catch unreachable;
     } else {
-        self.instructions.append(Instruction.init(.equal, temp, new_lhs, rhs, lhs.extract_symbver().symbol.span, self.allocator)) catch unreachable;
-        self.instructions.append(Instruction.init_branch(temp, fail_label, lhs.extract_symbver().symbol.span, self.allocator)) catch unreachable;
+        self.instructions.append(Instruction.init(.equal, temp, new_lhs, rhs, lhs.extract_symbver().symbol.span(), self.allocator)) catch unreachable;
+        self.instructions.append(Instruction.init_branch(temp, fail_label, lhs.extract_symbver().symbol.span(), self.allocator)) catch unreachable;
     }
 }
 
@@ -898,7 +873,7 @@ fn generate_assign(
 fn generate_indexable_length(
     self: *Self,
     lhs: *lval_.L_Value,
-    _type: *ast_.AST,
+    _type: *Type_AST,
     span: Span,
 ) ?*lval_.L_Value {
     if (_type.* == .addr_of) {
@@ -1138,27 +1113,24 @@ fn wrap_error_return(
     }
 }
 
-fn create_temp_lvalue(self: *Self, _type: *ast_.AST) *lval_.L_Value {
+fn create_temp_lvalue(self: *Self, _type: *Type_AST) *lval_.L_Value {
     const temp_symbol = self.create_temp_symbol(_type);
     const retval = lval_.L_Value.create_unversioned_symbver(temp_symbol, self.allocator);
     return retval;
 }
 
-fn create_temp_symbol(self: *Self, _type: *ast_.AST) *Symbol {
+fn create_temp_symbol(self: *Self, _type: *Type_AST) *Symbol {
     var buf = String.init_with_contents(self.allocator, "t") catch unreachable;
     buf.writer().print("{}", .{self.number_temps}) catch unreachable;
     self.number_temps += 1;
     var temp_symbol = Symbol.init(
         self.cfg.symbol.scope,
         (buf.toOwned() catch unreachable).?,
-        Span.phony,
-        _type,
-        undefined,
-        null,
+        null, // TODO: Create a decl
         .mut,
         self.allocator,
     );
-    temp_symbol.expanded_type = _type.expand_type(self.allocator);
+    _ = _type.expand_type(self.allocator);
     temp_symbol.is_temp = true;
     return temp_symbol;
 }
@@ -1179,7 +1151,7 @@ fn generate_defers(
 fn generate_pattern(
     self: *Self,
     pattern: *ast_.AST,
-    _type: *ast_.AST,
+    _type: *Type_AST,
     def: *lval_.L_Value,
 ) Lower_Errors!void {
     if (pattern.* == .pattern_symbol) {

@@ -1,9 +1,9 @@
 const std = @import("std");
-const ast_ = @import("ast.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 
 pub fn Type_Map(comptime Value: type) type {
-    const Key = std.ArrayList(*ast_.AST);
+    const Key = std.ArrayList(*Type_AST);
     const Pair = struct {
         key: Key,
         value: Value,
@@ -42,12 +42,14 @@ pub fn Type_Map(comptime Value: type) type {
             }
 
             for (lhs.items, rhs.items) |lhs_item, rhs_item| {
-                if (lhs_item.* == .int) {
-                    if (rhs_item.* != .int) {
-                        return false;
-                    }
-                    return lhs_item.int.data == rhs_item.int.data;
-                } else if (!lhs_item.types_match(rhs_item) or !rhs_item.types_match(lhs_item)) {
+                // TODO: Deal with substitution of constants later
+                // if (lhs_item.* == .int) {
+                //     if (rhs_item.* != .int) {
+                //         return false;
+                //     }
+                //     return lhs_item.int.data == rhs_item.int.data;
+                // } else
+                if (!lhs_item.types_match(rhs_item) or !rhs_item.types_match(lhs_item)) {
                     return false;
                 }
             }

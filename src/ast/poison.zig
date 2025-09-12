@@ -1,14 +1,20 @@
 const std = @import("std");
 const AST = @import("ast.zig").AST;
 const Token = @import("../lexer/token.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 
 pub var poisoned: *AST = undefined;
+pub var poisoned_type: *Type_AST = undefined;
 var inited: bool = false;
 
 /// Initializes internal structures if they are not already initialized.
 pub fn init_structures(allocator: std.mem.Allocator) void {
     if (!inited) {
         poisoned = AST.create_poison(
+            Token.init_simple("LMAO GET POISONED!"),
+            allocator,
+        );
+        poisoned_type = Type_AST.create_poison(
             Token.init_simple("LMAO GET POISONED!"),
             allocator,
         );

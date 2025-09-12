@@ -146,7 +146,7 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
             } else if (instr.src1.?.* == .symbver and
                 instr.src2.?.* == .symbver and
                 instr.src1.?.symbver.symbol == instr.src2.?.symbver.symbol and
-                !instr.src1.?.symbver.symbol.expanded_type.?.can_expanded_represent_float())
+                !instr.src1.?.symbver.symbol.expanded_type().can_expanded_represent_float())
             {
                 // `x == x => true (where x is NOT floating-point type)`
                 // NOTE: Cannot do `x == x  ==> true` optimization for floats, `NaN == NaN` is false!
