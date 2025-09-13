@@ -1,8 +1,12 @@
 // 215
-const My_Type = (a | b | c)
+enum My_Type {
+    a
+    b
+    c
+}
 
 fn main() -> Int {
-    let x: [3]My_Type = (.a, .b, .c)
+    let x: [3]My_Type = [.a, .b, .c]
     f(x)
 }
 

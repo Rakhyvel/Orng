@@ -7,10 +7,10 @@ fn bar(index: Int) -> Int {
     f().a[index]
 }
 
-const Foo = (
-    a: [4]Int,
-)
+struct Foo {
+    a: [4]Int
+}
 
 fn f() -> Foo {
-    (.a = (150, 250, 350, 450),)
+    (.a = [150, 250, 350, 450],)
 }

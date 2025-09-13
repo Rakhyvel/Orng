@@ -612,106 +612,6 @@ pub const Type_AST = union(enum) {
         }
     }
 
-    /// Asserts that the type has already been expanded
-    fn expanded_type(self: *Type_AST) *Type_AST {
-        return self.common()._expanded_type.?;
-    }
-
-    /// Expand the type of an AST value. This call is memoized for ASTs besides identifiers.
-    // pub fn expand_type(self: *Type_AST, allocator: std.mem.Allocator) *Type_AST {
-    //     if (self.common()._expanded_type != null and self.* != .identifier) {
-    //         return self.common()._expanded_type.?;
-    //     }
-    //     var retval = expand_type_internal(self, allocator);
-    //     self.set_expanded_type(retval);
-    //     retval.set_expanded_type(retval);
-    //     retval.set_unexpanded_type(self.common()._unexpanded_type orelse self);
-    //     return retval;
-    // }
-
-    // /// Non-memoized slow path for expanding the type of an AST value.
-    // fn expand_type_internal(self: *Type_AST, allocator: std.mem.Allocator) *Type_AST {
-    //     // FIXME: High Cyclo
-    //     switch (self.*) {
-    //         .anyptr_type, .dyn_type, .domain_of => return self,
-
-    //         .@"union" => std.debug.panic("todo", .{}),
-
-    //         .access, .identifier => {
-    //             const _symbol = self.symbol().?;
-    //             if (_symbol.kind == .@"extern" and _symbol.init_typedef() == null) {
-    //                 return self;
-    //             } else {
-    //                 return _symbol.init_typedef().?.expand_identifier();
-    //             }
-    //         },
-    //         .product => {
-    //             if (expand_type_list(self.children(), allocator)) |new_terms| {
-    //                 var retval = Type_AST.create_product(self.token(), new_terms, allocator);
-    //                 retval.product.was_slice = self.product.was_slice;
-    //                 return retval;
-    //             } else {
-    //                 return self;
-    //             }
-    //         },
-    //         .sum_type => {
-    //             if (expand_type_list(self.children(), allocator)) |new_terms| {
-    //                 var retval = Type_AST.create_sum_type(self.token(), new_terms, allocator);
-    //                 retval.sum_type.from = self.sum_type.from;
-    //                 return retval;
-    //             } else {
-    //                 return self;
-    //             }
-    //         },
-    //         .untagged_sum_type => {
-    //             return Type_AST.create_untagged_sum_type(self.token(), self.child().expand_identifier(), allocator);
-    //         },
-    //         .function => {
-    //             const _lhs = self.lhs().expand_identifier();
-    //             const _rhs = self.rhs().expand_identifier();
-    //             return Type_AST.create_function(self.token(), _lhs, _rhs, allocator);
-    //         },
-    //         .annotation => {
-    //             const _expr = self.child().expand_identifier();
-    //             return Type_AST.create_annotation(
-    //                 self.token(),
-    //                 self.annotation.pattern,
-    //                 _expr,
-    //                 self.annotation.init,
-    //                 allocator,
-    //             );
-    //         },
-    //         .index => {
-    //             const _expr = self.child().expand_identifier();
-    //             return _expr.children().items[@as(usize, @intCast(self.index.idx.int.data))];
-    //         },
-    //         .addr_of, .poison, .unit_type => return self,
-    //         .type_of => return self.type_of._expr.typeof(allocator),
-
-    //         .array_of => return self,
-    //     }
-    // }
-
-    // /// Expand the types of each AST in a list
-    // fn expand_type_list(
-    //     asts: *const std.ArrayList(*Type_AST),
-    //     allocator: std.mem.Allocator,
-    // ) ?std.ArrayList(*Type_AST) {
-    //     var terms = std.ArrayList(*Type_AST).init(allocator);
-    //     var change = false;
-    //     for (asts.items) |term| {
-    //         const new_term = term.expand_identifier();
-    //         terms.append(new_term) catch unreachable;
-    //         change = new_term != term or change;
-    //     }
-    //     if (change) {
-    //         return terms;
-    //     } else {
-    //         terms.deinit();
-    //         return null;
-    //     }
-    // }
-
     pub fn print_type(self: *const Type_AST, out: anytype) !void {
         if (self.common()._unexpanded_type) |unexpanded| {
             if (unexpanded != self) {
@@ -939,6 +839,7 @@ pub const Type_AST = union(enum) {
             .function,
             .addr_of,
             .dyn_type,
+            .slice_of,
             => return 8,
 
             .untagged_sum_type => {

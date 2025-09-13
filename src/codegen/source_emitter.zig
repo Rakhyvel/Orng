@@ -130,13 +130,12 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
     }
     const symbol = self.module.entry.?.symbol;
 
-    const codomain = symbol.expanded_type().rhs();
+    const codomain = symbol.expanded_type().rhs().expand_identifier();
     var string_access: []const u8 = "";
     var specifier: ?[]const u8 = null;
     switch (codomain.*) {
         .identifier => {
-            // std.debug.print("{s}\n", .{});
-            const info = prelude_.info_from_name(codomain.expand_identifier().token().data).?;
+            const info = prelude_.info_from_name(codomain.token().data).?;
             specifier = switch (info.type_kind) {
                 .boolean, .signed_integer => "d",
                 .unsigned_integer => "u",
@@ -144,7 +143,7 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
                 else => unreachable,
             };
         },
-        .slice_of => {
+        .product => |p| if (p.was_slice) {
             string_access = "._0";
             specifier = "s";
         },
