@@ -87,13 +87,7 @@ pub fn lookup(self: *Self, name: []const u8, flags: Lookup_Flags) Lookup_Result 
         var new_flags = flags;
         new_flags.crossed_boundary = parent.function_depth < self.function_depth or flags.crossed_boundary;
         const res = parent.lookup(name, new_flags);
-        if (res == .found_but_fn and self.inner_function != null and self.inner_function.?.kind == .@"comptime") {
-            // If have to cross a `comptime` boundary, change fn error to rt error
-            return .found_but_rt;
-        } else {
-            // (normal recursion)
-            return res;
-        }
+        return res;
     } else {
         // Did not find the symbol at all
         return .not_found;
@@ -246,7 +240,7 @@ pub fn pprint(self: *Self) void {
     std.debug.print("scope_{}:\n", .{self.uid});
     for (self.symbols.keys()) |name| {
         const symbol = self.symbols.get(name).?;
-        std.debug.print("  {s} {s} = {?}\n", .{ @tagName(symbol.kind), name, symbol.init_value });
+        std.debug.print("  {s} {s} \n", .{ @tagName(symbol.kind), name });
     }
 }
 

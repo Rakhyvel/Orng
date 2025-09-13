@@ -18,9 +18,7 @@ const Validate_Error_Enum = error{ LexerError, ParseError, CompileError };
 pub fn validate(scope: *Scope, compiler: *Compiler_Context) Validate_Error_Enum!void {
     for (scope.symbols.keys()) |key| {
         const symbol = scope.symbols.get(key).?;
-        if (symbol.kind == .@"comptime") {
-            continue;
-        }
+
         try validate_symbol_.validate(symbol, compiler);
     }
     for (scope.children.items) |child| {
@@ -134,7 +132,8 @@ fn validate_impl(impl: *ast_.AST, compiler: *Compiler_Context) Validate_Error_En
 
         // Check that return type matches
         const trait_method_ret_type = Type_AST.clone(trait_decl.?.method_decl.ret_type, &subst, compiler.allocator());
-        if (!def.method_decl.ret_type.types_match(trait_method_ret_type)) {
+        const def_method_ret_type = Type_AST.clone(def.method_decl.ret_type, &subst, compiler.allocator());
+        if (!def_method_ret_type.types_match(trait_method_ret_type)) {
             compiler.errors.add_error(errs_.Error{ .mismatch_method_type = .{
                 .span = def.method_decl.ret_type.token().span,
                 .method_name = def.method_decl.name.token().data,

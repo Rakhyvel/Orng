@@ -176,7 +176,7 @@ fn output_typedef(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
     } else if (dep.base.* == .untagged_sum_type) {
         try self.emitter.output_untagged_sum_name(dep);
         try self.writer.print(" {{\n", .{});
-        if (!dep.base.expr().sum_type.is_all_unit()) {
+        if (!dep.base.child().sum_type.is_all_unit()) {
             try self.output_field_list(dep.base.children(), 4);
         }
         try self.writer.print("}};\n\n", .{});
@@ -188,7 +188,7 @@ fn output_typedef(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
 }
 
 /// Outputs the fields of a structure or union type based on the provided list of AST types.
-fn output_field_list(self: *Self, fields: *std.ArrayList(*Type_AST), spaces: usize) CodeGen_Error!void {
+fn output_field_list(self: *Self, fields: *const std.ArrayList(*Type_AST), spaces: usize) CodeGen_Error!void {
     // output each field in the list
     for (fields.items, 0..) |term, i| {
         if (!term.is_c_void_type()) {

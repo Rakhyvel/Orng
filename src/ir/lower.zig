@@ -15,6 +15,7 @@ const String = @import("../zig-string/zig-string.zig").String;
 const Span = @import("../util/span.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Symbol_Version = @import("symbol_version.zig");
+const Token = @import("../lexer/token.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 
 pub const Lower_Errors = error{CompileError};
@@ -343,6 +344,7 @@ fn lower_AST_inner(
             return ast_lval.?.create_select_lval(field, offset, expanded_type, tag, self.allocator);
         },
         .product => {
+            _ = ast.typeof(self.allocator).expand_type(self.allocator);
             const temp = self.create_temp_lvalue(ast.typeof(self.allocator));
             var instr = Instruction.init_load_struct(temp, ast.token().span, self.allocator);
             for (ast.children().items) |term| {
@@ -387,7 +389,7 @@ fn lower_AST_inner(
                 std.debug.panic("expected either sum type or annot got {}", .{ast_type});
             if (ast.sum_value.init != null) {
                 const sum_init = try self.lower_AST(ast.sum_value.init.?, labels);
-                if (proper_term.annotation.type.* != .unit_type) { // still output the Instruction, but do not refer to it unless the type isn't unit
+                if (proper_term.child().* != .unit_type) { // still output the Instruction, but do not refer to it unless the type isn't unit
                     _init = sum_init;
                 }
             }
@@ -1123,10 +1125,20 @@ fn create_temp_symbol(self: *Self, _type: *Type_AST) *Symbol {
     var buf = String.init_with_contents(self.allocator, "t") catch unreachable;
     buf.writer().print("{}", .{self.number_temps}) catch unreachable;
     self.number_temps += 1;
+    const name = (buf.toOwned() catch unreachable).?;
+    const token = Token.init_simple(name);
+    const decl = ast_.AST.create_decl(
+        token,
+        ast_.AST.create_pattern_symbol(token, .mut, name, self.allocator),
+        _type,
+        null,
+        false,
+        self.allocator,
+    );
     var temp_symbol = Symbol.init(
         self.cfg.symbol.scope,
-        (buf.toOwned() catch unreachable).?,
-        null, // TODO: Create a decl
+        name,
+        decl,
         .mut,
         self.allocator,
     );
@@ -1167,7 +1179,7 @@ fn generate_pattern(
             try self.generate_pattern(term, expanded_type, lval);
         }
     } else if (pattern.* == .sum_value) {
-        const expanded_type = pattern.sum_value.domain.?.annotation.type.expand_type(self.allocator);
+        const expanded_type = pattern.sum_value.domain.?.child().expand_type(self.allocator);
         const field = pattern.pos().?;
         const lval = def.create_select_lval(field, 0, expanded_type, null, self.allocator);
         try self.generate_pattern(pattern.sum_value.init.?, expanded_type, lval);

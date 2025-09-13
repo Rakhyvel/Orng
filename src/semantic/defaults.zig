@@ -54,7 +54,7 @@ fn generate_default_unvalidated(_type: *Type_AST, span: Span, errors: *errs_.Err
             return retval;
         },
         .untagged_sum_type => {
-            return try generate_default_unvalidated(_type.expr(), span, errors, allocator);
+            return try generate_default_unvalidated(_type.child(), span, errors, allocator);
         },
         .product => {
             var value_terms = std.ArrayList(*ast_.AST).init(allocator);
@@ -68,8 +68,30 @@ fn generate_default_unvalidated(_type: *Type_AST, span: Span, errors: *errs_.Err
         .annotation => if (_type.annotation.init != null) {
             return _type.annotation.init.?;
         } else {
-            return generate_default(_type.annotation.type, span, errors, allocator);
+            return generate_default(_type.child(), span, errors, allocator);
         },
-        else => std.debug.panic("compiler error: unimplemented generate_default() for: AST.{s}", .{@tagName(_type.*)}),
+        .slice_of => {
+            var value_terms = std.ArrayList(*ast_.AST).init(allocator);
+            value_terms.append(ast_.AST.create_int(_type.token(), 0, allocator)) catch unreachable;
+            value_terms.append(ast_.AST.create_int(_type.token(), 0, allocator)) catch unreachable;
+            return ast_.AST.create_product(_type.token(), value_terms, allocator);
+        },
+        .array_of => {
+            var value_terms = std.ArrayList(*ast_.AST).init(allocator);
+            const child = try generate_default(_type.child(), span, errors, allocator);
+            for (0..@intCast(_type.array_of.len.int.data)) |_| {
+                value_terms.append(child) catch unreachable;
+            }
+            return ast_.AST.create_product(_type.token(), value_terms, allocator);
+        },
+
+        .poison,
+        .anyptr_type,
+        .access,
+        .@"union",
+        .type_of,
+        .domain_of,
+        .index,
+        => std.debug.panic("compiler error: unimplemented generate_default() for: AST.{s}", .{@tagName(_type.*)}),
     }
 }

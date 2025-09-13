@@ -187,6 +187,10 @@ pub const Error = union(enum) {
     modify_immutable: struct {
         identifier: Token,
     },
+    not_selectable: struct {
+        span: Span,
+        _type: *Type_AST,
+    },
     not_indexable: struct {
         span: Span,
         _type: *Type_AST,
@@ -269,6 +273,7 @@ pub const Error = union(enum) {
             .use_before_def => return self.use_before_def.identifier.span,
             .modify_immutable => return self.modify_immutable.identifier.span,
             .not_indexable => return self.not_indexable.span,
+            .not_selectable => return self.not_selectable.span,
             .non_exhaustive_sum => return self.non_exhaustive_sum.span,
             .mismatch_arity => return self.mismatch_arity.span,
             .no_default => return self.no_default.span,
@@ -455,6 +460,11 @@ pub const Error = union(enum) {
                 writer.print("the type `", .{}) catch unreachable;
                 err.not_indexable._type.print_type(writer) catch unreachable;
                 writer.print("` is not indexable\n", .{}) catch unreachable;
+            },
+            .not_selectable => {
+                writer.print("the type `", .{}) catch unreachable;
+                err.not_selectable._type.print_type(writer) catch unreachable;
+                writer.print("` is not selectable\n", .{}) catch unreachable;
             },
             .non_exhaustive_sum => writer.print("match over sum type is not exhaustive\n", .{}) catch unreachable,
             .mismatch_arity => {

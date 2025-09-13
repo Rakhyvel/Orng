@@ -35,6 +35,7 @@ const Cinclude = @import("../ast/cinclude.zig");
 const Symbol_Tree = @import("../ast/symbol-tree.zig");
 const Decorate = @import("../ast/decorate.zig");
 const Decorate_Access = @import("../ast/decorate-access.zig");
+const Type_Decorate = @import("../ast/type_decorate.zig");
 
 pub const Module_Errors = error{ LexerError, ParseError, CompileError, FileNotFound };
 pub const Module_UID: type = u32;
@@ -224,6 +225,7 @@ pub const Module = struct {
             Apply_Ast_Walk(Symbol_Tree).init(Symbol_Tree.new(file_root, &compiler.errors, compiler.allocator())),
             Apply_Ast_Walk(Decorate).init(Decorate.new(file_root, &compiler.errors, compiler.allocator())),
             Apply_Ast_Walk(Decorate_Access).init(Decorate_Access.new(file_root, &compiler.errors, compiler)),
+            Apply_Ast_Walk(Type_Decorate).init(Type_Decorate.new(file_root, &compiler.errors, compiler.allocator())),
         });
 
         // Perform checks and collections on the module
@@ -280,7 +282,7 @@ pub const Module = struct {
     fn collect_trait_types(self: *Module, allocator: std.mem.Allocator) void {
         for (self.traits.items) |trait| {
             for (trait.trait.method_decls.items) |decl| {
-                _ = self.type_set.add(decl.method_decl.c_type.?, allocator);
+                _ = self.type_set.add(decl.method_decl.c_type.?.expand_type(allocator), allocator);
             }
         }
     }

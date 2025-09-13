@@ -42,14 +42,14 @@ pub fn output_type(self: *Self, _type: *Type_AST) CodeGen_Error!void {
         return;
     }
 
-    switch (_type.*) {
+    switch (_type.expanded_type().*) {
         .identifier => if (_type.common()._expanded_type != null and _type.common()._expanded_type.? != _type) {
             try self.output_type(_type.common()._expanded_type.?);
         } else {
             try self.writer.print("{s}", .{prelude_.info_from_name(_type.token().data).?.c_name});
         },
         .addr_of => {
-            try self.output_type(_type.expr());
+            try self.output_type(_type.child());
             try self.writer.print("*", .{});
         },
         .anyptr_type => try self.writer.print("void", .{}),
@@ -58,7 +58,7 @@ pub fn output_type(self: *Self, _type: *Type_AST) CodeGen_Error!void {
             try self.output_function_name(dep);
         },
         .sum_type, .product => {
-            const dep = self.module.type_set.get(_type).?;
+            const dep = self.module.type_set.get(_type.expanded_type()).?;
             try self.output_struct_name(dep);
         },
         .untagged_sum_type => {
@@ -70,7 +70,7 @@ pub fn output_type(self: *Self, _type: *Type_AST) CodeGen_Error!void {
             try self.output_dyn_name(dep);
         },
         .unit_type => try self.writer.print("void", .{}),
-        .annotation => try self.output_type(_type.annotation.type),
+        .annotation => try self.output_type(_type.child()),
         else => std.debug.panic("compiler error: unimplemented output_type() for {?}", .{_type.*}),
     }
 }

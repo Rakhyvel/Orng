@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 
 pub const Error = error{CompileError};
 
@@ -86,14 +87,19 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .template,
         .identifier,
         .import,
+        => {},
+
         .@"struct",
         .@"enum",
         .type_alias,
-        => {},
+        => {
+            try walk_type(ast.decl_typedef(), new_context);
+        },
 
         .module => std.debug.panic("compiler error: walking over modules not implemented!\n", .{}),
 
-        .default,
+        .default => try walk_type(ast.default._type, new_context),
+
         .size_of,
         .not,
         .negate,
@@ -189,7 +195,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .decl => {
             if (!(ast.decl.type.* == .type_of and ast.decl.type.type_of._expr == ast.decl.init)) {
                 // Don't double-walk when decl's type is a typeof of its init
-                // try walk_ast(ast.decl.type, new_context);
+                try walk_type(ast.decl.type, new_context);
             }
             if (!(ast.decl.init != null and ast.decl.init.?.* == .default and ast.decl.init.?.default._type == ast.decl.type)) {
                 // Don't double-walk when decl's init is a default of its type
@@ -199,7 +205,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .fn_decl => {
             try walk_ast(ast.fn_decl.init, new_context);
             try walk_asts(ast.children(), new_context);
-            // try walk_ast(ast.fn_decl.ret_type, new_context);
+            try walk_type(ast.fn_decl.ret_type, new_context);
         },
         .@"test" => {
             try walk_ast(ast.@"test".name, new_context);
@@ -210,7 +216,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             try walk_asts(&ast.trait.const_decls, new_context);
         },
         .impl => {
-            // try walk_ast(ast.impl._type, new_context);
+            try walk_type(ast.impl._type, new_context);
             try walk_ast(ast.impl.trait, new_context);
             try walk_asts(&ast.impl.method_defs, new_context);
             try walk_asts(&ast.impl.const_defs, new_context);
@@ -218,12 +224,77 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .method_decl => {
             try walk_ast(ast.method_decl.init, new_context);
             try walk_asts(ast.children(), new_context);
-            // try walk_ast(ast.method_decl.ret_type, new_context);
+            try walk_type(ast.method_decl.ret_type, new_context);
         },
         .@"defer", .@"errdefer" => try walk_ast(ast.statement(), new_context),
     }
 
     if (@hasDecl(@TypeOf(context), "postfix")) {
         try context.postfix(ast);
+    }
+}
+
+pub fn walk_types(types: *const std.ArrayList(*Type_AST), context: anytype) Error!void {
+    for (types.items) |_type| {
+        try walk_type(_type, context);
+    }
+}
+
+pub fn walk_types_flat(types: *std.ArrayList(*Type_AST), context: anytype) Error!void {
+    var i: usize = 0;
+    while (i < types.items.len) : (i += 1) {
+        const _type = types.items[i];
+        i += try context.flat_type(_type, types, i);
+    }
+}
+
+// A function that walks over an AST, applying prefix, postfix's function to each one
+pub fn walk_type(maybe_type: ?*Type_AST, context: anytype) Error!void {
+    if (maybe_type == null) {
+        return;
+    }
+    const _type = maybe_type.?;
+
+    var new_context = context;
+    if (@hasDecl(@TypeOf(context), "prefix_type")) {
+        const maybe_new_context = try context.prefix_type(_type);
+        if (maybe_new_context == null) {
+            return;
+        } else {
+            new_context = maybe_new_context.?;
+        }
+    }
+
+    switch (_type.*) {
+        .poison, .anyptr_type, .unit_type, .identifier, .access, .type_of => {},
+
+        .annotation,
+        .untagged_sum_type,
+        .addr_of,
+        .dyn_type,
+        .slice_of,
+        .array_of,
+        .index,
+        .domain_of,
+        => {
+            try walk_type(_type.child(), new_context);
+        },
+
+        .function,
+        .@"union",
+        => {
+            try walk_type(_type.lhs(), new_context);
+            try walk_type(_type.rhs(), new_context);
+        },
+
+        .sum_type,
+        .product,
+        => {
+            try walk_types(_type.children(), new_context);
+        },
+    }
+
+    if (@hasDecl(@TypeOf(context), "postfix_type")) {
+        try context.postfix_type(_type);
     }
 }

@@ -16,7 +16,7 @@ pub const Kind = union(enum) {
     @"extern": struct { c_name: ?*ast_.AST },
     let,
     mut,
-    @"comptime",
+    type,
     trait,
     template,
     import: struct { // Refers indirectly to modules, or to refinements on modules.
@@ -75,7 +75,7 @@ pub fn init(
     retval.offset = null;
     retval.kind = kind;
     retval.cfg = null;
-    if (kind == .@"fn" or kind == .@"const" or kind == .@"comptime") {
+    if (kind == .@"fn" or kind == .@"const") {
         retval.defined = true;
     } else {
         retval.defined = false;
@@ -96,7 +96,7 @@ pub fn assert_init_valid(self: *Self) *Self {
 }
 
 pub fn @"type"(self: *const Self) *Type_AST {
-    return self.decl.?.decl.type;
+    return self.decl.?.decl_type();
 }
 
 pub fn init_value(self: *const Self) ?*ast_.AST {
@@ -121,6 +121,7 @@ pub fn expanded_type(self: *const Self) *Type_AST {
 
 /// when this is true, this symbol is a type-alias, and should be expanded before use
 pub fn is_alias(self: *Self) bool {
+    if (self.decl != null and self.decl.?.* == .type_alias) return true;
     return if (self.decl != null and self.decl.?.* == .decl) self.decl.?.decl.is_alias else false;
 }
 

@@ -1,48 +1,53 @@
 struct Package {
     root: String
-    kind: (executable | static_library)
+    kind: Pacakge_Kind
     dir: String = "."
     num_requirements: Int = 0
     requirements: [8]?Requirement = ( // TODO: Replace with an Arraylist
-        (?Requirement).none,
-        (?Requirement).none,
-        (?Requirement).none,
-        (?Requirement).none,
-        (?Requirement).none,
-        (?Requirement).none,
-        (?Requirement).none,
-        (?Requirement).none
+        .none,
+        .none,
+        .none,
+        .none,
+        .none,
+        .none,
+        .none,
+        .none
     )
     include_dirs: [8]?String = (
-        (?String).none,
-        (?String).none,
-        (?String).none,
-        (?String).none,
-        (?String).none,
-        (?String).none,
-        (?String).none,
-        (?String).none,
+        .none,
+        .none,
+        .none,
+        .none,
+        .none,
+        .none,
+        .none,
+        .none,
     )
     libs: [8]?String = (
-        (?String).none,
-        (?String).none,
-        (?String).none,
-        (?String).none,
-        (?String).none,
-        (?String).none,
-        (?String).none,
-        (?String).none,
+        .none,
+        .none,
+        .none,
+        .none,
+        .none,
+        .none,
+        .none,
+        .none,
     )
     lib_dirs: [8]?String = (
-        (?String).none,
-        (?String).none,
-        (?String).none,
-        (?String).none,
-        (?String).none,
-        (?String).none,
-        (?String).none,
-        (?String).none,
+        .none,
+        .none,
+        .none,
+        .none,
+        .none,
+        .none,
+        .none,
+        .none,
     )
+}
+
+enum Pacakge_Kind {
+    executable
+    static_library
 }
 
 struct Requirement {
@@ -51,8 +56,8 @@ struct Requirement {
 }
 
 enum Package_Source {
-    relative: String
-    git: Git_Source
+    relative(String)
+    git(Git_Source)
 }
 
 struct Git_Source {
@@ -62,9 +67,9 @@ struct Git_Source {
 }
 
 enum Git_Reference {
-    branch: String
-    tag: String
-    rev: String
+    branch(String)
+    tag(String)
+    rev(String)
 }
 
 impl for Package {

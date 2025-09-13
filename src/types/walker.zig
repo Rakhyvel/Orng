@@ -47,7 +47,7 @@ pub fn walk_types_flat(types: *std.ArrayList(*Type_AST), context: anytype) Error
     var i: usize = 0;
     while (i < types.items.len) : (i += 1) {
         const _type = types.items[i];
-        i += try context.flat(_type, types, i);
+        i += try context.flat_type(_type, types, i);
     }
 }
 
@@ -59,8 +59,8 @@ pub fn walk_type(maybe_type: ?*Type_AST, context: anytype) Error!void {
     const _type = maybe_type.?;
 
     var new_context = context;
-    if (@hasDecl(@TypeOf(context), "prefix")) {
-        const maybe_new_context = try context.prefix(_type);
+    if (@hasDecl(@TypeOf(context), "prefix_type")) {
+        const maybe_new_context = try context.prefix_type(_type);
         if (maybe_new_context == null) {
             return;
         } else {
@@ -68,9 +68,36 @@ pub fn walk_type(maybe_type: ?*Type_AST, context: anytype) Error!void {
         }
     }
 
-    switch (_type.*) {}
+    switch (_type.*) {
+        .poison, .anyptr_type, .unit_type, .identifier, .access, .type_of => {},
 
-    if (@hasDecl(@TypeOf(context), "postfix")) {
-        try context.postfix(_type);
+        .annotation,
+        .untagged_sum_type,
+        .addr_of,
+        .dyn_type,
+        .slice_of,
+        .array_of,
+        .index,
+        .domain_of,
+        => {
+            try walk_type(_type.child(), new_context);
+        },
+
+        .function,
+        .@"union",
+        => {
+            try walk_type(_type.lhs(), new_context);
+            try walk_type(_type.rhs(), new_context);
+        },
+
+        .sum_type,
+        .product,
+        => {
+            try walk_types(_type.children(), new_context);
+        },
+    }
+
+    if (@hasDecl(@TypeOf(context), "postfix_type")) {
+        try context.postfix_type(_type);
     }
 }

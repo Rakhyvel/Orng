@@ -27,29 +27,28 @@ pub fn validate(symbol: *Symbol, compiler: *Compiler_Context) Validate_Error_Enu
     // std.debug.print("validating type for: {s}\n", .{symbol.name});
     // symbol._type = validate_AST(symbol._type, prelude_.type_type, compiler);
     // std.debug.print("type for: {s}: {}\n", .{ symbol.name, symbol._type });
-    if (symbol.type().* != .poison) {
-        _ = symbol.assert_symbol_valid();
-        // symbol.expanded_type = symbol._type.expand_type(compiler.allocator());
-        // std.debug.print("expanded type for: {s}: {?}\n", .{ symbol.name, symbol.expanded_type });
-        const expected: ?*Type_AST = if (symbol.kind == .@"fn" or symbol.kind == .@"comptime" or symbol.kind == .@"test") symbol.type().rhs() else symbol.type();
-        // std.debug.print("validating init for: {s}: {?}\n", .{ symbol.name, expected });
-        if (symbol.init_value()) |init| {
-            // might be null for parameters
-            symbol.decl.?.set_decl_init(validate_AST(init, expected, compiler));
-        }
-        // std.debug.print("init for: {s}: {?}\n", .{ symbol.name, symbol.init_value });
-        if (symbol.kind == .trait) {
-            try validate_trait(symbol, compiler);
-        } else if (symbol.init_value() != null and symbol.init_value().?.* == .poison) {
-            symbol.validation_state = .invalid;
-            symbol.init_validation_state = .invalid;
-            return error.CompileError;
-            // unreachable;
-        }
-    } else {
+
+    _ = symbol.assert_symbol_valid();
+    // symbol.expanded_type = symbol._type.expand_type(compiler.allocator());
+    // std.debug.print("expanded type for: {s}: {?}\n", .{ symbol.name, symbol.expanded_type });
+    const expected: ?*Type_AST = switch (symbol.kind) {
+        .@"fn", .@"test" => symbol.type().rhs(),
+        .type => null,
+        else => symbol.type(),
+    };
+    // std.debug.print("validating init for: {s}: {?}\n", .{ symbol.name, expected });
+    if (symbol.init_value()) |init| {
+        // might be null for parameters
+        symbol.decl.?.set_decl_init(validate_AST(init, expected, compiler));
+    }
+    // std.debug.print("init for: {s}: {?}\n", .{ symbol.name, symbol.init_value });
+    if (symbol.kind == .trait) {
+        try validate_trait(symbol, compiler);
+    } else if (symbol.init_value() != null and symbol.init_value().?.* == .poison) {
         symbol.validation_state = .invalid;
         symbol.init_validation_state = .invalid;
         return error.CompileError;
+        // unreachable;
     }
 
     // Symbol's name must be capitalized iff its type is Type

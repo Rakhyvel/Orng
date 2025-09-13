@@ -99,52 +99,15 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             try self.scope.put_all_symbols(&ast.decl.symbols, self.errors);
         },
 
-        .@"struct" => {
-            // TODO: Create type symbol function
-            // var symbols = std.ArrayList(*Symbol).init(self.allocator);
-            // try create_symbol(
-            //     &symbols,
-            //     ast.@"struct".name,
-            //     ast,
-            //     prelude_.type_type,
-            //     ast.@"struct".get_product_type(self.allocator),
-            //     self.scope,
-            //     self.errors,
-            //     self.allocator,
-            // );
-            // try self.scope.put_all_symbols(&symbols, self.errors);
-        },
-
-        .@"enum" => {
-            // TODO: Create type symbol function
-            // var symbols = std.ArrayList(*Symbol).init(self.allocator);
-            // try create_symbol(
-            //     &symbols,
-            //     ast.@"enum".name,
-            //     ast,
-            //     prelude_.type_type,
-            //     ast.@"enum".get_sum_type(self.allocator),
-            //     self.scope,
-            //     self.errors,
-            //     self.allocator,
-            // );
-            // try self.scope.put_all_symbols(&symbols, self.errors);
-        },
-
-        .type_alias => {
-            // TODO: Create type symbol function
-            // var symbols = std.ArrayList(*Symbol).init(self.allocator);
-            // try create_symbol(
-            //     &symbols,
-            //     ast.type_alias.name,
-            //     ast,
-            //     prelude_.type_type,
-            //     ast.type_alias.init,
-            //     self.scope,
-            //     self.errors,
-            //     self.allocator,
-            // );
-            // try self.scope.put_all_symbols(&symbols, self.errors);
+        .@"struct", .@"enum", .type_alias => {
+            const symbol = Symbol.init(
+                self.scope,
+                ast.decl_name().token().data,
+                ast,
+                .type,
+                self.allocator,
+            );
+            try self.register_symbol(ast, symbol);
         },
 
         .@"test" => {
@@ -182,17 +145,15 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             const symbol = try create_trait_symbol(ast, self.scope, self.allocator);
             try self.register_symbol(ast, symbol);
 
-            const self_type_decl = ast_.AST.create_decl(
+            const self_type_decl = ast_.AST.create_type_alias(
                 ast.token(),
                 ast_.AST.create_pattern_symbol(
                     Token.init_simple("Self"),
-                    .@"const",
+                    .type,
                     "Self",
                     self.allocator,
                 ),
-                prelude_.type_type,
                 null,
-                true,
                 self.allocator,
             );
             try walk_.walk_ast(self_type_decl, new_self);
@@ -228,17 +189,15 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 ast.impl.impls_anon_trait = true;
             }
 
-            const self_type_decl = ast_.AST.create_decl(
+            const self_type_decl = ast_.AST.create_type_alias(
                 ast.token(),
                 ast_.AST.create_pattern_symbol(
                     Token.init_simple("Self"),
-                    .@"const",
+                    .type,
                     "Self",
                     self.allocator,
                 ),
-                prelude_.type_type,
-                null, // TODO: type alias
-                true,
+                ast.impl._type,
                 self.allocator,
             );
             try walk_.walk_ast(self_type_decl, new_self);
@@ -329,12 +288,6 @@ fn in_function_check(ast: *ast_.AST, scope: *Scope, errors: *errs_.Errors) Error
         errors.add_error(errs_.Error{ .not_inside_function = .{
             .span = ast.token().span,
             .name = @tagName(ast.*),
-        } });
-        return error.CompileError;
-    } else if (scope.inner_function.?.kind == .@"comptime") {
-        errors.add_error(errs_.Error{ .basic = .{
-            .span = ast.token().span,
-            .msg = "`return` cannot be within comptime",
         } });
         return error.CompileError;
     } else {
@@ -540,7 +493,9 @@ pub fn extract_domain(params: std.ArrayList(*ast_.AST), allocator: std.mem.Alloc
 }
 
 fn extract_domain_with_receiver(impl_type: *Type_AST, receiver: *ast_.AST, params: std.ArrayList(*ast_.AST), allocator: std.mem.Allocator) *Type_AST {
-    const _receiver_type = create_receiver_annot(create_receiver_addr(impl_type, receiver, allocator), receiver, allocator);
+    const receiver_addr_type = create_receiver_addr(impl_type, receiver, allocator);
+    receiver.receiver._type = receiver_addr_type;
+    const _receiver_type = create_receiver_annot(receiver_addr_type, receiver, allocator);
     if (params.items.len == 0) {
         return _receiver_type;
     } else {
@@ -705,7 +660,7 @@ fn create_method_symbol(
         ast.param_symbols().?.append(receiver_symbol) catch unreachable;
 
         if (ast.method_decl.receiver.?.receiver.kind == .value) {
-            const self_type = recv_type.expr();
+            const self_type = recv_type.child();
             const self_init = ast_.AST.create_dereference(ast.token(), ast_.AST.create_identifier(Token.init_simple("$self_ptr"), allocator), allocator);
             const receiver_span = ast.method_decl.receiver.?.token().span;
             const self_decl = ast_.AST.create_decl(

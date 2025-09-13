@@ -234,7 +234,11 @@ pub const AST = union(enum) {
         mut: bool,
     },
     sub_slice: struct { common: AST_Common, super: *AST, lower: ?*AST, upper: ?*AST },
-    receiver: struct { common: AST_Common, kind: Receiver_Kind },
+    receiver: struct {
+        common: AST_Common,
+        kind: Receiver_Kind,
+        _type: ?*Type_AST = null,
+    },
     default: struct {
         common: AST_Common,
         _type: *Type_AST,
@@ -358,17 +362,20 @@ pub const AST = union(enum) {
         name: *AST,
         fields: std.ArrayList(*Type_AST),
         _type: *Type_AST,
+        _symbol: ?*Symbol = null,
     },
     @"enum": struct {
         common: AST_Common,
         name: *AST,
         fields: std.ArrayList(*Type_AST),
         _type: *Type_AST,
+        _symbol: ?*Symbol = null,
     },
     type_alias: struct {
         common: AST_Common,
         name: *AST,
         init: ?*Type_AST,
+        _symbol: ?*Symbol = null,
     },
     method_decl: struct {
         common: AST_Common,
@@ -1692,6 +1699,8 @@ pub const AST = union(enum) {
             .fn_decl => self.fn_decl._decl_type.?,
             .method_decl => self.method_decl._decl_type.?,
             .@"test" => core_.test_result_type,
+            .module, .trait => prelude_.unit_type,
+            .receiver => self.receiver._type.?,
             else => std.debug.panic("compiler error: cannot call `.decl_type()` on the AST `{s}`", .{@tagName(self.*)}),
         };
     }
@@ -1702,7 +1711,9 @@ pub const AST = union(enum) {
             .fn_decl => self.fn_decl.init,
             .method_decl => self.method_decl.init,
             .@"test" => self.@"test".init,
-            else => std.debug.panic("compiler error: cannot call `.decl_type()` on the AST `{s}`", .{@tagName(self.*)}),
+            .module, .trait => self,
+            .@"struct", .@"enum", .type_alias, .receiver => null,
+            else => std.debug.panic("compiler error: cannot call `.decl_init()` on the AST `{s}`", .{@tagName(self.*)}),
         };
     }
 
@@ -1712,7 +1723,9 @@ pub const AST = union(enum) {
             .fn_decl => self.fn_decl.init = init,
             .method_decl => self.method_decl.init = init,
             .@"test" => self.@"test".init = init,
-            else => std.debug.panic("compiler error: cannot call `.decl_type()` on the AST `{s}`", .{@tagName(self.*)}),
+            .trait => self.* = init.*,
+            .module => {},
+            else => std.debug.panic("compiler error: cannot call `.set_decl_init()` on the AST `{s}`", .{@tagName(self.*)}),
         };
     }
 
@@ -1721,7 +1734,16 @@ pub const AST = union(enum) {
             .@"struct" => self.@"struct"._type,
             .@"enum" => self.@"enum"._type,
             .type_alias => self.type_alias.init,
-            else => std.debug.panic("compiler error: cannot call `.decl_type()` on the AST `{s}`", .{@tagName(self.*)}),
+            else => std.debug.panic("compiler error: cannot call `.decl_typedef()` on the AST `{s}`", .{@tagName(self.*)}),
+        };
+    }
+
+    pub fn decl_name(self: *AST) *AST {
+        return switch (self.*) {
+            .@"struct" => self.@"struct".name,
+            .@"enum" => self.@"enum".name,
+            .type_alias => self.type_alias.name,
+            else => std.debug.panic("compiler error: cannot call `.decl_name()` on the AST `{s}`", .{@tagName(self.*)}),
         };
     }
 
@@ -1931,12 +1953,17 @@ pub const AST = union(enum) {
             // Unit type
             .unit_value,
             .decl,
+            .@"struct",
+            .@"enum",
+            .type_alias,
             .assign,
             .@"defer",
             .@"errdefer",
+            .module,
             .template,
             .trait,
             .impl,
+            .method_decl,
             => return prelude_.unit_type,
 
             // Void type
@@ -1961,7 +1988,7 @@ pub const AST = union(enum) {
             .@"catch", .@"orelse" => {
                 const rhs_type = self.rhs().typeof(allocator);
                 if (rhs_type.types_match(prelude_.void_type)) {
-                    return self.lhs().typeof(allocator).children().items[0].annotation.type;
+                    return self.lhs().typeof(allocator).children().items[0].child();
                 } else {
                     return rhs_type;
                 }
@@ -1992,12 +2019,12 @@ pub const AST = union(enum) {
                 var lhs_type = self.lhs().typeof(allocator).expand_type(allocator);
                 if (lhs_type.* == .product) {
                     if (lhs_type.product.was_slice) {
-                        return lhs_type.children().items[0].annotation.type.expr();
+                        return lhs_type.children().items[0].child().child();
                     } else {
                         return lhs_type.children().items[0];
                     }
                 } else if (lhs_type.* == .addr_of and lhs_type.addr_of.multiptr) {
-                    return lhs_type.expr();
+                    return lhs_type.child();
                 } else {
                     std.debug.panic("compiler error: {s} is not indexable", .{@tagName(lhs_type.*)});
                 }
@@ -2007,7 +2034,7 @@ pub const AST = union(enum) {
                 var select_lhs_type = self.lhs().typeof(allocator).expand_type(allocator);
                 var retval = select_lhs_type.children().items[self.pos().?];
                 while (retval.* == .annotation) {
-                    retval = retval.annotation.type;
+                    retval = retval.child();
                 }
                 return retval;
             },
@@ -2022,7 +2049,7 @@ pub const AST = union(enum) {
             .negate, .bit_not => return self.expr().typeof(allocator),
             .dereference => {
                 const _type = self.expr().typeof(allocator).expand_type(allocator);
-                return _type.expr();
+                return _type.child();
             },
             .addr_of => {
                 const child_type = self.expr().typeof(allocator);
@@ -2131,7 +2158,11 @@ pub const AST = union(enum) {
             .negate => try out.writer().print("negate({})", .{self.expr()}),
             .dereference => try out.writer().print("dereference()", .{}),
             .@"try" => try out.writer().print("try()", .{}),
-            .default => try out.writer().print("default({})", .{self.expr()}),
+            .default => {
+                try out.writer().print("default(", .{});
+                try self.default._type.print_type(out.writer());
+                try out.writer().print(")", .{});
+            },
             .size_of => try out.writer().print("size_of({})", .{self.expr()}),
             // .@"comptime" => try out.writer().print("comptime({})", .{self.expr()}),
 

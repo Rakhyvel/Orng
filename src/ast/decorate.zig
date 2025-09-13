@@ -4,7 +4,9 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const errs_ = @import("../util/errors.zig");
 const Scope = @import("../symbol/scope.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 const walk_ = @import("../ast/walker.zig");
+const type_walk_ = @import("../types/walker.zig");
 
 scope: *Scope,
 errors: *errs_.Errors,
@@ -69,6 +71,46 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         .access => {
             // Capture scope, so that `Trait::member` accesses are began at the access point
             ast.set_scope(self.scope);
+            return self;
+        },
+    }
+}
+
+pub fn prefix_type(self: Self, _type: *Type_AST) type_walk_.Error!?Self {
+    switch (_type.*) {
+        else => return self,
+
+        .identifier => {
+            const res = self.scope.lookup(_type.token().data, .{});
+            switch (res) {
+                // Found the symbol, decorate the identifier AST with it
+                .found => _type.set_symbol(res.found),
+
+                // Couldn't find the symbol
+                .not_found => {
+                    self.errors.add_error(errs_.Error{ .undeclared_identifier = .{ .identifier = _type.token(), .expected = null } });
+                    return error.CompileError;
+                },
+
+                // Found the symbol, but must cross a comptime-boundary to access it, and it is not const
+                .found_but_rt => {
+                    self.errors.add_error(errs_.Error{ .comptime_access_runtime = .{ .identifier = _type.token() } });
+                    return error.CompileError;
+                },
+
+                // Found the symbol, but must cross an inner-function boundary to access it, and it is not const
+                .found_but_fn => {
+                    self.errors.add_error(errs_.Error{ .inner_fn_access_runtime = .{ .identifier = _type.token() } });
+                    return error.CompileError;
+                },
+            }
+
+            return self;
+        },
+
+        .access => {
+            // Capture scope, so that `Trait::member` accesses are began at the access point
+            _type.access.scope = self.scope;
             return self;
         },
     }

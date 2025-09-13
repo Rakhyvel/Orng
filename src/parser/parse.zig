@@ -1197,11 +1197,13 @@ fn enum_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
 
     self.newlines();
     while (self.accept(.identifier)) |field_token| {
-        _ = try self.expect(.single_colon);
         const field_ident = ast_.AST.create_identifier(field_token, self.allocator);
-        const _type = try self.type_expr();
+        var _type: ?*Type_AST = null;
+        if (self.peek_kind(.left_parenthesis)) {
+            _type = try self.paren_type_expr();
+        }
 
-        const field = Type_AST.create_annotation(field_token, field_ident, _type, null, self.allocator);
+        const field = Type_AST.create_annotation(field_token, field_ident, _type orelse Type_AST.create_unit_type(field_token, self.allocator), null, self.allocator);
 
         fields.append(field) catch unreachable;
         self.newlines();

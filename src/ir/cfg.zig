@@ -1,6 +1,7 @@
 //! This file contains the definition of a Control Flow Graph (Self) data structure.
 
 const std = @import("std");
+const ast_ = @import("../ast/ast.zig");
 const alignment_ = @import("../util/alignment.zig");
 const Basic_Block = @import("../ir/basic-block.zig");
 const Cfg_Iterator = @import("../util/dfs.zig").Dfs_Iterator(*Self);
@@ -71,11 +72,19 @@ pub fn init(symbol: *Symbol, allocator: std.mem.Allocator) *Self {
     retval.return_symbol = Symbol.init(
         symbol.scope,
         "$retval",
-        null, // TODO: Create a decl
+        ast_.AST.create_decl(
+            symbol.decl.?.token(),
+            ast_.AST.create_pattern_symbol(symbol.decl.?.token(), .mut, "$retval", allocator),
+            symbol.type().rhs(),
+            null,
+            false,
+            allocator,
+        ),
         .mut,
         allocator,
     );
     _ = retval.return_symbol.type().expand_type(allocator);
+    _ = symbol.type().expand_type(allocator);
     retval.needed_at_runtime = false;
     retval.offset = null;
     retval.locals_size = null;

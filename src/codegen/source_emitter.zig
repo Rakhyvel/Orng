@@ -562,7 +562,14 @@ fn output_rvalue(self: *Self, lvalue: *lval_.L_Value, outer_precedence: i128) Co
                 try self.writer.print("._{}", .{lvalue.select.field});
             }
         },
-        .symbver => try self.emitter.output_symbol(lvalue.symbver.symbol),
+        .symbver => {
+            if (lvalue.symbver.symbol.decl.?.* == .receiver) {
+                try self.writer.print("(", .{});
+                try self.emitter.output_type(lvalue.get_expanded_type());
+                try self.writer.print(")", .{});
+            }
+            try self.emitter.output_symbol(lvalue.symbver.symbol);
+        },
         .raw_address => std.debug.panic("compiler error: cannot output raw address lvalue", .{}),
     }
     if (outer_precedence < lvalue.lval_precedence()) {

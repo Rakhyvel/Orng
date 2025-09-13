@@ -25,12 +25,6 @@ pub fn type_check(span: Span, got: *Type_AST, expected: ?*Type_AST, errors: *err
     }
 }
 
-pub fn void_check(span: Span, expected: ?*Type_AST, errors: *errs_.Errors) Validate_Error_Enum!void {
-    if (expected != null and prelude_.type_type.types_match(expected.?)) {
-        return throw_unexpected_type(span, expected.?, prelude_.void_type, errors);
-    }
-}
-
 /// Checks that a type is equal to unit, throws an error if it is not.
 pub fn middle_statement_check(span: Span, got: *Type_AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (!prelude_.unit_type.types_match(got) and !got.types_match(prelude_.void_type)) {
@@ -119,8 +113,8 @@ pub fn throw_unexpected_void_type(span: Span, errors: *errs_.Errors) Validate_Er
     return error.CompileError;
 }
 
-fn throw_not_selectable(span: Span, errors: *errs_.Errors) Validate_Error_Enum {
-    errors.add_error(errs_.Error{ .basic = .{ .span = span, .msg = "left-hand-side of select is not selectable" } });
+fn throw_not_selectable(_type: *Type_AST, span: Span, errors: *errs_.Errors) Validate_Error_Enum {
+    errors.add_error(errs_.Error{ .not_selectable = .{ .span = span, ._type = _type } });
     return error.CompileError;
 }
 
@@ -253,11 +247,11 @@ pub fn implicit_dereference(
 
 pub fn find_select_pos(_type: *Type_AST, field: []const u8, span: Span, errors: *errs_.Errors) Validate_Error_Enum!usize {
     if (_type.* != .product and _type.* != .sum_type and _type.* != .untagged_sum_type) {
-        return throw_not_selectable(span, errors);
+        return throw_not_selectable(_type, span, errors);
     }
     for (_type.children().items, 0..) |term, i| {
         if (term.* != .annotation) {
-            return throw_not_selectable(span, errors);
+            return throw_not_selectable(_type, span, errors);
         }
         if (std.mem.eql(u8, term.annotation.pattern.token().data, field)) {
             return i;

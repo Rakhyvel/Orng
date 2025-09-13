@@ -30,9 +30,9 @@ pub fn add(self: *Self, oldast_: *Type_AST, allocator: std.mem.Allocator) ?*Depe
         .function => return self.add_function(ast, allocator),
         .product, .sum_type, .untagged_sum_type => return self.add_aggregate(ast, allocator),
         .dyn_type => return self.add_dependency_node(ast, allocator),
-        .annotation => return self.add(ast.annotation.type, allocator),
+        .annotation => return self.add(ast.child(), allocator),
         .addr_of => {
-            _ = self.add(ast.expr(), allocator); // Add child to set, but do not create a node for addrs
+            _ = self.add(ast.child(), allocator); // Add child to set, but do not create a node for addrs
             return null;
         },
         .identifier, .unit_type, .anyptr_type => return null, // Do not add to Dependency_Node
