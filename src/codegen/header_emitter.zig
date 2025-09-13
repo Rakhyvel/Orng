@@ -164,6 +164,20 @@ fn output_typedef(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
         try self.writer.print(" {{\n", .{});
         try self.output_field_list(dep.base.children(), 4);
         try self.writer.print("}};\n\n", .{});
+    } else if (dep.base.* == .array_of) {
+        try self.emitter.output_struct_name(dep);
+        try self.writer.print(" {{\n    ", .{});
+        try self.emitter.output_type(dep.base.child());
+        try self.writer.print(" _0[{}];\n", .{dep.base.array_of.len.int.data});
+        try self.writer.print("}};\n\n", .{});
+    } else if (dep.base.* == .slice_of) {
+        try self.emitter.output_struct_name(dep);
+        try self.writer.print(" {{\n    ", .{});
+        try self.emitter.output_type(dep.base.child());
+        try self.writer.print(" _0;\n    ", .{});
+        try self.emitter.output_type(prelude_.int_type);
+        try self.writer.print(" _1;\n", .{});
+        try self.writer.print("}};\n\n", .{});
     } else if (dep.base.* == .sum_type) {
         try self.emitter.output_struct_name(dep);
         try self.writer.print(" {{\n    uint64_t tag;\n", .{});

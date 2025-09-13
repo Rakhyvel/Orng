@@ -282,7 +282,7 @@ pub const Module = struct {
     fn collect_trait_types(self: *Module, allocator: std.mem.Allocator) void {
         for (self.traits.items) |trait| {
             for (trait.trait.method_decls.items) |decl| {
-                _ = self.type_set.add(decl.method_decl.c_type.?.expand_type(allocator), allocator);
+                _ = self.type_set.add(decl.method_decl.c_type.?.expand_identifier(), allocator);
             }
         }
     }

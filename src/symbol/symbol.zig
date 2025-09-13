@@ -116,7 +116,7 @@ pub fn set_span(self: *Self, _span: Span) void {
 }
 
 pub fn expanded_type(self: *const Self) *Type_AST {
-    return self.type().expanded_type();
+    return self.type().expand_identifier();
 }
 
 /// when this is true, this symbol is a type-alias, and should be expanded before use

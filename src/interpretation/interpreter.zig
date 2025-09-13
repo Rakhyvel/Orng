@@ -469,6 +469,7 @@ pub fn extract_ast(self: *Self, address: i64, _type: *ast_.AST, span: Span, modu
         .unit_type => return ast_.AST.create_unit_value(_type.token(), self.allocator).assert_ast_valid(),
         .sum_type => return self.extract_sum_type(address, _type, span, module_interned_strings),
         .product => return self.extract_product_type(address, _type, span, module_interned_strings),
+        .array_value => return self.extract_product_type(address, _type, span, module_interned_strings),
         .untagged_sum_type => {
             self.errors.add_error(errs_.Error{ .basic = .{
                 .span = span,

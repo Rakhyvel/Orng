@@ -147,7 +147,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             try walk_ast(ast.lhs(), new_context);
             try walk_asts(ast.children(), new_context);
         },
-        .product, .bit_and, .bit_or, .bit_xor => try walk_asts(ast.children(), new_context),
+        .product, .array_value, .bit_and, .bit_or, .bit_xor => try walk_asts(ast.children(), new_context),
         .sum_value => {
             try walk_ast(ast.sum_value.init, new_context);
         },
@@ -193,10 +193,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         },
         .@"return" => try walk_ast(ast.@"return"._ret_expr, new_context),
         .decl => {
-            if (!(ast.decl.type.* == .type_of and ast.decl.type.type_of._expr == ast.decl.init)) {
-                // Don't double-walk when decl's type is a typeof of its init
-                try walk_type(ast.decl.type, new_context);
-            }
+            try walk_type(ast.decl.type, new_context);
             if (!(ast.decl.init != null and ast.decl.init.?.* == .default and ast.decl.init.?.default._type == ast.decl.type)) {
                 // Don't double-walk when decl's init is a default of its type
                 try walk_ast(ast.decl.init, new_context);

@@ -19,7 +19,7 @@ pub fn deinit(self: *Self) void {
 
 /// Adds a type to the type set. Returns the dependency node for the corresponding type
 pub fn add(self: *Self, oldast_: *Type_AST, allocator: std.mem.Allocator) ?*Dependency_Node {
-    const ast = oldast_.expand_type(allocator);
+    const ast = oldast_.expand_identifier();
     if (self.get(ast)) |dag| {
         // Type is already in the set, return Dependency_Node entry for it
         return dag;
@@ -35,6 +35,7 @@ pub fn add(self: *Self, oldast_: *Type_AST, allocator: std.mem.Allocator) ?*Depe
             _ = self.add(ast.child(), allocator); // Add child to set, but do not create a node for addrs
             return null;
         },
+        .array_of, .slice_of => return self.add_array(ast, allocator),
         .identifier, .unit_type, .anyptr_type => return null, // Do not add to Dependency_Node
         else => std.debug.panic("unknown: {}", .{ast}),
     }
@@ -64,9 +65,18 @@ fn add_aggregate(self: *Self, aggregate_ast: *Type_AST, allocator: std.mem.Alloc
     return dag;
 }
 
+/// Adds a function type to the type set
+fn add_array(self: *Self, array_type_ast: *Type_AST, allocator: std.mem.Allocator) ?*Dependency_Node {
+    var dag = self.add_dependency_node(array_type_ast, allocator);
+    if (self.add(array_type_ast.child(), allocator)) |domain| {
+        dag.add_dependency(domain);
+    }
+    return dag;
+}
+
 /// Retrieves the dependency node from the type set given a type
 pub fn get(self: *Self, oldast_: *Type_AST) ?*Dependency_Node {
-    const ast = oldast_;
+    const ast = oldast_.expand_identifier();
     for (self.types.items) |dag| {
         if (dag.base.c_types_match(ast)) {
             return dag;

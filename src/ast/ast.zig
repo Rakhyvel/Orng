@@ -215,8 +215,11 @@ pub const AST = union(enum) {
     product: struct {
         common: AST_Common,
         _terms: std.ArrayList(*AST),
-        homotypical: ?bool = null,
         was_slice: bool,
+    },
+    array_value: struct {
+        common: AST_Common,
+        _terms: std.ArrayList(*AST),
     },
 
     // Fancy operators
@@ -846,6 +849,13 @@ pub const AST = union(enum) {
         } }, allocator);
     }
 
+    pub fn create_array(_token: Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
+        return AST.box(AST{ .array_value = .{
+            .common = AST_Common{ ._token = _token, ._type = null },
+            ._terms = terms,
+        } }, allocator);
+    }
+
     pub fn create_addr_of(_token: Token, _expr: *AST, _mut: bool, multiptr: bool, allocator: std.mem.Allocator) *AST {
         const _common: AST_Common = .{ ._token = _token };
         return AST.box(AST{ .addr_of = .{
@@ -1432,6 +1442,14 @@ pub const AST = union(enum) {
                 retval.product.was_slice = self.product.was_slice;
                 return retval;
             },
+            .array_value => {
+                const cloned_terms = clone_children(self.children().*, substs, allocator);
+                return create_array(
+                    self.token(),
+                    cloned_terms,
+                    allocator,
+                );
+            },
             .@"struct" => {
                 const cloned_terms = Type_AST.clone_types(self.@"struct".fields, substs, allocator);
                 return create_struct(
@@ -1665,6 +1683,7 @@ pub const AST = union(enum) {
         return switch (self.*) {
             .call => &self.call._args,
             .product => &self.product._terms,
+            .array_value => &self.array_value._terms,
             .match => &self.match._mappings,
             .block => &self.block._statements,
             .fn_decl => &self.fn_decl._params,
@@ -1681,6 +1700,7 @@ pub const AST = union(enum) {
         switch (self.*) {
             .call => self.call._args = val,
             .product => self.product._terms = val,
+            .array_value => self.array_value._terms = val,
             .match => self.match._mappings = val,
             .block => self.block._statements = val,
             .fn_decl => self.fn_decl._params = val,
@@ -2014,15 +2034,21 @@ pub const AST = union(enum) {
                     return retval;
                 }
             },
+            .array_value => {
+                const term_type = self.children().items[0].typeof(allocator);
+                return Type_AST.create_array_of(self.token(), term_type, create_int(self.token(), self.children().items.len, allocator), allocator);
+            },
 
             .index => {
-                var lhs_type = self.lhs().typeof(allocator).expand_type(allocator);
+                var lhs_type = self.lhs().typeof(allocator).expand_identifier();
                 if (lhs_type.* == .product) {
                     if (lhs_type.product.was_slice) {
                         return lhs_type.children().items[0].child().child();
                     } else {
                         return lhs_type.children().items[0];
                     }
+                } else if (lhs_type.* == .array_of) {
+                    return lhs_type.child();
                 } else if (lhs_type.* == .addr_of and lhs_type.addr_of.multiptr) {
                     return lhs_type.child();
                 } else {
@@ -2031,7 +2057,7 @@ pub const AST = union(enum) {
             },
 
             .select => {
-                var select_lhs_type = self.lhs().typeof(allocator).expand_type(allocator);
+                var select_lhs_type = self.lhs().typeof(allocator).expand_identifier();
                 var retval = select_lhs_type.children().items[self.pos().?];
                 while (retval.* == .annotation) {
                     retval = retval.child();
@@ -2048,7 +2074,7 @@ pub const AST = union(enum) {
             // .@"comptime",
             .negate, .bit_not => return self.expr().typeof(allocator),
             .dereference => {
-                const _type = self.expr().typeof(allocator).expand_type(allocator);
+                const _type = self.expr().typeof(allocator).expand_identifier();
                 return _type.child();
             },
             .addr_of => {
@@ -2064,8 +2090,14 @@ pub const AST = union(enum) {
                 return Type_AST.create_slice_type(expr_type.children().items[0], self.slice_of.mut, allocator);
             },
             .sub_slice => return self.sub_slice.super.typeof(allocator),
-            .sum_value => return self.sum_value.base.?.expand_type(allocator),
-            .@"try" => return self.expr().typeof(allocator).expand_type(allocator).get_ok_type(),
+            .sum_value => {
+                if (self.sum_value.base != null) {
+                    return self.sum_value.base.?.expand_identifier();
+                } else {
+                    return poison_.poisoned_type;
+                }
+            },
+            .@"try" => return self.expr().typeof(allocator).expand_identifier().get_ok_type(),
             .default => return self.default._type,
 
             // Control-flow expressions
@@ -2074,8 +2106,8 @@ pub const AST = union(enum) {
                 if (body_type.is_ident_type("Void") and self.else_block() != null) {
                     return self.else_block().?.typeof(allocator);
                 } else if (self.else_block() != null or
-                    prelude_.unit_type.types_match(body_type.expand_type(allocator)) or
-                    body_type.expand_type(allocator).types_match(prelude_.void_type))
+                    prelude_.unit_type.types_match(body_type.expand_identifier()) or
+                    body_type.expand_identifier().types_match(prelude_.void_type))
                 {
                     return body_type;
                 } else {
@@ -2255,6 +2287,16 @@ pub const AST = union(enum) {
                 for (self.product._terms.items, 0..) |item, i| {
                     try out.writer().print("{}", .{item});
                     if (i < self.product._terms.items.len - 1) {
+                        try out.writer().print(",", .{});
+                    }
+                }
+                try out.writer().print(")", .{});
+            },
+            .array_value => {
+                try out.writer().print("array_value(", .{});
+                for (self.array_value._terms.items, 0..) |item, i| {
+                    try out.writer().print("{}", .{item});
+                    if (i < self.array_value._terms.items.len - 1) {
                         try out.writer().print(",", .{});
                     }
                 }

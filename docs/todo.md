@@ -64,7 +64,7 @@
 - [x] Separate symbol pass to map identifiers to symbols
     - Add a separate `field` AST kind, that doesn't refer to an identifier, but to a field
     - Remove anything that now doesn't need to pass scope
-    - typeof, expand_type, typesMatch
+    - typeof, expand_identifier, typesMatch
 - [x] Simplify validate
 - [x] Move `reprFromTokenKind` into TokenKind
 - [x] Create a `Labels` struct for lower, to simplify things
@@ -299,7 +299,7 @@
         - [x] `*&x` is just `x`
         - [x] Perhaps do precedence stuff too. Too many parenthesis!
         - [x] `+0` in lvalue for indexing is kinda dumb
-    - [x] expand_types should only allocate if anything changes
+    - [x] expand_identifiers should only allocate if anything changes
     - [x] set retval to poison, don't just return from validateAST
     - [x] identity optimizations (adding 0, multiplying by 1, etc..)
         > These aren't always reduced, especially if the other side is variable

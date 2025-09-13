@@ -813,12 +813,28 @@ fn prefix_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
         const mut = self.accept(.mut);
         return ast_.AST.create_addr_of(token, try self.prefix_expr(), mut != null, false, self.allocator);
     } else if (self.accept(.left_square)) |token| {
-        var mut = false;
         if (self.accept(.mut)) |_| {
-            mut = true;
+            _ = try self.expect(.right_square);
+            return ast_.AST.create_slice_of(token, try self.prefix_expr(), true, self.allocator);
+        } else if (self.accept(.right_square)) |_| {
+            return ast_.AST.create_slice_of(token, try self.prefix_expr(), true, self.allocator);
+        }
+
+        // Must be an array literal
+        var terms = std.ArrayList(*ast_.AST).init(self.allocator);
+        terms.append(try self.bool_expr()) catch unreachable;
+        self.newlines();
+        while (self.accept(.comma)) |_| {
+            self.newlines();
+            if (self.peek_kind(.right_square)) {
+                // Trailing comma, break out
+                break;
+            }
+            terms.append(try self.bool_expr()) catch unreachable;
+            self.newlines();
         }
         _ = try self.expect(.right_square);
-        return ast_.AST.create_slice_of(token, try self.prefix_expr(), mut, self.allocator);
+        return ast_.AST.create_array(token, terms, self.allocator);
     } else if (self.accept(.@"try")) |token| {
         return ast_.AST.create_try(token, try self.postfix_expr(), self.allocator);
     } else {
@@ -976,7 +992,7 @@ fn literal(self: *Self) Parser_Error_Enum!*ast_.AST {
 }
 
 fn newlines(self: *Self) void {
-    while (self.accept(.semicolon) orelse self.accept(.newline)) |_| {}
+    while (self.accept(.newline)) |_| {}
 }
 
 fn block_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
@@ -991,7 +1007,11 @@ fn block_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
         return ast_.AST.create_unit_value(bracetoken_, self.allocator);
     }
 
-    while (self.next_is_statement()) {
+    while (!self.peek_kind(.right_brace) and
+        !self.peek_kind(.@"break") and
+        !self.peek_kind(.@"continue") and
+        !self.peek_kind(.@"return"))
+    {
         statements.append(try self.statement()) catch unreachable;
         if (!self.peek_kind(.semicolon) and !self.peek_kind(.newline) and !self.peek_kind(.right_brace)) {
             self.errors.add_error(errs_.Error{ .expected_basic_token = .{
@@ -1000,6 +1020,7 @@ fn block_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
             } });
             return error.ParseError;
         }
+        _ = self.accept(.semicolon);
         self.newlines();
     }
 
@@ -1168,18 +1189,25 @@ fn struct_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     var fields = std.ArrayList(*Type_AST).init(self.allocator);
 
     self.newlines();
-    while (self.accept(.identifier)) |field_token| {
+    while (!self.peek_kind(.right_brace)) {
+        const ident_token = try self.expect(.identifier);
         _ = try self.expect(.single_colon);
-        const field_ident = ast_.AST.create_identifier(field_token, self.allocator);
+        const field_ident = ast_.AST.create_identifier(ident_token, self.allocator);
         const _type = try self.type_expr();
         var _init: ?*ast_.AST = null;
         if (self.accept(.single_equals)) |_| {
             _init = try self.bool_expr();
         }
 
-        const field = Type_AST.create_annotation(field_token, field_ident, _type, _init, self.allocator);
+        const field = Type_AST.create_annotation(ident_token, field_ident, _type, _init, self.allocator);
 
         fields.append(field) catch unreachable;
+        if (!self.peek_kind(.right_brace)) {
+            _ = self.accept(.comma) orelse self.accept(.newline) orelse {
+                self.errors.add_error(errs_.Error{ .expected2token = .{ .expected = .newline, .got = self.peek() } });
+                return error.ParseError;
+            };
+        }
         self.newlines();
     }
 

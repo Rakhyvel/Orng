@@ -127,9 +127,10 @@ pub const Type_AST = union(enum) {
 
         /// Retrieves the offset in bytes given a field's index
         pub fn get_offset(self: *@This(), field: usize, allocator: std.mem.Allocator) i64 {
+            _ = allocator;
             var offset: i64 = 0;
             for (0..field) |i| {
-                var item = self._terms.items[i].expand_type(allocator);
+                var item = self._terms.items[i].expand_identifier();
                 if (self._terms.items[i + 1].alignof() == 0) {
                     continue;
                 }
@@ -596,12 +597,11 @@ pub const Type_AST = union(enum) {
 
     /// Expands an ast one level if it is an identifier
     pub fn expand_identifier(self: *Type_AST) *Type_AST {
-        if ((self.* == .identifier or self.* == .access) and self.symbol().?.init_typedef() != null) {
-            const init = self.symbol().?.init_typedef().?;
-            return init; // TODO: type alias symbols
-        } else {
-            return self;
+        var res = self;
+        while ((res.* == .identifier or res.* == .access) and res.symbol().?.init_typedef() != null) {
+            res = res.symbol().?.init_typedef().?;
         }
+        return res;
     }
 
     pub fn unexpand_type(self: *Type_AST) *Type_AST {
@@ -613,105 +613,104 @@ pub const Type_AST = union(enum) {
     }
 
     /// Asserts that the type has already been expanded
-    pub fn expanded_type(self: *Type_AST) *Type_AST {
+    fn expanded_type(self: *Type_AST) *Type_AST {
         return self.common()._expanded_type.?;
     }
 
     /// Expand the type of an AST value. This call is memoized for ASTs besides identifiers.
-    pub fn expand_type(self: *Type_AST, allocator: std.mem.Allocator) *Type_AST {
-        if (self.common()._expanded_type != null and self.* != .identifier) {
-            return self.common()._expanded_type.?;
-        }
-        var retval = expand_type_internal(self, allocator);
-        self.set_expanded_type(retval);
-        retval.set_expanded_type(retval);
-        retval.set_unexpanded_type(self.common()._unexpanded_type orelse self);
-        return retval;
-    }
+    // pub fn expand_type(self: *Type_AST, allocator: std.mem.Allocator) *Type_AST {
+    //     if (self.common()._expanded_type != null and self.* != .identifier) {
+    //         return self.common()._expanded_type.?;
+    //     }
+    //     var retval = expand_type_internal(self, allocator);
+    //     self.set_expanded_type(retval);
+    //     retval.set_expanded_type(retval);
+    //     retval.set_unexpanded_type(self.common()._unexpanded_type orelse self);
+    //     return retval;
+    // }
 
-    /// Non-memoized slow path for expanding the type of an AST value.
-    fn expand_type_internal(self: *Type_AST, allocator: std.mem.Allocator) *Type_AST {
-        // FIXME: High Cyclo
-        switch (self.*) {
-            .anyptr_type, .dyn_type, .domain_of => return self,
+    // /// Non-memoized slow path for expanding the type of an AST value.
+    // fn expand_type_internal(self: *Type_AST, allocator: std.mem.Allocator) *Type_AST {
+    //     // FIXME: High Cyclo
+    //     switch (self.*) {
+    //         .anyptr_type, .dyn_type, .domain_of => return self,
 
-            .@"union" => std.debug.panic("todo", .{}),
+    //         .@"union" => std.debug.panic("todo", .{}),
 
-            .access, .identifier => {
-                const _symbol = self.symbol().?;
-                if (_symbol.kind == .@"extern" and _symbol.init_typedef() == null) {
-                    return self;
-                } else {
-                    return _symbol.init_typedef().?.expand_type(allocator);
-                }
-            },
-            .product => {
-                if (expand_type_list(self.children(), allocator)) |new_terms| {
-                    var retval = Type_AST.create_product(self.token(), new_terms, allocator);
-                    retval.product.was_slice = self.product.was_slice;
-                    return retval;
-                } else {
-                    return self;
-                }
-            },
-            .sum_type => {
-                if (expand_type_list(self.children(), allocator)) |new_terms| {
-                    var retval = Type_AST.create_sum_type(self.token(), new_terms, allocator);
-                    retval.sum_type.from = self.sum_type.from;
-                    return retval;
-                } else {
-                    return self;
-                }
-            },
-            .untagged_sum_type => {
-                return Type_AST.create_untagged_sum_type(self.token(), self.child().expand_type(allocator), allocator);
-            },
-            .function => {
-                const _lhs = self.lhs().expand_type(allocator);
-                const _rhs = self.rhs().expand_type(allocator);
-                return Type_AST.create_function(self.token(), _lhs, _rhs, allocator);
-            },
-            .annotation => {
-                const _expr = self.child().expand_type(allocator);
-                return Type_AST.create_annotation(
-                    self.token(),
-                    self.annotation.pattern,
-                    _expr,
-                    self.annotation.init,
-                    allocator,
-                );
-            },
-            .index => {
-                const _expr = self.child().expand_type(allocator);
-                return _expr.children().items[@as(usize, @intCast(self.index.idx.int.data))];
-            },
-            .addr_of, .poison, .unit_type => return self,
-            .type_of => return self.type_of._expr.typeof(allocator),
+    //         .access, .identifier => {
+    //             const _symbol = self.symbol().?;
+    //             if (_symbol.kind == .@"extern" and _symbol.init_typedef() == null) {
+    //                 return self;
+    //             } else {
+    //                 return _symbol.init_typedef().?.expand_identifier();
+    //             }
+    //         },
+    //         .product => {
+    //             if (expand_type_list(self.children(), allocator)) |new_terms| {
+    //                 var retval = Type_AST.create_product(self.token(), new_terms, allocator);
+    //                 retval.product.was_slice = self.product.was_slice;
+    //                 return retval;
+    //             } else {
+    //                 return self;
+    //             }
+    //         },
+    //         .sum_type => {
+    //             if (expand_type_list(self.children(), allocator)) |new_terms| {
+    //                 var retval = Type_AST.create_sum_type(self.token(), new_terms, allocator);
+    //                 retval.sum_type.from = self.sum_type.from;
+    //                 return retval;
+    //             } else {
+    //                 return self;
+    //             }
+    //         },
+    //         .untagged_sum_type => {
+    //             return Type_AST.create_untagged_sum_type(self.token(), self.child().expand_identifier(), allocator);
+    //         },
+    //         .function => {
+    //             const _lhs = self.lhs().expand_identifier();
+    //             const _rhs = self.rhs().expand_identifier();
+    //             return Type_AST.create_function(self.token(), _lhs, _rhs, allocator);
+    //         },
+    //         .annotation => {
+    //             const _expr = self.child().expand_identifier();
+    //             return Type_AST.create_annotation(
+    //                 self.token(),
+    //                 self.annotation.pattern,
+    //                 _expr,
+    //                 self.annotation.init,
+    //                 allocator,
+    //             );
+    //         },
+    //         .index => {
+    //             const _expr = self.child().expand_identifier();
+    //             return _expr.children().items[@as(usize, @intCast(self.index.idx.int.data))];
+    //         },
+    //         .addr_of, .poison, .unit_type => return self,
+    //         .type_of => return self.type_of._expr.typeof(allocator),
 
-            .array_of => return Type_AST.create_array_type(self.array_of.len.int.data, self.child(), allocator),
-            .slice_of => return Type_AST.create_slice_type(self.child(), self.slice_of.mut, allocator),
-        }
-    }
+    //         .array_of => return self,
+    //     }
+    // }
 
-    /// Expand the types of each AST in a list
-    fn expand_type_list(
-        asts: *const std.ArrayList(*Type_AST),
-        allocator: std.mem.Allocator,
-    ) ?std.ArrayList(*Type_AST) {
-        var terms = std.ArrayList(*Type_AST).init(allocator);
-        var change = false;
-        for (asts.items) |term| {
-            const new_term = term.expand_type(allocator);
-            terms.append(new_term) catch unreachable;
-            change = new_term != term or change;
-        }
-        if (change) {
-            return terms;
-        } else {
-            terms.deinit();
-            return null;
-        }
-    }
+    // /// Expand the types of each AST in a list
+    // fn expand_type_list(
+    //     asts: *const std.ArrayList(*Type_AST),
+    //     allocator: std.mem.Allocator,
+    // ) ?std.ArrayList(*Type_AST) {
+    //     var terms = std.ArrayList(*Type_AST).init(allocator);
+    //     var change = false;
+    //     for (asts.items) |term| {
+    //         const new_term = term.expand_identifier();
+    //         terms.append(new_term) catch unreachable;
+    //         change = new_term != term or change;
+    //     }
+    //     if (change) {
+    //         return terms;
+    //     } else {
+    //         terms.deinit();
+    //         return null;
+    //     }
+    // }
 
     pub fn print_type(self: *const Type_AST, out: anytype) !void {
         if (self.common()._unexpanded_type) |unexpanded| {
@@ -800,7 +799,7 @@ pub const Type_AST = union(enum) {
                 try out.print(")", .{});
             },
             .access => {
-                try out.print("{{TODO: print this}}::{{TODO: print this}}", .{});
+                try out.print("{}::{}", .{ self.access.container, self.access.field });
             },
             .@"union" => {
                 try self.lhs().print_type(out);
@@ -812,7 +811,7 @@ pub const Type_AST = union(enum) {
                 try self.child().print_type(out);
             },
             .type_of => {
-                try out.print("@typeof(TODO: print this)", .{});
+                try out.print("@typeof({})", .{self.type_of._expr});
             },
             .index => {
                 try self.child().print_type(out);
@@ -856,15 +855,13 @@ pub const Type_AST = union(enum) {
     /// Non-memoized slow-path for calculating the size of an AST type in bytes.
     fn sizeof_internal(self: *Type_AST) i64 {
         switch (self.*) {
-            .identifier => {
-                if (self.symbol() != null and self.symbol().?.init_typedef() != null and self.symbol().?.kind == .type) {
-                    return self.symbol().?.init_typedef().?.sizeof(); // TODO: type alias symbols
-                } else if (self.symbol() != null and self.symbol().?.init_typedef() == null and self.symbol().?.kind == .@"extern") {
-                    return 4;
-                } else {
-                    std.debug.print("{s}\n", .{self.token().data});
-                    return prelude_.info_from_name(self.token().data).?.size;
-                }
+            .identifier => if (self.symbol() != null and self.symbol().?.init_typedef() == null and self.symbol().?.kind == .@"extern") {
+                return 4;
+            } else if (self.symbol() != null and self.symbol().?.init_typedef() != null) {
+                return self.symbol().?.init_typedef().?.sizeof();
+            } else {
+                std.debug.print("not an alias!: {s}\n", .{self.token().data});
+                return prelude_.info_from_name(self.token().data).?.size;
             },
 
             .product => {
@@ -874,6 +871,11 @@ pub const Type_AST = union(enum) {
                     total_size += _child.sizeof();
                 }
                 return total_size;
+            },
+
+            .array_of => {
+                const child_size = self.child().sizeof();
+                return child_size * @as(i64, @intCast(self.array_of.len.int.data));
             },
 
             .sum_type => {
@@ -918,7 +920,7 @@ pub const Type_AST = union(enum) {
         switch (self.*) {
             .identifier => if (self.symbol() != null and self.symbol().?.init_typedef() == null and self.symbol().?.kind == .@"extern") {
                 return 4;
-            } else if (self.symbol() != null and self.symbol().?.is_alias()) {
+            } else if (self.symbol() != null and self.symbol().?.init_typedef() != null) {
                 return self.symbol().?.init_typedef().?.alignof();
             } else {
                 std.debug.print("not an alias!: {s}\n", .{self.token().data});
@@ -950,7 +952,7 @@ pub const Type_AST = union(enum) {
 
             .unit_type => return 1, // fogedda bout it
 
-            .annotation => return self.child().alignof(),
+            .annotation, .array_of => return self.child().alignof(),
 
             else => std.debug.panic("compiler error: unimplemented alignof for {s}", .{@tagName(self.*)}),
         }
@@ -1163,62 +1165,6 @@ pub const Type_AST = union(enum) {
         };
     }
 
-    /// Recursively goes through types that contain `Self`, and replaces them with the impl-for type
-    pub fn expand_identifiers(self: *Type_AST, allocator: std.mem.Allocator) *Type_AST {
-        switch (self.*) {
-            .identifier => return self.expand_identifier(),
-            .addr_of => {
-                const _expr = expand_identifiers(self.child(), allocator);
-                return create_addr_of(self.token(), _expr, self.mut(), self.addr_of.multiptr, allocator);
-            },
-            .slice_of => {
-                const _expr = expand_identifiers(self.child(), allocator);
-                return create_slice_of(self.token(), _expr, self.slice_of.mut, allocator);
-            },
-            .array_of => {
-                const _expr = expand_identifiers(self.child(), allocator);
-                return create_array_of(self.token(), _expr, self.array_of.len, allocator);
-            },
-            .annotation => {
-                const _type = expand_identifiers(self.child(), allocator);
-                return create_annotation(self.token(), self.annotation.pattern, _type, self.annotation.predicate, self.annotation.init, allocator);
-            },
-            .function => {
-                const _lhs = expand_identifiers(self.lhs(), allocator);
-                const _rhs = expand_identifiers(self.rhs(), allocator);
-                return create_function(self.token(), _lhs, _rhs, allocator);
-            },
-            .@"union" => {
-                const _lhs = expand_identifiers(self.lhs(), allocator);
-                const _rhs = expand_identifiers(self.rhs(), allocator);
-                return create_union(self.token(), _lhs, _rhs, allocator);
-            },
-            .sum_type => {
-                var new_children = std.ArrayList(*Type_AST).init(allocator);
-                for (self.children().items) |item| {
-                    const new_type = item.expand_identifiers(allocator);
-                    new_children.append(new_type) catch unreachable;
-                }
-                var retval = create_sum_type(self.token(), new_children, allocator);
-                retval.sum_type.from = self.sum_type.from;
-                // NOTE: Do NOT copy over the `all_unit` type, as Self could be unit. Leave it null to be re-evaluated.
-                return retval;
-            },
-            .product => {
-                var new_children = std.ArrayList(*Type_AST).init(allocator);
-                for (self.children().items) |item| {
-                    const new_type = item.expand_identifiers(allocator);
-                    new_children.append(new_type) catch unreachable;
-                }
-                var retval = create_product(self.token(), new_children, allocator);
-                retval.product.homotypical = self.product.homotypical;
-                retval.product.was_slice = self.product.was_slice;
-                return retval;
-            },
-            else => return self,
-        }
-    }
-
     /// Determines if an expanded AST type can represent a floating-point number value
     pub fn can_expanded_represent_int(self: *Type_AST) bool {
         const info = prelude_.info_from_ast(self) orelse return false;
@@ -1329,7 +1275,7 @@ pub const Type_AST = union(enum) {
 
         switch (self.*) {
             .identifier => return std.mem.eql(u8, self.token().data, other.token().data),
-            .addr_of => return c_types_match(self.child(), other.child()),
+            .addr_of => return c_types_match(self.child().expand_identifier(), other.child().expand_identifier()),
             .unit_type => return other.* == .unit_type,
             .anyptr_type => return other.* == .anyptr_type,
             .dyn_type => return self.child().symbol() == other.child().symbol(),
@@ -1344,6 +1290,8 @@ pub const Type_AST = union(enum) {
                 return retval;
             },
             .function => return self.lhs().c_types_match(other.lhs()) and self.rhs().c_types_match(other.rhs()),
+            .array_of => return self.child().c_types_match(other.child()),
+            .slice_of => return self.child().c_types_match(other.child()),
             else => std.debug.panic("compiler error: c_types_match(): unimplemented for {s}", .{@tagName(self.*)}),
         }
     }

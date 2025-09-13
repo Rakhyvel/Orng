@@ -38,7 +38,7 @@ pub fn assert_pattern_matches(
             try typing_.type_check(pattern.token().span, new_pattern.typeof(compiler.allocator()), expr_type, &compiler.errors);
         },
         .product => {
-            const expanded_expr_type = expr_type.expand_type(compiler.allocator());
+            const expanded_expr_type = expr_type.expand_identifier();
             if (expanded_expr_type.* != .product or expanded_expr_type.children().items.len != pattern.children().items.len) {
                 return typing_.throw_unexpected_type(pattern.token().span, expr_type, pattern.typeof(compiler.allocator()), &compiler.errors);
             }

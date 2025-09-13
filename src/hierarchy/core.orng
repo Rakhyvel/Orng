@@ -3,7 +3,7 @@ struct Package {
     kind: Pacakge_Kind
     dir: String = "."
     num_requirements: Int = 0
-    requirements: [8]?Requirement = ( // TODO: Replace with an Arraylist
+    requirements: [8]?Requirement = [ // TODO: Replace with an Arraylist
         .none,
         .none,
         .none,
@@ -12,8 +12,8 @@ struct Package {
         .none,
         .none,
         .none
-    )
-    include_dirs: [8]?String = (
+    ]
+    include_dirs: [8]?String = [
         .none,
         .none,
         .none,
@@ -22,8 +22,8 @@ struct Package {
         .none,
         .none,
         .none,
-    )
-    libs: [8]?String = (
+    ]
+    libs: [8]?String = [
         .none,
         .none,
         .none,
@@ -32,8 +32,8 @@ struct Package {
         .none,
         .none,
         .none,
-    )
-    lib_dirs: [8]?String = (
+    ]
+    lib_dirs: [8]?String = [
         .none,
         .none,
         .none,
@@ -42,7 +42,7 @@ struct Package {
         .none,
         .none,
         .none,
-    )
+    ]
 }
 
 enum Pacakge_Kind {

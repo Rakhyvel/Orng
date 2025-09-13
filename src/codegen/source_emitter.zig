@@ -135,7 +135,8 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
     var specifier: ?[]const u8 = null;
     switch (codomain.*) {
         .identifier => {
-            const info = prelude_.info_from_name(codomain.token().data).?;
+            // std.debug.print("{s}\n", .{});
+            const info = prelude_.info_from_name(codomain.expand_identifier().token().data).?;
             specifier = switch (info.type_kind) {
                 .boolean, .signed_integer => "d",
                 .unsigned_integer => "u",
@@ -143,7 +144,7 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
                 else => unreachable,
             };
         },
-        .product => {
+        .slice_of => {
             string_access = "._0";
             specifier = "s";
         },
@@ -325,13 +326,27 @@ fn output_instruction_post_check(self: *Self, instr: *Instruction) CodeGen_Error
         .load_struct => {
             try self.output_var_assign_cast(instr.dest.?, instr.dest.?.get_expanded_type());
             try self.writer.print("{{", .{});
-            var product_list = instr.dest.?.get_expanded_type().children().*;
-            for (instr.data.lval_list.items, product_list.items, 1..) |term, expected, i| {
-                if (!expected.is_c_void_type()) {
-                    // Don't use values of type `void` (don't exist in C! (Goobersville!))
-                    try self.output_rvalue(term, instr.kind.precedence());
-                    if (i < product_list.items.len and !product_list.items[i - 1].is_c_void_type()) {
-                        try self.writer.print(", ", .{});
+            const dest_type = instr.dest.?.get_expanded_type();
+            if (dest_type.* == .product) { // TODO: Likely need a `load_array` instruction
+                var product_list = dest_type.children().*;
+                for (instr.data.lval_list.items, product_list.items, 1..) |term, expected, i| {
+                    if (!expected.is_c_void_type()) {
+                        // Don't use values of type `void` (don't exist in C! (Goobersville!))
+                        try self.output_rvalue(term, instr.kind.precedence());
+                        if (i < product_list.items.len and !product_list.items[i - 1].is_c_void_type()) {
+                            try self.writer.print(", ", .{});
+                        }
+                    }
+                }
+            } else {
+                const expected = dest_type.child();
+                for (instr.data.lval_list.items, 1..) |term, i| {
+                    if (!expected.is_c_void_type()) {
+                        // Don't use values of type `void` (don't exist in C! (Goobersville!))
+                        try self.output_rvalue(term, instr.kind.precedence());
+                        if (i < instr.data.lval_list.items.len) {
+                            try self.writer.print(", ", .{});
+                        }
                     }
                 }
             }

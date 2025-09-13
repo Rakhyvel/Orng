@@ -19,7 +19,7 @@ fn generate_default_unvalidated(_type: *Type_AST, span: Span, errors: *errs_.Err
     // TODO: Too long
     switch (_type.*) {
         .identifier => {
-            const expanded_type = _type.expand_type(allocator);
+            const expanded_type = _type.expand_identifier();
             if (expanded_type == _type) {
                 const primitive_info = prelude_.info_from_name(_type.token().data) orelse {
                     errors.add_error(errs_.Error{ .no_default = .{ .span = span, ._type = _type } });

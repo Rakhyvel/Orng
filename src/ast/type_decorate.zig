@@ -24,6 +24,6 @@ pub fn new(scope: *Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) S
 
 pub fn postfix_type(self: Self, _type: *Type_AST) type_walk_.Error!void {
     while (_type.* == .type_of) {
-        _type.* = _type.expand_type(self.allocator).*;
+        _type.* = _type.type_of._expr.typeof(self.allocator).expand_identifier().*;
     }
 }

@@ -20,14 +20,14 @@ pub fn init(module: *Module, writer: Writer) Self {
 }
 
 /// Outputs the C type which corresponds to an AST type.
-pub fn output_type(self: *Self, _type: *Type_AST) CodeGen_Error!void {
-    if (_type.common()._unexpanded_type != null and
-        _type.common()._unexpanded_type.?.* == .identifier and
-        _type.common()._unexpanded_type.?.symbol() != null and
-        _type.common()._unexpanded_type.?.symbol().?.kind == .@"extern")
+pub fn output_type(self: *Self, old_type: *Type_AST) CodeGen_Error!void {
+    if (old_type.common()._unexpanded_type != null and
+        old_type.common()._unexpanded_type.?.* == .identifier and
+        old_type.common()._unexpanded_type.?.symbol() != null and
+        old_type.common()._unexpanded_type.?.symbol().?.kind == .@"extern")
     {
         // Output simply the C name for an extern type
-        try self.writer.print("{s}", .{_type.common()._unexpanded_type.?.symbol().?.kind.@"extern".c_name.?.string.data});
+        try self.writer.print("{s}", .{old_type.common()._unexpanded_type.?.symbol().?.kind.@"extern".c_name.?.string.data});
         return;
     }
 
@@ -36,13 +36,15 @@ pub fn output_type(self: *Self, _type: *Type_AST) CodeGen_Error!void {
     // }
     // std.debug.assert(_type.common()._expanded_type == null or _type.common()._expanded_type.?.* != .@"comptime");
 
-    if (_type.common()._expanded_type != null and _type.common()._expanded_type.?.sizeof() == 0) {
+    if (old_type.common()._expanded_type != null and old_type.common()._expanded_type.?.sizeof() == 0) {
         // For zero-size types that are still required to be output, ie pointers to empty untagged unions, structs, or ()
         try self.writer.print("void", .{});
         return;
     }
 
-    switch (_type.expanded_type().*) {
+    var _type = old_type.expand_identifier();
+
+    switch (_type.*) {
         .identifier => if (_type.common()._expanded_type != null and _type.common()._expanded_type.? != _type) {
             try self.output_type(_type.common()._expanded_type.?);
         } else {
@@ -57,8 +59,8 @@ pub fn output_type(self: *Self, _type: *Type_AST) CodeGen_Error!void {
             const dep = self.module.type_set.get(_type).?;
             try self.output_function_name(dep);
         },
-        .sum_type, .product => {
-            const dep = self.module.type_set.get(_type.expanded_type()).?;
+        .sum_type, .product, .array_of, .slice_of => {
+            const dep = self.module.type_set.get(_type).?;
             try self.output_struct_name(dep);
         },
         .untagged_sum_type => {

@@ -38,7 +38,8 @@ pub fn type_check_int(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Validate_Error_Enum!void {
-    const expanded_expected = if (expected != null) expected.?.expand_type(allocator) else null;
+    _ = allocator;
+    const expanded_expected = if (expected != null) expected.?.expand_identifier() else null;
     if (expanded_expected != null) { //and !try checked_types_match(prelude_.unit_type, expanded_expected.?, errors)
         const info = prelude_.info_from_ast(expanded_expected.?);
         if (info != null and info.?.bounds != null) {
@@ -239,7 +240,7 @@ pub fn implicit_dereference(
     var lhs_type = old_lhs_type;
     if (lhs_type.* == .addr_of and !lhs_type.addr_of.multiptr) {
         ast.set_lhs(validate_AST(ast_.AST.create_dereference(ast.token(), ast.lhs(), compiler.allocator()), null, compiler));
-        lhs_type = ast.lhs().typeof(compiler.allocator()).expand_type(compiler.allocator());
+        lhs_type = ast.lhs().typeof(compiler.allocator()).expand_identifier();
     }
     try poison_.assert_none_poisoned(.{ ast.lhs(), lhs_type });
     return lhs_type;

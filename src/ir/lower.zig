@@ -167,7 +167,7 @@ fn lower_AST_inner(
         .not, .negate, .addr_of, .bit_not => return try self.unop(ast, labels),
         .dereference => {
             const expr = try self.lower_AST(ast.expr(), labels) orelse return null;
-            const expanded_type = ast.typeof(self.allocator).expand_type(self.allocator);
+            const expanded_type = ast.typeof(self.allocator).expand_identifier();
             const temp = expr.create_dereference_lval(expanded_type, self.allocator);
             return temp;
         },
@@ -191,7 +191,7 @@ fn lower_AST_inner(
             // Else, store the error in retval, return through error
             self.instructions.append(err_label) catch unreachable;
 
-            const ok_type = expanded_expr_type.get_ok_type().expand_type(self.allocator);
+            const ok_type = expanded_expr_type.get_ok_type().expand_identifier();
             const ok_lval = expr.create_select_lval(0, 0, ok_type, null, self.allocator);
             self.instructions.append(Instruction.init_jump(end_label, ast.token().span, self.allocator)) catch unreachable;
             self.instructions.append(end_label) catch unreachable;
@@ -305,27 +305,27 @@ fn lower_AST_inner(
             var new_lhs = lhs;
 
             // Get the type of the index ast. This will determine if this is an array index or a slice index
-            const ast_expanded_type = ast.lhs().typeof(self.allocator).expand_type(self.allocator);
+            const ast_expanded_type = ast.lhs().typeof(self.allocator).expand_identifier();
             const _type = ast.typeof(self.allocator);
             if (ast_expanded_type.* == .addr_of) {
                 // Indexing a multi-ptr, don't change lhs
                 std.debug.assert(ast_expanded_type.addr_of.multiptr);
             } else if (ast_expanded_type.* == .product and ast_expanded_type.product.was_slice) {
                 // Indexing a slice; index_val := lhs._0^[rhs]
-                new_lhs = new_lhs.create_select_lval(0, 0, _type.expand_type(self.allocator), null, self.allocator);
-                new_lhs = new_lhs.create_dereference_lval(_type.expand_type(self.allocator), self.allocator);
+                new_lhs = new_lhs.create_select_lval(0, 0, _type.expand_identifier(), null, self.allocator);
+                new_lhs = new_lhs.create_dereference_lval(_type.expand_identifier(), self.allocator);
             }
 
             // Surround with L_Value node
             const length: ?*lval_.L_Value = self.generate_indexable_length(lhs, ast_expanded_type, ast.token().span);
-            return new_lhs.create_index_lval(rhs, length, _type.expand_type(self.allocator), self.allocator);
+            return new_lhs.create_index_lval(rhs, length, _type.expand_identifier(), self.allocator);
         },
         .select => {
             // Recursively get select's ast L_Value node
             const ast_lval = try self.lower_AST(ast.lhs(), labels); // cannot be unreachable, since unreachable isn't selectable
 
             // Get the offset into the struct that this select does
-            var lhs_expanded_type = ast.lhs().typeof(self.allocator).expand_type(self.allocator);
+            var lhs_expanded_type = ast.lhs().typeof(self.allocator).expand_identifier();
             const offset = if (lhs_expanded_type.* == .product)
                 lhs_expanded_type.product.get_offset(ast.pos().?, self.allocator)
             else
@@ -340,11 +340,11 @@ fn lower_AST_inner(
 
             // Surround with L_Value node
             const field = ast.pos().?;
-            const expanded_type = ast.typeof(self.allocator).expand_type(self.allocator);
+            const expanded_type = ast.typeof(self.allocator).expand_identifier();
             return ast_lval.?.create_select_lval(field, offset, expanded_type, tag, self.allocator);
         },
-        .product => {
-            _ = ast.typeof(self.allocator).expand_type(self.allocator);
+        .product, .array_value => {
+            _ = ast.typeof(self.allocator).expand_identifier();
             const temp = self.create_temp_lvalue(ast.typeof(self.allocator));
             var instr = Instruction.init_load_struct(temp, ast.token().span, self.allocator);
             for (ast.children().items) |term| {
@@ -365,7 +365,7 @@ fn lower_AST_inner(
             self.instructions.append(Instruction.init(.sub_int, new_size, upper, lower, ast.token().span, self.allocator)) catch unreachable;
 
             const data_type = ast.typeof(self.allocator).children().items[0];
-            const data_ptr = arr.create_select_lval(0, 0, data_type.expand_type(self.allocator), null, self.allocator);
+            const data_ptr = arr.create_select_lval(0, 0, data_type.expand_identifier(), null, self.allocator);
 
             const new_data_ptr = self.create_temp_lvalue(data_type);
             self.instructions.append(Instruction.init(.add_int, new_data_ptr, data_ptr, lower, ast.token().span, self.allocator)) catch unreachable;
@@ -565,7 +565,7 @@ fn lower_AST_inner(
                 if (def == null) {
                     return null;
                 }
-                try self.generate_pattern(ast.decl.pattern, ast.decl.type.expand_type(self.allocator), def.?);
+                try self.generate_pattern(ast.decl.pattern, ast.decl.type.expand_identifier(), def.?);
             }
             return self.lval_from_unit_value(ast);
         },
@@ -772,7 +772,7 @@ fn tuple_equality_flow(
     var lhs_type = lhs.get_expanded_type();
     if (lhs_type.* == .product) {
         for (0..lhs_type.children().items.len) |field| {
-            const expanded_type = lhs_type.children().items[field].expand_type(self.allocator);
+            const expanded_type = lhs_type.children().items[field].expand_identifier();
             const offset = lhs_type.product.get_offset(field, self.allocator);
             const lhs_select = new_lhs.create_select_lval(field, offset, expanded_type, null, self.allocator);
             const rhs_select = new_rhs.create_select_lval(field, offset, expanded_type, null, self.allocator);
@@ -818,7 +818,7 @@ fn coalesce_op(
 
     // tag was `.ok` or `.some`, store lhs in temp
     self.instructions.append(zero_label) catch unreachable;
-    const expanded_type = ast.typeof(self.allocator).expand_type(self.allocator);
+    const expanded_type = ast.typeof(self.allocator).expand_identifier();
     const val = lhs.create_select_lval(0, 0, expanded_type, null, self.allocator);
     const ok_lval = lval_.L_Value.create_unversioned_symbver(coalesce_symbol, self.allocator);
     self.instructions.append(Instruction.init_simple_copy(ok_lval, val, ast.token().span, self.allocator)) catch unreachable;
@@ -847,20 +847,20 @@ fn generate_assign(
         // product-assigns may be nested, for example:
         //     ((x, y), (a, b)) = get_tuple()
         // So it's important that this is recursive
-        var lhs_expanded_type = lhs.typeof(self.allocator).expand_type(self.allocator);
+        var lhs_expanded_type = lhs.typeof(self.allocator).expand_identifier();
         for (lhs.children().items, 0..) |term, field| {
             const product_lhs = try self.lower_AST(term, labels);
             if (product_lhs == null) {
                 continue;
             }
-            const expanded_type = rhs.get_expanded_type().children().items[field].expand_type(self.allocator);
+            const expanded_type = rhs.get_expanded_type().children().items[field].expand_identifier();
             const offset = lhs_expanded_type.product.get_offset(field, self.allocator);
             const select = rhs.create_select_lval(field, offset, expanded_type, null, self.allocator);
             try self.generate_assign(term, select, labels);
         }
-    } else if (lhs.* == .select and lhs.lhs().typeof(self.allocator).expand_type(self.allocator).* == .sum_type) {
+    } else if (lhs.* == .select and lhs.lhs().typeof(self.allocator).expand_identifier().* == .sum_type) {
         // Select on a sum-type, convert to a copy of a sum_value
-        const sum_value = self.create_temp_lvalue(lhs.lhs().typeof(self.allocator).expand_type(self.allocator));
+        const sum_value = self.create_temp_lvalue(lhs.lhs().typeof(self.allocator).expand_identifier());
         self.instructions.append(Instruction.init_union(sum_value, rhs, lhs.pos().?, lhs.token().span, self.allocator)) catch unreachable;
         try self.generate_assign(lhs.lhs(), sum_value, labels);
     } else {
@@ -888,6 +888,10 @@ fn generate_indexable_length(
     } else if (_type.* == .product and !_type.product.was_slice) {
         const retval = self.create_temp_lvalue(prelude_.int_type);
         self.instructions.append(Instruction.init_int(retval, _type.children().items.len, span, self.allocator)) catch unreachable;
+        return retval;
+    } else if (_type.* == .array_of) {
+        const retval = self.create_temp_lvalue(prelude_.int_type);
+        self.instructions.append(Instruction.init_int(retval, _type.array_of.len.int.data, span, self.allocator)) catch unreachable;
         return retval;
     } else {
         std.debug.panic("compiler error: cannot generate Instruction to get length of type AST.{s}\n", .{@tagName(_type.*)});
@@ -1049,8 +1053,8 @@ fn generate_match_pattern_check(
         },
         .product => {
             for (pattern.?.children().items, 0..) |term, field| {
-                const expanded_type = expr.get_expanded_type().children().items[field].expand_type(self.allocator);
-                const pattern_type = pattern.?.typeof(self.allocator).expand_type(self.allocator);
+                const expanded_type = expr.get_expanded_type().children().items[field].expand_identifier();
+                const pattern_type = pattern.?.typeof(self.allocator).expand_identifier();
                 const offset = pattern_type.product.get_offset(field, self.allocator);
                 const lval = expr.create_select_lval(field, offset, expanded_type, null, self.allocator);
                 try self.generate_match_pattern_check(term, lval, next_pattern, labels);
@@ -1142,7 +1146,7 @@ fn create_temp_symbol(self: *Self, _type: *Type_AST) *Symbol {
         .mut,
         self.allocator,
     );
-    _ = _type.expand_type(self.allocator);
+    _ = _type.expand_identifier();
     temp_symbol.is_temp = true;
     return temp_symbol;
 }
@@ -1173,13 +1177,13 @@ fn generate_pattern(
         }
     } else if (pattern.* == .product) {
         for (pattern.children().items, 0..) |term, field| {
-            const expanded_type = _type.children().items[field].expand_type(self.allocator);
+            const expanded_type = _type.children().items[field].expand_identifier();
             const offset = _type.product.get_offset(field, self.allocator);
             const lval = def.create_select_lval(field, offset, expanded_type, null, self.allocator);
             try self.generate_pattern(term, expanded_type, lval);
         }
     } else if (pattern.* == .sum_value) {
-        const expanded_type = pattern.sum_value.domain.?.child().expand_type(self.allocator);
+        const expanded_type = pattern.sum_value.domain.?.child().expand_identifier();
         const field = pattern.pos().?;
         const lval = def.create_select_lval(field, 0, expanded_type, null, self.allocator);
         try self.generate_pattern(pattern.sum_value.init.?, expanded_type, lval);
