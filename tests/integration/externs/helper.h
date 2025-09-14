@@ -11,13 +11,14 @@ typedef struct Some_Type
 } Some_Type;
 
 // Needed until we get the ffi module in the std library
-inline static char *
+inline static int
 printf_wrapper(uint8_t *fmt, ...)
 {
     va_list args;
     va_start(args, (char *)fmt);
-    vprintf((char *)fmt, args);
+    int retval = vprintf((char *)fmt, args);
     va_end(args);
+    return retval;
 }
 
 inline static Some_Type construct_some_type(int64_t x, int64_t y)

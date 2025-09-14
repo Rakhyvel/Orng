@@ -1,7 +1,10 @@
 // 341
 
 cinclude "helper.h"
-extern type Some_Type = (x: Int, y: Int)
+extern struct Some_Type {
+    x: Int
+    y: Int
+}
 extern const sum: Some_Type -> Int
 
 fn main() -> Int {

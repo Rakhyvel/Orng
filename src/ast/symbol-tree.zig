@@ -105,6 +105,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 ast.decl_name().token().data,
                 ast,
                 .type,
+                ast.decl_name().pattern_symbol.storage,
                 self.allocator,
             );
             try self.register_symbol(ast, symbol);
@@ -150,6 +151,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 ast_.AST.create_pattern_symbol(
                     Token.init_simple("Self"),
                     .type,
+                    .local,
                     "Self",
                     self.allocator,
                 ),
@@ -194,6 +196,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 ast_.AST.create_pattern_symbol(
                     Token.init_simple("Self"),
                     .type,
+                    .local,
                     "Self",
                     self.allocator,
                 ),
@@ -244,7 +247,7 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
         .decl => {
             if (ast.decl._top_level) {
                 for (ast.decl.symbols.items) |symbol| {
-                    if (symbol.kind != .@"const" and symbol.kind != .@"extern" and symbol.kind != .import) {
+                    if (symbol.kind != .@"const" and symbol.kind != .import) {
                         self.errors.add_error(errs_.Error{ .basic = .{
                             .span = symbol.span(),
                             .msg = "top level symbols must be marked `const`",
@@ -328,6 +331,7 @@ fn create_symbol(
                 pattern.pattern_symbol.name,
                 decl,
                 pattern.pattern_symbol.kind,
+                pattern.pattern_symbol.storage,
                 allocator,
             );
             pattern.set_symbol(symbol);
@@ -430,6 +434,7 @@ pub fn create_function_symbol(
         buf,
         ast,
         .@"fn",
+        .local,
         allocator,
     );
     fn_scope.inner_function = retval;
@@ -455,6 +460,7 @@ pub fn create_test_symbol(
         buf,
         ast,
         .@"test",
+        .local,
         allocator,
     );
     fn_scope.inner_function = retval;
@@ -595,6 +601,7 @@ fn create_trait_symbol(
         ast.token().data,
         ast,
         .trait,
+        .local,
         allocator,
     );
     retval.defined = true;
@@ -654,6 +661,7 @@ fn create_method_symbol(
             if (ast.method_decl.receiver.?.receiver.kind == .value) "$self_ptr" else "self",
             ast.method_decl.receiver,
             .let,
+            .local,
             allocator,
         );
         try fn_scope.put_symbol(receiver_symbol, errors);
@@ -665,7 +673,7 @@ fn create_method_symbol(
             const receiver_span = ast.method_decl.receiver.?.token().span;
             const self_decl = ast_.AST.create_decl(
                 ast.token(),
-                ast_.AST.create_pattern_symbol(Token.init("self", .identifier, receiver_span.filename, receiver_span.line_text, receiver_span.line_number, receiver_span.col), .let, "self", allocator),
+                ast_.AST.create_pattern_symbol(Token.init("self", .identifier, receiver_span.filename, receiver_span.line_text, receiver_span.line_number, receiver_span.col), .let, .local, "self", allocator),
                 self_type,
                 self_init,
                 false,
@@ -702,6 +710,7 @@ fn create_method_symbol(
         ast.method_decl.name.token().data,
         ast,
         .@"fn",
+        .local,
         allocator,
     );
     fn_scope.inner_function = retval;

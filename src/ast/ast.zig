@@ -316,6 +316,7 @@ pub const AST = union(enum) {
         common: AST_Common,
         name: []const u8,
         kind: Symbol.Kind,
+        storage: Symbol.Storage,
         _symbol: ?*Symbol = undefined,
     },
     decl: struct {
@@ -1046,6 +1047,7 @@ pub const AST = union(enum) {
     pub fn create_pattern_symbol(
         _token: Token,
         kind: Symbol.Kind,
+        storage: Symbol.Storage,
         name: []const u8,
         allocator: std.mem.Allocator,
     ) *AST {
@@ -1053,6 +1055,7 @@ pub const AST = union(enum) {
             AST{ .pattern_symbol = .{
                 .common = AST_Common{ ._token = _token, ._type = null },
                 .kind = kind,
+                .storage = storage,
                 .name = name,
             } },
             allocator,
@@ -1555,6 +1558,7 @@ pub const AST = union(enum) {
             .pattern_symbol => return create_pattern_symbol(
                 self.token(),
                 self.pattern_symbol.kind,
+                self.pattern_symbol.storage,
                 self.pattern_symbol.name,
                 allocator,
             ),
@@ -1645,6 +1649,14 @@ pub const AST = union(enum) {
 
     pub fn set_expr(self: *AST, val: *AST) void {
         set_field(self, "_expr", val);
+    }
+
+    pub fn @"type"(self: *AST) *Type_AST {
+        return switch (self.*) {
+            .size_of => self.size_of._type,
+            .default => self.default._type,
+            else => std.debug.panic("can't call type on {s}\n", .{@tagName(self.*)}),
+        };
     }
 
     pub fn symbol(self: AST) ?*Symbol {

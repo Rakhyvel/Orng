@@ -186,6 +186,7 @@ fn import_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     var pattern = ast_.AST.create_pattern_symbol(
         identifier,
         .{ .import = .{ .real_name = identifier.data } },
+        .local,
         identifier.data,
         self.allocator,
     );
@@ -228,6 +229,7 @@ fn extern_const_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
         var retval = try self.const_declaration();
         retval.decl.pattern = ast_.AST.create_pattern_symbol(
             retval.decl.pattern.token(),
+            .@"const",
             .{ .@"extern" = .{ .c_name = c_name } },
             retval.decl.pattern.token().data,
             self.allocator,
@@ -239,8 +241,19 @@ fn extern_const_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
         var retval = try self.type_alias_declaration();
         retval.type_alias.name = ast_.AST.create_pattern_symbol(
             retval.type_alias.name.token(),
+            .type,
             .{ .@"extern" = .{ .c_name = c_name } },
             retval.type_alias.name.token().data,
+            self.allocator,
+        );
+        return retval;
+    } else if (self.peek_kind(.@"struct")) {
+        var retval = try self.struct_declaration();
+        retval.@"struct".name = ast_.AST.create_pattern_symbol(
+            retval.@"struct".name.token(),
+            .type,
+            .{ .@"extern" = .{ .c_name = c_name } },
+            retval.@"struct".name.token().data,
             self.allocator,
         );
         return retval;
@@ -328,10 +341,9 @@ fn prefix_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
     } else if (self.accept(.at_symbol)) |_| {
         const token = try self.expect(.identifier);
 
-        const args = try self.call_args();
-
         // TODO: Would be nice to make a table of this, somehow!
         if (std.mem.eql(u8, token.data, "typeof")) {
+            const args = try self.call_args();
             if (args.items.len != 1) {
                 self.errors.add_error(errs_.Error{ .mismatch_arity = .{
                     .span = token.span,
@@ -344,6 +356,20 @@ fn prefix_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
                 return error.ParseError;
             }
             return Type_AST.create_type_of(token, args.items[0], self.allocator);
+        } else if (std.mem.eql(u8, token.data, "Untagged")) {
+            const args = try self.call_type_args();
+            if (args.items.len != 1) {
+                self.errors.add_error(errs_.Error{ .mismatch_arity = .{
+                    .span = token.span,
+                    .takes = 2,
+                    .given = args.items.len,
+                    .thing_name = "built-in function",
+                    .takes_name = "parameter",
+                    .given_name = "argument",
+                } });
+                return error.ParseError;
+            }
+            return Type_AST.create_untagged_sum_type(token, args.items[0], self.allocator);
         } else {
             self.errors.add_error(errs_.Error{ .basic = .{ .msg = "unknown built-in function", .span = token.span } }); // TODO: Unique error message that says the builtin function name
             return error.ParseError;
@@ -433,7 +459,7 @@ fn const_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     const token = try self.expect(.@"const");
 
     const identifier = try self.expect(.identifier);
-    const pattern = ast_.AST.create_pattern_symbol(identifier, .@"const", identifier.data, self.allocator);
+    const pattern = ast_.AST.create_pattern_symbol(identifier, .@"const", .local, identifier.data, self.allocator);
     var _type: ?*Type_AST = null;
     var _init: ?*ast_.AST = null;
 
@@ -514,7 +540,7 @@ fn let_pattern_atom(self: *Self) Parser_Error_Enum!*ast_.AST {
             kind = .let;
         }
         const identifier = try self.expect(.identifier);
-        return ast_.AST.create_pattern_symbol(identifier, kind, identifier.data, self.allocator);
+        return ast_.AST.create_pattern_symbol(identifier, kind, .local, identifier.data, self.allocator);
     } else if (self.accept(.left_parenthesis)) |_| {
         const res = try self.let_pattern_product();
         _ = try self.expect(.right_parenthesis);
@@ -1203,7 +1229,7 @@ fn param(self: *Self) Parser_Error_Enum!*ast_.AST {
         kind = .let;
     }
     const identifier = try self.expect(.identifier);
-    const ident = ast_.AST.create_pattern_symbol(identifier, kind, identifier.data, self.allocator);
+    const ident = ast_.AST.create_pattern_symbol(identifier, kind, .local, identifier.data, self.allocator);
 
     var _type: *Type_AST = undefined;
     var _init: ?*ast_.AST = null;
@@ -1228,7 +1254,7 @@ fn param(self: *Self) Parser_Error_Enum!*ast_.AST {
 fn struct_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     _ = try self.expect(.@"struct");
     const identifier = try self.expect(.identifier);
-    const name = ast_.AST.create_pattern_symbol(identifier, .@"const", identifier.data, self.allocator);
+    const name = ast_.AST.create_pattern_symbol(identifier, .type, .local, identifier.data, self.allocator);
     _ = try self.expect(.left_brace);
 
     var fields = std.ArrayList(*Type_AST).init(self.allocator);
@@ -1263,7 +1289,7 @@ fn struct_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
 fn enum_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     _ = try self.expect(.@"enum");
     const identifier = try self.expect(.identifier);
-    const name = ast_.AST.create_pattern_symbol(identifier, .@"const", identifier.data, self.allocator);
+    const name = ast_.AST.create_pattern_symbol(identifier, .type, .local, identifier.data, self.allocator);
     _ = try self.expect(.left_brace);
 
     var fields: std.ArrayList(*Type_AST) = std.ArrayList(*Type_AST).init(self.allocator);
@@ -1290,7 +1316,7 @@ fn enum_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
 fn type_alias_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     _ = try self.expect(.type);
     const identifier = try self.expect(.identifier);
-    const name = ast_.AST.create_pattern_symbol(identifier, .@"const", identifier.data, self.allocator);
+    const name = ast_.AST.create_pattern_symbol(identifier, .type, .local, identifier.data, self.allocator);
 
     var _init: ?*Type_AST = null;
 
@@ -1375,7 +1401,7 @@ fn withlist(self: *Self) Parser_Error_Enum!std.ArrayList(*ast_.AST) {
 
 fn with_decl(self: *Self) Parser_Error_Enum!*ast_.AST {
     const identifier = try self.expect(.identifier);
-    const ident = ast_.AST.create_pattern_symbol(identifier, .@"const", identifier.data, self.allocator);
+    const ident = ast_.AST.create_pattern_symbol(identifier, .@"const", .local, identifier.data, self.allocator);
     _ = try self.expect(.single_colon);
     const _type = try self.type_expr();
 
@@ -1559,7 +1585,7 @@ fn match_pattern_sum_value(self: *Self) Parser_Error_Enum!*ast_.AST {
 fn match_pattern_atom(self: *Self) Parser_Error_Enum!*ast_.AST {
     if (self.accept(.mut)) |_| {
         const identifier = try self.expect(.identifier);
-        return ast_.AST.create_pattern_symbol(identifier, .mut, identifier.data, self.allocator);
+        return ast_.AST.create_pattern_symbol(identifier, .mut, .local, identifier.data, self.allocator);
     } else if (self.accept(.identifier)) |token| {
         if (self.peek_kind(.period)) {
             var exp = ast_.AST.create_identifier(token, self.allocator);
@@ -1573,7 +1599,7 @@ fn match_pattern_atom(self: *Self) Parser_Error_Enum!*ast_.AST {
             }
             return exp;
         } else {
-            return ast_.AST.create_pattern_symbol(token, .let, token.data, self.allocator);
+            return ast_.AST.create_pattern_symbol(token, .let, .local, token.data, self.allocator);
         }
     } else if (self.accept(.period)) |_| {
         const sum_val = ast_.AST.create_sum_value(try self.expect(.identifier), self.allocator); // member will be inferred

@@ -545,7 +545,7 @@ pub const Type_AST = union(enum) {
     pub fn children(self: *const Type_AST) *const std.ArrayList(*Type_AST) {
         return switch (self.*) {
             .sum_type => &self.sum_type._terms,
-            .untagged_sum_type => &self.untagged_sum_type._child.sum_type._terms,
+            .untagged_sum_type => self.child().expand_identifier().children(),
             .product => &self.product._terms,
             else => std.debug.panic("compiler error: cannot call `.children()` on the Type_AST `{}`", .{self}),
         };
@@ -597,9 +597,14 @@ pub const Type_AST = union(enum) {
 
     /// Expands an ast one level if it is an identifier
     pub fn expand_identifier(self: *Type_AST) *Type_AST {
+        if (self.* == .annotation) {
+            return self.child().expand_identifier();
+        }
         var res = self;
         while ((res.* == .identifier or res.* == .access) and res.symbol().?.init_typedef() != null) {
-            res = res.symbol().?.init_typedef().?;
+            const new = res.symbol().?.init_typedef().?;
+            new.set_unexpanded_type(res);
+            res = new;
         }
         return res;
     }
@@ -755,13 +760,11 @@ pub const Type_AST = union(enum) {
     /// Non-memoized slow-path for calculating the size of an AST type in bytes.
     fn sizeof_internal(self: *Type_AST) i64 {
         switch (self.*) {
-            .identifier => if (self.symbol() != null and self.symbol().?.init_typedef() == null and self.symbol().?.kind == .@"extern") {
-                return 4;
-            } else if (self.symbol() != null and self.symbol().?.init_typedef() != null) {
+            .identifier => if (self.symbol() != null and self.symbol().?.init_typedef() != null) {
                 return self.symbol().?.init_typedef().?.sizeof();
             } else {
-                std.debug.print("not an alias!: {s}\n", .{self.token().data});
-                return prelude_.info_from_name(self.token().data).?.size;
+                const primitive_info = prelude_.info_from_name(self.token().data) orelse return 4; // gotta return something... TODO: Sized trait
+                return primitive_info.size;
             },
 
             .product => {
@@ -786,7 +789,7 @@ pub const Type_AST = union(enum) {
                 return alignment_.next_alignment(max_size, 8) + 8;
             },
             .untagged_sum_type => {
-                std.debug.assert(self.child().* == .sum_type);
+                std.debug.assert(self.child().expand_identifier().* == .sum_type); // TOOD: validate...
                 var max_size: i64 = 0;
                 for (self.children().items) |_child| {
                     max_size = @max(max_size, _child.sizeof());
@@ -818,13 +821,11 @@ pub const Type_AST = union(enum) {
     /// Non-memoized slow-path of alignment calculation.
     fn alignof_internal(self: *Type_AST) i64 {
         switch (self.*) {
-            .identifier => if (self.symbol() != null and self.symbol().?.init_typedef() == null and self.symbol().?.kind == .@"extern") {
-                return 4;
-            } else if (self.symbol() != null and self.symbol().?.init_typedef() != null) {
+            .identifier => if (self.symbol() != null and self.symbol().?.init_typedef() != null) {
                 return self.symbol().?.init_typedef().?.alignof();
             } else {
-                std.debug.print("not an alias!: {s}\n", .{self.token().data});
-                return prelude_.info_from_name(self.token().data).?._align;
+                const primitive_info = prelude_.info_from_name(self.token().data) orelse return 4; // gotta return something... TODO: Sized trait
+                return primitive_info._align;
             },
 
             .product => {
@@ -843,7 +844,7 @@ pub const Type_AST = union(enum) {
             => return 8,
 
             .untagged_sum_type => {
-                std.debug.assert(self.child().* == .sum_type);
+                std.debug.assert(self.child().expand_identifier().* == .sum_type);
                 var max_size: i64 = 0;
                 for (self.children().items) |_child| {
                     max_size = @max(max_size, _child.alignof());

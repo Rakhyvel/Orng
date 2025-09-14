@@ -136,6 +136,10 @@ fn validate_AST_internal(
                 return error.CompileError;
             }
             try validate_symbol_.validate(symbol, compiler);
+            if (symbol.refers_to_type()) {
+                compiler.errors.add_error(errs_.Error{ .unexpected_type_type = .{ .expected = expected, .span = ast.token().span } });
+                return ast.enpoison();
+            }
             try typing_.type_check(ast.token().span, symbol.type(), expected, &compiler.errors);
             return ast;
         },

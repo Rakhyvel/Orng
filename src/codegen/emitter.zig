@@ -21,27 +21,13 @@ pub fn init(module: *Module, writer: Writer) Self {
 
 /// Outputs the C type which corresponds to an AST type.
 pub fn output_type(self: *Self, old_type: *Type_AST) CodeGen_Error!void {
-    if (old_type.common()._unexpanded_type != null and
-        old_type.common()._unexpanded_type.?.* == .identifier and
-        old_type.common()._unexpanded_type.?.symbol() != null and
-        old_type.common()._unexpanded_type.?.symbol().?.kind == .@"extern")
-    {
-        // Output simply the C name for an extern type
-        try self.writer.print("{s}", .{old_type.common()._unexpanded_type.?.symbol().?.kind.@"extern".c_name.?.string.data});
+    if (old_type.unexpand_type() != old_type) {
+        return try self.output_type(old_type.unexpand_type());
+    }
+    if (old_type.* == .identifier and old_type.symbol() != null and old_type.symbol().?.storage == .@"extern") {
+        try self.writer.print("{s}", .{old_type.symbol().?.storage.@"extern".c_name.?.string.data});
         return;
     }
-
-    // if (_type.common()._expanded_type != null and _type.common()._expanded_type.?.* == .@"comptime") {
-    //     return try self.output_type(_type.common()._expanded_type.?.@"comptime".result.?);
-    // }
-    // std.debug.assert(_type.common()._expanded_type == null or _type.common()._expanded_type.?.* != .@"comptime");
-
-    if (old_type.common()._expanded_type != null and old_type.common()._expanded_type.?.sizeof() == 0) {
-        // For zero-size types that are still required to be output, ie pointers to empty untagged unions, structs, or ()
-        try self.writer.print("void", .{});
-        return;
-    }
-
     var _type = old_type.expand_identifier();
 
     switch (_type.*) {
@@ -169,7 +155,7 @@ pub fn output_var_decl(
     if (!is_parameter) {
         try self.writer.print("    ", .{});
     }
-    try self.output_type(symbol.expanded_type());
+    try self.output_type(symbol.type());
     try self.writer.print(" ", .{});
     try self.output_symbol(symbol);
     if (!is_parameter) {
@@ -179,8 +165,8 @@ pub fn output_var_decl(
 
 /// Outputs a symbol with it's file's unique identifier
 pub fn output_symbol(self: *Self, symbol: *Symbol) CodeGen_Error!void {
-    if (symbol.kind == .@"extern") {
-        try self.writer.print("{s}", .{symbol.kind.@"extern".c_name.?.string.data});
+    if (symbol.storage == .@"extern") {
+        try self.writer.print("{s}", .{symbol.storage.@"extern".c_name.?.string.data});
     } else if (symbol.decl != null and symbol.decl.?.* != .receiver and symbol.decl.?.top_level()) {
         try self.writer.print("p{s}_m{s}_{}_{s}", .{ symbol.scope.module.?.package_name, symbol.scope.module.?.name(), symbol.scope.uid, symbol.name });
     } else {

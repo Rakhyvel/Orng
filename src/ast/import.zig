@@ -96,6 +96,7 @@ fn unwrap_access_imports(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.
                 ast_.AST.create_pattern_symbol(
                     ast.token(),
                     .import_inner,
+                    .local,
                     anon_names.items[i],
                     self.compiler.allocator(),
                 ),
@@ -114,6 +115,7 @@ fn unwrap_access_imports(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.
                 .pattern = ast_.AST.create_pattern_symbol(
                     ast.token(),
                     .{ .import = .{ .real_name = term.token().data } },
+                    .local,
                     anon_names.items[i],
                     self.compiler.allocator(),
                 ),

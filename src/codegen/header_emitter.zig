@@ -190,7 +190,7 @@ fn output_typedef(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
     } else if (dep.base.* == .untagged_sum_type) {
         try self.emitter.output_untagged_sum_name(dep);
         try self.writer.print(" {{\n", .{});
-        if (!dep.base.child().sum_type.is_all_unit()) {
+        if (!dep.base.child().expand_identifier().sum_type.is_all_unit()) {
             try self.output_field_list(dep.base.children(), 4);
         }
         try self.writer.print("}};\n\n", .{});

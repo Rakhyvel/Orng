@@ -150,6 +150,7 @@ pub const Module = struct {
                 compiler.allocator(),
             ),
             .module,
+            .local,
             compiler.allocator(),
         );
         try compiler.prelude.put_symbol(symbol, &compiler.errors);
@@ -207,6 +208,7 @@ pub const Module = struct {
                     compiler.allocator(),
                 ),
                 .{ .import = .{ .real_name = "core" } },
+                .local,
                 compiler.allocator(),
             );
             try file_root.put_symbol(core_import_symbol, &compiler.errors);

@@ -155,6 +155,10 @@ pub const Error = union(enum) {
         expected: *Type_AST,
         got: *Type_AST,
     },
+    unexpected_type_type: struct {
+        span: Span,
+        expected: ?*Type_AST,
+    },
     expected_builtin_typeclass: struct {
         span: Span,
         expected: []const u8, // name of the type class
@@ -264,6 +268,7 @@ pub const Error = union(enum) {
             .trait_virtual_refers_to_self => return self.trait_virtual_refers_to_self.span,
 
             .unexpected_type => return self.unexpected_type.span,
+            .unexpected_type_type => return self.unexpected_type_type.span,
             .expected_builtin_typeclass => return self.expected_builtin_typeclass.span,
             .duplicate => return self.duplicate.span,
             .member_not_in => return self.member_not_in.span,
@@ -435,6 +440,13 @@ pub const Error = union(enum) {
                     err.unexpected_type.got.print_type(writer) catch unreachable;
                 }
                 writer.print("`\n", .{}) catch unreachable;
+            },
+            .unexpected_type_type => {
+                if (err.unexpected_type_type.expected) |expected| {
+                    writer.print("expected a value of type `{}`, got a type", .{expected}) catch unreachable;
+                } else {
+                    writer.print("unexpected type\n", .{}) catch unreachable;
+                }
             },
             .expected_builtin_typeclass => {
                 writer.print("expected a value of a(n) {s} type, got `", .{err.expected_builtin_typeclass.expected}) catch unreachable;

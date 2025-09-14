@@ -13,7 +13,6 @@ const Self = @This();
 pub const Kind = union(enum) {
     @"fn",
     @"const",
-    @"extern": struct { c_name: ?*ast_.AST },
     let,
     mut,
     type,
@@ -26,6 +25,11 @@ pub const Kind = union(enum) {
     import_inner, // Created from the inner expressions of qualified import statements, similar to consts
     module, // Refers to modules. The init is the `module` AST, which refers to the module and to the scope. `Module`s have their symbol
     @"test",
+};
+
+pub const Storage = union(enum) {
+    local,
+    @"extern": struct { c_name: ?*ast_.AST },
 };
 
 pub const Symbol_Validation_State = validation_state_.Validation_State(*Self);
@@ -42,6 +46,7 @@ name: []const u8,
 kind: Kind,
 cfg: ?*CFG,
 decl: ?*ast_.AST,
+storage: Storage,
 
 // Use-def
 aliases: u64 = 0, // How many times the symbol is taken as a mutable address
@@ -63,6 +68,7 @@ pub fn init(
     name: []const u8,
     decl: ?*ast_.AST,
     kind: Kind,
+    storage: Storage,
     allocator: std.mem.Allocator,
 ) *Self {
     var retval = allocator.create(Self) catch unreachable;
@@ -74,6 +80,7 @@ pub fn init(
     retval.uses = 0;
     retval.offset = null;
     retval.kind = kind;
+    retval.storage = storage;
     retval.cfg = null;
     if (kind == .@"fn" or kind == .@"const") {
         retval.defined = true;
@@ -93,6 +100,10 @@ pub fn assert_symbol_valid(self: *Self) *Self {
 pub fn assert_init_valid(self: *Self) *Self {
     self.init_validation_state = Symbol_Validation_State{ .valid = .{ .valid_form = self } };
     return self;
+}
+
+pub fn refers_to_type(self: *const Self) bool {
+    return self.decl.?.* == .@"struct" or self.decl.?.* == .@"enum" or self.decl.?.* == .type_alias;
 }
 
 pub fn @"type"(self: *const Self) *Type_AST {
@@ -159,7 +170,7 @@ pub fn err_if_undefd(self: *Self, errors: *errs_.Errors, use: Span) error{Compil
     if (self.uses != 0 and // symbol has been used somewhere
         self.defs == 0 and // symbol hasn't been defined anywhere
         !self.param and // symbol isn't a parameter (these don't have defs!)
-        self.kind != .@"extern" // symbol isn't an extern (these also don't have defs!)
+        self.storage != .@"extern" // symbol isn't an extern (these also don't have defs!)
     ) {
         errors.add_error(errs_.Error{ .symbol_error = .{
             .span = use,

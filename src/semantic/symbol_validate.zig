@@ -70,11 +70,11 @@ pub fn validate(symbol: *Symbol, compiler: *Compiler_Context) Validate_Error_Enu
     //     }
     // }
 
-    if (symbol.kind == .@"extern") {
-        if (symbol.kind.@"extern".c_name != null) {
-            symbol.kind.@"extern".c_name = validate_AST(symbol.kind.@"extern".c_name.?, prelude_.string_type, compiler);
+    if (symbol.storage == .@"extern") {
+        if (symbol.storage.@"extern".c_name != null) {
+            symbol.storage.@"extern".c_name = validate_AST(symbol.storage.@"extern".c_name.?, prelude_.string_type, compiler);
         } else {
-            symbol.kind.@"extern".c_name = ast_.AST.create_string(Token.init_simple(symbol.name), symbol.name, compiler.allocator());
+            symbol.storage.@"extern".c_name = ast_.AST.create_string(Token.init_simple(symbol.name), symbol.name, compiler.allocator());
         }
     }
     _ = symbol.assert_init_valid();

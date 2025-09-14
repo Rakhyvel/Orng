@@ -74,13 +74,14 @@ pub fn init(symbol: *Symbol, allocator: std.mem.Allocator) *Self {
         "$retval",
         ast_.AST.create_decl(
             symbol.decl.?.token(),
-            ast_.AST.create_pattern_symbol(symbol.decl.?.token(), .mut, "$retval", allocator),
+            ast_.AST.create_pattern_symbol(symbol.decl.?.token(), .mut, .local, "$retval", allocator),
             symbol.type().rhs(),
             null,
             false,
             allocator,
         ),
         .mut,
+        .local,
         allocator,
     );
     _ = retval.return_symbol.type().expand_identifier();

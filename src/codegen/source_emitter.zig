@@ -338,14 +338,11 @@ fn output_instruction_post_check(self: *Self, instr: *Instruction) CodeGen_Error
                     }
                 }
             } else {
-                const expected = dest_type.child();
                 for (instr.data.lval_list.items, 1..) |term, i| {
-                    if (!expected.is_c_void_type()) {
-                        // Don't use values of type `void` (don't exist in C! (Goobersville!))
-                        try self.output_rvalue(term, instr.kind.precedence());
-                        if (i < instr.data.lval_list.items.len) {
-                            try self.writer.print(", ", .{});
-                        }
+                    // Don't use values of type `void` (don't exist in C! (Goobersville!))
+                    try self.output_rvalue(term, instr.kind.precedence());
+                    if (i < instr.data.lval_list.items.len) {
+                        try self.writer.print(", ", .{});
                     }
                 }
             }
@@ -567,7 +564,7 @@ fn output_rvalue(self: *Self, lvalue: *lval_.L_Value, outer_precedence: i128) Co
         .select => {
             try self.output_rvalue(lvalue.select.lhs, lvalue.lval_precedence()); // This will dereference, no need for `->`
             const unexpanded_type: ?*Type_AST = lvalue.select.lhs.get_expanded_type().common()._unexpanded_type;
-            if (unexpanded_type != null and unexpanded_type.?.* == .identifier and unexpanded_type.?.symbol() != null and unexpanded_type.?.symbol().?.kind == .@"extern") {
+            if (unexpanded_type != null and unexpanded_type.?.* == .identifier and unexpanded_type.?.symbol() != null and unexpanded_type.?.symbol().?.storage == .@"extern") {
                 // Select the nominal C name
                 const field_name = lvalue.select.lhs.get_expanded_type().children().items[@intCast(lvalue.select.field)].annotation.pattern.token().data;
                 try self.writer.print(".{s}", .{field_name});

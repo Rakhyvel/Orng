@@ -1,5 +1,10 @@
 // 345
-type My_Untagged_Union = @Untagged((i: Int | f: Float))
+enum My_Tagged_Enum {
+    i(Int)
+    f(Float)
+}
+
+type My_Untagged_Union = @Untagged(My_Tagged_Enum)
 
 fn main() -> Int {
     let mut x: My_Untagged_Union = undefined

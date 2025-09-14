@@ -153,7 +153,7 @@ fn lower_AST_inner(
             }
             if (symbol.kind == .@"fn") {
                 return try self.lval_from_symbol_cfg(symbol, ast.token().span);
-            } else if (symbol.kind == .@"const") {
+            } else if (symbol.kind == .@"const" and symbol.storage != .@"extern") {
                 return try self.lower_AST(symbol.init_value().?, labels);
             } else {
                 const src = lval_.L_Value.create_unversioned_symbver(symbol, self.allocator);
@@ -1133,7 +1133,7 @@ fn create_temp_symbol(self: *Self, _type: *Type_AST) *Symbol {
     const token = Token.init_simple(name);
     const decl = ast_.AST.create_decl(
         token,
-        ast_.AST.create_pattern_symbol(token, .mut, name, self.allocator),
+        ast_.AST.create_pattern_symbol(token, .mut, .local, name, self.allocator),
         _type,
         null,
         false,
@@ -1144,6 +1144,7 @@ fn create_temp_symbol(self: *Self, _type: *Type_AST) *Symbol {
         name,
         decl,
         .mut,
+        .local,
         self.allocator,
     );
     _ = _type.expand_identifier();

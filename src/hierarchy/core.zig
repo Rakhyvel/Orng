@@ -61,6 +61,7 @@ fn create_core(compiler: *Compiler_Context) !void {
             compiler.allocator(),
         ),
         .module,
+        .local,
         compiler.allocator(),
     );
     try compiler.prelude.put_symbol(core_symbol.?, &compiler.errors);

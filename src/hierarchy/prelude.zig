@@ -315,6 +315,7 @@ fn create_prelude(compiler: *Compiler_Context) !void {
             compiler.allocator(),
         ),
         .module,
+        .local,
         compiler.allocator(),
     );
     try prelude.?.put_symbol(symbol, &compiler.errors);
@@ -340,7 +341,7 @@ fn create_prelude_symbol(name: []const u8, _type: *Type_AST, init: *ast_.AST, al
     const token = Token.init_simple(name);
     const decl = ast_.AST.create_decl(
         token,
-        ast_.AST.create_pattern_symbol(token, .@"const", name, allocator),
+        ast_.AST.create_pattern_symbol(token, .@"const", .local, name, allocator),
         _type,
         init,
         true,
@@ -351,6 +352,7 @@ fn create_prelude_symbol(name: []const u8, _type: *Type_AST, init: *ast_.AST, al
         name,
         decl,
         .@"const",
+        .local,
         allocator,
     ).assert_symbol_valid();
     symbol.is_temp = true;
@@ -363,7 +365,7 @@ fn create_type_alias_symbol(name: []const u8, _type: *Type_AST, repr_ident: *Typ
     const token = Token.init_simple(name);
     const decl = ast_.AST.create_type_alias(
         token,
-        ast_.AST.create_pattern_symbol(token, .type, name, allocator),
+        ast_.AST.create_pattern_symbol(token, .type, .local, name, allocator),
         _type,
         allocator,
     );
@@ -372,6 +374,7 @@ fn create_type_alias_symbol(name: []const u8, _type: *Type_AST, repr_ident: *Typ
         name,
         decl,
         .type,
+        .local,
         allocator,
     ).assert_symbol_valid();
     symbol.is_temp = true;
@@ -383,9 +386,10 @@ fn create_type_alias_symbol(name: []const u8, _type: *Type_AST, repr_ident: *Typ
 
 fn create_c_extern_symbol(name: []const u8, c_name: []const u8, allocator: std.mem.Allocator) *Symbol {
     const token = Token.init_simple(name);
+    const storage: Symbol.Storage = .{ .@"extern" = .{ .c_name = ast_.AST.create_string(Token.init_simple(c_name), c_name, allocator) } };
     const decl = ast_.AST.create_type_alias(
         token,
-        ast_.AST.create_pattern_symbol(token, .type, name, allocator),
+        ast_.AST.create_pattern_symbol(token, .type, storage, name, allocator),
         null,
         allocator,
     );
@@ -393,7 +397,8 @@ fn create_c_extern_symbol(name: []const u8, c_name: []const u8, allocator: std.m
         prelude.?,
         name,
         decl,
-        .{ .@"extern" = .{ .c_name = ast_.AST.create_string(Token.init_simple(c_name), c_name, allocator) } },
+        .type,
+        storage,
         allocator,
     ).assert_symbol_valid();
     symbol.is_temp = true;
