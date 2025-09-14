@@ -35,7 +35,9 @@ pub fn add(self: *Self, oldast_: *Type_AST, allocator: std.mem.Allocator) ?*Depe
             _ = self.add(ast.child(), allocator); // Add child to set, but do not create a node for addrs
             return null;
         },
-        .array_of, .slice_of => return self.add_array(ast, allocator),
+        .array_of,
+        // .slice_of
+        => return self.add_array(ast, allocator),
         .identifier, .unit_type, .anyptr_type => return null, // Do not add to Dependency_Node
         else => std.debug.panic("unknown: {}", .{ast}),
     }

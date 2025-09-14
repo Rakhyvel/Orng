@@ -268,7 +268,7 @@ pub fn walk_type(maybe_type: ?*Type_AST, context: anytype) Error!void {
         .untagged_sum_type,
         .addr_of,
         .dyn_type,
-        .slice_of,
+        // .slice_of,
         .array_of,
         .index,
         .domain_of,

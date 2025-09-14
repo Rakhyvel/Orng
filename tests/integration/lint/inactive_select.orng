@@ -4,4 +4,9 @@ fn main() -> Int {
     x.b
 }
 
-fn f()->(a: Int | b: Int) {.a(4)}
+enum My_Enum {
+    a(Int)
+    b(Int)
+}
+
+fn f()->My_Enum {.a(4)}

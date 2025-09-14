@@ -154,11 +154,11 @@ pub const Type_AST = union(enum) {
         _child: *Type_AST,
         mut: bool,
     },
-    slice_of: struct {
-        common: Type_AST_Common,
-        _child: *Type_AST,
-        mut: bool,
-    },
+    // slice_of: struct {
+    //     common: Type_AST_Common,
+    //     _child: *Type_AST,
+    //     mut: bool,
+    // },
     array_of: struct { common: Type_AST_Common, _child: *Type_AST, len: *AST },
     type_of: struct {
         common: Type_AST_Common,
@@ -290,14 +290,14 @@ pub const Type_AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn create_slice_of(_token: Token, _child: *Type_AST, _mut: bool, allocator: std.mem.Allocator) *Type_AST {
-        const _common: Type_AST_Common = .{ ._token = _token };
-        return Type_AST.box(Type_AST{ .slice_of = .{
-            .common = _common,
-            ._child = _child,
-            .mut = _mut,
-        } }, allocator);
-    }
+    // pub fn create_slice_of(_token: Token, _child: *Type_AST, _mut: bool, allocator: std.mem.Allocator) *Type_AST {
+    //     const _common: Type_AST_Common = .{ ._token = _token };
+    //     return Type_AST.box(Type_AST{ .slice_of = .{
+    //         .common = _common,
+    //         ._child = _child,
+    //         .mut = _mut,
+    //     } }, allocator);
+    // }
 
     pub fn create_array_of(_token: Token, _child: *Type_AST, len: *AST, allocator: std.mem.Allocator) *Type_AST {
         const _common: Type_AST_Common = .{ ._token = _token };
@@ -651,16 +651,16 @@ pub const Type_AST = union(enum) {
                 try out.print("dyn ", .{});
                 try self.child().print_type(out);
             },
-            .slice_of => {
-                try out.print("[", .{});
-                if (self.slice_of.mut) {
-                    try out.print("mut", .{});
-                }
-                try out.print("]", .{});
-                try self.child().print_type(out);
-            },
+            // .slice_of => {
+            //     try out.print("[", .{});
+            //     if (self.slice_of.mut) {
+            //         try out.print("mut", .{});
+            //     }
+            //     try out.print("]", .{});
+            //     try self.child().print_type(out);
+            // },
             .array_of => {
-                try out.print("[TODO: print array lengths]", .{});
+                try out.print("[{}]", .{self.array_of.len});
                 try self.child().print_type(out);
             },
             .function => {
@@ -840,7 +840,7 @@ pub const Type_AST = union(enum) {
             .function,
             .addr_of,
             .dyn_type,
-            .slice_of,
+            // .slice_of,
             => return 8,
 
             .untagged_sum_type => {
@@ -941,7 +941,7 @@ pub const Type_AST = union(enum) {
         switch (A.*) {
             .identifier => return std.mem.eql(u8, A.token().data, B.token().data),
             .addr_of => return (!B.addr_of.mut or B.addr_of.mut == A.addr_of.mut) and (B.addr_of.multiptr == A.addr_of.multiptr) and types_match(A.child(), B.child()),
-            .slice_of => return (!B.slice_of.mut or B.slice_of.mut == A.slice_of.mut) and types_match(A.child(), B.child()),
+            // .slice_of => return (!B.slice_of.mut or B.slice_of.mut == A.slice_of.mut) and types_match(A.child(), B.child()),
             .array_of => return types_match(A.child(), B.child()),
             .anyptr_type => return B.* == .anyptr_type,
             .unit_type => return true,
@@ -991,10 +991,10 @@ pub const Type_AST = union(enum) {
                 const _expr = clone(self.child(), substs, allocator);
                 return create_addr_of(self.token(), _expr, self.addr_of.mut, self.addr_of.multiptr, allocator);
             },
-            .slice_of => {
-                const _expr = clone(self.child(), substs, allocator);
-                return create_slice_of(self.token(), _expr, self.slice_of.mut, allocator);
-            },
+            // .slice_of => {
+            //     const _expr = clone(self.child(), substs, allocator);
+            //     return create_slice_of(self.token(), _expr, self.slice_of.mut, allocator);
+            // },
             .array_of => {
                 const _expr = clone(self.child(), substs, allocator);
                 return create_array_of(self.token(), _expr, self.array_of.len, allocator);
@@ -1051,7 +1051,7 @@ pub const Type_AST = union(enum) {
         return switch (_type.*) {
             .anyptr_type, .unit_type, .dyn_type => false,
             .identifier => std.mem.eql(u8, _type.token().data, "Self"),
-            .addr_of, .slice_of, .array_of => _type.child().refers_to_self(),
+            .addr_of, .array_of => _type.child().refers_to_self(),
             .annotation => _type.child().refers_to_self(),
             .function, .@"union" => _type.lhs().refers_to_self() or _type.rhs().refers_to_self(),
             .product, .sum_type => {
@@ -1193,7 +1193,7 @@ pub const Type_AST = union(enum) {
             },
             .function => return self.lhs().c_types_match(other.lhs()) and self.rhs().c_types_match(other.rhs()),
             .array_of => return self.child().c_types_match(other.child()),
-            .slice_of => return self.child().c_types_match(other.child()),
+            // .slice_of => return self.child().c_types_match(other.child()),
             else => std.debug.panic("compiler error: c_types_match(): unimplemented for {s}", .{@tagName(self.*)}),
         }
     }

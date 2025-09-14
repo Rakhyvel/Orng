@@ -1,6 +1,6 @@
 // 197
 fn main() -> Int {
-    add((100, 90, 7))
+    add([100, 90, 7])
 }
 
 fn add(x: [3]Int) -> Int {

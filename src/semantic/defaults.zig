@@ -70,12 +70,12 @@ fn generate_default_unvalidated(_type: *Type_AST, span: Span, errors: *errs_.Err
         } else {
             return generate_default(_type.child(), span, errors, allocator);
         },
-        .slice_of => {
-            var value_terms = std.ArrayList(*ast_.AST).init(allocator);
-            value_terms.append(ast_.AST.create_int(_type.token(), 0, allocator)) catch unreachable;
-            value_terms.append(ast_.AST.create_int(_type.token(), 0, allocator)) catch unreachable;
-            return ast_.AST.create_product(_type.token(), value_terms, allocator);
-        },
+        // .slice_of => {
+        //     var value_terms = std.ArrayList(*ast_.AST).init(allocator);
+        //     value_terms.append(ast_.AST.create_int(_type.token(), 0, allocator)) catch unreachable;
+        //     value_terms.append(ast_.AST.create_int(_type.token(), 0, allocator)) catch unreachable;
+        //     return ast_.AST.create_product(_type.token(), value_terms, allocator);
+        // },
         .array_of => {
             var value_terms = std.ArrayList(*ast_.AST).init(allocator);
             const child = try generate_default(_type.child(), span, errors, allocator);

@@ -1907,7 +1907,7 @@ pub const AST = union(enum) {
         )).assert_ast_valid();
         new_terms.append(addr) catch unreachable;
 
-        const length = (AST.create_int(_expr.token(), expr_type.children().items.len, allocator)).assert_ast_valid();
+        const length = expr_type.array_of.len;
         new_terms.append(length) catch unreachable;
 
         var retval = AST.create_product(_expr.token(), new_terms, allocator);
@@ -2095,11 +2095,11 @@ pub const AST = union(enum) {
             },
             .slice_of => {
                 var expr_type = self.expr().typeof(allocator);
-                if (expr_type.* != .product or !expr_type.product.is_homotypical()) {
+                if (expr_type.* != .array_of) {
                     return poison_.poisoned_type;
                 }
 
-                return Type_AST.create_slice_type(expr_type.children().items[0], self.slice_of.mut, allocator);
+                return Type_AST.create_slice_type(expr_type.child(), self.slice_of.mut, allocator);
             },
             .sub_slice => return self.sub_slice.super.typeof(allocator),
             .sum_value => {

@@ -690,42 +690,35 @@ fn validate_AST_internal(
 
             return ast;
         },
-        // .slice_of => {
-        //     ast.set_expr(validate_AST(ast.expr(), null, compiler));
-        //     try poison_.assert_none_poisoned(ast.expr());
-        //     var expr_type = ast.expr().typeof(compiler.allocator());
-        //     if (expr_type.* != .unit_type and try prelude_.type_type.types_match(expr_type)) {
-        //         // Regular slice type, change to product of data address and length
-        //         const retval = ast_.AST.create_slice_type(ast.expr(), ast.slice_of.mut, compiler.allocator()).assert_ast_valid();
-        //         const retval_type = retval.typeof(compiler.allocator());
-        //         try typing_.type_check(ast.token().span, retval_type, expected, &compiler.errors);
-        //         return retval;
-        //     } else { // Slice-of value, expected must be an slice, inner must match with expected's inner
-        //         // ast.expr() must be homotypical product type of expected
-        //         if (expr_type.* != .product or !expr_type.product.is_homotypical()) {
-        //             compiler.errors.add_error(errs_.Error{ .basic = .{
-        //                 .span = ast.token().span,
-        //                 .msg = "attempt to take slice-of something that is not an array",
-        //             } });
-        //             return ast.enpoison();
-        //         }
+        .slice_of => {
+            ast.set_expr(validate_AST(ast.expr(), null, compiler));
+            try poison_.assert_none_poisoned(ast.expr());
+            const expr_type = ast.expr().typeof(compiler.allocator());
 
-        //         _ = ast.assert_ast_valid();
-        //         const ast_type = ast.typeof(compiler.allocator());
-        //         try typing_.type_check(ast.token().span, ast_type, expected, &compiler.errors);
+            // ast.expr() must be homotypical product type of expected
+            if (expr_type.* != .array_of) {
+                compiler.errors.add_error(errs_.Error{ .basic = .{
+                    .span = ast.token().span,
+                    .msg = "attempt to take slice-of something that is not an array",
+                } });
+                return ast.enpoison();
+            }
 
-        //         if (ast.expr().* != .product) {
-        //             // Validate that expr is an L-value *only if* expr is not a product
-        //             // It is possible to take a slice of a product. The slice is the sliceof the temporary
-        //             // This is mirrored with addr_of a product.
-        //             try validate_L_Value(ast.expr(), &compiler.errors);
-        //         }
-        //         if (ast.slice_of.mut) {
-        //             try assert_mutable(ast.expr(), &compiler.errors, compiler.allocator());
-        //         }
-        //         return ast_.AST.create_slice_value(ast.expr(), ast.slice_of.mut, expr_type, compiler.allocator());
-        //     }
-        // },
+            _ = ast.assert_ast_valid();
+            const ast_type = ast.typeof(compiler.allocator());
+            try typing_.type_check(ast.token().span, ast_type, expected, &compiler.errors);
+
+            if (ast.expr().* != .array_value) {
+                // Validate that expr is an L-value *only if* expr is not a array
+                // It is possible to take a slice of a product. The slice is the sliceof the temporary
+                // This is mirrored with addr_of a product.
+                try validate_L_Value(ast.expr(), &compiler.errors);
+            }
+            if (ast.slice_of.mut) {
+                try assert_mutable(ast.expr(), &compiler.errors, compiler.allocator());
+            }
+            return ast_.AST.create_slice_value(ast.expr(), ast.slice_of.mut, expr_type, compiler.allocator());
+        },
         // .array_of => {
         //     ast.set_expr(validate_AST(ast.expr(), prelude_.type_type, compiler));
         //     try poison_.assert_none_poisoned(ast.expr());

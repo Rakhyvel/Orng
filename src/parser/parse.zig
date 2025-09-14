@@ -401,7 +401,7 @@ fn prefix_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
         }
         switch (slice_kind) {
             .multiptr => return Type_AST.create_addr_of(token, try self.prefix_type_expr(), mut, true, self.allocator),
-            .slice => return Type_AST.create_slice_of(token, try self.prefix_type_expr(), mut, self.allocator),
+            .slice => return Type_AST.create_slice_type(try self.prefix_type_expr(), mut, self.allocator),
             .array => return Type_AST.create_array_of(token, try self.prefix_type_expr(), len.?, self.allocator),
         }
     } else if (self.accept(.question_mark)) |_| {
@@ -875,7 +875,7 @@ fn prefix_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
             _ = try self.expect(.right_square);
             return ast_.AST.create_slice_of(token, try self.prefix_expr(), true, self.allocator);
         } else if (self.accept(.right_square)) |_| {
-            return ast_.AST.create_slice_of(token, try self.prefix_expr(), true, self.allocator);
+            return ast_.AST.create_slice_of(token, try self.prefix_expr(), false, self.allocator);
         }
 
         // Must be an array literal

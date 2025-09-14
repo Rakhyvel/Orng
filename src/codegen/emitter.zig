@@ -45,7 +45,11 @@ pub fn output_type(self: *Self, old_type: *Type_AST) CodeGen_Error!void {
             const dep = self.module.type_set.get(_type).?;
             try self.output_function_name(dep);
         },
-        .sum_type, .product, .array_of, .slice_of => {
+        .sum_type,
+        .product,
+        .array_of,
+        // .slice_of
+        => {
             const dep = self.module.type_set.get(_type).?;
             try self.output_struct_name(dep);
         },
