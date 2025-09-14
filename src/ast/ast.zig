@@ -271,6 +271,7 @@ pub const AST = union(enum) {
         common: AST_Common,
         _lhs: *AST,
         _rhs: *AST,
+        captures: std.ArrayList(*AST),
         _scope: ?*Scope, // Scope used for `match` mappings, rooted in `match`'s scope. Captures, rhs live in this scope
     },
     @"while": struct {
@@ -948,6 +949,7 @@ pub const AST = union(enum) {
                 ._lhs = _lhs,
                 ._rhs = _rhs,
                 ._scope = null,
+                .captures = std.ArrayList(*AST).init(allocator),
             } },
             allocator,
         );

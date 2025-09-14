@@ -169,6 +169,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .mapping => {
             try walk_ast(ast.lhs(), new_context);
             try walk_ast(ast.rhs(), new_context);
+            try walk_asts(&ast.mapping.captures, new_context);
         },
         .@"while" => {
             try walk_ast(ast.@"while".let, new_context);
@@ -268,7 +269,6 @@ pub fn walk_type(maybe_type: ?*Type_AST, context: anytype) Error!void {
         .untagged_sum_type,
         .addr_of,
         .dyn_type,
-        // .slice_of,
         .array_of,
         .index,
         .domain_of,

@@ -84,8 +84,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         },
 
         // Create symbols (potentially >1) from pattern, put inside scope
-        .decl,
-        => {
+        .decl => {
             try create_symbol(
                 &ast.decl.symbols,
                 ast.decl.pattern,
@@ -329,7 +328,7 @@ fn create_symbol(
             const symbol = Symbol.init(
                 scope,
                 pattern.pattern_symbol.name,
-                decl,
+                decl orelse ast_.AST.create_decl(pattern.token(), pattern, _type, init, false, allocator),
                 pattern.pattern_symbol.kind,
                 pattern.pattern_symbol.storage,
                 allocator,
@@ -347,7 +346,7 @@ fn create_symbol(
         },
         .sum_value => {
             const lhs_type = Type_AST.create_type_of(pattern.token(), init.?, allocator);
-            const rhs_type = Type_AST.create_domain_of(pattern.token(), lhs_type, pattern, allocator);
+            const rhs_type = Type_AST.create_domain_of(pattern.token(), lhs_type, pattern.sum_value.get_name(), allocator);
 
             if (pattern.sum_value.init != null) {
                 // Here init is null!
@@ -374,6 +373,9 @@ fn create_match_pattern_symbol(match: *ast_.AST, scope: *Scope, errors: *errs_.E
         try create_symbol(&symbols, mapping.lhs(), null, _type, match_expr, new_scope, errors, allocator);
         for (symbols.items) |symbol| {
             symbol.defined = true;
+        }
+        for (symbols.items) |symbol| {
+            mapping.mapping.captures.append(symbol.decl.?) catch unreachable;
         }
         try new_scope.put_all_symbols(&symbols, errors);
         try walk_.walk_ast(mapping.rhs(), Self.new(new_scope, errors, allocator));

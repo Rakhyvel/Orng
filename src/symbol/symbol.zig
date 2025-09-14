@@ -107,6 +107,9 @@ pub fn refers_to_type(self: *const Self) bool {
 }
 
 pub fn @"type"(self: *const Self) *Type_AST {
+    if (self.decl == null) {
+        std.debug.print("{s}\n", .{self.name});
+    }
     return self.decl.?.decl_type();
 }
 

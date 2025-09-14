@@ -81,6 +81,15 @@ pub const Type_AST = union(enum) {
             self.all_unit = res;
             return res;
         }
+
+        pub fn get_ctor(self: *@This(), name: []const u8) ?*Type_AST {
+            for (self._terms.items) |term| {
+                if (std.mem.eql(u8, term.annotation.pattern.token().data, name)) {
+                    return term;
+                }
+            }
+            return null;
+        }
     },
     untagged_sum_type: struct {
         common: Type_AST_Common,
@@ -182,7 +191,7 @@ pub const Type_AST = union(enum) {
     domain_of: struct {
         common: Type_AST_Common,
         _child: *Type_AST,
-        _expr: *AST,
+        ctor_name: []const u8,
     },
     index: struct {
         common: Type_AST_Common,
@@ -315,12 +324,12 @@ pub const Type_AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn create_domain_of(_token: Token, sum_type: *Type_AST, _expr: *AST, allocator: std.mem.Allocator) *Type_AST {
+    pub fn create_domain_of(_token: Token, sum_type: *Type_AST, ctor_name: []const u8, allocator: std.mem.Allocator) *Type_AST {
         const _common: Type_AST_Common = .{ ._token = _token };
         return Type_AST.box(Type_AST{ .domain_of = .{
             .common = _common,
             ._child = sum_type,
-            ._expr = _expr,
+            .ctor_name = ctor_name,
         } }, allocator);
     }
 
@@ -718,13 +727,16 @@ pub const Type_AST = union(enum) {
             .type_of => {
                 try out.print("@typeof({})", .{self.type_of._expr});
             },
+            .domain_of => {
+                try out.print("@domainof({}.{s})", .{ self.domain_of._child, self.domain_of.ctor_name });
+            },
             .index => {
                 try self.child().print_type(out);
                 try out.print("[", .{});
                 try self.rhs().print_type(out);
                 try out.print("]", .{});
             },
-            else => try out.print("...", .{}),
+            else => try out.print("{s}", .{@tagName(self.*)}),
         }
     }
 

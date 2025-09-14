@@ -23,7 +23,15 @@ pub fn new(scope: *Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) S
 }
 
 pub fn postfix_type(self: Self, _type: *Type_AST) type_walk_.Error!void {
-    while (_type.* == .type_of) {
-        _type.* = _type.type_of._expr.typeof(self.allocator).expand_identifier().*;
+    while (_type.* == .type_of or _type.* == .domain_of) {
+        switch (_type.*) {
+            .type_of => _type.* = _type.type_of._expr.typeof(self.allocator).expand_identifier().*,
+            .domain_of => {
+                var child = _type.domain_of._child;
+                try self.postfix_type(child);
+                _type.* = child.expand_identifier().sum_type.get_ctor(_type.domain_of.ctor_name).?.*;
+            },
+            else => unreachable,
+        }
     }
 }
