@@ -52,9 +52,11 @@ pub fn validate_AST(ast: *ast_.AST, old_expected_type: ?*Type_AST, compiler: *Co
     // std.debug.print("{}: {?}\n", .{ ast, expected_type });
     ast.common().validation_state = .validating;
 
+    if (expected_type != null and expected_type.?.* == .poison) {
+        expected_type = null;
+    }
+
     if (expected_type) |_| {
-        // expected must be a valid Type type
-        std.debug.assert(expected_type.?.* != .poison); // expected type is poisoned
         // std.debug.assert(expected_type.?.common().validation_state == .valid); // expected type isn't determined to be valid
         // const expected_type_type = expected_type.?.typeof(compiler.allocator());
         // std.debug.print("typeof({?}) = {}\n", .{ expected_type, expected_type_type });

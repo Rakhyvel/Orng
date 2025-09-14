@@ -1,6 +1,6 @@
 // 84
 fn main() -> Int {
-    let mut x: [6]Int = (1, 15, 24, 4, 35, 6)
+    let mut x: [6]Int = [1, 15, 24, 4, 35, 6]
     let y = [mut]x
     let z: [mut]Int = y[1..5]
     z[2] = 10
