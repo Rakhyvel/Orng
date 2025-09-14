@@ -722,10 +722,37 @@ fn prefix_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
     } else if (self.accept(.at_symbol)) |_| {
         const token = try self.expect(.identifier);
 
-        const args = try self.call_args();
-
         // TODO: Would be nice to make a table of this, somehow!
-        if (std.mem.eql(u8, token.data, "bit_and")) {
+        if (std.mem.eql(u8, token.data, "default")) {
+            const args = try self.call_type_args();
+            if (args.items.len != 1) {
+                self.errors.add_error(errs_.Error{ .mismatch_arity = .{
+                    .span = token.span,
+                    .takes = 1,
+                    .given = args.items.len,
+                    .thing_name = "built-in function",
+                    .takes_name = "parameter",
+                    .given_name = "argument",
+                } });
+                return error.ParseError;
+            }
+            return ast_.AST.create_default(token, args.items[0], self.allocator);
+        } else if (std.mem.eql(u8, token.data, "sizeof")) {
+            const args = try self.call_type_args();
+            if (args.items.len != 1) {
+                self.errors.add_error(errs_.Error{ .mismatch_arity = .{
+                    .span = token.span,
+                    .takes = 1,
+                    .given = args.items.len,
+                    .thing_name = "built-in function",
+                    .takes_name = "parameter",
+                    .given_name = "argument",
+                } });
+                return error.ParseError;
+            }
+            return ast_.AST.create_size_of(token, args.items[0], self.allocator);
+        } else if (std.mem.eql(u8, token.data, "bit_and")) {
+            const args = try self.call_args();
             if (args.items.len < 2) {
                 self.errors.add_error(errs_.Error{ .mismatch_arity = .{
                     .span = token.span,
@@ -739,6 +766,7 @@ fn prefix_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
             }
             return ast_.AST.create_bit_and(token, args, self.allocator);
         } else if (std.mem.eql(u8, token.data, "bit_or")) {
+            const args = try self.call_args();
             if (args.items.len < 2) {
                 self.errors.add_error(errs_.Error{ .mismatch_arity = .{
                     .span = token.span,
@@ -752,6 +780,7 @@ fn prefix_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
             }
             return ast_.AST.create_bit_or(token, args, self.allocator);
         } else if (std.mem.eql(u8, token.data, "bit_xor")) {
+            const args = try self.call_args();
             if (args.items.len < 2) {
                 self.errors.add_error(errs_.Error{ .mismatch_arity = .{
                     .span = token.span,
@@ -765,6 +794,7 @@ fn prefix_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
             }
             return ast_.AST.create_bit_xor(token, args, self.allocator);
         } else if (std.mem.eql(u8, token.data, "bit_not")) {
+            const args = try self.call_args();
             if (args.items.len != 1) {
                 self.errors.add_error(errs_.Error{ .mismatch_arity = .{
                     .span = token.span,
@@ -778,6 +808,7 @@ fn prefix_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
             }
             return ast_.AST.create_bit_not(token, args.items[0], self.allocator);
         } else if (std.mem.eql(u8, token.data, "left_shift")) {
+            const args = try self.call_args();
             if (args.items.len != 2) {
                 self.errors.add_error(errs_.Error{ .mismatch_arity = .{
                     .span = token.span,
@@ -791,6 +822,7 @@ fn prefix_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
             }
             return ast_.AST.create_left_shift(token, args.items[0], args.items[1], self.allocator);
         } else if (std.mem.eql(u8, token.data, "right_shift")) {
+            const args = try self.call_args();
             if (args.items.len != 2) {
                 self.errors.add_error(errs_.Error{ .mismatch_arity = .{
                     .span = token.span,
@@ -912,6 +944,19 @@ fn call_args(self: *Self) Parser_Error_Enum!std.ArrayList(*ast_.AST) {
         retval.append(try self.assignment_expr()) catch unreachable;
         while (self.accept(.comma)) |_| {
             retval.append(try self.assignment_expr()) catch unreachable;
+        }
+    }
+    _ = try self.expect(.right_parenthesis);
+    return retval;
+}
+
+fn call_type_args(self: *Self) Parser_Error_Enum!std.ArrayList(*Type_AST) {
+    _ = try self.expect(.left_parenthesis);
+    var retval = std.ArrayList(*Type_AST).init(self.allocator);
+    if (!self.peek_kind(.right_parenthesis)) {
+        retval.append(try self.type_expr()) catch unreachable;
+        while (self.accept(.comma)) |_| {
+            retval.append(try self.type_expr()) catch unreachable;
         }
     }
     _ = try self.expect(.right_parenthesis);

@@ -1,5 +1,10 @@
 // 137
+struct Pair {
+    a: Int = 137
+    b: Float
+}
+
 fn main() -> Int {
-    let x: (a: Int=137, b: Float)
+    let x: Pair
     x.a
 }

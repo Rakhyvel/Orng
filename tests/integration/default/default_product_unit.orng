@@ -1,6 +1,12 @@
 // 140
+struct Triplet {
+    a: ()
+    b: Int
+    c: ()
+}
+
 fn main() -> Int {
-    let x: (a:(), b:Int, c:())
+    let x: Triplet
     let y = &x
     140 + y.b
 }

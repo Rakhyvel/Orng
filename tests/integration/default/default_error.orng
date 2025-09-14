@@ -1,5 +1,13 @@
 // 139
+enum Error {
+    err(Float)
+}
+
+struct Good {
+    a: Int = 139
+}
+
 fn main() -> Int {
-    let x: (|err: Float)!(a: Int=139)
-    x.ok
+    let x: Error!Good
+    x.ok.a
 }
