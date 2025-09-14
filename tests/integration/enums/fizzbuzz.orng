@@ -4,8 +4,8 @@ fn main() -> String {
 }
 
 enum Fizz_Buzz_Result {
-    string: String
-    integer: Int
+    string(String)
+    integer(Int)
 }
 
 fn fizzbuzz(n: Int) -> Fizz_Buzz_Result {

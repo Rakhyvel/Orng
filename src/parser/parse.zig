@@ -299,21 +299,10 @@ fn function_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
 }
 
 fn error_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
-    var exp = try self.union_type_expr();
-    while (true) {
-        if (self.accept(.exclamation_mark)) |_| {
-            exp = Type_AST.create_error_type(exp, try self.union_type_expr(), self.allocator);
-        } else {
-            return exp;
-        }
-    }
-}
-
-fn union_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
     var exp = try self.prefix_type_expr();
     while (true) {
-        if (self.accept(.double_bar)) |token| {
-            exp = Type_AST.create_union(token, exp, try self.prefix_type_expr(), self.allocator);
+        if (self.accept(.exclamation_mark)) |_| {
+            exp = Type_AST.create_error_type(exp, try self.prefix_type_expr(), self.allocator);
         } else {
             return exp;
         }

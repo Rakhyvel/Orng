@@ -1,5 +1,5 @@
 // 235
-enum The_Type { x:Int }
+enum The_Type { x(Int) }
 
 fn main() -> Int {
     let a = get_the_sum()

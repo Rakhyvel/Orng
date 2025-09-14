@@ -95,11 +95,6 @@ pub const Type_AST = union(enum) {
         common: Type_AST_Common,
         _child: *Type_AST,
     },
-    @"union": struct {
-        common: Type_AST_Common,
-        _lhs: *Type_AST,
-        _rhs: *Type_AST,
-    },
     product: struct {
         common: Type_AST_Common,
         _terms: std.ArrayList(*Type_AST),
@@ -273,11 +268,6 @@ pub const Type_AST = union(enum) {
             } },
             allocator,
         );
-    }
-
-    pub fn create_union(_token: Token, _lhs: *Type_AST, _rhs: *Type_AST, allocator: std.mem.Allocator) *Type_AST {
-        const _common: Type_AST_Common = .{ ._token = _token };
-        return Type_AST.box(Type_AST{ .@"union" = .{ .common = _common, ._lhs = _lhs, ._rhs = _rhs } }, allocator);
     }
 
     pub fn create_product(_token: Token, terms: std.ArrayList(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
@@ -725,11 +715,6 @@ pub const Type_AST = union(enum) {
             .access => {
                 try out.print("{}::{}", .{ self.access.container, self.access.field });
             },
-            .@"union" => {
-                try self.lhs().print_type(out);
-                try out.print("||", .{});
-                try self.rhs().print_type(out);
-            },
             .annotation => {
                 try out.print("{s}: ", .{self.annotation.pattern.token().data});
                 try self.child().print_type(out);
@@ -1025,11 +1010,6 @@ pub const Type_AST = union(enum) {
                 const _rhs = clone(self.rhs(), substs, allocator);
                 return create_function(self.token(), _lhs, _rhs, allocator);
             },
-            .@"union" => {
-                const _lhs = clone(self.lhs(), substs, allocator);
-                const _rhs = clone(self.rhs(), substs, allocator);
-                return create_union(self.token(), _lhs, _rhs, allocator);
-            },
             .sum_type => {
                 var new_children = std.ArrayList(*Type_AST).init(allocator);
                 for (self.children().items) |item| {
@@ -1070,7 +1050,7 @@ pub const Type_AST = union(enum) {
             .identifier => std.mem.eql(u8, _type.token().data, "Self"),
             .addr_of, .array_of => _type.child().refers_to_self(),
             .annotation => _type.child().refers_to_self(),
-            .function, .@"union" => _type.lhs().refers_to_self() or _type.rhs().refers_to_self(),
+            .function => _type.lhs().refers_to_self() or _type.rhs().refers_to_self(),
             .product, .sum_type => {
                 for (_type.children().items) |item| {
                     if (item.refers_to_self()) {

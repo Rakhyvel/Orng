@@ -1,7 +1,0 @@
-// 102
-const Int_Or_Bool = (int: Int = 102 | bool: Bool = false)
-
-fn main() -> Int {
-    let x: Int_Or_Bool = Int_Or_Bool.int
-    x.int
-}

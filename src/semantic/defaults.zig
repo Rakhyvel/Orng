@@ -88,7 +88,6 @@ fn generate_default_unvalidated(_type: *Type_AST, span: Span, errors: *errs_.Err
         .poison,
         .anyptr_type,
         .access,
-        .@"union",
         .type_of,
         .domain_of,
         .index,

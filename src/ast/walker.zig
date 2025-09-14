@@ -289,9 +289,7 @@ pub fn walk_type(maybe_type: ?*Type_AST, context: anytype) Error!void {
             try walk_type(_type.child(), new_context);
         },
 
-        .function,
-        .@"union",
-        => {
+        .function => {
             try walk_type(_type.lhs(), new_context);
             try walk_type(_type.rhs(), new_context);
         },
