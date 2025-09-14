@@ -46,6 +46,15 @@ pub fn assert_pattern_matches(
                 try assert_pattern_matches(term, expanded_term, compiler);
             }
         },
+        .array_value => {
+            const expanded_expr_type = expr_type.expand_identifier();
+            if (expanded_expr_type.* != .array_of or expanded_expr_type.array_of.len.int.data != pattern.children().items.len) {
+                return typing_.throw_unexpected_type(pattern.token().span, expr_type, pattern.typeof(compiler.allocator()), &compiler.errors);
+            }
+            for (pattern.children().items) |term| {
+                try assert_pattern_matches(term, expanded_expr_type.child(), compiler);
+            }
+        },
         .pattern_symbol => {},
         else => std.debug.panic("compiler error: unimplemented assert_pattern_matches() for {s}", .{@tagName(pattern.*)}),
     }

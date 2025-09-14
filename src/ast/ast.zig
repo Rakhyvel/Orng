@@ -320,15 +320,18 @@ pub const AST = union(enum) {
         storage: Symbol.Storage,
         _symbol: ?*Symbol = undefined,
     },
+    binding: struct {
+        common: AST_Common,
+        pattern: *AST, // Pattern of the binding
+        type: *Type_AST, // Conceptually, the type for the binding as a whole
+        init: ?*AST, // The init value for the binding as a whole. Possible to be null if `undefiend`.
+        decls: std.ArrayList(*AST),
+    },
     decl: struct {
         common: AST_Common,
-        symbols: std.ArrayList(*Symbol), // List of symbols that are defined with this statement
-        pattern: *AST, // Structure of ASTs. Has to be structured to allow tree patterns like `let ((a, b), (c, d)) = blah`
+        name: *AST, // The pattern symbol AST for this decl. Access the symbol through this
         type: *Type_AST,
         init: ?*AST,
-        _top_level: bool,
-        is_alias: bool,
-        prohibit_defaults: bool,
     },
     fn_decl: struct {
         common: AST_Common,
@@ -344,7 +347,7 @@ pub const AST = union(enum) {
 
         pub fn is_templated(self: *@This()) bool {
             for (self._params.items) |param| {
-                if (param.decl.pattern.pattern_symbol.kind == .@"const") {
+                if (param.binding.pattern.pattern_symbol.kind == .@"const") {
                     return true;
                 }
             }
@@ -355,7 +358,7 @@ pub const AST = union(enum) {
             var i: usize = 0;
             while (i < self._params.items.len) : (i +%= 1) {
                 const param = self._params.items[i];
-                if (param.decl.pattern.pattern_symbol.kind == .@"const") {
+                if (param.decl.name.pattern_symbol.kind == .@"const") {
                     _ = self._params.orderedRemove(i);
                     i -%= 1;
                 }
@@ -1064,24 +1067,39 @@ pub const AST = union(enum) {
         );
     }
 
-    pub fn create_decl(
+    pub fn create_binding(
         _token: Token,
         pattern: *AST,
         _type: *Type_AST,
         init: ?*AST,
-        is_alias: bool,
         allocator: std.mem.Allocator,
     ) *AST {
         return AST.box(
-            AST{ .decl = .{
+            AST{ .binding = .{
                 .common = AST_Common{ ._token = _token, ._type = null },
-                .symbols = std.ArrayList(*Symbol).init(allocator),
                 .pattern = pattern,
                 .type = _type,
                 .init = init,
-                ._top_level = false,
-                .is_alias = is_alias,
-                .prohibit_defaults = false,
+                .decls = std.ArrayList(*AST).init(allocator),
+            } },
+            allocator,
+        );
+    }
+
+    pub fn create_decl(
+        _token: Token,
+        name: *AST,
+        _type: *Type_AST,
+        init: ?*AST,
+        allocator: std.mem.Allocator,
+    ) *AST {
+        std.debug.assert(name.* == .pattern_symbol);
+        return AST.box(
+            AST{ .decl = .{
+                .common = AST_Common{ ._token = _token, ._type = null },
+                .name = name,
+                .type = _type,
+                .init = init,
             } },
             allocator,
         );
@@ -1564,12 +1582,18 @@ pub const AST = union(enum) {
                 self.pattern_symbol.name,
                 allocator,
             ),
+            .binding => return create_binding(
+                self.token(),
+                self.binding.pattern,
+                self.binding.type,
+                self.binding.init,
+                allocator,
+            ),
             .decl => return create_decl(
                 self.token(),
-                self.decl.pattern.clone(substs, allocator),
+                self.decl.name.clone(substs, allocator),
                 self.decl.type.clone(substs, allocator),
                 if (self.decl.init) |init| init.clone(substs, allocator) else null,
-                self.decl.is_alias,
                 allocator,
             ),
             .fn_decl => {
@@ -1706,6 +1730,7 @@ pub const AST = union(enum) {
             .bit_and => &self.bit_and._args,
             .bit_or => &self.bit_or._args,
             .bit_xor => &self.bit_xor._args,
+            .binding => &self.binding.decls,
             else => std.debug.panic("compiler error: cannot call `.children()` on the AST `{}`", .{self.*}),
         };
     }
@@ -1723,6 +1748,7 @@ pub const AST = union(enum) {
             .bit_and => self.bit_and._args = val,
             .bit_or => self.bit_or._args = val,
             .bit_xor => self.bit_xor._args = val,
+            .binding => self.binding.decls = val,
             else => std.debug.panic("compiler error: cannot call `.set_children()` on the AST `{s}`", .{@tagName(self.*)}),
         }
     }
@@ -1792,17 +1818,10 @@ pub const AST = union(enum) {
 
     pub fn top_level(self: *AST) bool {
         return switch (self.*) {
-            .decl => self.decl._top_level,
+            .decl => false,
             .fn_decl, .method_decl, .@"test" => true,
             else => std.debug.panic("compiler error: cannot call `.top_level()` on the AST `{s}`", .{@tagName(self.*)}),
         };
-    }
-
-    pub fn set_top_level(self: *AST, _top_level: bool) void {
-        switch (self.*) {
-            .decl => self.decl._top_level = _top_level,
-            else => std.debug.panic("compiler error: cannot call `.set_top_level()` on the AST `{s}`", .{@tagName(self.*)}),
-        }
     }
 
     pub fn get_field(self: *AST, _type: *Type_AST, field_name: []const u8) *AST {
@@ -1986,6 +2005,7 @@ pub const AST = union(enum) {
 
             // Unit type
             .unit_value,
+            .binding,
             .decl,
             .@"struct",
             .@"enum",
@@ -2341,9 +2361,10 @@ pub const AST = union(enum) {
             .@"continue" => try out.writer().print("continue", .{}),
             .@"return" => try out.writer().print("return()", .{}),
             .pattern_symbol => try out.writer().print("pattern_symbol({s}, {s})", .{ @tagName(self.pattern_symbol.kind), self.pattern_symbol.name }),
+            .binding => try out.writer().print("binding()", .{}),
             .decl => {
                 try out.writer().print("decl(\n", .{});
-                try out.writer().print("    .pattern = {},\n", .{self.decl.pattern});
+                try out.writer().print("    .pattern = {},\n", .{self.decl.name});
                 try out.writer().print("    .type = {?},\n", .{self.decl.type});
                 try out.writer().print("    .init = {?},\n", .{self.decl.init});
                 try out.writer().print(")", .{});

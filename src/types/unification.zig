@@ -43,7 +43,7 @@ pub fn unify(lhs: *Type_AST, rhs: *Type_AST, withs: std.ArrayList(*ast_.AST), su
 pub fn with_list_from_subst_map(subst: *Substitutions, with_decls: std.ArrayList(*ast_.AST), alloc: std.mem.Allocator) std.ArrayList(*Type_AST) {
     var retval = std.ArrayList(*Type_AST).init(alloc);
     for (with_decls.items) |with_decl| {
-        const with_ident: *ast_.AST = with_decl.decl.pattern;
+        const with_ident: *ast_.AST = with_decl.decl.name;
         const with_value = subst.get(with_ident.token().data).?;
         retval.append(with_value) catch unreachable;
     }
@@ -52,7 +52,7 @@ pub fn with_list_from_subst_map(subst: *Substitutions, with_decls: std.ArrayList
 
 fn identifier_is_with(ident: *Type_AST, withs: std.ArrayList(*ast_.AST)) ?*ast_.AST {
     for (withs.items) |with| {
-        const with_ident: *ast_.AST = with.decl.pattern;
+        const with_ident: *ast_.AST = with.decl.name;
         if (std.mem.eql(u8, with_ident.token().data, ident.token().data)) {
             return with;
         }

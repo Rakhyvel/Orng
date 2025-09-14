@@ -146,9 +146,21 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             try walk_ast(ast.lhs(), new_context);
             try walk_asts(ast.children(), new_context);
         },
-        .product, .array_value, .bit_and, .bit_or, .bit_xor => try walk_asts(ast.children(), new_context),
+        .product,
+        .array_value,
+        .bit_and,
+        .bit_or,
+        .bit_xor,
+        => try walk_asts(ast.children(), new_context),
+        .binding => {
+            try walk_asts(ast.children(), new_context);
+            try walk_type(ast.binding.type, new_context);
+        },
         .sum_value => {
             try walk_ast(ast.sum_value.init, new_context);
+            if (ast.sum_value.base != null) {
+                try walk_type(ast.sum_value.base, new_context);
+            }
         },
         .sub_slice => {
             try walk_ast(ast.sub_slice.super, new_context);

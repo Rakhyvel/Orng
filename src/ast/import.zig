@@ -51,15 +51,11 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
         const common = ast_.AST_Common{ ._token = ast.token(), ._type = null };
         ast.* = ast_.AST{ .decl = .{
             .common = common,
-            .symbols = std.ArrayList(*Symbol).init(self.compiler.allocator()),
-            .pattern = ast.import.pattern,
+            .name = ast.import.pattern,
             .type = prelude_.unit_type,
             .init = null,
-            ._top_level = true,
-            .is_alias = false,
-            .prohibit_defaults = false,
         } };
-        _ = try self.resolve_import(ast.decl.pattern);
+        _ = try self.resolve_import(ast.decl.name);
         return 0;
     } else if (ast.import.pattern.* == .access) {
         return self.unwrap_access_imports(ast, asts, idx);
@@ -102,7 +98,6 @@ fn unwrap_access_imports(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.
                 ),
                 Type_AST.create_type_of(ast.token(), init, self.compiler.allocator()),
                 init,
-                false,
                 self.compiler.allocator(),
             );
             asts.insert(idx, const_decl) catch unreachable;
@@ -111,8 +106,7 @@ fn unwrap_access_imports(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.
             const common = ast_.AST_Common{ ._token = ast.token(), ._type = null };
             ast.* = ast_.AST{ .decl = .{
                 .common = common,
-                .symbols = std.ArrayList(*Symbol).init(self.compiler.allocator()),
-                .pattern = ast_.AST.create_pattern_symbol(
+                .name = ast_.AST.create_pattern_symbol(
                     ast.token(),
                     .{ .import = .{ .real_name = term.token().data } },
                     .local,
@@ -121,11 +115,8 @@ fn unwrap_access_imports(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.
                 ),
                 .type = prelude_.unit_type,
                 .init = null,
-                ._top_level = true,
-                .is_alias = false,
-                .prohibit_defaults = false,
             } };
-            _ = try self.resolve_import(ast.decl.pattern);
+            _ = try self.resolve_import(ast.decl.name);
         }
     }
 

@@ -1,6 +1,6 @@
 // 162
 fn main() -> Int {
-    let mut x: [3]Int = (0, 1, 2)
+    let mut x: [3]Int = [0, 1, 2]
     (x[0], x[1]) = (x[1], x[0])
     if x[0] > x[1] {
         162

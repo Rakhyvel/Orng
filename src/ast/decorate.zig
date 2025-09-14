@@ -120,13 +120,29 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
     switch (ast.*) {
         else => {},
 
-        .decl => {
-            for (ast.decl.symbols.items) |symbol| {
-                symbol.defined = true;
+        .binding => {
+            for (ast.binding.decls.items) |decl| {
+                decl.decl.name.symbol().?.defined = true;
             }
         },
         .trait => self.scope.traits.append(ast) catch unreachable,
         .impl => self.scope.impls.append(ast) catch unreachable,
         .@"test" => self.scope.tests.append(ast) catch unreachable,
+
+        .select => {
+            if (ast.lhs().* == .identifier and ast.lhs().symbol() != null and ast.lhs().symbol().?.refers_to_type()) {
+                const sum_value = ast_.AST.create_sum_value(ast.rhs().token(), self.allocator);
+                sum_value.sum_value.base = Type_AST.create_identifier(ast.lhs().token(), self.allocator);
+                sum_value.sum_value.base.?.set_symbol(ast.lhs().symbol());
+                ast.* = sum_value.*;
+            }
+        },
+
+        .call => {
+            if (ast.lhs().* == .sum_value) {
+                ast.lhs().sum_value.init = ast.children().items[0];
+                ast.* = ast.lhs().*;
+            }
+        },
     }
 }

@@ -155,8 +155,7 @@ fn resolve_access_const(self: Self, const_symbol: *Symbol, rhs: *ast_.AST, scope
 /// Extracts the symbol that a decl-like AST decls
 fn extract_symbol_from_decl(decl: *ast_.AST) *Symbol {
     if (decl.* == .decl) {
-        std.debug.assert(decl.decl.symbols.items.len > 0);
-        return decl.decl.symbols.items[0];
+        return decl.decl.name.symbol().?;
     } else if (decl.* == .method_decl or decl.* == .fn_decl or decl.* == .trait) {
         return decl.symbol().?;
     } else {

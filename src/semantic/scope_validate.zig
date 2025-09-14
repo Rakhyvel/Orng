@@ -116,11 +116,11 @@ fn validate_impl(impl: *ast_.AST, compiler: *Compiler_Context) Validate_Error_En
         subst.put("Self", impl.impl._type) catch unreachable;
 
         for (def.children().items, trait_decl.?.children().items) |impl_param, trait_param| {
-            const impl_type = impl_param.decl.type;
-            const trait_type = Type_AST.clone(trait_param.decl.type, &subst, compiler.allocator());
+            const impl_type = impl_param.binding.type;
+            const trait_type = Type_AST.clone(trait_param.binding.type, &subst, compiler.allocator());
             if (!impl_type.types_match(trait_type)) {
                 compiler.errors.add_error(errs_.Error{ .mismatch_method_type = .{
-                    .span = impl_param.decl.type.token().span,
+                    .span = impl_param.binding.type.token().span,
                     .method_name = def.method_decl.name.token().data,
                     .trait_name = trait_ast.token().data,
                     .trait_type = trait_type,

@@ -131,19 +131,15 @@ fn top_level_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     if (self.peek_kind(.@"fn")) {
         return try self.fn_declaration();
     } else if (self.peek_kind(.@"const")) {
-        var decl: *ast_.AST = try self.const_declaration();
+        const decl: *ast_.AST = try self.const_declaration();
         if (!self.peek_kind(.EOF)) {
             _ = try self.expect(.newline);
         }
-        decl.decl._top_level = true;
         return decl;
     } else if (self.peek_kind(.@"extern")) {
-        var decl: *ast_.AST = try self.extern_const_declaration();
+        const decl: *ast_.AST = try self.extern_const_declaration();
         if (!self.peek_kind(.EOF)) {
             _ = try self.expect(.newline);
-        }
-        if (decl.* == .decl) {
-            decl.decl._top_level = true;
         }
         return decl;
     } else if (self.peek_kind(.import)) {
@@ -227,15 +223,14 @@ fn extern_const_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
 
     if (self.peek_kind(.@"const")) {
         var retval = try self.const_declaration();
-        retval.decl.pattern = ast_.AST.create_pattern_symbol(
-            retval.decl.pattern.token(),
+        retval.binding.pattern = ast_.AST.create_pattern_symbol(
+            retval.binding.pattern.token(),
             .@"const",
             .{ .@"extern" = .{ .c_name = c_name } },
-            retval.decl.pattern.token().data,
+            retval.binding.pattern.token().data,
             self.allocator,
         );
-        retval.decl.init = null;
-        retval.decl.prohibit_defaults = true;
+        retval.binding.init = null;
         return retval;
     } else if (self.peek_kind(.type)) {
         var retval = try self.type_alias_declaration();
@@ -479,12 +474,11 @@ fn const_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
         return error.ParseError;
     }
 
-    return ast_.AST.create_decl(
+    return ast_.AST.create_binding(
         token,
         pattern,
         _type orelse Type_AST.create_type_of(token, _init.?, self.allocator), // type inference done here!
         _init orelse ast_.AST.create_default(token, _type.?, self.allocator), // default value generate done here!
-        false,
         self.allocator,
     );
 }
@@ -517,16 +511,13 @@ fn let_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
         return error.ParseError;
     }
 
-    var decl = ast_.AST.create_decl(
+    return ast_.AST.create_binding(
         token,
         ident,
         _type orelse Type_AST.create_type_of(token, _init.?, self.allocator), // type inference done here!
         _init orelse if (is_undefined) null else ast_.AST.create_default(token, _type.?, self.allocator), // default value generate done here!
-        false,
         self.allocator,
     );
-    decl.decl.prohibit_defaults = is_undefined;
-    return decl;
 }
 
 fn let_pattern_atom(self: *Self) Parser_Error_Enum!*ast_.AST {
@@ -544,6 +535,10 @@ fn let_pattern_atom(self: *Self) Parser_Error_Enum!*ast_.AST {
     } else if (self.accept(.left_parenthesis)) |_| {
         const res = try self.let_pattern_product();
         _ = try self.expect(.right_parenthesis);
+        return res;
+    } else if (self.accept(.left_square)) |_| {
+        const res = try self.let_pattern_array();
+        _ = try self.expect(.right_square);
         return res;
     } else {
         self.errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "a pattern expression here", .got = self.peek() } });
@@ -568,6 +563,17 @@ fn let_pattern_product(self: *Self) Parser_Error_Enum!*ast_.AST {
     } else {
         return exp;
     }
+}
+
+fn let_pattern_array(self: *Self) Parser_Error_Enum!*ast_.AST {
+    const exp = try self.let_pattern_atom();
+    var terms: std.ArrayList(*ast_.AST) = std.ArrayList(*ast_.AST).init(self.allocator);
+    terms.append(exp) catch unreachable;
+    const first_token: Token = self.peek();
+    while (self.accept(.comma)) |_| {
+        terms.append(try self.let_pattern_atom()) catch unreachable;
+    }
+    return ast_.AST.create_array(first_token, terms, self.allocator);
 }
 
 fn let_pre(self: *Self) Parser_Error_Enum!?*ast_.AST {
@@ -1241,12 +1247,11 @@ fn param(self: *Self) Parser_Error_Enum!*ast_.AST {
         _init = try self.bool_expr();
     }
 
-    return ast_.AST.create_decl(
+    return ast_.AST.create_binding(
         ident.token(),
         ident,
         _type,
         _init,
-        false,
         self.allocator,
     );
 }
@@ -1295,16 +1300,23 @@ fn enum_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     var fields: std.ArrayList(*Type_AST) = std.ArrayList(*Type_AST).init(self.allocator);
 
     self.newlines();
-    while (self.accept(.identifier)) |field_token| {
-        const field_ident = ast_.AST.create_identifier(field_token, self.allocator);
+    while (!self.peek_kind(.right_brace)) {
+        const ident_token = try self.expect(.identifier);
+        const field_ident = ast_.AST.create_identifier(ident_token, self.allocator);
         var _type: ?*Type_AST = null;
         if (self.peek_kind(.left_parenthesis)) {
             _type = try self.paren_type_expr();
         }
 
-        const field = Type_AST.create_annotation(field_token, field_ident, _type orelse Type_AST.create_unit_type(field_token, self.allocator), null, self.allocator);
+        const field = Type_AST.create_annotation(ident_token, field_ident, _type orelse Type_AST.create_unit_type(ident_token, self.allocator), null, self.allocator);
 
         fields.append(field) catch unreachable;
+        if (!self.peek_kind(.right_brace)) {
+            _ = self.accept(.comma) orelse self.accept(.newline) orelse {
+                self.errors.add_error(errs_.Error{ .expected2token = .{ .expected = .newline, .got = self.peek() } });
+                return error.ParseError;
+            };
+        }
         self.newlines();
     }
     self.newlines();
@@ -1410,7 +1422,6 @@ fn with_decl(self: *Self) Parser_Error_Enum!*ast_.AST {
         ident,
         _type,
         null,
-        false,
         self.allocator,
     );
 }
@@ -1570,10 +1581,10 @@ fn match_pattern_sum_value(self: *Self) Parser_Error_Enum!*ast_.AST {
     const exp = try self.match_pattern_atom();
     if (self.accept(.left_parenthesis)) |_| {
         const retval = ast_.AST.create_sum_value(exp.token(), self.allocator);
-        // if (exp.* == .select) { // TODO: Figure out how Enum.ctor works
-        //     retval.sum_value.base = exp.lhs();
-        //     retval.common()._token = exp.rhs().token();
-        // }
+        if (exp.* == .select) { // TODO: Figure out how Enum.ctor works
+            retval.sum_value.base = Type_AST.create_identifier(exp.lhs().token(), self.allocator);
+            retval.common()._token = exp.rhs().token();
+        }
         retval.sum_value.init = try self.match_pattern_atom();
         _ = try self.expect(.right_parenthesis);
         return retval;

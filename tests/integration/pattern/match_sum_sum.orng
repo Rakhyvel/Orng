@@ -1,6 +1,8 @@
 // 173
 fn main() -> Int {
-    const The_Type = (a: (aa: Int | ab: Int) | b: (ba: Int | bb: Int))
+    enum A_Type { aa(Int), ab(Int) }
+    enum B_Type { ba(Int), bb(Int) }
+    enum The_Type { a(A_Type), b(B_Type) }
     let x: The_Type = The_Type.b(.ba(173))
 
     match x {

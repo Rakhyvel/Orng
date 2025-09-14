@@ -136,7 +136,7 @@ pub fn expanded_type(self: *const Self) *Type_AST {
 /// when this is true, this symbol is a type-alias, and should be expanded before use
 pub fn is_alias(self: *Self) bool {
     if (self.decl != null and self.decl.?.* == .type_alias) return true;
-    return if (self.decl != null and self.decl.?.* == .decl) self.decl.?.decl.is_alias else false;
+    return false;
 }
 
 pub fn lvalue_is_symbol(self: *Self, return_symbol: *Self) bool {

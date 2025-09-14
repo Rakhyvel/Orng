@@ -147,10 +147,10 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
                 // Define each parameter in the new scope
                 var const_decls = std.ArrayList(*ast_.AST).init(compiler.allocator());
                 for (impl.impl.with_decls.items) |with_decl| {
-                    const decl_init = subst.get(with_decl.decl.pattern.token().data);
+                    const decl_init = subst.get(with_decl.decl.name.token().data);
                     const decl = ast_.AST.create_type_alias(
                         with_decl.token(),
-                        with_decl.decl.pattern,
+                        with_decl.decl.name,
                         decl_init,
                         compiler.allocator(),
                     );
@@ -229,7 +229,7 @@ fn search_impl(impl: *ast_.AST, name: []const u8) ?*ast_.AST {
         }
     }
     for (impl.impl.const_defs.items) |const_def| {
-        if (std.mem.eql(u8, const_def.decl.symbols.items[0].name, name)) {
+        if (std.mem.eql(u8, const_def.decl.name.symbol().?.name, name)) {
             return const_def;
         }
     }

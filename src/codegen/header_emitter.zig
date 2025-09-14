@@ -245,17 +245,17 @@ fn output_traits(self: *Self) CodeGen_Error!void {
             // Output receiver parameter
             if (method_decl_has_receiver) {
                 try self.writer.print("void*", .{});
-                if (decl.children().items.len > 0 and !decl.children().items[0].decl.type.is_c_void_type()) {
+                if (decl.children().items.len > 0 and !decl.children().items[0].binding.type.is_c_void_type()) {
                     try self.writer.print(", ", .{});
                 }
             }
 
             // Output regular parameters
             for (decl.children().items, 0..) |param_decl, i| {
-                if (!param_decl.decl.type.is_c_void_type()) {
+                if (!param_decl.binding.type.is_c_void_type()) {
                     // Do not output `void` parameters
-                    try self.emitter.output_type(param_decl.decl.type);
-                    if (i + 1 < num_method_params and !decl.children().items[i + 1].decl.type.is_c_void_type()) {
+                    try self.emitter.output_type(param_decl.binding.type);
+                    if (i + 1 < num_method_params and !decl.children().items[i + 1].binding.type.is_c_void_type()) {
                         try self.writer.print(", ", .{});
                     }
                 }

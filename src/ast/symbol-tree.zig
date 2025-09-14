@@ -84,18 +84,22 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         },
 
         // Create symbols (potentially >1) from pattern, put inside scope
-        .decl => {
+        .binding => {
+            var symbols = std.ArrayList(*Symbol).init(self.allocator);
             try create_symbol(
-                &ast.decl.symbols,
-                ast.decl.pattern,
+                &symbols,
+                ast.binding.pattern,
                 ast,
-                ast.decl.type,
-                ast.decl.init,
+                ast.binding.type,
+                ast.binding.init,
                 self.scope,
                 self.errors,
                 self.allocator,
             );
-            try self.scope.put_all_symbols(&ast.decl.symbols, self.errors);
+            for (symbols.items) |symbol| {
+                ast.binding.decls.append(symbol.decl.?) catch unreachable;
+            }
+            try self.scope.put_all_symbols(&symbols, self.errors);
         },
 
         .@"struct", .@"enum", .type_alias => {
@@ -243,29 +247,6 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
             try create_match_pattern_symbol(ast, self.scope, self.errors, self.allocator);
         },
 
-        .decl => {
-            if (ast.decl._top_level) {
-                for (ast.decl.symbols.items) |symbol| {
-                    if (symbol.kind != .@"const" and symbol.kind != .import) {
-                        self.errors.add_error(errs_.Error{ .basic = .{
-                            .span = symbol.span(),
-                            .msg = "top level symbols must be marked `const`",
-                        } });
-                        return error.CompileError;
-                    }
-                }
-            }
-
-            if (!self.is_param_scope and !ast.decl.prohibit_defaults and ast.decl.init == null) {
-                // If this isn't a parameter, and the init is null, set the init to the default value of the type
-                ast.decl.init = ast_.AST.create_default(
-                    ast.token(),
-                    ast.decl.type,
-                    self.allocator,
-                );
-            }
-        },
-
         .trait => {
             for (ast.trait.method_decls.items) |method_decl| {
                 method_decl.method_decl.c_type = create_method_type(method_decl, self.allocator);
@@ -328,7 +309,7 @@ fn create_symbol(
             const symbol = Symbol.init(
                 scope,
                 pattern.pattern_symbol.name,
-                decl orelse ast_.AST.create_decl(pattern.token(), pattern, _type, init, false, allocator),
+                ast_.AST.create_decl(pattern.token(), pattern, _type, init, allocator),
                 pattern.pattern_symbol.kind,
                 pattern.pattern_symbol.storage,
                 allocator,
@@ -336,7 +317,7 @@ fn create_symbol(
             pattern.set_symbol(symbol);
             symbols.append(symbol) catch unreachable;
         },
-        .product => {
+        .product, .array_value => {
             for (pattern.children().items, 0..) |term, i| {
                 const index = ast_.AST.create_int(pattern.token(), i, allocator);
                 const new_type: *Type_AST = Type_AST.create_index(_type.token(), _type, index, allocator);
@@ -408,11 +389,10 @@ pub fn create_function_symbol(
     var symbol_walk = Self.new(fn_scope, errors, allocator);
     symbol_walk.is_param_scope = true;
     try walk_.walk_asts(ast.children(), symbol_walk);
-    // try walk_.walk_ast(ast.fn_decl.ret_type, symbol_walk); // TODO: Walk types
 
     // Put the param symbols in the param symbols list
-    for (ast.children().items) |param| {
-        const symbol = param.decl.symbols.items[0];
+    for (ast.children().items) |param_binding| {
+        const symbol = param_binding.binding.decls.items[0].decl.name.symbol().?;
         ast.param_symbols().?.append(symbol) catch unreachable;
     }
 
@@ -488,9 +468,9 @@ pub fn extract_domain(params: std.ArrayList(*ast_.AST), allocator: std.mem.Alloc
     } else if (params.items.len <= 1) {
         return Type_AST.create_annotation(
             params.items[0].token(),
-            params.items[0].decl.pattern,
-            params.items[0].decl.type,
-            params.items[0].decl.init,
+            params.items[0].binding.pattern,
+            params.items[0].binding.type,
+            params.items[0].binding.init,
             allocator,
         );
     } else {
@@ -517,9 +497,9 @@ fn build_paramlist(params: std.ArrayList(*ast_.AST), param_types: *std.ArrayList
     for (0..params.items.len) |i| {
         param_types.append(Type_AST.create_annotation(
             params.items[i].token(),
-            params.items[i].decl.pattern,
-            params.items[i].decl.type,
-            params.items[i].decl.init,
+            params.items[i].binding.pattern,
+            params.items[i].binding.type,
+            params.items[i].binding.init,
             allocator,
         )) catch unreachable;
     }
@@ -648,7 +628,6 @@ fn create_method_symbol(
     fn_scope.function_depth = scope.function_depth + 1;
 
     // Recurse parameters and init
-
     const symbol_walk = Self.new(fn_scope, errors, allocator);
     try walk_.walk_asts(ast.children(), symbol_walk);
     // try walk_.walk_ast(ast.method_decl.ret_type, symbol_walk); // TODO: walk types
@@ -678,7 +657,6 @@ fn create_method_symbol(
                 ast_.AST.create_pattern_symbol(Token.init("self", .identifier, receiver_span.filename, receiver_span.line_text, receiver_span.line_number, receiver_span.col), .let, .local, "self", allocator),
                 self_type,
                 self_init,
-                false,
                 allocator,
             );
             if (ast.method_decl.init.?.* != .unit_value) {
@@ -694,8 +672,8 @@ fn create_method_symbol(
     }
 
     // Put the param symbols in the param symbols list
-    for (ast.children().items) |param| {
-        const symbol = param.decl.symbols.items[0];
+    for (ast.children().items) |param_binding| {
+        const symbol = param_binding.binding.decls.items[0].decl.name.symbol().?;
         ast.param_symbols().?.append(symbol) catch unreachable;
     }
 

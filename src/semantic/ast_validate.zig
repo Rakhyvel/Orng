@@ -80,7 +80,7 @@ pub fn validate_AST(ast: *ast_.AST, old_expected_type: ?*Type_AST, compiler: *Co
     if (retval.* == .poison) {
         return ast.enpoison();
     } else {
-        _ = retval.typeof(compiler.allocator()).expand_identifier();
+        // _ = retval.typeof(compiler.allocator()).expand_identifier();
         ast.common().validation_state = ast_.AST_Validation_State{ .valid = .{ .valid_form = retval } };
         retval.common().validation_state = ast_.AST_Validation_State{ .valid = .{ .valid_form = retval } };
         return retval;
@@ -102,6 +102,8 @@ fn validate_AST_internal(
         .pattern_symbol,
         .trait,
         .impl,
+        .@"enum",
+        .@"struct",
         => return ast,
         // .anyptr_type, .unit_type => {
         //     try typing_.type_check(ast.token().span, prelude_.type_type, expected, &compiler.errors);
@@ -137,10 +139,13 @@ fn validate_AST_internal(
             }
             try validate_symbol_.validate(symbol, compiler);
             if (symbol.refers_to_type()) {
-                compiler.errors.add_error(errs_.Error{ .unexpected_type_type = .{ .expected = expected, .span = ast.token().span } });
-                return ast.enpoison();
+                if (expected != null) {
+                    compiler.errors.add_error(errs_.Error{ .unexpected_type_type = .{ .expected = expected, .span = ast.token().span } });
+                    return ast.enpoison();
+                }
+            } else {
+                try typing_.type_check(ast.token().span, symbol.type(), expected, &compiler.errors);
             }
-            try typing_.type_check(ast.token().span, symbol.type(), expected, &compiler.errors);
             return ast;
         },
         .true, .false => {
@@ -571,14 +576,13 @@ fn validate_AST_internal(
         // },
         .product => {
             const expanded_expected: ?*Type_AST = if (expected == null) null else expected.?.expand_identifier();
-            // if (expanded_expected == null or try expanded_expected.?.types_match(prelude_.type_type)) {
-            //     // Not expecting anything OR expecting ast to be a product type
-            //     for (0..ast.children().items.len) |i| {
-            //         ast.children().items[i] = validate_AST(ast.children().items[i], expanded_expected, compiler);
-            //     }
-            //     try poison_.assert_none_poisoned(ast.children());
-            // } else
-            if (expanded_expected != null and expanded_expected.?.* == .product) {
+            if (expanded_expected == null) {
+                // Not expecting anything
+                for (0..ast.children().items.len) |i| {
+                    ast.children().items[i] = validate_AST(ast.children().items[i], expanded_expected, compiler);
+                }
+                try poison_.assert_none_poisoned(ast.children());
+            } else if (expanded_expected != null and expanded_expected.?.* == .product) {
                 // Expecting ast to be a product value of some product type
                 _ = ast.assert_ast_valid();
                 ast.set_children(try args_.default_args(.product, ast.children().*, ast.token().span, expanded_expected.?, &compiler.errors, compiler.allocator()));
@@ -1019,9 +1023,18 @@ fn validate_AST_internal(
                 ast.decl.init = validate_AST(init, ast.decl.type, compiler);
             }
             try poison_.assert_none_poisoned(ast.decl.init);
-            for (ast.decl.symbols.items) |symbol| {
-                try validate_symbol_.validate(symbol, compiler);
+            try validate_symbol_.validate(ast.decl.name.symbol().?, compiler);
+            try typing_.type_check(ast.token().span, prelude_.unit_type, expected, &compiler.errors);
+            return ast;
+        },
+        .binding => {
+            if (ast.binding.init) |init| {
+                ast.binding.init = validate_AST(init, ast.binding.type, compiler);
             }
+            for (ast.binding.decls.items) |decl| {
+                try validate_symbol_.validate(decl.decl.name.symbol().?, compiler);
+            }
+            try validate_pattern_.assert_pattern_matches(ast.binding.pattern, ast.binding.type, compiler);
             try typing_.type_check(ast.token().span, prelude_.unit_type, expected, &compiler.errors);
             return ast;
         },
@@ -1051,7 +1064,7 @@ fn remove_const_args(
     var arg_idx: usize = 0;
     while (param_idx < params.items.len and arg_idx < args.items.len) {
         const param = params.items[param_idx];
-        if (param.decl.pattern.pattern_symbol.kind == .@"const") {
+        if (param.decl.name.pattern_symbol.kind == .@"const") {
             _ = args.orderedRemove(arg_idx);
             arg_idx -%= 1;
         }

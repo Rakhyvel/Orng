@@ -26,7 +26,6 @@ pub fn validate(symbol: *Symbol, compiler: *Compiler_Context) Validate_Error_Enu
     // std.debug.assert(symbol.init.* != .poison);
     // std.debug.print("validating type for: {s}\n", .{symbol.name});
     // symbol._type = validate_AST(symbol._type, prelude_.type_type, compiler);
-    // std.debug.print("type for: {s}: {}\n", .{ symbol.name, symbol._type });
 
     _ = symbol.assert_symbol_valid();
     // symbol.expanded_type = symbol._type.expand_type(compiler.allocator());
@@ -36,6 +35,7 @@ pub fn validate(symbol: *Symbol, compiler: *Compiler_Context) Validate_Error_Enu
         .type => null,
         else => symbol.type(),
     };
+    // std.debug.print("type for: {s}: {?}\n", .{ symbol.name, expected });
     // std.debug.print("validating init for: {s}: {?}\n", .{ symbol.name, expected });
     if (symbol.init_value()) |init| {
         // might be null for parameters

@@ -344,7 +344,6 @@ fn create_prelude_symbol(name: []const u8, _type: *Type_AST, init: *ast_.AST, al
         ast_.AST.create_pattern_symbol(token, .@"const", .local, name, allocator),
         _type,
         init,
-        true,
         allocator,
     );
     var symbol = Symbol.init(

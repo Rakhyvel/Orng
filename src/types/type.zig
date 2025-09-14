@@ -125,18 +125,17 @@ pub const Type_AST = union(enum) {
             return true;
         }
 
-        pub fn get_offset_field(self: *@This(), field_name: []const u8, allocator: std.mem.Allocator) i64 {
+        pub fn get_offset_field(self: *@This(), field_name: []const u8) i64 {
             for (0.., self._terms.items) |i, term| {
                 if (term.* == .annotation and std.mem.eql(u8, field_name, term.annotation.pattern.token().data)) {
-                    return self.get_offset(i, allocator);
+                    return self.get_offset(i);
                 }
             }
             std.debug.panic("compiler error: couldn't get offset; product didn't have the field `{s}`", .{field_name});
         }
 
         /// Retrieves the offset in bytes given a field's index
-        pub fn get_offset(self: *@This(), field: usize, allocator: std.mem.Allocator) i64 {
-            _ = allocator;
+        pub fn get_offset(self: *@This(), field: usize) i64 {
             var offset: i64 = 0;
             for (0..field) |i| {
                 var item = self._terms.items[i].expand_identifier();
@@ -168,7 +167,15 @@ pub const Type_AST = union(enum) {
     //     _child: *Type_AST,
     //     mut: bool,
     // },
-    array_of: struct { common: Type_AST_Common, _child: *Type_AST, len: *AST },
+    array_of: struct {
+        common: Type_AST_Common,
+        _child: *Type_AST,
+        len: *AST,
+
+        pub fn get_offset(self: *@This(), field: usize) i64 {
+            return self._child.sizeof() * @as(i64, @intCast(field));
+        }
+    },
     type_of: struct {
         common: Type_AST_Common,
         _expr: *AST,
@@ -610,6 +617,9 @@ pub const Type_AST = union(enum) {
             return self.child().expand_identifier();
         }
         var res = self;
+        if ((res.* == .identifier or res.* == .access) and res.symbol() == null) {
+            std.debug.print("{s}\n", .{res.token().data});
+        }
         while ((res.* == .identifier or res.* == .access) and res.symbol().?.init_typedef() != null) {
             const new = res.symbol().?.init_typedef().?;
             new.set_unexpanded_type(res);
@@ -730,12 +740,7 @@ pub const Type_AST = union(enum) {
             .domain_of => {
                 try out.print("@domainof({}.{s})", .{ self.domain_of._child, self.domain_of.ctor_name });
             },
-            .index => {
-                try self.child().print_type(out);
-                try out.print("[", .{});
-                try self.rhs().print_type(out);
-                try out.print("]", .{});
-            },
+            .index => try out.print("{}[{}]", .{ self.child(), self.index.idx }),
             else => try out.print("{s}", .{@tagName(self.*)}),
         }
     }

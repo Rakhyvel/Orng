@@ -59,13 +59,12 @@ fn evaluate_const_args(
     _ = try args_.validate_args_arity(.function, args, domain, false, call_span, &compiler.errors);
 
     for (template_ast.template.decl.fn_decl._params.items, args.items) |param, arg| {
-        if (param.decl.pattern.pattern_symbol.kind == .@"const") {
+        if (param.decl.name.pattern_symbol.kind == .@"const") {
             const decl = ast_.AST.create_decl(
                 param.token(),
-                param.decl.pattern,
+                param.decl.name,
                 param.decl.type,
                 arg,
-                true,
                 compiler.allocator(),
             );
             const_decls.append(decl) catch unreachable;

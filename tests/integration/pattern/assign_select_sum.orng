@@ -1,6 +1,6 @@
 // 349
 fn main() -> Int {
-    let mut x: [2]?Int = (.none, .none)
+    let mut x: [2]?Int = [.none, .none]
     (x[0].some, x[1].some) = (340, 9)
     x[0].some + x[1].some
 }

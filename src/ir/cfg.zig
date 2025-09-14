@@ -77,7 +77,6 @@ pub fn init(symbol: *Symbol, allocator: std.mem.Allocator) *Self {
             ast_.AST.create_pattern_symbol(symbol.decl.?.token(), .mut, .local, "$retval", allocator),
             symbol.type().rhs(),
             null,
-            false,
             allocator,
         ),
         .mut,
