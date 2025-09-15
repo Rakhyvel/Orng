@@ -6,7 +6,7 @@ trait My_Trait {
     fn a(self) -> ()
 }
 
-const My_Type = (x: Int, y: Int)
+struct My_Type {a: Int, b: Int}
 
 impl My_Trait for My_Type {
     fn a(self) -> () {  }

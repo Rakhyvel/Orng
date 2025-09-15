@@ -51,7 +51,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 },
             }
 
-            if (ast.symbol().?.kind != .import and !ast.symbol().?.defined) {
+            if (ast.symbol().?.kind != .import and ast.symbol().?.kind != .type and ast.symbol().?.kind != .@"const" and !ast.symbol().?.defined) {
                 self.errors.add_error(errs_.Error{ .use_before_def = .{ .identifier = ast.token() } });
                 return error.CompileError;
             }
