@@ -1,6 +1,6 @@
 struct Package {
     root: String
-    kind: Pacakge_Kind
+    kind: Package_Kind
     dir: String = "."
     num_requirements: Int = 0
     requirements: [8]?Requirement = [ // TODO: Replace with an Arraylist
@@ -45,7 +45,7 @@ struct Package {
     ]
 }
 
-enum Pacakge_Kind {
+enum Package_Kind {
     executable
     static_library
 }

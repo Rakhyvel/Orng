@@ -19,6 +19,7 @@ const typing_ = @import("typing.zig");
 const validate_symbol_ = @import("symbol_validate.zig");
 const validate_pattern_ = @import("pattern_validate.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
+const type_validate_ = @import("../types/type_validate.zig");
 
 const Validate_Error_Enum = error{ LexerError, ParseError, CompileError };
 
@@ -106,6 +107,7 @@ fn validate_AST_internal(
         .impl,
         .@"enum",
         .@"struct",
+        .type_alias,
         => return ast,
         // .anyptr_type, .unit_type => {
         //     try typing_.type_check(ast.token().span, prelude_.type_type, expected, &compiler.errors);
@@ -147,6 +149,28 @@ fn validate_AST_internal(
                 }
             } else {
                 try typing_.type_check(ast.token().span, symbol.type(), expected, &compiler.errors);
+            }
+            return ast;
+        },
+        .access => {
+            ast.set_lhs(validate_AST(ast.lhs(), null, compiler));
+            try poison_.assert_none_poisoned(ast.lhs());
+
+            // look up symbol, that's the type
+            const symbol = ast.symbol().?;
+            if (symbol.validation_state == .invalid) {
+                return error.CompileError;
+            }
+            try validate_symbol_.validate(symbol, compiler);
+            if (symbol.refers_to_type()) {
+                if (expected != null) {
+                    compiler.errors.add_error(errs_.Error{ .unexpected_type_type = .{ .expected = expected, .span = ast.token().span } });
+                    return ast.enpoison();
+                }
+            } else {
+                _ = ast.assert_ast_valid();
+                const ast_type = ast.typeof(compiler.allocator());
+                try typing_.type_check(ast.token().span, ast_type, expected, &compiler.errors);
             }
             return ast;
         },
@@ -438,22 +462,6 @@ fn validate_AST_internal(
             } else if (ast.pos() == null) {
                 ast.set_pos(try typing_.find_select_pos(expanded_lhs_type, ast.rhs().token().data, ast.token().span, &compiler.errors));
             }
-
-            _ = ast.assert_ast_valid();
-            const ast_type = ast.typeof(compiler.allocator());
-            try typing_.type_check(ast.token().span, ast_type, expected, &compiler.errors);
-            return ast;
-        },
-        .access => {
-            ast.set_lhs(validate_AST(ast.lhs(), null, compiler));
-            try poison_.assert_none_poisoned(ast.lhs());
-
-            // look up symbol, that's the type
-            const symbol = ast.symbol().?;
-            if (symbol.validation_state == .invalid) {
-                return error.CompileError;
-            }
-            try validate_symbol_.validate(symbol, compiler);
 
             _ = ast.assert_ast_valid();
             const ast_type = ast.typeof(compiler.allocator());
@@ -1030,6 +1038,7 @@ fn validate_AST_internal(
             return ast;
         },
         .binding => {
+            try type_validate_.validate(ast.binding.type, &compiler.errors);
             if (ast.binding.init) |init| {
                 ast.binding.init = validate_AST(init, ast.binding.type, compiler);
             }

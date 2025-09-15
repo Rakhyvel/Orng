@@ -47,9 +47,8 @@ pub const Type_AST = union(enum) {
     // TOOD: generic_type
     access: struct {
         common: Type_AST_Common,
-        container: *Type_AST,
-        field: *AST,
-        scope: ?*Scope = null,
+        inner_access: *AST,
+        _symbol: ?*Symbol = null,
     },
     function: struct {
         common: Type_AST_Common,
@@ -219,12 +218,11 @@ pub const Type_AST = union(enum) {
         return Type_AST.box(Type_AST{ .identifier = .{ .common = Type_AST_Common{ ._token = _token } } }, allocator);
     }
 
-    pub fn create_access(_token: Token, _lhs: *Type_AST, _rhs: *AST, allocator: std.mem.Allocator) *Type_AST {
+    pub fn create_access(_token: Token, inner_access: *AST, allocator: std.mem.Allocator) *Type_AST {
         const _common: Type_AST_Common = .{ ._token = _token };
         return Type_AST.box(Type_AST{ .access = .{
             .common = _common,
-            .container = _lhs,
-            .field = _rhs,
+            .inner_access = inner_access,
         } }, allocator);
     }
 
@@ -525,10 +523,17 @@ pub const Type_AST = union(enum) {
     }
 
     pub fn symbol(self: Type_AST) ?*Symbol {
+        if (self == .access) {
+            return self.access.inner_access.symbol();
+        }
         return get_struct_field(self, "_symbol");
     }
 
     pub fn set_symbol(self: *Type_AST, val: ?*Symbol) void {
+        if (self.* == .access) {
+            self.access.inner_access.set_symbol(val);
+            return;
+        }
         set_field(self, "_symbol", val);
     }
 
@@ -710,7 +715,7 @@ pub const Type_AST = union(enum) {
                 try out.print(")", .{});
             },
             .access => {
-                try out.print("{}::{}", .{ self.access.container, self.access.field });
+                try out.print("{}", .{self.access.inner_access});
             },
             .annotation => {
                 try out.print("{s}: ", .{self.annotation.pattern.token().data});
@@ -899,9 +904,6 @@ pub const Type_AST = union(enum) {
         if (B.* == .anyptr_type and A.* == .addr_of) {
             return true;
         }
-        if (A.* == .identifier and A.symbol() == null) {
-            std.debug.print("{s}\n", .{A.token().data});
-        }
         if (A.* == .identifier and A.symbol().?.is_alias() and A != A.expand_identifier()) {
             // If A is a type alias, expand
             return types_match(A.expand_identifier(), B);
@@ -941,7 +943,7 @@ pub const Type_AST = union(enum) {
             .identifier => return std.mem.eql(u8, A.token().data, B.token().data),
             .addr_of => return (!B.addr_of.mut or B.addr_of.mut == A.addr_of.mut) and (B.addr_of.multiptr == A.addr_of.multiptr) and types_match(A.child(), B.child()),
             // .slice_of => return (!B.slice_of.mut or B.slice_of.mut == A.slice_of.mut) and types_match(A.child(), B.child()),
-            .array_of => return types_match(A.child(), B.child()),
+            .array_of => return types_match(A.child(), B.child()) and A.array_of.len.int.data == B.array_of.len.int.data,
             .anyptr_type => return B.* == .anyptr_type,
             .unit_type => return true,
             .product => {
@@ -990,10 +992,6 @@ pub const Type_AST = union(enum) {
                 const _expr = clone(self.child(), substs, allocator);
                 return create_addr_of(self.token(), _expr, self.addr_of.mut, self.addr_of.multiptr, allocator);
             },
-            // .slice_of => {
-            //     const _expr = clone(self.child(), substs, allocator);
-            //     return create_slice_of(self.token(), _expr, self.slice_of.mut, allocator);
-            // },
             .array_of => {
                 const _expr = clone(self.child(), substs, allocator);
                 return create_array_of(self.token(), _expr, self.array_of.len, allocator);
@@ -1158,6 +1156,11 @@ pub const Type_AST = union(enum) {
             return c_types_match(self.child(), other);
         } else if (other.* == .annotation) {
             return c_types_match(self, other.child());
+        }
+        if (self.* == .access) {
+            return c_types_match(self.symbol().?.init_typedef().?, other);
+        } else if (other.* == .access) {
+            return c_types_match(self, other.symbol().?.init_typedef().?);
         }
         if (other.* == .anyptr_type and self.* == .addr_of) {
             return true;

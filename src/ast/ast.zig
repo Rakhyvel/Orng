@@ -1420,12 +1420,15 @@ pub const AST = union(enum) {
             .trait => {
                 const cloned_method_decls = clone_children(self.trait.method_decls, substs, allocator);
                 const cloned_const_decls = clone_children(self.trait.const_decls, substs, allocator);
-                return create_trait(
+                var retval = create_trait(
                     self.token(),
                     cloned_method_decls,
                     cloned_const_decls,
                     allocator,
                 );
+                retval.set_symbol(self.symbol());
+                retval.set_scope(self.scope());
+                return retval;
             },
             .impl => {
                 const cloned_method_defs = clone_children(self.impl.method_defs, substs, allocator);
@@ -1441,6 +1444,7 @@ pub const AST = union(enum) {
                     allocator,
                 );
                 retval.impl.impls_anon_trait = self.impl.impls_anon_trait;
+                retval.set_scope(self.scope());
                 return retval;
             },
             .invoke => {
@@ -1454,7 +1458,11 @@ pub const AST = union(enum) {
                 );
             },
             .dyn_value => unreachable, // Shouldn't exist yet... have to clone scope?
-            .sum_value => return create_sum_value(self.token(), allocator),
+            .sum_value => {
+                var retval = create_sum_value(self.token(), allocator);
+                retval.sum_value.init = self.sum_value.init;
+                return retval;
+            },
             .product => {
                 const cloned_terms = clone_children(self.children().*, substs, allocator);
                 var retval = create_product(
@@ -1475,29 +1483,35 @@ pub const AST = union(enum) {
             },
             .@"struct" => {
                 const cloned_terms = Type_AST.clone_types(self.@"struct".fields, substs, allocator);
-                return create_struct(
+                var retval = create_struct(
                     self.token(),
                     self.@"struct".name.clone(substs, allocator),
                     cloned_terms, // TODO: clone types
                     allocator,
                 );
+                retval.set_symbol(self.symbol());
+                return retval;
             },
             .@"enum" => {
                 const cloned_terms = Type_AST.clone_types(self.@"enum".fields, substs, allocator);
-                return create_enum(
+                var retval = create_enum(
                     self.token(),
                     self.@"enum".name.clone(substs, allocator),
                     cloned_terms,
                     allocator,
                 );
+                retval.set_symbol(self.symbol());
+                return retval;
             },
             .type_alias => {
-                return create_type_alias(
+                var retval = create_type_alias(
                     self.token(),
                     self.type_alias.name.clone(substs, allocator),
                     if (self.type_alias.init == null) null else self.type_alias.init.?.clone(substs, allocator),
                     allocator,
                 );
+                retval.set_symbol(self.symbol());
+                return retval;
             },
             .addr_of => return create_addr_of(
                 self.token(),
@@ -1525,23 +1539,29 @@ pub const AST = union(enum) {
                 allocator,
             ),
 
-            .@"if" => return create_if(
-                self.token(),
-                if (self.@"if".let) |let| let.clone(substs, allocator) else null,
-                self.@"if".condition.clone(substs, allocator),
-                self.body_block().clone(substs, allocator),
-                if (self.else_block()) |_else| _else.clone(substs, allocator) else null,
-                allocator,
-            ),
+            .@"if" => {
+                var retval = create_if(
+                    self.token(),
+                    if (self.@"if".let) |let| let.clone(substs, allocator) else null,
+                    self.@"if".condition.clone(substs, allocator),
+                    self.body_block().clone(substs, allocator),
+                    if (self.else_block()) |_else| _else.clone(substs, allocator) else null,
+                    allocator,
+                );
+                retval.set_scope(self.scope());
+                return retval;
+            },
             .match => {
                 const cloned_mappings = clone_children(self.children().*, substs, allocator);
-                return create_match(
+                var retval = create_match(
                     self.token(),
                     if (self.match.let) |let| let.clone(substs, allocator) else null,
                     self.expr().clone(substs, allocator),
                     cloned_mappings,
                     allocator,
                 );
+                retval.set_scope(self.scope());
+                return retval;
             },
             .mapping => return create_mapping(
                 self.token(),
@@ -1549,24 +1569,30 @@ pub const AST = union(enum) {
                 self.rhs().clone(substs, allocator),
                 allocator,
             ),
-            .@"while" => return create_while(
-                self.token(),
-                if (self.@"while".let) |let| let.clone(substs, allocator) else null,
-                self.@"while".condition.clone(substs, allocator),
-                if (self.@"while".post) |post| post.clone(substs, allocator) else null,
-                self.body_block().clone(substs, allocator),
-                if (self.else_block()) |_else| _else.clone(substs, allocator) else null,
-                allocator,
-            ),
+            .@"while" => {
+                var retval = create_while(
+                    self.token(),
+                    if (self.@"while".let) |let| let.clone(substs, allocator) else null,
+                    self.@"while".condition.clone(substs, allocator),
+                    if (self.@"while".post) |post| post.clone(substs, allocator) else null,
+                    self.body_block().clone(substs, allocator),
+                    if (self.else_block()) |_else| _else.clone(substs, allocator) else null,
+                    allocator,
+                );
+                retval.set_scope(self.scope());
+                return retval;
+            },
             .@"for" => unreachable, // TODO
             .block => {
                 const cloned_statements = clone_children(self.children().*, substs, allocator);
-                return create_block(
+                var retval = create_block(
                     self.token(),
                     cloned_statements,
                     if (self.block.final) |final| final.clone(substs, allocator) else null,
                     allocator,
                 );
+                retval.set_scope(self.scope());
+                return retval;
             },
             .@"break" => return create_break(self.token(), allocator),
             .@"continue" => return create_continue(self.token(), allocator),
@@ -1598,7 +1624,7 @@ pub const AST = union(enum) {
             ),
             .fn_decl => {
                 const cloned_params = clone_children(self.children().*, substs, allocator);
-                return create_fn_decl(
+                var retval = create_fn_decl(
                     self.token(),
                     if (self.fn_decl.name) |name| name.clone(substs, allocator) else null,
                     cloned_params,
@@ -1607,6 +1633,8 @@ pub const AST = union(enum) {
                     self.fn_decl.init.clone(substs, allocator),
                     allocator,
                 );
+                retval.set_symbol(self.symbol());
+                return retval;
             },
             .method_decl => {
                 const cloned_params = clone_children(self.children().*, substs, allocator);
@@ -1622,6 +1650,8 @@ pub const AST = union(enum) {
                     allocator,
                 );
                 retval.method_decl.impl = self.method_decl.impl;
+                retval.method_decl.domain = self.method_decl.domain;
+                retval.set_symbol(self.symbol());
                 return retval;
             },
             .@"test" => return create_test(
@@ -1758,7 +1788,7 @@ pub const AST = union(enum) {
             .decl => self.decl.type,
             .fn_decl => self.fn_decl._decl_type.?,
             .method_decl => self.method_decl._decl_type.?,
-            .@"test" => core_.test_result_type,
+            .@"test" => core_.test_type,
             .module, .trait => prelude_.unit_type,
             .receiver => self.receiver._type.?,
             else => std.debug.panic("compiler error: cannot call `.decl_type()` on the AST `{s}`", .{@tagName(self.*)}),

@@ -276,7 +276,9 @@ pub fn walk_type(maybe_type: ?*Type_AST, context: anytype) Error!void {
     }
 
     switch (_type.*) {
-        .poison, .anyptr_type, .unit_type, .identifier, .access, .type_of => {},
+        .poison, .anyptr_type, .unit_type, .identifier, .type_of => {},
+
+        .access => try walk_ast(_type.access.inner_access, new_context),
 
         .annotation,
         .untagged_sum_type,

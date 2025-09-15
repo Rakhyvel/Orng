@@ -15,6 +15,7 @@ const repo_ = @import("../util/repo.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
 const Scope = @import("../symbol/scope.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 
 const Self = @This();
 
@@ -141,9 +142,9 @@ pub fn register_interned_string_set(self: *Self, module_uid: u32) void {
     self.module_interned_strings.put(module_uid, interned_strings) catch unreachable;
 }
 
-pub fn get_core_type(self: *Self, name: []const u8) *AST {
+pub fn get_core_type(self: *Self, name: []const u8) *Type_AST {
     const prelude_abs_path = self.core.?.module.?.absolute_path;
-    return self.module_scope(prelude_abs_path).?.lookup(name, .{}).found.init_value().?;
+    return self.module_scope(prelude_abs_path).?.lookup(name, .{}).found.init_typedef().?;
 }
 
 pub fn lookup_interned_string_set(self: *Self, module_uid: u32) ?*Interned_String_Set {

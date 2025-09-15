@@ -128,14 +128,14 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
     for (self.impls.items) |impl| {
         var subst = unification_.Substitutions.init(std.heap.page_allocator);
         defer subst.deinit();
-        unification_.unify(impl.impl._type, for_type, impl.impl.with_decls, &subst) catch continue;
+        unification_.unify(impl.impl._type.expand_identifier(), for_type, impl.impl.with_decls, &subst) catch continue;
 
         // TODO:
         // - attempt to unify for_type and impl._type given impl's `with` list that defines type parameters (nop for concrete impl), or continue
         // - check types/constraints (nop for concrete impl), or continue
         // - let TheImpl = the instantiation given the unification parameters (nop for concrete impl), create if doesnt exist (Q: Where are these stored? In the impl? How is lookup based on unification parameters done?)
         // - perform normal method lookup on TheImpl
-        var the_impl = impl;
+        var the_impl = impl.clone(&subst, std.heap.page_allocator);
         if (impl.impl.with_decls.items.len > 0) {
             const with_list = unification_.with_list_from_subst_map(&subst, impl.impl.with_decls, std.heap.page_allocator);
             if (impl.impl.instantiations.get(with_list) == null) {

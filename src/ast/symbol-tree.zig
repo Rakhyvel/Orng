@@ -177,12 +177,18 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 try walk_.walk_ast(with_decl, new_self);
             }
 
+            // TODO: Don't do this for generic impls (but those'll be a new node anyway)
+            var subst = std.StringArrayHashMap(*Type_AST).init(self.allocator);
+            defer subst.deinit();
+            subst.put("Self", ast.impl._type) catch unreachable;
+            ast.* = ast.clone(&subst, self.allocator).*;
+
             if (ast.impl.trait == null) {
                 // impl'd for an anon trait, create an anon trait for it
                 // TODO: if there is a withlist, define the withs in the traits scope (?)
                 var token = ast.token();
                 token.kind = .identifier;
-                token.data = next_anon_name("trait", self.allocator);
+                token.data = next_anon_name("Trait", self.allocator);
                 const anon_trait = ast_.AST.create_trait(
                     token,
                     ast.impl.method_defs,
@@ -193,20 +199,6 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 ast.impl.trait = ast_.AST.create_identifier(token, self.allocator);
                 ast.impl.impls_anon_trait = true;
             }
-
-            const self_type_decl = ast_.AST.create_type_alias(
-                ast.token(),
-                ast_.AST.create_pattern_symbol(
-                    Token.init_simple("Self"),
-                    .type,
-                    .local,
-                    "Self",
-                    self.allocator,
-                ),
-                ast.impl._type,
-                self.allocator,
-            );
-            try walk_.walk_ast(self_type_decl, new_self);
 
             return new_self;
         },
@@ -458,7 +450,7 @@ pub fn next_anon_name(class: []const u8, allocator: std.mem.Allocator) []const u
     var out = String.init(allocator);
     defer out.deinit();
     const writer = out.writer();
-    writer.print("${s}{}", .{ class, num_anons }) catch unreachable;
+    writer.print("{s}${}", .{ class, num_anons }) catch unreachable;
     return (out.toOwned() catch unreachable).?;
 }
 

@@ -27,7 +27,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         else => return self,
 
         .identifier => {
-            const res = self.scope.lookup(ast.token().data, .{});
+            const res = self.scope.lookup(ast.token().data, .{ .allow_modules = true });
             switch (res) {
                 // Found the symbol, decorate the identifier AST with it
                 .found => ast.set_symbol(res.found),
@@ -105,12 +105,6 @@ pub fn prefix_type(self: Self, _type: *Type_AST) type_walk_.Error!?Self {
                 },
             }
 
-            return self;
-        },
-
-        .access => {
-            // Capture scope, so that `Trait::member` accesses are began at the access point
-            _type.access.scope = self.scope;
             return self;
         },
     }

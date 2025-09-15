@@ -12,6 +12,7 @@ const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
 const typing_ = @import("typing.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
+const type_validate_ = @import("../types/type_validate.zig");
 
 const Validate_Error_Enum = error{ LexerError, ParseError, CompileError };
 
@@ -35,6 +36,9 @@ pub fn validate(symbol: *Symbol, compiler: *Compiler_Context) Validate_Error_Enu
         .type => null,
         else => symbol.type(),
     };
+    if (expected) |expected_type| {
+        try type_validate_.validate(expected_type, &compiler.errors);
+    }
     // std.debug.print("type for: {s}: {?}\n", .{ symbol.name, expected });
     // std.debug.print("validating init for: {s}: {?}\n", .{ symbol.name, expected });
     if (symbol.init_value()) |init| {
@@ -52,23 +56,23 @@ pub fn validate(symbol: *Symbol, compiler: *Compiler_Context) Validate_Error_Enu
     }
 
     // Symbol's name must be capitalized iff its type is Type
-    // TODO: Re-work the errors for structs, enums, and type aliases
-    // if (symbol.expanded_type != null and !std.mem.eql(u8, symbol.name, "_") and symbol.kind != .trait and symbol.kind != .import_inner and symbol.name[0] != '$') {
-    //     if (symbol.kind != .import and type_is_type_type(symbol.expanded_type()) and !is_capitalized(symbol.name)) {
-    //         compiler.errors.add_error(errs_.Error{ .symbol_error = .{
-    //             .problem = "of type `Type` must start with an uppercase letter",
-    //             .span = symbol.span,
-    //             .name = symbol.name,
-    //         } });
-    //     } else if (!(symbol.kind != .import and type_is_type_type(symbol.expanded_type())) and is_capitalized(symbol.name) and symbol.kind != .template) {
-    //         // TODO: Make it so that these rules apply to templates. I think we'll need to stamp first, of course. Are symbols re-validated when they're stamped? They probably should be
-    //         compiler.errors.add_error(errs_.Error{ .symbol_error = .{
-    //             .problem = "of type other than `Type` must start with a lowercase letter",
-    //             .span = symbol.span,
-    //             .name = symbol.name,
-    //         } });
-    //     }
-    // }
+    if (symbol.refers_to_type() or symbol.kind == .trait) {
+        if (!is_capitalized(symbol.name)) {
+            compiler.errors.add_error(errs_.Error{ .symbol_error = .{
+                .problem = "must start with an uppercase letter",
+                .span = symbol.span(),
+                .name = symbol.name,
+            } });
+        }
+    } else {
+        if (is_capitalized(symbol.name)) {
+            compiler.errors.add_error(errs_.Error{ .symbol_error = .{
+                .problem = "must start with an lowercase letter",
+                .span = symbol.span(),
+                .name = symbol.name,
+            } });
+        }
+    }
 
     if (symbol.storage == .@"extern") {
         if (symbol.storage.@"extern".c_name != null) {
@@ -131,7 +135,7 @@ fn validate_trait(trait: *Symbol, compiler: *Compiler_Context) Validate_Error_En
 fn is_capitalized(name: []const u8) bool {
     var should_be_upper = true;
     for (name) |c| {
-        if (should_be_upper and !std.ascii.isUpper(c) and c != '$') {
+        if (should_be_upper and !std.ascii.isUpper(c)) {
             return false;
         }
         should_be_upper = c == '_';

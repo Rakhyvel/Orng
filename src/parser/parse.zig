@@ -398,15 +398,25 @@ fn prefix_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
 fn postfix_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
     // FIXME: High Cyclo
     var exp = try self.terminal_type_expr();
+    var val_access: ?*ast_.AST = null;
     while (true) {
         if (self.accept(.double_colon)) |token| {
-            exp = Type_AST.create_access(
+            if (val_access == null) {
+                if (exp.* != .identifier) {
+                    unreachable;
+                }
+                val_access = ast_.AST.create_identifier(exp.token(), self.allocator);
+            }
+            val_access = ast_.AST.create_access(
                 token,
-                exp,
+                val_access.?,
                 ast_.AST.create_field(try self.expect(.identifier), self.allocator),
                 self.allocator,
             );
         } else {
+            if (val_access) |val| {
+                return Type_AST.create_access(val.token(), val, self.allocator);
+            }
             return exp;
         }
     }

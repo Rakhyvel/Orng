@@ -89,7 +89,7 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
 /// info for how to build the package
 fn run_build_orng(compiler: *Compiler_Context, interpreter: *Interpreter_Context, build_path: []const u8) !*ast_.AST {
     const build_cfg = compiler.compile_build_file(build_path) catch return error.CompileError;
-    interpreter.set_entry_point(build_cfg, core_.package_type.expand_type(compiler.allocator()));
+    interpreter.set_entry_point(build_cfg, core_.package_type.expand_identifier());
     try interpreter.run(compiler);
     return try interpreter.extract_ast(0, core_.package_type, Span.phony, &compiler.module_interned_strings);
 }

@@ -49,13 +49,14 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
     if (ast.import.pattern.* == .pattern_symbol and ast.import.pattern.pattern_symbol.kind == .import) {
         // Re-arrange to be a decl for the import
         const common = ast_.AST_Common{ ._token = ast.token(), ._type = null };
-        ast.* = ast_.AST{ .decl = .{
+        ast.* = ast_.AST{ .binding = .{
             .common = common,
-            .name = ast.import.pattern,
+            .pattern = ast.import.pattern,
             .type = prelude_.unit_type,
             .init = null,
+            .decls = std.ArrayList(*ast_.AST).init(self.compiler.allocator()),
         } };
-        _ = try self.resolve_import(ast.decl.name);
+        _ = try self.resolve_import(ast.binding.pattern);
         return 0;
     } else if (ast.import.pattern.* == .access) {
         return self.unwrap_access_imports(ast, asts, idx);
@@ -104,9 +105,9 @@ fn unwrap_access_imports(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.
         } else {
             // The last term
             const common = ast_.AST_Common{ ._token = ast.token(), ._type = null };
-            ast.* = ast_.AST{ .decl = .{
+            ast.* = ast_.AST{ .binding = .{
                 .common = common,
-                .name = ast_.AST.create_pattern_symbol(
+                .pattern = ast_.AST.create_pattern_symbol(
                     ast.token(),
                     .{ .import = .{ .real_name = term.token().data } },
                     .local,
@@ -115,8 +116,9 @@ fn unwrap_access_imports(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.
                 ),
                 .type = prelude_.unit_type,
                 .init = null,
+                .decls = std.ArrayList(*ast_.AST).init(self.compiler.allocator()),
             } };
-            _ = try self.resolve_import(ast.decl.name);
+            _ = try self.resolve_import(ast.binding.pattern);
         }
     }
 
@@ -149,7 +151,7 @@ fn create_anon_names(self: Self, terms: *std.ArrayList(*ast_.AST)) std.ArrayList
     var anon_names = std.ArrayList([]const u8).init(self.compiler.allocator());
     for (0.., terms.items) |i, term| {
         anon_names.append(
-            if (i == 0) term.token().data else next_anon_name("anon", self.compiler.allocator()),
+            if (i == 0) term.token().data else next_anon_name("anon_import", self.compiler.allocator()),
         ) catch unreachable;
     }
     return anon_names;

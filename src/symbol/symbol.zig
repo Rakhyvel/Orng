@@ -212,7 +212,7 @@ pub fn set_offset(self: *Self, local_offsets: i64) i64 {
     return @as(i64, @intCast(self.expanded_type().sizeof()));
 }
 
-pub fn represents_method(self: *Self, impl_for_type: *ast_.AST, method_name: []const u8) bool {
+pub fn represents_method(self: *Self, impl_for_type: *Type_AST, method_name: []const u8) bool {
     return self.decl != null and
         self.decl.?.* == .method_decl and
         self.decl.?.method_decl.impl != null and

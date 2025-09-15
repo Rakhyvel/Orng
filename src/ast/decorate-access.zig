@@ -34,6 +34,17 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
     }
 }
 
+pub fn prefix_type(self: Self, _type: *Type_AST) walk_.Error!?Self {
+    switch (_type.*) {
+        else => return self,
+
+        .access => {
+            _ = try self.resolve_symbol_from_ast(_type.access.inner_access);
+            return null;
+        },
+    }
+}
+
 /// Takes in an a qualified-name AST and returns the symbol that it refers to. This requires looking up modules and packages, and so the
 /// compiler instance is required.
 fn resolve_symbol_from_ast(self: Self, ast: *ast_.AST) walk_.Error!*Symbol {
@@ -91,7 +102,7 @@ fn resolve_symbol_from_import_identlike(self: Self, identlike_ast: *ast_.AST) *S
 /// Takes in container symbol (lhs) and field ast (rhs), and returns the symbol that `lhs::rhs` refers to.
 fn resolve_access_symbol(self: Self, lhs: *Symbol, rhs: *ast_.AST, scope: *Scope) walk_.Error!*Symbol {
     switch (lhs.kind) {
-        else => std.debug.panic("unsupported: {}\n", .{lhs.kind}),
+        else => std.debug.panic("unsupported: {s}({}) at {}\n", .{ lhs.name, lhs.kind, rhs.token().span }),
 
         .module => return self.resolve_access_module(lhs, rhs),
 
@@ -99,7 +110,7 @@ fn resolve_access_symbol(self: Self, lhs: *Symbol, rhs: *ast_.AST, scope: *Scope
 
         .import_inner => return try self.resolve_access_symbol(try self.resolve_symbol_from_ast(lhs.init_value().?), rhs, scope),
 
-        .@"const" => return self.resolve_access_const(lhs, rhs, scope),
+        .@"const", .type => return self.resolve_access_const(lhs, rhs, scope),
     }
 }
 
@@ -156,7 +167,7 @@ fn resolve_access_const(self: Self, const_symbol: *Symbol, rhs: *ast_.AST, scope
 fn extract_symbol_from_decl(decl: *ast_.AST) *Symbol {
     if (decl.* == .decl) {
         return decl.decl.name.symbol().?;
-    } else if (decl.* == .method_decl or decl.* == .fn_decl or decl.* == .trait) {
+    } else if (decl.* == .method_decl or decl.* == .fn_decl or decl.* == .trait or decl.* == .@"struct" or decl.* == .@"enum" or decl.* == .type_alias) {
         return decl.symbol().?;
     } else {
         std.debug.panic("compiler error: unsupported access symbol resolution for decl-like AST: {s}", .{@tagName(decl.*)});
