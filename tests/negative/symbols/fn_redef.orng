@@ -1,6 +1,6 @@
-// fn_redef.orng:10:9: error: redefinition of symbol `x`
+// fn_redef.orng:10:7: error: redefinition of symbol `x`
 //     fn x()->(){}
-//        ^
+//      ^
 // fn_redef.orng:9:10: note: other definition of `x` here:
 //     let x = 0
 //         ^

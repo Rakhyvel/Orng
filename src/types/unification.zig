@@ -14,7 +14,6 @@ pub fn unify(lhs: *Type_AST, rhs: *Type_AST, withs: std.ArrayList(*ast_.AST), su
             }
 
             if (rhs.* != .identifier or !std.mem.eql(u8, lhs.token().data, rhs.token().data)) {
-                std.debug.print("mismatch between {s} and {s}({s})\n", .{ lhs.token().data, rhs.token().data, @tagName(rhs.*) });
                 return error.TypesMismatch;
             }
         },

@@ -1,5 +1,5 @@
-// uppercase_fn.orng:5:7: error: symbol `Lol` of type other than `Type` must start with a lowercase letter
+// uppercase_fn.orng:5:3: error: symbol `Lol` must start with an lowercase letter
 // fn Lol() -> Int { 4 }
-//      ^
+//  ^
 // 
 fn Lol() -> Int { 4 }

@@ -476,7 +476,7 @@ fn validate_AST_internal(
             var method_decl: ?*ast_.AST = undefined;
             if (true_lhs_type.expand_identifier().* == .dyn_type) {
                 // The receiver is a dynamic type
-                const trait = true_lhs_type.expand_identifier().expr().symbol().?.decl.?;
+                const trait = true_lhs_type.expand_identifier().child().symbol().?.decl.?;
                 method_decl = trait.trait.find_method(ast.rhs().token().data);
             } else {
                 // The receiver is a regular type. STRIP AWAY ADDRs!

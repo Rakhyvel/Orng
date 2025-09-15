@@ -1,9 +1,6 @@
-// use_undef5.orng:15:8: error: symbol `x` is never defined
+// use_undef5.orng:12:8: error: the type `Int` does not implement the method `add`
 //     y.>add(x)
 //       ^
-// use_undef5.orng:13:10: note: declared here
-//     let x: Int = undefined
-//         ^
 // 
 impl for Int {
     fn add(self, other: Int) -> Int { self + other }

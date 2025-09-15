@@ -1,4 +1,4 @@
-// uppercase_value.orng:6:10: error: symbol `X` of type other than `Type` must start with a lowercase letter
+// uppercase_value.orng:6:10: error: symbol `X` must start with an lowercase letter
 //     let X = 4
 //         ^
 // 

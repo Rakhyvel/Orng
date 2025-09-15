@@ -644,7 +644,7 @@ fn create_method_symbol(
             const self_type = recv_type.child();
             const self_init = ast_.AST.create_dereference(ast.token(), ast_.AST.create_identifier(Token.init_simple("$self_ptr"), allocator), allocator);
             const receiver_span = ast.method_decl.receiver.?.token().span;
-            const self_decl = ast_.AST.create_decl(
+            const self_decl = ast_.AST.create_binding(
                 ast.token(),
                 ast_.AST.create_pattern_symbol(Token.init("self", .identifier, receiver_span.filename, receiver_span.line_text, receiver_span.line_number, receiver_span.col), .let, .local, "self", allocator),
                 self_type,
