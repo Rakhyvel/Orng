@@ -1,9 +1,9 @@
 // 234
 fn main() -> Int {
     let x = get()
-    x.a
+    x[0]
 }
 
-fn get() -> (a: Int,) {
+fn get() -> (Int,) {
     (234,)
 }

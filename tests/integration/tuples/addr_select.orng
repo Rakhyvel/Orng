@@ -1,6 +1,13 @@
 // 66
+struct My_Type {
+    a: Int
+    b: Int
+    c: Int
+    x: Int
+}
+
 fn main() -> Int {
-    let mut x: (a: Int, b: Int, c: Int, x: Int) = (1, 2, 3, 4)
+    let mut x: My_Type = (1, 2, 3, 4)
     let y: &mut Int = &mut x.x
     y^ = 66
     x.x

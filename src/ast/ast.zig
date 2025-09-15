@@ -2048,8 +2048,7 @@ pub const AST = union(enum) {
                 }
             },
 
-            .mapping,
-            => return self.rhs().typeof(allocator),
+            .mapping => return self.rhs().typeof(allocator),
 
             .product => {
                 if (self.product.was_slice) {

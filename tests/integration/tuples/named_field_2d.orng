@@ -1,5 +1,7 @@
 // 195
-const My_Type = (a: (c: Int, d: Int), b: (e: Int, f: Int))
+struct CD {c: Int, d: Int}
+struct EF {e: Int, f: Int}
+struct My_Type {a: CD, b: EF}
 
 fn main() -> Int {
     let x: My_Type = (

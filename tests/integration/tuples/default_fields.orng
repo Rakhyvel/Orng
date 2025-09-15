@@ -1,5 +1,10 @@
 // 57
+struct Has_Defaults {
+    a: Int = 50
+    b: Int = 7
+}
+
 fn main() -> Int {
-    let x: (a: Int = 50, b: Int = 7)
+    let x: Has_Defaults
     x.a + x.b
 }

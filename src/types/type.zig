@@ -607,9 +607,6 @@ pub const Type_AST = union(enum) {
             return self.child().expand_identifier();
         }
         var res = self;
-        if ((res.* == .identifier or res.* == .access) and res.symbol() == null) {
-            std.debug.print("{s}\n", .{res.token().data});
-        }
         while ((res.* == .identifier or res.* == .access) and res.symbol().?.init_typedef() != null) {
             const new = res.symbol().?.init_typedef().?;
             new.set_unexpanded_type(res);
@@ -1174,7 +1171,7 @@ pub const Type_AST = union(enum) {
 
         switch (self.*) {
             .identifier => return std.mem.eql(u8, self.token().data, other.token().data),
-            .addr_of => return c_types_match(self.child().expand_identifier(), other.child().expand_identifier()),
+            .addr_of => return c_types_match(self.child(), other.child()),
             .unit_type => return other.* == .unit_type,
             .anyptr_type => return other.* == .anyptr_type,
             .dyn_type => return self.child().symbol() == other.child().symbol(),

@@ -1,8 +1,13 @@
 // 221
+struct Pair {
+    x: Int
+    y: Int
+}
+
 fn main() -> Int {
     f().y
 }
 
-fn f() -> (x: Int, y: Int) {
+fn f() -> Pair {
     (45, 221)
 }

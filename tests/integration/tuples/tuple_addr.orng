@@ -1,7 +1,12 @@
 // 59
+struct Pair {
+    a: &Int
+    b: &Int
+}
+
 fn main() -> Int {
     let x = 30
     let y = 29
-    let z: (a: &Int, b: &Int) = (&x, &y)
+    let z: Pair = (&x, &y)
     z.a^ + z.b^
 }
