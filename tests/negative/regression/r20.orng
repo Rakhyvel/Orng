@@ -1,4 +1,4 @@
-// r20.orng:5:28: error: expected a value of type `Int`, got a value of type `Type`
+// r20.orng:5:28: error: attempt to take slice-of something that is not an array
 // fn main() -> Int { return []() }
 //                           ^
 // 

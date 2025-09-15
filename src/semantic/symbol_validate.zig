@@ -112,11 +112,11 @@ fn validate_trait(trait: *Symbol, compiler: *Compiler_Context) Validate_Error_En
             names.put(decl.method_decl.name.token().data, decl) catch unreachable;
         }
 
-        // for (decl.method_decl._params.items) |param| {
-        // param.decl.type = validate_AST(param.decl.type, prelude_.type_type, compiler);
-        // }
-        // decl.method_decl.ret_type = validate_AST(decl.method_decl.ret_type, prelude_.type_type, compiler);
-        // decl.method_decl.c_type = validate_AST(decl.method_decl.c_type.?, prelude_.type_type, compiler);
+        for (decl.method_decl._params.items) |param| {
+            try type_validate_.validate(param.binding.type, &compiler.errors);
+        }
+        try type_validate_.validate(decl.method_decl.ret_type, &compiler.errors);
+        try type_validate_.validate(decl.method_decl.c_type.?, &compiler.errors);
 
         if (decl.method_decl.is_virtual) {
             if (decl.method_decl.c_type.?.refers_to_self()) {

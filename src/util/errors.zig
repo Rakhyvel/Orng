@@ -169,11 +169,17 @@ pub const Error = union(enum) {
         identifier: []const u8,
         first: ?Span, // printed writer as extra information
     },
-    member_not_in: struct {
+    member_not_in_type: struct {
         span: Span,
         identifier: []const u8,
         name: []const u8,
-        group: *Type_AST,
+        type: *Type_AST,
+    },
+    member_not_in_module: struct {
+        span: Span,
+        identifier: []const u8,
+        name: []const u8,
+        module_name: []const u8,
     },
     undeclared_identifier: struct {
         identifier: Token,
@@ -271,7 +277,8 @@ pub const Error = union(enum) {
             .unexpected_type_type => return self.unexpected_type_type.span,
             .expected_builtin_typeclass => return self.expected_builtin_typeclass.span,
             .duplicate => return self.duplicate.span,
-            .member_not_in => return self.member_not_in.span,
+            .member_not_in_type => return self.member_not_in_type.span,
+            .member_not_in_module => return self.member_not_in_module.span,
             .undeclared_identifier => return self.undeclared_identifier.identifier.span,
             .comptime_access_runtime => return self.comptime_access_runtime.identifier.span,
             .inner_fn_access_runtime => return self.inner_fn_access_runtime.identifier.span,
@@ -454,10 +461,11 @@ pub const Error = union(enum) {
                 writer.print("`\n", .{}) catch unreachable;
             },
             .duplicate => writer.print("duplicate item `{s}`\n", .{err.duplicate.identifier}) catch unreachable,
-            .member_not_in => {
-                writer.print("member `{s}` not in {s} `", .{ err.member_not_in.identifier, err.member_not_in.name }) catch unreachable;
-                err.member_not_in.group.print_type(writer) catch unreachable;
-                writer.print("`\n", .{}) catch unreachable;
+            .member_not_in_type => {
+                writer.print("member `{s}` not in {s} `{}`\n", .{ err.member_not_in_type.identifier, err.member_not_in_type.name, err.member_not_in_type.type }) catch unreachable;
+            },
+            .member_not_in_module => {
+                writer.print("member `{s}` not in {s} `{s}`\n", .{ err.member_not_in_module.identifier, err.member_not_in_module.name, err.member_not_in_module.module_name }) catch unreachable;
             },
             .undeclared_identifier => writer.print("use of undeclared identifier `{s}`\n", .{err.undeclared_identifier.identifier.data}) catch unreachable,
             .comptime_access_runtime => writer.print("cannot access non-const variable `{s}` in a comptime context\n", .{
@@ -630,7 +638,7 @@ pub const Errors = struct {
 
     pub fn add_error(self: *Errors, err: Error) void {
         self.errors_list.append(err) catch unreachable;
-        err.peek_error(); // uncomment if you want to see where errors come from TODO: Make this a cmd line flag
+        // err.peek_error(); // uncomment if you want to see where errors come from TODO: Make this a cmd line flag
     }
 
     /// Prints out all errors in the Errors list

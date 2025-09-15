@@ -102,15 +102,25 @@ fn resolve_symbol_from_import_identlike(self: Self, identlike_ast: *ast_.AST) *S
 /// Takes in container symbol (lhs) and field ast (rhs), and returns the symbol that `lhs::rhs` refers to.
 fn resolve_access_symbol(self: Self, lhs: *Symbol, rhs: *ast_.AST, scope: *Scope) walk_.Error!*Symbol {
     switch (lhs.kind) {
-        else => std.debug.panic("unsupported: {s}({}) at {}\n", .{ lhs.name, lhs.kind, rhs.token().span }),
-
         .module => return self.resolve_access_module(lhs, rhs),
 
         .import => return self.resolve_access_import(lhs, rhs, scope),
 
         .import_inner => return try self.resolve_access_symbol(try self.resolve_symbol_from_ast(lhs.init_value().?), rhs, scope),
 
-        .@"const", .type => return self.resolve_access_const(lhs, rhs, scope),
+        .type => return self.resolve_access_const(lhs, rhs, scope),
+
+        else => {
+            self.compiler.errors.add_error(errs_.Error{
+                .member_not_in_module = .{
+                    .span = rhs.token().span,
+                    .identifier = rhs.token().data,
+                    .name = "symbol",
+                    .module_name = lhs.name,
+                },
+            });
+            return error.CompileError;
+        },
     }
 }
 
@@ -124,11 +134,11 @@ fn resolve_access_module(self: Self, module_symbol: *Symbol, rhs: *ast_.AST) wal
         .found => module_lookup_res.found.decl.?,
         else => {
             self.compiler.errors.add_error(errs_.Error{
-                .member_not_in = .{
+                .member_not_in_module = .{
                     .span = rhs.token().span,
                     .identifier = rhs.token().data,
                     .name = "module",
-                    .group = primitives_.unit_type,
+                    .module_name = module_symbol.name,
                 },
             });
             return error.CompileError;

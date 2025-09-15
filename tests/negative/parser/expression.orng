@@ -1,4 +1,4 @@
-// expression.orng:5:19: error: expected an expression here, got `defer`
+// expression.orng:5:19: error: expected a type here, got `defer`
 // fn main() -> defer 4 {}
 //                  ^
 // 

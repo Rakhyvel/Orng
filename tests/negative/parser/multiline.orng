@@ -1,4 +1,4 @@
-// multiline.orng:5:38: error: expected `fn`, `trait`, `impl`, or `const` here, got `<multi-line>`
+// multiline.orng:5:38: error: expected top-level declaration here, got `<multi-line>`
 // \\ this is a simple multiline string!
 //                                     ^
 // 

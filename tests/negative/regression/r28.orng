@@ -1,7 +1,0 @@
-// r28.orng:6:8: error: expected a value of type `Int`, got a value of type `()`
-//     let ident = while true ; impl main for comptime { } { } { }
-//       ^
-// 
-fn main() -> Int {
-    let ident = while true ; impl main for comptime { } { } { }
-}

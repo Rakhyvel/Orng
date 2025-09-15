@@ -1,7 +1,6 @@
-// r39.orng:7:33: error: expected a value of type `()`, got a value of type `Int`
+// r39.orng:6:33: error: expected a value of type `()`, got a value of type `Int`
 //     const a: Int = match { } { 4 => 5 }
 //                                ^
-// error: comptime cannot be type `Void`
 // 
 fn main() -> Int { 
     const a: Int = match { } { 4 => 5 }

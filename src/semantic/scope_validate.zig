@@ -11,6 +11,7 @@ const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const typing_ = @import("typing.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
+const type_validate_ = @import("../types/type_validate.zig");
 const validate_symbol_ = @import("symbol_validate.zig");
 
 const Validate_Error_Enum = error{ LexerError, ParseError, CompileError };
@@ -39,7 +40,7 @@ fn validate_impl(impl: *ast_.AST, compiler: *Compiler_Context) Validate_Error_En
         return error.CompileError;
     }
 
-    // impl.impl._type = validate_AST(impl.impl._type, prelude_.type_type, compiler);
+    try type_validate_.validate(impl.impl._type, &compiler.errors);
 
     const trait_symbol: *Symbol = impl.impl.trait.?.symbol().?;
     if (trait_symbol.kind != .trait) {

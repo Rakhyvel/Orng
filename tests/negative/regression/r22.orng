@@ -1,6 +1,6 @@
-// r22.orng:6:20: error: error: expected a compile-time constant type, got comptime
+// r22.orng:6:27: error: cannot assign a value of type `Void` to type `Void`
 //     const ident = { return }
-//                   ^
+//                          ^
 // 
 fn main() -> Int { 
     const ident = { return }

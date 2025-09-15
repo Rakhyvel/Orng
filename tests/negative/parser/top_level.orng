@@ -1,4 +1,4 @@
-// top_level.orng:5:4: error: expected `fn`, `trait`, `impl`, or `const` here, got `123`
+// top_level.orng:5:4: error: expected top-level declaration here, got `123`
 // 123
 //   ^
 // 

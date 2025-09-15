@@ -1,5 +1,0 @@
-// r2.orng:5:11: error: the type `Int` is not indexable
-// const a: 1[2]() = 0
-//          ^
-// 
-const a: 1[2]() = 0

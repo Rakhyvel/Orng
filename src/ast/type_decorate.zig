@@ -23,7 +23,13 @@ pub fn new(scope: *Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) S
 }
 
 pub fn postfix_type(self: Self, _type: *Type_AST) type_walk_.Error!void {
+    const depth_limit: usize = 100;
+    var depth: usize = 0;
     while (_type.* == .type_of or _type.* == .domain_of or _type.* == .index) {
+        if (depth > depth_limit) {
+            self.errors.add_error(errs_.Error{ .basic = .{ .msg = "recursive type detected", .span = _type.token().span } });
+            return error.CompileError;
+        }
         switch (_type.*) {
             .type_of => _type.* = _type.type_of._expr.typeof(self.allocator).expand_identifier().*,
             .domain_of => {
@@ -39,6 +45,9 @@ pub fn postfix_type(self: Self, _type: *Type_AST) type_walk_.Error!void {
                 if (child.* == .array_of) {
                     _type.* = child.child().*;
                 } else if (child.* == .product) {
+                    if (_type.index.idx.int.data >= child.children().items.len) {
+                        break;
+                    }
                     _type.* = child.children().items[@intCast(_type.index.idx.int.data)].*;
                 } else {
                     std.debug.panic("compiler error: cannot take index of `{s}` type\n", .{@tagName(child.*)});
@@ -46,5 +55,6 @@ pub fn postfix_type(self: Self, _type: *Type_AST) type_walk_.Error!void {
             },
             else => unreachable,
         }
+        depth += 1;
     }
 }

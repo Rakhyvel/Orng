@@ -1,5 +1,0 @@
-// r8.orng:5:44: error: error: expected a compile-time constant type, got sum_type
-// const a : ? ( _ = Float , _ = Float ) . b . String = a 
-//                                           ^
-// 
-const a : ? ( _ = Float , _ = Float ) . b . String = a 

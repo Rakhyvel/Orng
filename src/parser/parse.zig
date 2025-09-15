@@ -428,7 +428,7 @@ fn terminal_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
     } else if (self.peek_kind(.left_parenthesis)) {
         return try self.paren_type_expr();
     } else {
-        self.errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "an expression here", .got = self.peek() } });
+        self.errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "a type here", .got = self.peek() } });
         return Parser_Error_Enum.ParseError;
     }
 }
@@ -1086,7 +1086,8 @@ fn block_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
     while (!self.peek_kind(.right_brace) and
         !self.peek_kind(.@"break") and
         !self.peek_kind(.@"continue") and
-        !self.peek_kind(.@"return"))
+        !self.peek_kind(.@"return") and
+        !self.peek_kind(.EOF))
     {
         statements.append(try self.statement()) catch unreachable;
         if (!self.peek_kind(.semicolon) and !self.peek_kind(.newline) and !self.peek_kind(.right_brace)) {
@@ -1272,6 +1273,10 @@ fn struct_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
         var _init: ?*ast_.AST = null;
         if (self.accept(.single_equals)) |_| {
             _init = try self.bool_expr();
+            if (!_init.?.is_comptime_expr()) {
+                self.errors.add_error(errs_.Error{ .comptime_known = .{ .span = _init.?.token().span, .what = "default values" } });
+                return error.ParseError;
+            }
         }
 
         const field = Type_AST.create_annotation(ident_token, field_ident, _type, _init, self.allocator);

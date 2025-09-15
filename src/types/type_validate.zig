@@ -14,6 +14,13 @@ pub fn validate(@"type": *Type_AST, errors: *errs_.Errors) Validate_Error_Enum!v
             }
         },
 
+        .array_of => {
+            if (@"type".array_of.len.* != .int) {
+                errors.add_error(errs_.Error{ .basic = .{ .span = @"type".token().span, .msg = "not integer literal" } });
+                return error.CompileError;
+            }
+        },
+
         else => {},
     }
 }

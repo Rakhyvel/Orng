@@ -1,9 +1,6 @@
-// prefix_rsquare.orng:9:17: error: expected closing `]` to match opening `[` here, got `let`
+// prefix_rsquare.orng:6:17: error: expected an expression here, got `let`
 //     let x = [let y = 4]Int
 //                ^
-// prefix_rsquare.orng:9:14: note: opening `[` here:
-//     let x = [let y = 4]Int
-//             ^
 // 
 fn main() -> Int {
     let x = [let y = 4]Int

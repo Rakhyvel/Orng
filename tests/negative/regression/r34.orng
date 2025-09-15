@@ -1,6 +1,6 @@
-// r34.orng:6:17: error: expected a value of type `Type`, got a value of type `()->Int`
+// r34.orng:6:8: error: expected a value of type `Int`, got a value of type `()`
 //     let a: &main
-//                ^
+//       ^
 // 
 fn main() -> Int {
     let a: &main

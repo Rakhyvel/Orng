@@ -1,4 +1,4 @@
-// r35.orng:8:18: error: expected a value of type `Type`, got a value of type `()->Int`
+// r35.orng:8:18: error: expected a type
 //     impl for main { }
 //                 ^
 // 

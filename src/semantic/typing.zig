@@ -258,7 +258,7 @@ pub fn find_select_pos(_type: *Type_AST, field: []const u8, span: Span, errors: 
             return i;
         }
     } else {
-        errors.add_error(errs_.Error{ .member_not_in = .{ .span = span, .identifier = field, .name = "tuple", .group = _type } });
+        errors.add_error(errs_.Error{ .member_not_in_type = .{ .span = span, .identifier = field, .name = "struct", .type = _type } });
         return error.CompileError;
     }
 }

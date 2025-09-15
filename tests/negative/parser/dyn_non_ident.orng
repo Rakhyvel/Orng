@@ -1,7 +1,7 @@
-// dyn_non_ident.orng:6:11: error: expected `identifier`, got `{`
-//     &dyn {Int}
-//          ^
+// dyn_non_ident.orng:6:18: error: expected `identifier`, got `{`
+//     let x: &dyn {Int}
+//                 ^
 // 
 fn main() -> Int { 
-    &dyn {Int}
+    let x: &dyn {Int}
 }

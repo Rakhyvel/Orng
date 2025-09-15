@@ -1,12 +1,12 @@
 // non_exhaustive_sum.orng:11:10: error: match over sum type is not exhaustive
 //     match my_val {
 //         ^
-// non_exhaustive_sum.orng:9:34: note: term not handled: `d`
-//     const My_Sum = (a | b | c | d)
-//                                 ^
+// non_exhaustive_sum.orng:9:29: note: term not handled: `d`
+//     enum My_Sum { a, b, c, d }
+//                            ^
 // 
 fn main() -> Int {
-    const My_Sum = (a | b | c | d)
+    enum My_Sum { a, b, c, d }
     let my_val: My_Sum = .a
     match my_val {
         .a => 4

@@ -247,16 +247,14 @@ fn validate_AST_internal(
         //     return ast.expr().typeof(compiler.allocator());
         // },
         .default => {
-            // ast.set_expr(validate_AST(ast.expr(), prelude_.type_type, compiler));
-            // try poison_.assert_none_poisoned(ast.expr());
+            try type_validate_.validate(ast.default._type, &compiler.errors);
             const ast_type = ast.typeof(compiler.allocator());
             try typing_.type_check(ast.token().span, ast_type, expected, &compiler.errors);
             const retval = defaults_.generate_default(ast_type.expand_identifier(), ast.default._type.token().span, &compiler.errors, compiler.allocator());
             return retval;
         },
         .size_of => {
-            // ast.set_expr(validate_AST(ast.expr(), prelude_.type_type, compiler));
-            // try poison_.assert_none_poisoned(ast.expr());
+            try type_validate_.validate(ast.size_of._type, &compiler.errors);
             try typing_.type_check(ast.token().span, prelude_.int_type, expected, &compiler.errors);
             return ast_.AST.create_int(ast.token(), ast.size_of._type.expand_identifier().sizeof(), compiler.allocator());
         },
@@ -548,6 +546,7 @@ fn validate_AST_internal(
         .dyn_value => {
             ast.set_expr(validate_AST(ast.expr(), null, compiler));
             // ast.dyn_value.dyn_type = validate_AST(ast.dyn_value.dyn_type, prelude_.type_type, compiler);
+            try type_validate_.validate(ast.dyn_value.dyn_type, &compiler.errors);
             const expr_type = ast.expr().typeof(compiler.allocator());
 
             const impl = ast.scope().?.impl_trait_lookup(expr_type, ast.dyn_value.dyn_type.child().symbol().?);
@@ -801,7 +800,7 @@ fn validate_AST_internal(
 
             const pos = expanded_base.get_pos(ast.token().data);
             if (pos == null and expanded_base.* == .sum_type) {
-                compiler.errors.add_error(errs_.Error{ .member_not_in = .{ .span = ast.token().span, .identifier = ast.token().data, .name = "sum", .group = expanded_base } });
+                compiler.errors.add_error(errs_.Error{ .member_not_in_type = .{ .span = ast.token().span, .identifier = ast.token().data, .name = "sum", .type = expanded_base } });
                 return error.CompileError;
             }
             ast.set_pos(expanded_base.get_pos(ast.token().data));
@@ -1010,6 +1009,7 @@ fn validate_AST_internal(
                 try validate_symbol_.validate(ast.symbol().?, compiler);
             }
             // ast.method_decl.domain = validate_AST(ast.method_decl.domain.?, prelude_.type_type, compiler);
+            try type_validate_.validate(ast.method_decl.domain.?, &compiler.errors);
             return ast;
         },
         .template => {
@@ -1028,6 +1028,7 @@ fn validate_AST_internal(
         },
         .decl => {
             // ast.decl.type = validate_AST(ast.decl.type, prelude_.type_type, compiler);
+            try type_validate_.validate(ast.decl.type, &compiler.errors);
             try poison_.assert_none_poisoned(ast.decl.type);
             if (ast.decl.init) |init| {
                 ast.decl.init = validate_AST(init, ast.decl.type, compiler);
