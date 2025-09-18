@@ -1,11 +1,7 @@
 // 58
-struct Pair {
-    a: Int
-    b: Int
-}
 
 fn main() -> Int {
-    let x: Pair = (19, 58 - 19)
+    let x: (Int, Int) = (19, 58 - 19)
     let y = &x
-    y^.a + y^.b
+    y^[0] + y^[1]
 }

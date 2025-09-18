@@ -1,8 +1,9 @@
-// addrof_type.orng:6:22: error: error: expected a compile-time constant type, got addr_of
-//     const X: Type = &4
-//                     ^
+// addrof_type.orng:7:19: error: expected a type
+//     type X = &four
+//                  ^
 // 
 fn main() -> Int {
-    const X: Type = &4
+    const four = 4
+    type X = &four
     0
 }

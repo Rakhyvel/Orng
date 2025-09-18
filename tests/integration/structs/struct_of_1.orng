@@ -1,0 +1,13 @@
+// 234
+struct Lonely {
+    x: Int
+}
+
+fn main() -> Int {
+    let x = get()
+    x.x
+}
+
+fn get() -> Lonely {
+    Lonely(234)
+}

@@ -189,10 +189,10 @@ fn make_package(
     compiler.register_package(package_absolute_path, package_kind);
 
     for (package.get_field(core_.package_type, "requirements").children().items) |maybe_requirement_addr| {
-        if (maybe_requirement_addr.sum_value._pos != 0) {
+        if (maybe_requirement_addr.enum_value._pos != 0) {
             continue;
         }
-        const requirement = maybe_requirement_addr.sum_value.init.?;
+        const requirement = maybe_requirement_addr.enum_value.init.?;
         const required_package_name: []const u8 = requirement.children().items[0].string.data;
         const required_package_addr: i64 = @intCast(requirement.children().items[1].int.data);
         const required_package = try interpreter.extract_ast(required_package_addr, core_.package_type, Span.phony, &compiler.module_interned_strings);
@@ -230,10 +230,10 @@ fn set_package_include_dirs(
     package_absolute_path: []const u8,
 ) void {
     for (package.get_field(core_.package_type, "include_dirs").children().items) |maybe_include_dir_addr| {
-        if (maybe_include_dir_addr.sum_value._pos != 0) {
+        if (maybe_include_dir_addr.enum_value._pos != 0) {
             continue;
         }
-        const include_dir = maybe_include_dir_addr.sum_value.init.?;
+        const include_dir = maybe_include_dir_addr.enum_value.init.?;
         compiler.lookup_package(package_absolute_path).?.include_directories.put(include_dir.string.data, void{}) catch unreachable;
     }
 }
@@ -245,10 +245,10 @@ fn set_package_lib_dirs(
     package_absolute_path: []const u8,
 ) void {
     for (package.get_field(core_.package_type, "lib_dirs").children().items) |maybe_lib_dir_addr| {
-        if (maybe_lib_dir_addr.sum_value._pos != 0) {
+        if (maybe_lib_dir_addr.enum_value._pos != 0) {
             continue;
         }
-        const include_dir = maybe_lib_dir_addr.sum_value.init.?;
+        const include_dir = maybe_lib_dir_addr.enum_value.init.?;
         compiler.lookup_package(package_absolute_path).?.library_directories.put(include_dir.string.data, void{}) catch unreachable;
     }
 }
@@ -260,10 +260,10 @@ fn set_package_libs(
     package_absolute_path: []const u8,
 ) void {
     for (package.get_field(core_.package_type, "libs").children().items) |maybe_lib_addr| {
-        if (maybe_lib_addr.sum_value._pos != 0) {
+        if (maybe_lib_addr.enum_value._pos != 0) {
             continue;
         }
-        const include_dir = maybe_lib_addr.sum_value.init.?;
+        const include_dir = maybe_lib_addr.enum_value.init.?;
         compiler.lookup_package(package_absolute_path).?.libraries.put(include_dir.string.data, void{}) catch unreachable;
     }
 }

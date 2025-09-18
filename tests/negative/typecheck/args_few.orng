@@ -1,8 +1,9 @@
-// args_few.orng:6:23: error: expected a value of type `Int`, got a value of type `Type`
-//     let x: (b:Int) = ()
-//                      ^
+// args_few.orng:7:29: error: struct takes 1 field, 0 values given
+//     let x: My_Type = My_Type()
+//                            ^
 // 
 fn main() -> Int {
-    let x: (b:Int) = ()
+    struct My_Type {b: Int}
+    let x: My_Type = My_Type()
     4
 }

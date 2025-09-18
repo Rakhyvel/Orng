@@ -1,0 +1,12 @@
+// cyclic2.orng:5:7: error: cyclic type detected
+// type A = B
+//      ^
+// 
+type A = B
+type B = A
+
+fn main() -> Int {
+    let x: A
+    _ = x
+    2
+}

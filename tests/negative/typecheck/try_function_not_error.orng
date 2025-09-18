@@ -1,8 +1,13 @@
-// try_function_not_error.orng:6:8: error: enclosing function around try expression does not return an error
+// try_function_not_error.orng:11:8: error: enclosing function around try expression does not return an error
 //     try f()
 //       ^
 // 
-fn main() -> (ok: Int | err: Char) {
+enum My_Error {
+    ok(Int)
+    err(Char)
+}
+
+fn main() -> My_Error {
     try f()
     .ok(4)
 }

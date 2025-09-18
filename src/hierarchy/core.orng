@@ -74,10 +74,10 @@ enum Git_Reference {
 
 impl for Package {
     /// Creates an executable package
-    fn executable(root: String) -> Self { (root, .executable, "", 0) }
+    fn executable(root: String) -> Self { Self(root, .executable, "", 0) }
 
     /// Creates a static library package
-    fn static_library(root: String) -> Self { (root, .static_library, "") }
+    fn static_library(root: String) -> Self { Self(root, .static_library, "") }
 
     /// Finds a package given a name
     /// NOTE: This is currently implemented as a builtin-function in the compiler
@@ -85,7 +85,7 @@ impl for Package {
 
     /// Adds a package to the list of required packages
     fn requires(&mut self, name: String, other: &Package) -> () {
-        self.requirements[self.num_requirements] = .some((name, other))
+        self.requirements[self.num_requirements] = .some(Requirement(name, other))
         self.num_requirements += 1
     }
 

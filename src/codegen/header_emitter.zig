@@ -99,7 +99,7 @@ fn output_forward_typedefs(self: *Self) CodeGen_Error!void {
 
     // Forward declare all structs/unions
     for (self.module.type_set.types.items) |dep| {
-        if (dep.base.* == .product or dep.base.* == .sum_type) {
+        if (dep.base.* == .struct_type or dep.base.* == .tuple_type or dep.base.* == .enum_type) {
             try self.emitter.output_struct_name(dep);
             try self.writer.print(";\n", .{});
         } else if (dep.base.* == .dyn_type) {
@@ -142,7 +142,7 @@ fn output_typedef(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
         try self.writer.print("(*", .{});
         try self.emitter.output_function_name(dep);
         try self.writer.print(")(", .{});
-        if (dep.base.lhs().* == .product) {
+        if (dep.base.lhs().* == .tuple_type) {
             // Function pointer takes more than one argument
             const product = dep.base.lhs();
             for (product.children().items, 0..) |term, i| {
@@ -159,7 +159,7 @@ fn output_typedef(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
             try self.emitter.output_type(dep.base.lhs());
         }
         try self.writer.print(");\n\n", .{});
-    } else if (dep.base.* == .product) {
+    } else if (dep.base.* == .struct_type or dep.base.* == .tuple_type) {
         try self.emitter.output_struct_name(dep);
         try self.writer.print(" {{\n", .{});
         try self.output_field_list(dep.base.children(), 4);
@@ -180,10 +180,10 @@ fn output_typedef(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
     //     try self.writer.print(" _1;\n", .{});
     //     try self.writer.print("}};\n\n", .{});
     // }
-    else if (dep.base.* == .sum_type) {
+    else if (dep.base.* == .enum_type) {
         try self.emitter.output_struct_name(dep);
         try self.writer.print(" {{\n    uint64_t tag;\n", .{});
-        if (!dep.base.sum_type.is_all_unit()) {
+        if (!dep.base.enum_type.is_all_unit()) {
             try self.writer.print("    union {{\n", .{});
             try self.output_field_list(dep.base.children(), 8);
             try self.writer.print("    }};\n", .{});
@@ -192,7 +192,7 @@ fn output_typedef(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
     } else if (dep.base.* == .untagged_sum_type) {
         try self.emitter.output_untagged_sum_name(dep);
         try self.writer.print(" {{\n", .{});
-        if (!dep.base.child().expand_identifier().sum_type.is_all_unit()) {
+        if (!dep.base.child().expand_identifier().enum_type.is_all_unit()) {
             try self.output_field_list(dep.base.children(), 4);
         }
         try self.writer.print("}};\n\n", .{});

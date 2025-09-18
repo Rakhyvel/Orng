@@ -1,4 +1,4 @@
-// unit.orng:5:20: error: expected a value of type `Int`, got a value of type `Type`
+// unit.orng:5:20: error: expected a value of type `Int`, got a value of type `()`
 // fn main() -> Int {()}
 //                   ^
 // 

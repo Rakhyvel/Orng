@@ -192,7 +192,7 @@ pub const AST = union(enum) {
         _scope: ?*Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
         method_decl: ?*AST = null,
     },
-    /// A product-value of pointers to the vtable, and to the receiver
+    /// A struct-like-value of pointers to the vtable, and to the receiver
     dyn_value: struct {
         common: AST_Common,
         dyn_type: *Type_AST, // reference to the type of this value, since it is only created using address-ofs
@@ -201,7 +201,7 @@ pub const AST = union(enum) {
         impl: ?*AST = null, // The implementation AST, whose vtable should be used
         _scope: ?*Scope = null, // Surrounding scope. Filled in when addr-of is converted
     },
-    sum_value: struct {
+    enum_value: struct {
         common: AST_Common,
         domain: ?*Type_AST = null, // kept in it's annotation form, for compatability with calls
         init: ?*AST = null,
@@ -212,10 +212,15 @@ pub const AST = union(enum) {
             return self.common._token.data;
         }
     },
-    product: struct {
+    struct_value: struct {
         common: AST_Common,
+        parent: *Type_AST,
         _terms: std.ArrayList(*AST),
         was_slice: bool,
+    },
+    tuple_value: struct {
+        common: AST_Common,
+        _terms: std.ArrayList(*AST),
     },
     array_value: struct {
         common: AST_Common,
@@ -365,14 +370,14 @@ pub const AST = union(enum) {
             }
         }
     },
-    @"struct": struct {
+    struct_decl: struct {
         common: AST_Common,
         name: *AST,
         fields: std.ArrayList(*Type_AST),
         _type: *Type_AST,
         _symbol: ?*Symbol = null,
     },
-    @"enum": struct {
+    enum_decl: struct {
         common: AST_Common,
         name: *AST,
         fields: std.ArrayList(*Type_AST),
@@ -771,9 +776,9 @@ pub const AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn create_sum_value(_token: Token, allocator: std.mem.Allocator) *AST {
+    pub fn create_enum_value(_token: Token, allocator: std.mem.Allocator) *AST {
         const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .sum_value = .{ .common = _common } }, allocator);
+        return AST.box(AST{ .enum_value = .{ .common = _common } }, allocator);
     }
 
     pub fn create_trait(
@@ -846,15 +851,23 @@ pub const AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn create_product(_token: Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .product = .{
+    pub fn create_struct_value(_token: Token, parent: *Type_AST, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
+        return AST.box(AST{ .struct_value = .{
             .common = AST_Common{ ._token = _token, ._type = null },
+            .parent = parent,
             ._terms = terms,
             .was_slice = false,
         } }, allocator);
     }
 
-    pub fn create_array(_token: Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
+    pub fn create_tuple_value(_token: Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
+        return AST.box(AST{ .tuple_value = .{
+            .common = AST_Common{ ._token = _token, ._type = null },
+            ._terms = terms,
+        } }, allocator);
+    }
+
+    pub fn create_array_value(_token: Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
         return AST.box(AST{ .array_value = .{
             .common = AST_Common{ ._token = _token, ._type = null },
             ._terms = terms,
@@ -1126,31 +1139,31 @@ pub const AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn create_struct(
+    pub fn create_struct_decl(
         _token: Token,
         name: *AST,
         fields: std.ArrayList(*Type_AST),
         allocator: std.mem.Allocator,
     ) *AST {
-        return AST.box(AST{ .@"struct" = .{
+        return AST.box(AST{ .struct_decl = .{
             .common = AST_Common{ ._token = _token, ._type = null },
             .name = name,
             .fields = fields,
-            ._type = Type_AST.create_product(_token, fields, allocator),
+            ._type = Type_AST.create_struct_type(_token, fields, allocator),
         } }, allocator);
     }
 
-    pub fn create_enum(
+    pub fn create_enum_decl(
         _token: Token,
         name: *AST,
         fields: std.ArrayList(*Type_AST),
         allocator: std.mem.Allocator,
     ) *AST {
-        return AST.box(AST{ .@"enum" = .{
+        return AST.box(AST{ .enum_decl = .{
             .common = AST_Common{ ._token = _token, ._type = null },
             .name = name,
             .fields = fields,
-            ._type = Type_AST.create_sum_type(_token, fields, allocator),
+            ._type = Type_AST.create_enum_type(_token, fields, allocator),
         } }, allocator);
     }
 
@@ -1458,45 +1471,54 @@ pub const AST = union(enum) {
                 );
             },
             .dyn_value => unreachable, // Shouldn't exist yet... have to clone scope?
-            .sum_value => {
-                var retval = create_sum_value(self.token(), allocator);
-                retval.sum_value.init = self.sum_value.init;
+            .enum_value => {
+                var retval = create_enum_value(self.token(), allocator);
+                retval.enum_value.init = self.enum_value.init;
                 return retval;
             },
-            .product => {
+            .struct_value => {
                 const cloned_terms = clone_children(self.children().*, substs, allocator);
-                var retval = create_product(
+                var retval = create_struct_value(
+                    self.token(),
+                    self.struct_value.parent,
+                    cloned_terms,
+                    allocator,
+                );
+                retval.struct_value.was_slice = self.struct_value.was_slice;
+                return retval;
+            },
+            .tuple_value => {
+                const cloned_terms = clone_children(self.children().*, substs, allocator);
+                return create_tuple_value(
                     self.token(),
                     cloned_terms,
                     allocator,
                 );
-                retval.product.was_slice = self.product.was_slice;
-                return retval;
             },
             .array_value => {
                 const cloned_terms = clone_children(self.children().*, substs, allocator);
-                return create_array(
+                return create_array_value(
                     self.token(),
                     cloned_terms,
                     allocator,
                 );
             },
-            .@"struct" => {
-                const cloned_terms = Type_AST.clone_types(self.@"struct".fields, substs, allocator);
-                var retval = create_struct(
+            .struct_decl => {
+                const cloned_terms = Type_AST.clone_types(self.struct_decl.fields, substs, allocator);
+                var retval = create_struct_decl(
                     self.token(),
-                    self.@"struct".name.clone(substs, allocator),
+                    self.struct_decl.name.clone(substs, allocator),
                     cloned_terms, // TODO: clone types
                     allocator,
                 );
                 retval.set_symbol(self.symbol());
                 return retval;
             },
-            .@"enum" => {
-                const cloned_terms = Type_AST.clone_types(self.@"enum".fields, substs, allocator);
-                var retval = create_enum(
+            .enum_decl => {
+                const cloned_terms = Type_AST.clone_types(self.enum_decl.fields, substs, allocator);
+                var retval = create_enum_decl(
                     self.token(),
-                    self.@"enum".name.clone(substs, allocator),
+                    self.enum_decl.name.clone(substs, allocator),
                     cloned_terms,
                     allocator,
                 );
@@ -1750,7 +1772,8 @@ pub const AST = union(enum) {
     pub fn children(self: *AST) *std.ArrayList(*AST) {
         return switch (self.*) {
             .call => &self.call._args,
-            .product => &self.product._terms,
+            .struct_value => &self.struct_value._terms,
+            .tuple_value => &self.tuple_value._terms,
             .array_value => &self.array_value._terms,
             .match => &self.match._mappings,
             .block => &self.block._statements,
@@ -1768,7 +1791,8 @@ pub const AST = union(enum) {
     pub fn set_children(self: *AST, val: std.ArrayList(*AST)) void {
         switch (self.*) {
             .call => self.call._args = val,
-            .product => self.product._terms = val,
+            .struct_value => self.struct_value._terms = val,
+            .tuple_value => self.tuple_value._terms = val,
             .array_value => self.array_value._terms = val,
             .match => self.match._mappings = val,
             .block => self.block._statements = val,
@@ -1802,7 +1826,7 @@ pub const AST = union(enum) {
             .method_decl => self.method_decl.init,
             .@"test" => self.@"test".init,
             .module, .trait => self,
-            .@"struct", .@"enum", .type_alias, .receiver => null,
+            .struct_decl, .enum_decl, .type_alias, .receiver => null,
             else => std.debug.panic("compiler error: cannot call `.decl_init()` on the AST `{s}`", .{@tagName(self.*)}),
         };
     }
@@ -1821,8 +1845,8 @@ pub const AST = union(enum) {
 
     pub fn decl_typedef(self: *AST) ?*Type_AST {
         return switch (self.*) {
-            .@"struct" => self.@"struct"._type,
-            .@"enum" => self.@"enum"._type,
+            .struct_decl => self.struct_decl._type,
+            .enum_decl => self.enum_decl._type,
             .type_alias => self.type_alias.init,
             else => std.debug.panic("compiler error: cannot call `.decl_typedef()` on the AST `{s}`", .{@tagName(self.*)}),
         };
@@ -1830,8 +1854,8 @@ pub const AST = union(enum) {
 
     pub fn decl_name(self: *AST) *AST {
         return switch (self.*) {
-            .@"struct" => self.@"struct".name,
-            .@"enum" => self.@"enum".name,
+            .struct_decl => self.struct_decl.name,
+            .enum_decl => self.enum_decl.name,
             .type_alias => self.type_alias.name,
             else => std.debug.panic("compiler error: cannot call `.decl_name()` on the AST `{s}`", .{@tagName(self.*)}),
         };
@@ -1939,7 +1963,7 @@ pub const AST = union(enum) {
         }
     }
 
-    // Expr must be a product value of length `l`. Slice value is `(&expr[0], l)`.
+    // Expr must be an array value of length `l`. Slice value is `(&expr[0], l)`.
     pub fn create_slice_value(_expr: *AST, _mut: bool, expr_type: *Type_AST, allocator: std.mem.Allocator) *AST {
         var new_terms = std.ArrayList(*AST).init(allocator);
         const zero = (AST.create_int(_expr.token(), 0, allocator)).assert_ast_valid();
@@ -1961,22 +1985,25 @@ pub const AST = union(enum) {
         const length = expr_type.array_of.len;
         new_terms.append(length) catch unreachable;
 
-        var retval = AST.create_product(_expr.token(), new_terms, allocator);
-        retval.product.was_slice = true;
+        const array_type = _expr.typeof(allocator);
+        const elem_type = array_type.child();
+        const slice_type = Type_AST.create_slice_type(elem_type, _mut, allocator);
+        var retval = AST.create_struct_value(_expr.token(), slice_type, new_terms, allocator);
+        retval.struct_value.was_slice = true;
         return retval;
     }
 
     pub fn create_some_value(opt_type: *Type_AST, value: *AST, allocator: std.mem.Allocator) *AST {
-        const member = create_sum_value(value.token(), allocator);
-        member.sum_value.base = opt_type;
-        member.sum_value.init = value;
+        const member = create_enum_value(value.token(), allocator);
+        member.enum_value.base = opt_type;
+        member.enum_value.init = value;
         member.set_pos(opt_type.get_pos("some"));
         return member.assert_ast_valid();
     }
 
     pub fn create_none_value(opt_type: *Type_AST, allocator: std.mem.Allocator) *AST {
-        const member = create_sum_value(Token.init_simple("none"), allocator);
-        member.sum_value.base = opt_type;
+        const member = create_enum_value(Token.init_simple("none"), allocator);
+        member.enum_value.base = opt_type;
         member.set_pos(opt_type.get_pos("none"));
         return member.assert_ast_valid();
     }
@@ -2037,8 +2064,8 @@ pub const AST = union(enum) {
             .unit_value,
             .binding,
             .decl,
-            .@"struct",
-            .@"enum",
+            .struct_decl,
+            .enum_decl,
             .type_alias,
             .assign,
             .@"defer",
@@ -2080,22 +2107,15 @@ pub const AST = union(enum) {
 
             .mapping => return self.rhs().typeof(allocator),
 
-            .product => {
-                if (self.product.was_slice) {
-                    var addr: *AST = self.children().items[0];
-                    var retval = Type_AST.create_slice_type(addr.expr().typeof(allocator), addr.addr_of.mut, allocator);
-                    retval.product.was_slice = true;
-                    return retval;
-                } else {
-                    var terms = std.ArrayList(*Type_AST).init(allocator);
-                    for (self.children().items) |term| {
-                        const term_type = term.typeof(allocator);
-                        terms.append(term_type) catch unreachable;
-                    }
-                    var retval = Type_AST.create_product(self.token(), terms, allocator);
-                    retval.product.was_slice = self.product.was_slice;
-                    return retval;
+            .struct_value => return self.struct_value.parent,
+
+            .tuple_value => {
+                var terms = std.ArrayList(*Type_AST).init(allocator);
+                for (self.children().items) |term| {
+                    const term_type = term.typeof(allocator);
+                    terms.append(term_type) catch unreachable;
                 }
+                return Type_AST.create_tuple_type(self.token(), terms, allocator);
             },
             .array_value => {
                 const term_type = self.children().items[0].typeof(allocator);
@@ -2104,8 +2124,8 @@ pub const AST = union(enum) {
 
             .index => {
                 var lhs_type = self.lhs().typeof(allocator).expand_identifier();
-                if (lhs_type.* == .product) {
-                    if (lhs_type.product.was_slice) {
+                if (lhs_type.* == .struct_type) {
+                    if (lhs_type.struct_type.was_slice) {
                         return lhs_type.children().items[0].child().child();
                     } else {
                         return lhs_type.children().items[0];
@@ -2153,9 +2173,9 @@ pub const AST = union(enum) {
                 return Type_AST.create_slice_type(expr_type.child(), self.slice_of.mut, allocator);
             },
             .sub_slice => return self.sub_slice.super.typeof(allocator),
-            .sum_value => {
-                if (self.sum_value.base != null) {
-                    return self.sum_value.base.?.expand_identifier();
+            .enum_value => {
+                if (self.enum_value.base != null) {
+                    return self.enum_value.base.?.expand_identifier();
                 } else {
                     return poison_.poisoned_type;
                 }
@@ -2199,6 +2219,7 @@ pub const AST = union(enum) {
             },
             .fn_decl => return self.decl_type(),
             .pattern_symbol => return self.symbol().?.type(),
+            .size_of => return prelude_.int_type,
 
             else => std.debug.panic("compiler error: unimplemented typeof() for: AST.{s}", .{@tagName(self.*)}),
         }
@@ -2333,23 +2354,33 @@ pub const AST = union(enum) {
             .impl => try out.writer().print("impl(.trait={?}, .type={})", .{ self.impl.trait, self.impl._type }),
             .invoke => try out.writer().print("invoke()", .{}),
             .dyn_value => try out.writer().print("dyn_value()", .{}),
-            .sum_value => {
-                try out.writer().print("sum_value(.name={s}, .init={?}, .tag={?})", .{ self.sum_value.get_name(), self.sum_value.init, self.sum_value._pos });
+            .enum_value => {
+                try out.writer().print("enum_value(.name={s}, .init={?}, .tag={?})", .{ self.enum_value.get_name(), self.enum_value.init, self.enum_value._pos });
             },
-            .@"struct" => {
+            .struct_decl => {
                 try out.writer().print("struct()", .{});
             },
-            .@"enum" => {
+            .enum_decl => {
                 try out.writer().print("enum()", .{});
             },
             .type_alias => {
                 try out.writer().print("type_alias()", .{});
             },
-            .product => {
-                try out.writer().print("product(", .{});
-                for (self.product._terms.items, 0..) |item, i| {
+            .struct_value => {
+                try out.writer().print("struct_value(", .{});
+                for (self.struct_value._terms.items, 0..) |item, i| {
                     try out.writer().print("{}", .{item});
-                    if (i < self.product._terms.items.len - 1) {
+                    if (i < self.struct_value._terms.items.len - 1) {
+                        try out.writer().print(",", .{});
+                    }
+                }
+                try out.writer().print(")", .{});
+            },
+            .tuple_value => {
+                try out.writer().print("tuple_value(", .{});
+                for (self.tuple_value._terms.items, 0..) |item, i| {
+                    try out.writer().print("{}", .{item});
+                    if (i < self.tuple_value._terms.items.len - 1) {
                         try out.writer().print(",", .{});
                     }
                 }

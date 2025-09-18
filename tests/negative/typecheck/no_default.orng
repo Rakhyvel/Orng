@@ -1,8 +1,0 @@
-// no_default.orng:6:10: error: error: expected a compile-time constant type, got default
-//     const X: Type
-//         ^
-// 
-fn main() -> Int {
-    const X: Type
-    4
-}

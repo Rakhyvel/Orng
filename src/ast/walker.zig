@@ -89,8 +89,8 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .import,
         => {},
 
-        .@"struct",
-        .@"enum",
+        .struct_decl,
+        .enum_decl,
         .type_alias,
         => {
             try walk_type(ast.decl_typedef(), new_context);
@@ -146,7 +146,8 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             try walk_ast(ast.lhs(), new_context);
             try walk_asts(ast.children(), new_context);
         },
-        .product,
+        .struct_value,
+        .tuple_value,
         .array_value,
         .bit_and,
         .bit_or,
@@ -157,10 +158,10 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             try walk_ast(ast.binding.init, new_context);
             try walk_type(ast.binding.type, new_context);
         },
-        .sum_value => {
-            try walk_ast(ast.sum_value.init, new_context);
-            if (ast.sum_value.base != null) {
-                try walk_type(ast.sum_value.base, new_context);
+        .enum_value => {
+            try walk_ast(ast.enum_value.init, new_context);
+            if (ast.enum_value.base != null) {
+                try walk_type(ast.enum_value.base, new_context);
             }
         },
         .sub_slice => {
@@ -298,8 +299,9 @@ pub fn walk_type(maybe_type: ?*Type_AST, context: anytype) Error!void {
             try walk_type(_type.rhs(), new_context);
         },
 
-        .sum_type,
-        .product,
+        .enum_type,
+        .struct_type,
+        .tuple_type,
         => {
             try walk_types(_type.children(), new_context);
         },

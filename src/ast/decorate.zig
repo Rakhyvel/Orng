@@ -6,7 +6,6 @@ const errs_ = @import("../util/errors.zig");
 const Scope = @import("../symbol/scope.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 const walk_ = @import("../ast/walker.zig");
-const type_walk_ = @import("../types/walker.zig");
 
 scope: *Scope,
 errors: *errs_.Errors,
@@ -79,7 +78,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
     }
 }
 
-pub fn prefix_type(self: Self, _type: *Type_AST) type_walk_.Error!?Self {
+pub fn prefix_type(self: Self, _type: *Type_AST) walk_.Error!?Self {
     switch (_type.*) {
         else => return self,
 
@@ -128,17 +127,27 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
 
         .select => {
             if (ast.lhs().* == .identifier and ast.lhs().symbol() != null and ast.lhs().symbol().?.refers_to_type()) {
-                const sum_value = ast_.AST.create_sum_value(ast.rhs().token(), self.allocator);
-                sum_value.sum_value.base = Type_AST.create_identifier(ast.lhs().token(), self.allocator);
-                sum_value.sum_value.base.?.set_symbol(ast.lhs().symbol());
-                ast.* = sum_value.*;
+                const enum_value = ast_.AST.create_enum_value(ast.rhs().token(), self.allocator);
+                enum_value.enum_value.base = Type_AST.create_identifier(ast.lhs().token(), self.allocator);
+                enum_value.enum_value.base.?.set_symbol(ast.lhs().symbol());
+                ast.* = enum_value.*;
             }
         },
 
         .call => {
-            if (ast.lhs().* == .sum_value) {
-                ast.lhs().sum_value.init = ast.children().items[0];
+            if (ast.lhs().* == .enum_value) {
+                ast.lhs().enum_value.init = ast.children().items[0];
                 ast.* = ast.lhs().*;
+            } else if (ast.lhs().* == .identifier and ast.lhs().symbol().?.refers_to_type()) {
+                const struct_identifier = Type_AST.create_identifier(ast.lhs().token(), self.allocator);
+                struct_identifier.set_symbol(ast.lhs().symbol().?);
+                const struct_value = ast_.AST.create_struct_value(
+                    ast.lhs().token(),
+                    struct_identifier,
+                    ast.children().*,
+                    self.allocator,
+                );
+                ast.* = struct_value.*;
             }
         },
     }

@@ -1,11 +1,13 @@
-// sum_annot_repeat.orng:9:23: error: duplicate item `y`
-//     let x: (y:Int | y:Int | y:Int)
-//                      ^
-// sum_annot_repeat.orng:9:15: note: other definition of `y` here:
-//     let x: (y:Int | y:Int | y:Int)
-//              ^
+// sum_annot_repeat.orng:11:10: error: symbol `x` is never used
+//     let x: Duplicate
+//         ^
 // 
+enum Duplicate {
+    y(Int)
+    y(Int)
+    y(Int)
+}
 fn main() -> Int {
-    let x: (y:Int | y:Int | y:Int)
+    let x: Duplicate
     0
 }

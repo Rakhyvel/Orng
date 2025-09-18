@@ -1,9 +1,0 @@
-// 234
-fn main() -> Int {
-    let x = get()
-    x[0]
-}
-
-fn get() -> (Int,) {
-    (234,)
-}

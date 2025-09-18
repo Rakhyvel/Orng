@@ -2,6 +2,7 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const CFG = @import("../ir/cfg.zig");
 const errs_ = @import("../util/errors.zig");
+const poison_ = @import("../ast/poison.zig");
 const Scope = @import("../symbol/scope.zig");
 const Span = @import("../util/span.zig");
 const Token = @import("../lexer/token.zig");
@@ -103,13 +104,10 @@ pub fn assert_init_valid(self: *Self) *Self {
 }
 
 pub fn refers_to_type(self: *const Self) bool {
-    return self.decl.?.* == .@"struct" or self.decl.?.* == .@"enum" or self.decl.?.* == .type_alias;
+    return self.decl.?.* == .struct_decl or self.decl.?.* == .enum_decl or self.decl.?.* == .type_alias;
 }
 
 pub fn @"type"(self: *const Self) *Type_AST {
-    if (self.decl == null) {
-        std.debug.print("{s}\n", .{self.name});
-    }
     return self.decl.?.decl_type();
 }
 

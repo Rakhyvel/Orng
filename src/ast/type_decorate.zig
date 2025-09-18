@@ -6,7 +6,6 @@ const errs_ = @import("../util/errors.zig");
 const Scope = @import("../symbol/scope.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 const walk_ = @import("../ast/walker.zig");
-const type_walk_ = @import("../types/walker.zig");
 
 scope: *Scope,
 errors: *errs_.Errors,
@@ -22,7 +21,7 @@ pub fn new(scope: *Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) S
     };
 }
 
-pub fn postfix_type(self: Self, _type: *Type_AST) type_walk_.Error!void {
+pub fn postfix_type(self: Self, _type: *Type_AST) walk_.Error!void {
     const depth_limit: usize = 100;
     var depth: usize = 0;
     while (_type.* == .type_of or _type.* == .domain_of or _type.* == .index) {
@@ -35,7 +34,7 @@ pub fn postfix_type(self: Self, _type: *Type_AST) type_walk_.Error!void {
             .domain_of => {
                 var child = _type.domain_of._child;
                 try self.postfix_type(child);
-                const domain_ptr = child.expand_identifier().sum_type.get_ctor(_type.domain_of.ctor_name) orelse std.debug.panic("{s} not in {}\n", .{ _type.domain_of.ctor_name, child });
+                const domain_ptr = child.expand_identifier().enum_type.get_ctor(_type.domain_of.ctor_name) orelse std.debug.panic("{s} not in {}\n", .{ _type.domain_of.ctor_name, child });
                 _type.* = domain_ptr.*;
             },
             .index => {
@@ -44,13 +43,13 @@ pub fn postfix_type(self: Self, _type: *Type_AST) type_walk_.Error!void {
                 child = child.expand_identifier();
                 if (child.* == .array_of) {
                     _type.* = child.child().*;
-                } else if (child.* == .product) {
+                } else if (child.* == .tuple_type) {
                     if (_type.index.idx.int.data >= child.children().items.len) {
                         break;
                     }
                     _type.* = child.children().items[@intCast(_type.index.idx.int.data)].*;
                 } else {
-                    std.debug.panic("compiler error: cannot take index of `{s}` type\n", .{@tagName(child.*)});
+                    _type.* = Type_AST.create_poison(_type.token(), self.allocator).*;
                 }
             },
             else => unreachable,

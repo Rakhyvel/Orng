@@ -1,4 +1,4 @@
-// product_len.orng:6:33: error: product takes 3 fields, 2 values given
+// product_len.orng:6:33: error: tuple takes 3 elements, 2 elements given
 //     let x: (Int, Int, Int) = (3, '3')
 //                                ^
 // 

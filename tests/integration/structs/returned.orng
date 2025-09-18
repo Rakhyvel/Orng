@@ -1,0 +1,13 @@
+// 221
+struct Pair {
+    x: Int
+    y: Int
+}
+
+fn main() -> Int {
+    f().y
+}
+
+fn f() -> Pair {
+    Pair(45, 221)
+}

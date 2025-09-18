@@ -1,4 +1,4 @@
-// r5.orng:5:20: error: expected a value of type `Bool`, got a value of type `(Int, poison)`
+// r5.orng:5:20: error: expected a value of type `Bool`, got a value of type `(Int, ???)`
 // const a: Bool = (0, []1)
 //                   ^
 // 

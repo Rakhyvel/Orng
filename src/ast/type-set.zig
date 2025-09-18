@@ -28,7 +28,7 @@ pub fn add(self: *Self, oldast_: *Type_AST, allocator: std.mem.Allocator) ?*Depe
     // Type wasn't in the set, so we'll need to create a Dependency_Node for it and its children
     switch (ast.*) {
         .function => return self.add_function(ast, allocator),
-        .product, .sum_type, .untagged_sum_type => return self.add_aggregate(ast, allocator),
+        .struct_type, .tuple_type, .enum_type, .untagged_sum_type => return self.add_aggregate(ast, allocator),
         .dyn_type => return self.add_dependency_node(ast, allocator),
         .annotation => return self.add(ast.child(), allocator),
         .addr_of => {

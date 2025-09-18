@@ -1,0 +1,11 @@
+// 56
+struct Pair {
+    a: Int
+    b: Int
+}
+
+fn main() -> Int {
+    let mut x = {Pair(50, 5)}
+    x.b = 6
+    x.a + x.b
+}

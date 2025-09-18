@@ -1,10 +1,7 @@
 // 55
-struct Pair {
-    a: Int
-    b: Int
-}
+type Pair = (Int, Int)
 
 fn main() -> Int {
     let x: Pair = (50, 5)
-    x.a + x.b
+    x[0] + x[1]
 }

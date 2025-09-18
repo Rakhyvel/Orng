@@ -1,9 +1,10 @@
-// select_not_exist.orng:7:7: error: member `c` not in tuple `[2]a: Int`
+// select_not_exist.orng:8:7: error: member `c` not in struct `My_Type`
 //     x.c
 //      ^
 // 
+struct My_Type {a: Int, b: Int}
 fn main() -> Int {
-    let x: (a: Int, b: Int) = (3, 4)
+    let x = My_Type(3, 4)
     x.c
     0
 }

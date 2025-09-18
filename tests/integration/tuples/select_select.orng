@@ -1,14 +1,11 @@
 // 77
-struct Pair {x: Int, y: Int}
+type Pair = (Int, Int)
 
-struct Pair2 {
-    a: Pair
-    b: Pair
-}
+type Pair2 = (Pair, Pair)
 
 fn main() -> Int {
     let mut x: Pair2 = ((1, 2), (3, 4))
     
-    x.a.x = 77
-    x.a.x
+    x[0][0] = 77
+    x[0][0]
 }

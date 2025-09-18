@@ -450,7 +450,7 @@ pub const Error = union(enum) {
             },
             .unexpected_type_type => {
                 if (err.unexpected_type_type.expected) |expected| {
-                    writer.print("expected a value of type `{}`, got a type", .{expected}) catch unreachable;
+                    writer.print("expected a value of type `{}`, got a type\n", .{expected}) catch unreachable;
                 } else {
                     writer.print("unexpected type\n", .{}) catch unreachable;
                 }

@@ -146,6 +146,8 @@ fn create_prelude(compiler: *Compiler_Context) !void {
     const default_float32 = ast_.AST.create_float(Token.init_simple("0.0"), 0.0, compiler.allocator());
     const default_float64 = ast_.AST.create_float(Token.init_simple("0.0"), 0.0, compiler.allocator());
     // TODO: De-duplicate the following
+    const default_bool = ast_.AST.create_false(Token.init_simple("false"), compiler.allocator());
+    const default_char = ast_.AST.create_char(Token.init_simple("'\\\\0'"), compiler.allocator());
     const default_int8 = ast_.AST.create_int(Token.init_simple("0"), 0, compiler.allocator());
     const default_int16 = ast_.AST.create_int(Token.init_simple("0"), 0, compiler.allocator());
     const default_int32 = ast_.AST.create_int(Token.init_simple("0"), 0, compiler.allocator());
@@ -157,6 +159,28 @@ fn create_prelude(compiler: *Compiler_Context) !void {
 
     // Setup primitive map
     primitives = std.StringArrayHashMap(Primitive_Info).init(compiler.allocator());
+    create_info(
+        "Bool",
+        null,
+        "uint8_t",
+        bool_type,
+        .eq,
+        .boolean,
+        default_bool,
+        1,
+        compiler.allocator(),
+    );
+    create_info(
+        "Char",
+        null,
+        "uint32_t",
+        char_type,
+        .ord,
+        .unsigned_integer,
+        default_char,
+        4,
+        compiler.allocator(),
+    );
     create_info(
         "Float32",
         null,
@@ -282,9 +306,7 @@ fn create_prelude(compiler: *Compiler_Context) !void {
     _ = create_type_alias_symbol("String", byte_slice_type, string_type, compiler.allocator());
     _ = create_type_alias_symbol("Int", int64_type, int_type, compiler.allocator());
     _ = create_type_alias_symbol("Float", float64_type, float_type, compiler.allocator());
-    _ = create_type_alias_symbol("Char", word32_type, char_type, compiler.allocator());
     _ = create_type_alias_symbol("Byte", word8_type, byte_type, compiler.allocator());
-    _ = create_type_alias_symbol("Bool", word8_type, bool_type, compiler.allocator());
 
     default_int8.set_represents(int8_type);
     default_int16.set_represents(int16_type);

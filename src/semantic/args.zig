@@ -12,7 +12,9 @@ const Validate_Error_Enum = error{ LexerError, ParseError, CompileError };
 pub const Validate_Args_Thing = enum {
     function,
     method,
-    product,
+    @"struct",
+    tuple,
+    array,
 
     fn name(self: @This()) []const u8 {
         return @tagName(self);
@@ -21,14 +23,16 @@ pub const Validate_Args_Thing = enum {
     fn takes_name(self: @This()) []const u8 {
         return switch (self) {
             .function, .method => "parameter",
-            .product => "field",
+            .@"struct" => "field",
+            .tuple, .array => "element",
         };
     }
 
     fn given_name(self: @This()) []const u8 {
         return switch (self) {
             .function, .method => "argument",
-            .product => "value",
+            .@"struct" => "value",
+            .tuple, .array => "element",
         };
     }
 };
@@ -36,7 +40,7 @@ pub const Validate_Args_Thing = enum {
 // This has to be ok to do twice for the same args, because stamps have to do it internally.
 pub fn default_args(
     thing: Validate_Args_Thing,
-    asts: std.ArrayList(*ast_.AST), // The args for a call, or the terms for a product
+    asts: std.ArrayList(*ast_.AST), // The args for a call, or the terms for a struct
     call_span: Span,
     expected: *Type_AST,
     errors: *errs_.Errors,
@@ -125,13 +129,13 @@ fn positional_args(
             }
         },
 
-        .product => {
+        .struct_type, .tuple_type => {
             for (expected.children().items, 0..) |term, i| {
-                // ast is product, append ast's corresponding term
+                // ast is struct, append ast's corresponding term
                 if (asts.items.len > 1 and i < asts.items.len) {
                     filled_args.append(asts.items[i]) catch unreachable;
                 }
-                // ast is unit or ast isn't a product and i > 0 or ast is a product and off the edge of ast's terms
+                // ast is unit or ast isn't a struct and i > 0 or ast is a struct and off the edge of ast's terms
                 // try to fill with the default
                 else if (asts.items.len == 0 or (asts.items.len <= 1 and i > 0) or (asts.items.len > 1 and i >= asts.items.len)) {
                     if (term.* == .annotation and term.annotation.init != null) {
@@ -148,7 +152,7 @@ fn positional_args(
                         return error.NoDefault;
                     }
                 }
-                // ast is not product, i != 0, append ast as first term
+                // ast is not struct, i != 0, append ast as first term
                 else {
                     filled_args.append(asts.items[0]) catch unreachable;
                 }
@@ -210,7 +214,7 @@ fn named_args(
             }
         },
 
-        .product => {
+        .struct_type, .tuple_type => {
             for (expected.children().items) |term| {
                 if (term.* != .annotation) {
                     errors.add_error(errs_.Error{ .basic = .{
@@ -247,11 +251,11 @@ fn named_args(
 }
 
 fn put_assign(ast: *ast_.AST, arg_map: *std.StringArrayHashMap(*ast_.AST), errors: *errs_.Errors) Validate_Error_Enum!void {
-    if (ast.lhs().* != .sum_value) {
+    if (ast.lhs().* != .enum_value) {
         errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "an named argument", .got = ast.lhs().token() } });
         return error.CompileError;
     }
-    try put_ast_map(ast.rhs(), ast.lhs().sum_value.get_name(), ast.token().span, arg_map, errors);
+    try put_ast_map(ast.rhs(), ast.lhs().enum_value.get_name(), ast.token().span, arg_map, errors);
 }
 
 /// Puts an ast into a String->AST map, if a given name isn't already in the map.
@@ -282,7 +286,7 @@ pub fn validate_args_arity(
     span: Span,
     errors: *errs_.Errors,
 ) Validate_Error_Enum!void {
-    const expected_length = if (expected.* == .unit_type) 0 else if (expected.* == .product) expected.children().items.len else 1;
+    const expected_length = if (expected.* == .unit_type) 0 else if (expected.* == .struct_type or expected.* == .tuple_type) expected.children().items.len else 1;
     if (variadic) {
         if (args.items.len < expected_length) {
             errors.add_error(errs_.Error{ .mismatch_arity = .{

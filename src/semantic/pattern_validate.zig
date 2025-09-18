@@ -21,7 +21,7 @@ pub fn assert_pattern_matches(
 ) Validate_Error_Enum!void {
     switch (pattern.*) {
         .unit_value => try typing_.type_check(pattern.token().span, prelude_.unit_type, expr_type, &compiler.errors),
-        .int => try typing_.type_check_int(pattern, expr_type, &compiler.errors, compiler.allocator()),
+        .int => try typing_.type_check_int(pattern, expr_type, &compiler.errors),
         .char => try typing_.type_check(pattern.token().span, prelude_.char_type, expr_type, &compiler.errors),
         .string => try typing_.type_check(pattern.token().span, prelude_.string_type, expr_type, &compiler.errors), // TODO: Has to wait until we can match on slices
         .float => try typing_.type_check_float(pattern, expr_type, &compiler.errors),
@@ -31,15 +31,15 @@ pub fn assert_pattern_matches(
             try poison_.assert_none_poisoned(new_pattern);
             try typing_.type_check(pattern.token().span, new_pattern.typeof(compiler.allocator()), expr_type, &compiler.errors);
         },
-        .select, .sum_value => {
+        .select, .enum_value => {
             const new_pattern = validate_AST(pattern, expr_type, compiler);
             try poison_.assert_none_poisoned(new_pattern);
             pattern.set_pos(new_pattern.pos().?);
             try typing_.type_check(pattern.token().span, new_pattern.typeof(compiler.allocator()), expr_type, &compiler.errors);
         },
-        .product => {
+        .tuple_value => {
             const expanded_expr_type = expr_type.expand_identifier();
-            if (expanded_expr_type.* != .product or expanded_expr_type.children().items.len != pattern.children().items.len) {
+            if (expanded_expr_type.* != .tuple_type or expanded_expr_type.children().items.len != pattern.children().items.len) {
                 return typing_.throw_unexpected_type(pattern.token().span, expr_type, pattern.typeof(compiler.allocator()), &compiler.errors);
             }
             for (pattern.children().items, expanded_expr_type.children().items) |term, expanded_term| {
@@ -72,7 +72,7 @@ pub fn exhaustive_check(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Validate_Error_Enum!void {
-    if (_type.* == .sum_type) {
+    if (_type.* == .enum_type) {
         var total_sum_ids = std.ArrayList(usize).init(allocator);
         defer total_sum_ids.deinit();
 
@@ -99,7 +99,7 @@ pub fn exhaustive_check(
 
 fn exhaustive_check_sub(ast: *ast_.AST, ids: *std.ArrayList(usize)) void {
     switch (ast.*) {
-        .select, .sum_value => {
+        .select, .enum_value => {
             for (ids.items, 0..) |item, i| {
                 if (item == ast.pos().?) {
                     _ = ids.swapRemove(i);

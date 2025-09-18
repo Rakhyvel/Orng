@@ -1,4 +1,4 @@
-// unreachable_select.orng:6:17: error: left-hand-side of select is not selectable
+// unreachable_select.orng:6:17: error: the type `Void` is not selectable
 //     unreachable.x
 //                ^
 // 

@@ -244,11 +244,11 @@ fn extern_const_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
         return retval;
     } else if (self.peek_kind(.@"struct")) {
         var retval = try self.struct_declaration();
-        retval.@"struct".name = ast_.AST.create_pattern_symbol(
-            retval.@"struct".name.token(),
+        retval.struct_decl.name = ast_.AST.create_pattern_symbol(
+            retval.struct_decl.name.token(),
             .type,
             .{ .@"extern" = .{ .c_name = c_name } },
-            retval.@"struct".name.token().data,
+            retval.struct_decl.name.token().data,
             self.allocator,
         );
         return retval;
@@ -274,7 +274,7 @@ fn product_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
         terms.?.append(try self.type_expr()) catch unreachable;
     }
     if (terms) |terms_list| {
-        return Type_AST.create_product(firsttoken_.?, terms_list, self.allocator);
+        return Type_AST.create_tuple_type(firsttoken_.?, terms_list, self.allocator);
     } else {
         return exp;
     }
@@ -558,7 +558,7 @@ fn let_pattern_product(self: *Self) Parser_Error_Enum!*ast_.AST {
         terms.?.append(try self.let_pattern_atom()) catch unreachable;
     }
     if (terms) |terms_list| {
-        return ast_.AST.create_product(firsttoken_.?, terms_list, self.allocator);
+        return ast_.AST.create_tuple_value(firsttoken_.?, terms_list, self.allocator);
     } else {
         return exp;
     }
@@ -572,7 +572,7 @@ fn let_pattern_array(self: *Self) Parser_Error_Enum!*ast_.AST {
     while (self.accept(.comma)) |_| {
         terms.append(try self.let_pattern_atom()) catch unreachable;
     }
-    return ast_.AST.create_array(first_token, terms, self.allocator);
+    return ast_.AST.create_array_value(first_token, terms, self.allocator);
 }
 
 fn let_pre(self: *Self) Parser_Error_Enum!?*ast_.AST {
@@ -632,29 +632,6 @@ fn parse_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
     return self.product_expr();
 }
 
-fn product_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
-    const exp = try self.assignment_expr();
-    var terms: ?std.ArrayList(*ast_.AST) = null;
-    var firsttoken_: ?Token = null;
-    while (self.accept(.comma)) |token| {
-        if (terms == null) {
-            terms = std.ArrayList(*ast_.AST).init(self.allocator);
-            firsttoken_ = token;
-            terms.?.append(exp) catch unreachable;
-        }
-        if (self.peek_kind(.right_parenthesis)) {
-            // Trailing comma, break out
-            break;
-        }
-        terms.?.append(try self.assignment_expr()) catch unreachable;
-    }
-    if (terms) |terms_list| {
-        return ast_.AST.create_product(firsttoken_.?, terms_list, self.allocator);
-    } else {
-        return exp;
-    }
-}
-
 fn assignment_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
     const exp = try self.bool_expr();
     if (self.accept(.single_equals)) |token| {
@@ -669,6 +646,29 @@ fn assignment_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
         return ast_.AST.create_assign(token, exp, ast_.AST.create_binop(token, exp, try self.bool_expr(), self.allocator), self.allocator);
     } else if (self.accept(.percent_equals)) |token| {
         return ast_.AST.create_assign(token, exp, ast_.AST.create_binop(token, exp, try self.bool_expr(), self.allocator), self.allocator);
+    } else {
+        return exp;
+    }
+}
+
+fn product_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
+    const exp = try self.bool_expr();
+    var terms: ?std.ArrayList(*ast_.AST) = null;
+    var firsttoken_: ?Token = null;
+    while (self.accept(.comma)) |token| {
+        if (terms == null) {
+            terms = std.ArrayList(*ast_.AST).init(self.allocator);
+            firsttoken_ = token;
+            terms.?.append(exp) catch unreachable;
+        }
+        if (self.peek_kind(.right_parenthesis)) {
+            // Trailing comma, break out
+            break;
+        }
+        terms.?.append(try self.bool_expr()) catch unreachable;
+    }
+    if (terms) |terms_list| {
+        return ast_.AST.create_tuple_value(firsttoken_.?, terms_list, self.allocator);
     } else {
         return exp;
     }
@@ -897,7 +897,7 @@ fn prefix_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
             self.newlines();
         }
         _ = try self.expect(.right_square);
-        return ast_.AST.create_array(token, terms, self.allocator);
+        return ast_.AST.create_array_value(token, terms, self.allocator);
     } else if (self.accept(.@"try")) |token| {
         return ast_.AST.create_try(token, try self.postfix_expr(), self.allocator);
     } else {
@@ -1020,10 +1020,10 @@ fn factor(self: *Self) Parser_Error_Enum!*ast_.AST {
     } else if (self.peek_kind(.@"fn")) {
         return self.fn_declaration();
     } else if (self.accept(.period)) |_| {
-        const sum_val = ast_.AST.create_sum_value(try self.expect(.identifier), self.allocator); // member will be inferred
+        const sum_val = ast_.AST.create_enum_value(try self.expect(.identifier), self.allocator); // member will be inferred
         if (self.accept(.left_parenthesis) != null) {
             if (!self.peek_kind(.right_parenthesis)) {
-                sum_val.sum_value.init = try self.assignment_expr();
+                sum_val.enum_value.init = try self.assignment_expr();
             }
             _ = try self.expect(.right_parenthesis);
         }
@@ -1292,7 +1292,7 @@ fn struct_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     }
 
     _ = try self.expect(.right_brace);
-    return ast_.AST.create_struct(identifier, name, fields, self.allocator);
+    return ast_.AST.create_struct_decl(identifier, name, fields, self.allocator);
 }
 
 fn enum_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
@@ -1326,7 +1326,7 @@ fn enum_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     self.newlines();
 
     _ = try self.expect(.right_brace);
-    return ast_.AST.create_enum(identifier, name, fields, self.allocator);
+    return ast_.AST.create_enum_decl(identifier, name, fields, self.allocator);
 }
 
 fn type_alias_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
@@ -1571,7 +1571,7 @@ fn match_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
 }
 
 fn match_mapping(self: *Self) Parser_Error_Enum!*ast_.AST {
-    var lhs = try self.match_pattern_sum_value();
+    var lhs = try self.match_pattern_enum_value();
     _ = try self.expect(.fat_arrow);
     const rhs = try self.assignment_expr();
     if (!self.peek_kind(.right_brace)) {
@@ -1581,15 +1581,15 @@ fn match_mapping(self: *Self) Parser_Error_Enum!*ast_.AST {
     return ast_.AST.create_mapping(lhs.token(), lhs, rhs, self.allocator);
 }
 
-fn match_pattern_sum_value(self: *Self) Parser_Error_Enum!*ast_.AST {
+fn match_pattern_enum_value(self: *Self) Parser_Error_Enum!*ast_.AST {
     const exp = try self.match_pattern_atom();
     if (self.accept(.left_parenthesis)) |_| {
-        const retval = ast_.AST.create_sum_value(exp.token(), self.allocator);
+        const retval = ast_.AST.create_enum_value(exp.token(), self.allocator);
         if (exp.* == .select) { // TODO: Figure out how Enum.ctor works
-            retval.sum_value.base = Type_AST.create_identifier(exp.lhs().token(), self.allocator);
+            retval.enum_value.base = Type_AST.create_identifier(exp.lhs().token(), self.allocator);
             retval.common()._token = exp.rhs().token();
         }
-        retval.sum_value.init = try self.match_pattern_atom();
+        retval.enum_value.init = try self.match_pattern_atom();
         _ = try self.expect(.right_parenthesis);
         return retval;
     } else {
@@ -1617,10 +1617,10 @@ fn match_pattern_atom(self: *Self) Parser_Error_Enum!*ast_.AST {
             return ast_.AST.create_pattern_symbol(token, .let, .local, token.data, self.allocator);
         }
     } else if (self.accept(.period)) |_| {
-        const sum_val = ast_.AST.create_sum_value(try self.expect(.identifier), self.allocator); // member will be inferred
+        const sum_val = ast_.AST.create_enum_value(try self.expect(.identifier), self.allocator); // member will be inferred
         if (self.accept(.left_parenthesis) != null) {
             if (!self.peek_kind(.right_parenthesis)) {
-                sum_val.sum_value.init = try self.match_pattern_product();
+                sum_val.enum_value.init = try self.match_pattern_product();
             }
             _ = try self.expect(.right_parenthesis);
         }
@@ -1635,7 +1635,7 @@ fn match_pattern_atom(self: *Self) Parser_Error_Enum!*ast_.AST {
 }
 
 fn match_pattern_product(self: *Self) Parser_Error_Enum!*ast_.AST {
-    const exp = try self.match_pattern_sum_value();
+    const exp = try self.match_pattern_enum_value();
     var terms: ?std.ArrayList(*ast_.AST) = null;
     var firsttoken_: ?Token = null;
     while (self.accept(.comma)) |token| {
@@ -1644,10 +1644,10 @@ fn match_pattern_product(self: *Self) Parser_Error_Enum!*ast_.AST {
             firsttoken_ = token;
             terms.?.append(exp) catch unreachable;
         }
-        terms.?.append(try self.match_pattern_sum_value()) catch unreachable;
+        terms.?.append(try self.match_pattern_enum_value()) catch unreachable;
     }
     if (terms) |terms_list| {
-        return ast_.AST.create_product(firsttoken_.?, terms_list, self.allocator);
+        return ast_.AST.create_tuple_value(firsttoken_.?, terms_list, self.allocator);
     } else {
         return exp;
     }

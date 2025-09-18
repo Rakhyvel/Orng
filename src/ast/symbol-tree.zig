@@ -102,7 +102,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             try self.scope.put_all_symbols(&symbols, self.errors);
         },
 
-        .@"struct", .@"enum", .type_alias => {
+        .struct_decl, .enum_decl, .type_alias => {
             const symbol = Symbol.init(
                 self.scope,
                 ast.decl_name().token().data,
@@ -309,7 +309,7 @@ fn create_symbol(
             pattern.set_symbol(symbol);
             symbols.append(symbol) catch unreachable;
         },
-        .product, .array_value => {
+        .tuple_value, .array_value => {
             for (pattern.children().items, 0..) |term, i| {
                 const index = ast_.AST.create_int(pattern.token(), i, allocator);
                 const new_type: *Type_AST = Type_AST.create_index(_type.token(), _type, index, allocator);
@@ -317,13 +317,13 @@ fn create_symbol(
                 try create_symbol(symbols, term, decl, new_type, new_init, scope, errors, allocator);
             }
         },
-        .sum_value => {
+        .enum_value => {
             const lhs_type = Type_AST.create_type_of(pattern.token(), init.?, allocator);
-            const rhs_type = Type_AST.create_domain_of(pattern.token(), lhs_type, pattern.sum_value.get_name(), allocator);
+            const rhs_type = Type_AST.create_domain_of(pattern.token(), lhs_type, pattern.enum_value.get_name(), allocator);
 
-            if (pattern.sum_value.init != null) {
+            if (pattern.enum_value.init != null) {
                 // Here init is null!
-                try create_symbol(symbols, pattern.sum_value.init.?, decl, rhs_type, pattern.sum_value.init.?, scope, errors, allocator);
+                try create_symbol(symbols, pattern.enum_value.init.?, decl, rhs_type, pattern.enum_value.init.?, scope, errors, allocator);
             }
         },
 
@@ -495,7 +495,7 @@ fn build_paramlist(params: std.ArrayList(*ast_.AST), param_types: *std.ArrayList
             allocator,
         )) catch unreachable;
     }
-    const retval = Type_AST.create_product(params.items[0].token(), param_types.*, allocator);
+    const retval = Type_AST.create_tuple_type(params.items[0].token(), param_types.*, allocator);
     return retval;
 }
 

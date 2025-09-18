@@ -105,8 +105,8 @@ fn validate_AST_internal(
         .pattern_symbol,
         .trait,
         .impl,
-        .@"enum",
-        .@"struct",
+        .enum_decl,
+        .struct_decl,
         .type_alias,
         => return ast,
         // .anyptr_type, .unit_type => {
@@ -119,7 +119,7 @@ fn validate_AST_internal(
         },
         .int => {
             if (expected != null and !prelude_.unit_type.types_match(expected.?)) {
-                try typing_.type_check_int(ast, expected, &compiler.errors, compiler.allocator());
+                try typing_.type_check_int(ast, expected, &compiler.errors);
             }
             return ast;
         },
@@ -212,12 +212,12 @@ fn validate_AST_internal(
             ast.set_expr(validate_AST(ast.expr(), null, compiler));
             try poison_.assert_none_poisoned(ast.expr());
             var expanded_expr_type = ast.expr().typeof(compiler.allocator()).expand_identifier();
-            if (expanded_expr_type.* != .sum_type or expanded_expr_type.sum_type.from != .@"error") {
+            if (expanded_expr_type.* != .enum_type or expanded_expr_type.enum_type.from != .@"error") {
                 return typing_.throw_wrong_from("error", "try", expanded_expr_type, expr_span, &compiler.errors);
             }
             try typing_.type_check(ast.token().span, expanded_expr_type.get_ok_type().child(), expected, &compiler.errors);
             const expanded_function_codomain = ast.symbol().?.type().rhs().expand_identifier();
-            if (expanded_function_codomain.* != .sum_type or expanded_function_codomain.sum_type.from != .@"error") {
+            if (expanded_function_codomain.* != .enum_type or expanded_function_codomain.enum_type.from != .@"error") {
                 compiler.errors.add_error(errs_.Error{ .basic = .{
                     .span = ast.token().span,
                     .msg = "enclosing function around try expression does not return an error",
@@ -234,11 +234,11 @@ fn validate_AST_internal(
             return ast;
         },
         // .domain_of => {
-        //     ast.domain_of.sum_type = validate_AST(ast.domain_of.sum_type, prelude_.type_type, compiler);
-        //     try poison_.assert_none_poisoned(ast.domain_of.sum_type);
-        //     ast.set_expr(validate_AST(ast.expr(), ast.domain_of.sum_type, compiler));
+        //     ast.domain_of.enum_type = validate_AST(ast.domain_of.enum_type, prelude_.type_type, compiler);
+        //     try poison_.assert_none_poisoned(ast.domain_of.enum_type);
+        //     ast.set_expr(validate_AST(ast.expr(), ast.domain_of.enum_type, compiler));
         //     try poison_.assert_none_poisoned(ast.expr());
-        //     return ast.expr().sum_value.domain.?.child(); // Should be filled by sum_value's validate
+        //     return ast.expr().enum_value.domain.?.child(); // Should be filled by sum_value's validate
         // },
         // .type_of => {
         //     ast.set_expr(validate_AST(ast.expr(), null, compiler));
@@ -307,10 +307,6 @@ fn validate_AST_internal(
         },
         .equal, .not_equal => {
             const lhs_type = try typing_.binary_operator_open(ast, null, compiler);
-            // const expanded_lhs_type = lhs_type.expand_identifier();
-            // if (try prelude_.type_type.types_match(expanded_lhs_type)) {
-            //     return try typing_.type_equality_operation(ast, &compiler.errors, compiler.allocator());
-            // }
             try typing_.type_check_eq(ast.token().span, lhs_type, &compiler.errors);
             try typing_.type_check(ast.token().span, prelude_.bool_type, expected, &compiler.errors);
             return ast;
@@ -363,7 +359,7 @@ fn validate_AST_internal(
 
             var lhs_type = ast.lhs().typeof(compiler.allocator());
             const expanded_lhs_type = lhs_type.expand_identifier();
-            if (ast.lhs().* != .sum_value and expanded_lhs_type.* != .function) {
+            if (ast.lhs().* != .enum_value and expanded_lhs_type.* != .function) {
                 return typing_.throw_wrong_from(
                     "function",
                     "call",
@@ -373,20 +369,20 @@ fn validate_AST_internal(
                 );
             }
 
-            // since sum_values are always compiler constructed, and their type is always a sum-type, this should always hold
-            std.debug.assert(ast.lhs().* != .sum_value or expanded_lhs_type.* == .sum_type); // (an `implies` operator would be cool btw...)
+            // since enum_values are always compiler constructed, and their type is always a sum-type, this should always hold
+            std.debug.assert(ast.lhs().* != .enum_value or expanded_lhs_type.* == .enum_type); // (an `implies` operator would be cool btw...)
 
-            const domain = if (expanded_lhs_type.* == .function) expanded_lhs_type.lhs() else ast.lhs().sum_value.domain.?;
-            const codomain = if (expanded_lhs_type.* == .function) expanded_lhs_type.rhs() else ast.lhs().sum_value.base.?;
+            const domain = if (expanded_lhs_type.* == .function) expanded_lhs_type.lhs() else ast.lhs().enum_value.domain.?;
+            const codomain = if (expanded_lhs_type.* == .function) expanded_lhs_type.rhs() else ast.lhs().enum_value.base.?;
             const variadic = expanded_lhs_type.* == .function and expanded_lhs_type.function.variadic;
             ast.set_children(try args_.default_args(.function, ast.children().*, ast.token().span, domain, &compiler.errors, compiler.allocator()));
             try args_.validate_args_arity(.function, ast.children(), domain, variadic, ast.token().span, &compiler.errors);
             ast.set_children((try typing_.validate_args_type(ast.children(), domain, compiler)).*);
             try typing_.type_check(ast.token().span, codomain, expected, &compiler.errors);
-            if (ast.lhs().* == .sum_value) {
+            if (ast.lhs().* == .enum_value) {
                 // lhs is a sum value, usurp its init with ast's rhs
                 std.debug.assert(ast.children().items.len == 1);
-                ast.lhs().sum_value.init = ast.children().items[0];
+                ast.lhs().enum_value.init = ast.children().items[0];
                 return ast.lhs();
             }
 
@@ -413,18 +409,19 @@ fn validate_AST_internal(
             //     // Index a product type, resolve immediately
             //     return ast.lhs().children().items[@as(usize, @intCast(ast.rhs().int.data))];
             // } else
-            if (expanded_lhs_type.* != .product and expanded_lhs_type.* != .array_of and !(expanded_lhs_type.* == .addr_of and expanded_lhs_type.addr_of.multiptr)) {
+            if (expanded_lhs_type.* != .tuple_type and
+                !(expanded_lhs_type.* == .struct_type and expanded_lhs_type.struct_type.was_slice) and
+                expanded_lhs_type.* != .array_of and
+                !(expanded_lhs_type.* == .addr_of and expanded_lhs_type.addr_of.multiptr))
+            {
                 compiler.errors.add_error(errs_.Error{ .not_indexable = .{ .span = lhs_span, ._type = expanded_lhs_type } });
                 return error.CompileError;
-            } else if (expanded_lhs_type.* == .product and
-                !expanded_lhs_type.product.was_slice and
-                !expanded_lhs_type.product.is_homotypical())
-            {
+            } else if (expanded_lhs_type.* == .tuple_type) {
                 if (ast.rhs().* != .int) {
                     // rhs is not int, error
                     compiler.errors.add_error(errs_.Error{ .basic = .{
                         .span = lhs_span,
-                        .msg = "array is not homotypical and index is not compile-time known",
+                        .msg = "index is not compile-time known",
                     } });
                     return ast.enpoison();
                 }
@@ -434,9 +431,9 @@ fn validate_AST_internal(
                 select.set_pos(@as(usize, @intCast(ast.rhs().int.data)));
                 return select;
             } else if (expected != null) {
-                if (expanded_lhs_type.* == .product and !expanded_lhs_type.product.was_slice) {
+                if (expanded_lhs_type.* == .tuple_type) {
                     try typing_.type_check(ast.token().span, expanded_lhs_type.children().items[0], expected, &compiler.errors);
-                } else if (expanded_lhs_type.* == .product and expanded_lhs_type.product.was_slice) {
+                } else if (expanded_lhs_type.* == .struct_type and expanded_lhs_type.struct_type.was_slice) {
                     try typing_.type_check(ast.token().span, expanded_lhs_type.children().items[0].child().child(), expected, &compiler.errors);
                 }
             }
@@ -447,13 +444,8 @@ fn validate_AST_internal(
             try poison_.assert_none_poisoned(ast.lhs());
             const lhs_type = ast.lhs().typeof(compiler.allocator());
             const expanded_lhs_type = try typing_.implicit_dereference(ast, lhs_type.expand_identifier(), compiler);
-            // if (try expanded_lhs_type.types_match(prelude_.type_type) and ast.lhs().expand_identifier().* == .sum_type) {
-            //     // Select on a Type (only valid for a sum type), change to sum value
-            //     const sum_value = ast_.AST.create_sum_value(ast.rhs().token(), compiler.allocator());
-            //     sum_value.sum_value.base = ast.lhs();
-            //     return validate_AST(sum_value, expected, compiler);
-            // } else
-            const expanded_expected = get_expanded_expected(expected, compiler.allocator());
+
+            const expanded_expected = get_expanded_expected(expected);
             if (expanded_lhs_type.* == .array_of and std.mem.eql(u8, "length", ast.rhs().token().data)) {
                 try typing_.type_check(ast.token().span, prelude_.int_type, expanded_expected, &compiler.errors);
                 return expanded_lhs_type.array_of.len.assert_ast_valid();
@@ -564,7 +556,7 @@ fn validate_AST_internal(
             return ast;
         },
         // .function => return try typing_.binary_operator_closed(ast, prelude_.type_type, expected, compiler),
-        // .sum_type => {
+        // .enum_type => {
         //     for (0..ast.children().items.len) |i| {
         //         std.debug.assert(ast.children().items[i].* == .annotation); // sums are expanded in expand.zig
         //         ast.children().items[i] = validate_AST(ast.children().items[i], prelude_.type_type, compiler);
@@ -576,14 +568,14 @@ fn validate_AST_internal(
         // .untagged_sum_type => {
         //     ast.set_expr(validate_AST(ast.expr(), prelude_.type_type, compiler).expand_identifier());
         //     try poison_.assert_none_poisoned(ast.expr());
-        //     if (ast.expr().* != .sum_type) {
+        //     if (ast.expr().* != .enum_type) {
         //         compiler.errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "not a sum type" } });
         //         return ast.enpoison();
         //     }
         //     try typing_.type_check(ast.token().span, ast.expr().typeof(compiler.allocator()), expected, &compiler.errors);
         //     return ast;
         // },
-        .product => {
+        .struct_value => {
             const expanded_expected: ?*Type_AST = if (expected == null) null else expected.?.expand_identifier();
             if (expanded_expected == null) {
                 // Not expecting anything
@@ -591,11 +583,35 @@ fn validate_AST_internal(
                     ast.children().items[i] = validate_AST(ast.children().items[i], expanded_expected, compiler);
                 }
                 try poison_.assert_none_poisoned(ast.children());
-            } else if (expanded_expected != null and expanded_expected.?.* == .product) {
+            } else if (expanded_expected != null and expanded_expected.?.* == .struct_type) {
                 // Expecting ast to be a product value of some product type
                 _ = ast.assert_ast_valid();
-                ast.set_children(try args_.default_args(.product, ast.children().*, ast.token().span, expanded_expected.?, &compiler.errors, compiler.allocator()));
-                try args_.validate_args_arity(.product, ast.children(), expanded_expected.?, false, ast.token().span, &compiler.errors);
+                ast.set_children(try args_.default_args(.@"struct", ast.children().*, ast.token().span, expanded_expected.?, &compiler.errors, compiler.allocator()));
+                try args_.validate_args_arity(.@"struct", ast.children(), expanded_expected.?, false, ast.token().span, &compiler.errors);
+                ast.set_children((try typing_.validate_args_type(ast.children(), expanded_expected.?, compiler)).*);
+                ast.common()._type = expected.?;
+            } else if (expanded_expected == null) {
+                return typing_.throw_unexpected_type(ast.token().span, expected.?, poison_.poisoned_type, &compiler.errors);
+            } else if (!prelude_.unit_type.types_match(expanded_expected.?)) {
+                // It's ok to assign this to a unit type, something like `_ = (1, 2, 3)`
+                // expecting something that is not a type nor a product is not ok!
+                // poison `got`, so that it doesn't print anything for the `got` section, wouldn't make sense anyway
+                return typing_.throw_unexpected_type(ast.token().span, expected.?, ast.typeof(compiler.allocator()), &compiler.errors);
+            }
+            return ast;
+        },
+        .tuple_value => {
+            const expanded_expected: ?*Type_AST = if (expected == null) null else expected.?.expand_identifier();
+            if (expanded_expected == null) {
+                // Not expecting anything
+                for (0..ast.children().items.len) |i| {
+                    ast.children().items[i] = validate_AST(ast.children().items[i], null, compiler);
+                }
+                try poison_.assert_none_poisoned(ast.children());
+            } else if (expanded_expected != null and expanded_expected.?.* == .tuple_type) {
+                // Expecting ast to be a product value of some product type
+                _ = ast.assert_ast_valid();
+                try args_.validate_args_arity(.tuple, ast.children(), expanded_expected.?, false, ast.token().span, &compiler.errors);
                 ast.set_children((try typing_.validate_args_type(ast.children(), expanded_expected.?, compiler)).*);
                 ast.common()._type = expected.?;
             } else if (expanded_expected == null) {
@@ -609,7 +625,7 @@ fn validate_AST_internal(
             return ast;
         },
         .array_value => {
-            const expanded_expanded = get_expanded_expected(expected, compiler.allocator());
+            const expanded_expanded = get_expanded_expected(expected);
             if (expanded_expanded != null and expanded_expanded.?.* != .array_of) {
                 return typing_.throw_wrong_from("array", "array value", expanded_expanded.?, ast.token().span, &compiler.errors);
             }
@@ -631,9 +647,9 @@ fn validate_AST_internal(
 
         //     const expanded_lhs = new_ast.lhs().expand_identifier();
         //     const expanded_rhs = new_ast.rhs().expand_identifier();
-        //     if (expanded_lhs.* != .sum_type) {
+        //     if (expanded_lhs.* != .enum_type) {
         //         return typing_.throw_wrong_from("sum", "union", expanded_lhs, lhs_span, &compiler.errors);
-        //     } else if (expanded_rhs.* != .sum_type) {
+        //     } else if (expanded_rhs.* != .enum_type) {
         //         return typing_.throw_wrong_from("sum", "union", expanded_rhs, rhs_span, &compiler.errors);
         //     }
 
@@ -690,10 +706,10 @@ fn validate_AST_internal(
                 ast.set_expr(validate_AST(ast.expr(), expanded_expected.child(), compiler));
                 try poison_.assert_none_poisoned(ast.expr());
                 _ = ast.assert_ast_valid();
-                if (ast.expr().* != .product) {
-                    // Validate that expr is an L-value *only if* expr is not a product
-                    // It is possible to take a addr of a product. The address is the address of the temporary
-                    // This is mirrored with a slice_of a product.
+                if (ast.expr().* != .tuple_value) {
+                    // Validate that expr is an L-value *only if* expr is not a tuple
+                    // It is possible to take a addr of a tuple. The address is the address of the temporary
+                    // This is mirrored with a slice_of an array.
                     try validate_L_Value(ast.expr(), &compiler.errors);
                 }
                 if (ast.addr_of.mut) {
@@ -708,7 +724,7 @@ fn validate_AST_internal(
             try poison_.assert_none_poisoned(ast.expr());
             const expr_type = ast.expr().typeof(compiler.allocator());
 
-            // ast.expr() must be homotypical product type of expected
+            // ast.expr() must be homotypical tuple type of expected
             if (expr_type.* != .array_of) {
                 compiler.errors.add_error(errs_.Error{ .basic = .{
                     .span = ast.token().span,
@@ -723,8 +739,8 @@ fn validate_AST_internal(
 
             if (ast.expr().* != .array_value) {
                 // Validate that expr is an L-value *only if* expr is not a array
-                // It is possible to take a slice of a product. The slice is the sliceof the temporary
-                // This is mirrored with addr_of a product.
+                // It is possible to take a slice of a array. The slice is the sliceof the temporary
+                // This is mirrored with addr_of a tuple.
                 try validate_L_Value(ast.expr(), &compiler.errors);
             }
             if (ast.slice_of.mut) {
@@ -761,7 +777,7 @@ fn validate_AST_internal(
             ast.sub_slice.upper = validate_AST(ast.sub_slice.upper.?, null, compiler); // they are set in expand phase
             try poison_.assert_none_poisoned(.{ ast.sub_slice.super, ast.sub_slice.lower, ast.sub_slice.upper });
             const super_type = ast.sub_slice.super.typeof(compiler.allocator());
-            if (super_type.* != .product or !super_type.product.was_slice) {
+            if (super_type.* != .struct_type or !super_type.struct_type.was_slice) {
                 compiler.errors.add_error(errs_.Error{ .basic = .{
                     .span = ast.token().span,
                     .msg = "cannot take a sub-slice of something that is not a slice",
@@ -784,34 +800,34 @@ fn validate_AST_internal(
         //     try typing_.type_check(ast.token().span, prelude_.type_type, expected, &compiler.errors);
         //     return ast;
         // },
-        .sum_value => {
-            if (ast.sum_value.base == null and expected == null) {
+        .enum_value => {
+            if (ast.enum_value.base == null and expected == null) {
                 compiler.errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "cannot infer type for initializer" } });
                 return error.CompileError;
-            } else if (ast.sum_value.base == null) {
+            } else if (ast.enum_value.base == null) {
                 // Infer that the base type is `expected`
-                ast.sum_value.base = expected;
+                ast.enum_value.base = expected;
             }
 
-            const expanded_base: *Type_AST = ast.sum_value.base.?.expand_identifier();
-            if (expanded_base.* != .sum_type) {
+            const expanded_base: *Type_AST = ast.enum_value.base.?.expand_identifier();
+            if (expanded_base.* != .enum_type) {
                 return typing_.throw_wrong_from("sum", "sum value", expanded_base, ast.token().span, &compiler.errors);
             }
 
             const pos = expanded_base.get_pos(ast.token().data);
-            if (pos == null and expanded_base.* == .sum_type) {
+            if (pos == null and expanded_base.* == .enum_type) {
                 compiler.errors.add_error(errs_.Error{ .member_not_in_type = .{ .span = ast.token().span, .identifier = ast.token().data, .name = "sum", .type = expanded_base } });
                 return error.CompileError;
             }
             ast.set_pos(expanded_base.get_pos(ast.token().data));
 
-            ast.sum_value.domain = expanded_base.children().items[ast.pos().?];
-            if (ast.sum_value.init == null) {
+            ast.enum_value.domain = expanded_base.children().items[ast.pos().?];
+            if (ast.enum_value.init == null) {
                 // This may be usurped by a .call node
-                ast.sum_value.init = ast.sum_value.domain.?.annotation.init orelse
-                    try defaults_.generate_default(ast.sum_value.domain.?.child(), ast.token().span, &compiler.errors, compiler.allocator());
+                ast.enum_value.init = ast.enum_value.domain.?.annotation.init orelse
+                    try defaults_.generate_default(ast.enum_value.domain.?.child(), ast.token().span, &compiler.errors, compiler.allocator());
             } else {
-                ast.sum_value.init = validate_AST(ast.sum_value.init.?, ast.sum_value.domain.?.child(), compiler);
+                ast.enum_value.init = validate_AST(ast.enum_value.init.?, ast.enum_value.domain.?.child(), compiler);
             }
 
             return ast;
@@ -833,8 +849,8 @@ fn validate_AST_internal(
                 expected_type = null;
             } else {
                 expanded_expected = expected.?.expand_identifier();
-                is_result_optional = expanded_expected.* == .sum_type and
-                    expanded_expected.sum_type.from == .optional and
+                is_result_optional = expanded_expected.* == .enum_type and
+                    expanded_expected.enum_type.from == .optional and
                     !expanded_expected.types_match(prelude_.void_type);
                 if (ast.else_block() != null) {
                     expected_type = expected.?;
@@ -938,7 +954,7 @@ fn validate_AST_internal(
             var is_optional_type = false; //< Set if expected is an optional type
             if (expected != null) {
                 const expanded_expected = expected.?.expand_identifier();
-                if (expanded_expected.* == .sum_type and expanded_expected.sum_type.from == .optional) {
+                if (expanded_expected.* == .enum_type and expanded_expected.enum_type.from == .optional) {
                     ast.set_body_block(validate_AST(ast.body_block(), expanded_expected.get_some_type(), compiler));
                     is_optional_type = true;
                 }
@@ -1095,7 +1111,7 @@ fn validate_L_Value(ast: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!v
 
         .index => try validate_L_Value(ast.lhs(), errors),
 
-        .product => for (ast.children().items) |term| {
+        .tuple_value => for (ast.children().items) |term| {
             try validate_L_Value(term, errors);
         },
 
@@ -1123,7 +1139,7 @@ fn assert_mutable(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
 
         .index => {
             const lhs_type = ast.lhs().typeof(allocator);
-            if (lhs_type.* == .product and lhs_type.product.was_slice) {
+            if (lhs_type.* == .struct_type and lhs_type.struct_type.was_slice) {
                 try assert_mutable_address(lhs_type.children().items[0].child(), errors);
             } else if (lhs_type.* == .addr_of and lhs_type.addr_of.multiptr) {
                 try assert_mutable_address(lhs_type, errors);
@@ -1132,7 +1148,7 @@ fn assert_mutable(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
             }
         },
 
-        .product => for (ast.children().items) |term| {
+        .tuple_value => for (ast.children().items) |term| {
             try assert_mutable(term, errors, allocator);
         },
 
@@ -1149,7 +1165,6 @@ fn assert_mutable_address(ast: *Type_AST, errors: *errs_.Errors) Validate_Error_
     }
 }
 
-fn get_expanded_expected(expected: ?*Type_AST, allocator: std.mem.Allocator) ?*Type_AST {
-    _ = allocator;
+fn get_expanded_expected(expected: ?*Type_AST) ?*Type_AST {
     return if (expected == null) null else expected.?.expand_identifier();
 }

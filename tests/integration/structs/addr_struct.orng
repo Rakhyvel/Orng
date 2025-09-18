@@ -1,0 +1,11 @@
+// 58
+struct Pair {
+    a: Int
+    b: Int
+}
+
+fn main() -> Int {
+    let x: Pair = Pair(19, 58 - 19)
+    let y = &x
+    y^.a + y^.b
+}

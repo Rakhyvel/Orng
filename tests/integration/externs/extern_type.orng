@@ -8,7 +8,7 @@ extern struct Some_Type {
 extern const sum: Some_Type -> Int
 
 fn main() -> Int {
-    let mut x: Some_Type = (300, 40)
+    let mut x = Some_Type(300, 40)
     x.y = 41
     sum(x)
 }

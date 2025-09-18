@@ -5,7 +5,7 @@ struct Pair {
 }
 
 fn main() -> Int {
-    let mut x: Pair = (1, 2)
+    let mut x = Pair(1, 2)
     (&mut x).a = 76
     (&mut x).a
 }

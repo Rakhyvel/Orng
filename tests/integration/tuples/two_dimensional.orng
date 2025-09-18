@@ -1,0 +1,13 @@
+// 195
+type CD = (Int, Int)
+type EF = (Int, Int)
+type My_Type = (CD, EF)
+
+fn main() -> Int {
+    let x: My_Type = (
+        (25, 75),
+        (5, 90),
+    )
+
+    x[0][0] + x[0][1] + x[1][0] + x[1][1]
+}

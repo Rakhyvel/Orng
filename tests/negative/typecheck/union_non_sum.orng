@@ -1,8 +1,0 @@
-// union_non_sum.orng:6:18: error: expected sum type for union, got `Int`
-//     const A = Int || Float
-//                 ^
-// 
-fn main() -> Int {
-    const A = Int || Float
-    0
-}

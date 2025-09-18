@@ -177,7 +177,7 @@ fn resolve_access_const(self: Self, const_symbol: *Symbol, rhs: *ast_.AST, scope
 fn extract_symbol_from_decl(decl: *ast_.AST) *Symbol {
     if (decl.* == .decl) {
         return decl.decl.name.symbol().?;
-    } else if (decl.* == .method_decl or decl.* == .fn_decl or decl.* == .trait or decl.* == .@"struct" or decl.* == .@"enum" or decl.* == .type_alias) {
+    } else if (decl.* == .method_decl or decl.* == .fn_decl or decl.* == .trait or decl.* == .struct_decl or decl.* == .enum_decl or decl.* == .type_alias) {
         return decl.symbol().?;
     } else {
         std.debug.panic("compiler error: unsupported access symbol resolution for decl-like AST: {s}", .{@tagName(decl.*)});

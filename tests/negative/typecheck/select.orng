@@ -1,8 +1,9 @@
-// select.orng:7:7: error: expected a value of type `Int`, got a value of type `Char`
+// select.orng:8:7: error: expected a value of type `Int`, got a value of type `Char`
 //     x.b
 //      ^
 // 
+struct My_Type {a: Int, b: Char}
 fn main() -> Int {
-    let x: (a: Int, b: Char) = (1, '2')
+    let x = My_Type(1, '2')
     x.b
 }

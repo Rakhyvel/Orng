@@ -59,7 +59,10 @@ pub fn init(stderr: ?std.fs.File.Writer, alloc: std.mem.Allocator) Error!*Self {
     retval.stderr = stderr;
 
     retval.prelude = try prelude_.get_scope(retval);
-    retval.core = try core_.get_scope(retval);
+    retval.core = core_.get_scope(retval) catch |e| {
+        retval.errors.print_errors(stderr orelse return e, .{});
+        return e;
+    };
 
     retval.register_package(core_.core_package_name, .static_library);
     const core_module_symbol = retval.lookup_module(retval.core.?.module.?.absolute_path).?;

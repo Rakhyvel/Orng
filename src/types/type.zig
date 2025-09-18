@@ -62,7 +62,7 @@ pub const Type_AST = union(enum) {
         _child: *Type_AST,
         init: ?*AST,
     },
-    sum_type: struct {
+    enum_type: struct {
         common: Type_AST_Common,
         _terms: std.ArrayList(*Type_AST),
         from: Sum_From = .none,
@@ -94,30 +94,10 @@ pub const Type_AST = union(enum) {
         common: Type_AST_Common,
         _child: *Type_AST,
     },
-    product: struct {
+    struct_type: struct {
         common: Type_AST_Common,
         _terms: std.ArrayList(*Type_AST),
-        homotypical: ?bool = null,
         was_slice: bool = false,
-
-        /// Checks if all the terms in the product have the same type (ie the product is homotypical)
-        pub fn is_homotypical(self: *@This()) bool {
-            if (self.homotypical) |homotypical| {
-                return homotypical;
-            }
-            var first_type = self._terms.items[0];
-            for (self._terms.items, 0..) |term, i| {
-                if (i == 0) {
-                    continue;
-                }
-                if (!first_type.types_match(term)) {
-                    self.homotypical = false;
-                    return false;
-                }
-            }
-            self.homotypical = true;
-            return true;
-        }
 
         pub fn get_offset_field(self: *@This(), field_name: []const u8) i64 {
             for (0.., self._terms.items) |i, term| {
@@ -125,8 +105,26 @@ pub const Type_AST = union(enum) {
                     return self.get_offset(i);
                 }
             }
-            std.debug.panic("compiler error: couldn't get offset; product didn't have the field `{s}`", .{field_name});
+            std.debug.panic("compiler error: couldn't get offset; struct didn't have the field `{s}`", .{field_name});
         }
+
+        /// Retrieves the offset in bytes given a field's index
+        pub fn get_offset(self: *@This(), field: usize) i64 {
+            var offset: i64 = 0;
+            for (0..field) |i| {
+                var item = self._terms.items[i].expand_identifier();
+                if (self._terms.items[i + 1].alignof() == 0) {
+                    continue;
+                }
+                offset += item.sizeof();
+                offset = alignment_.next_alignment(offset, self._terms.items[i + 1].alignof());
+            }
+            return offset;
+        }
+    },
+    tuple_type: struct {
+        common: Type_AST_Common,
+        _terms: std.ArrayList(*Type_AST),
 
         /// Retrieves the offset in bytes given a field's index
         pub fn get_offset(self: *@This(), field: usize) i64 {
@@ -150,7 +148,7 @@ pub const Type_AST = union(enum) {
         anytptr: bool = false, // When this is true, the addr_of should output as a void*, and should be cast whenever dereferenced
         _scope: ?*Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
     },
-    /// A product-type of pointers to the vtable, and to the receiver
+    /// A struct-like type of pointers to the vtable, and to the receiver
     dyn_type: struct {
         common: Type_AST_Common,
         _child: *Type_AST,
@@ -226,8 +224,8 @@ pub const Type_AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn create_sum_type(_token: Token, terms: std.ArrayList(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
-        return Type_AST.box(Type_AST{ .sum_type = .{
+    pub fn create_enum_type(_token: Token, terms: std.ArrayList(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
+        return Type_AST.box(Type_AST{ .enum_type = .{
             .common = Type_AST_Common{ ._token = _token },
             ._terms = terms,
         } }, allocator);
@@ -268,8 +266,15 @@ pub const Type_AST = union(enum) {
         );
     }
 
-    pub fn create_product(_token: Token, terms: std.ArrayList(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
-        return Type_AST.box(Type_AST{ .product = .{
+    pub fn create_struct_type(_token: Token, terms: std.ArrayList(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
+        return Type_AST.box(Type_AST{ .struct_type = .{
+            .common = Type_AST_Common{ ._token = _token },
+            ._terms = terms,
+        } }, allocator);
+    }
+
+    pub fn create_tuple_type(_token: Token, terms: std.ArrayList(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
+        return Type_AST.box(Type_AST{ .tuple_type = .{
             .common = Type_AST_Common{ ._token = _token },
             ._terms = terms,
         } }, allocator);
@@ -342,20 +347,6 @@ pub const Type_AST = union(enum) {
         return retval;
     }
 
-    pub fn create_array_type(
-        len: i128,
-        of: *Type_AST,
-        allocator: std.mem.Allocator,
-    ) *Type_AST {
-        // Inflate an array-of to a product with `len` `of`'s
-        var new_terms = std.ArrayList(*Type_AST).init(allocator);
-        std.debug.assert(len >= 0);
-        for (0..@as(usize, @intCast(len))) |_| {
-            new_terms.append(of) catch unreachable;
-        }
-        return Type_AST.create_product(of.token(), new_terms, allocator);
-    }
-
     pub fn create_slice_type(of: *Type_AST, _mut: bool, allocator: std.mem.Allocator) *Type_AST {
         var term_types = std.ArrayList(*Type_AST).init(allocator);
         const data_type = create_addr_of(
@@ -380,8 +371,8 @@ pub const Type_AST = union(enum) {
             null,
             allocator,
         )) catch unreachable;
-        var retval = create_product(of.token(), term_types, allocator);
-        retval.product.was_slice = true;
+        var retval = create_struct_type(of.token(), term_types, allocator);
+        retval.struct_type.was_slice = true;
         return retval;
     }
 
@@ -406,8 +397,8 @@ pub const Type_AST = union(enum) {
         );
         term_types.append(none_type) catch unreachable;
 
-        var retval = create_sum_type(of_type.token(), term_types, allocator);
-        retval.sum_type.from = .optional;
+        var retval = create_enum_type(of_type.token(), term_types, allocator);
+        retval.enum_type.from = .optional;
         return retval;
     }
 
@@ -434,8 +425,8 @@ pub const Type_AST = union(enum) {
         );
         retval_sum_terms.append(err_annot) catch unreachable;
 
-        var retval = create_sum_type(ok_type.token(), retval_sum_terms, allocator);
-        retval.sum_type.from = .@"error";
+        var retval = create_enum_type(ok_type.token(), retval_sum_terms, allocator);
+        retval.enum_type.from = .@"error";
 
         return retval;
     }
@@ -555,45 +546,47 @@ pub const Type_AST = union(enum) {
 
     pub fn children(self: *const Type_AST) *const std.ArrayList(*Type_AST) {
         return switch (self.*) {
-            .sum_type => &self.sum_type._terms,
+            .enum_type => &self.enum_type._terms,
             .untagged_sum_type => self.child().expand_identifier().children(),
-            .product => &self.product._terms,
+            .struct_type => &self.struct_type._terms,
+            .tuple_type => &self.tuple_type._terms,
             else => std.debug.panic("compiler error: cannot call `.children()` on the Type_AST `{}`", .{self}),
         };
     }
 
     pub fn set_children(self: *Type_AST, val: std.ArrayList(*Type_AST)) void {
         switch (self.*) {
-            .sum_type => self.sum_type._terms = val,
-            .untagged_sum_type => self.untagged_sum_type._child.sum_type._terms = val,
-            .product => self.product._terms = val,
+            .enum_type => self.enum_type._terms = val,
+            .untagged_sum_type => self.untagged_sum_type._child.enum_type._terms = val,
+            .struct_type => self.struct_type._terms = val,
+            .tuple_type => self.tuple_type._terms = val,
             else => std.debug.panic("compiler error: cannot call `.set_children()` on the Type_AST `{s}`", .{@tagName(self.*)}),
         }
     }
 
     /// Retrieves either the `ok` or `some` type from either an optional type or an error type
     pub fn get_nominal_type(opt_or_error_sum: *Type_AST) *Type_AST {
-        std.debug.assert(opt_or_error_sum.sum_type.from == .optional or opt_or_error_sum.sum_type.from == .@"error");
+        std.debug.assert(opt_or_error_sum.enum_type.from == .optional or opt_or_error_sum.enum_type.from == .@"error");
         return opt_or_error_sum.children().items[0];
     }
 
     pub fn get_some_type(opt_sum: *const Type_AST) *Type_AST {
-        std.debug.assert(opt_sum.sum_type.from == .optional);
+        std.debug.assert(opt_sum.enum_type.from == .optional);
         return opt_sum.children().items[0];
     }
 
     pub fn get_none_type(opt_sum: *Type_AST) *Type_AST {
-        std.debug.assert(opt_sum.sum_type.from == .optional);
+        std.debug.assert(opt_sum.enum_type.from == .optional);
         return opt_sum.children().items[1];
     }
 
     pub fn get_ok_type(err_union: *Type_AST) *Type_AST {
-        std.debug.assert(err_union.sum_type.from == .@"error");
+        std.debug.assert(err_union.enum_type.from == .@"error");
         return err_union.children().items[0];
     }
 
     pub fn get_err_type(err_union: *Type_AST) *Type_AST {
-        std.debug.assert(err_union.sum_type.from == .@"error");
+        std.debug.assert(err_union.enum_type.from == .@"error");
         return err_union.children().items[1];
     }
 
@@ -636,7 +629,8 @@ pub const Type_AST = union(enum) {
         }
 
         switch (self.*) {
-            .anyptr_type => try out.print("anyptr_type", .{}),
+            .poison => try out.print("???", .{}),
+            .anyptr_type => try out.print("anyptr", .{}),
             .unit_type => try out.print("()", .{}),
             .identifier => try out.print("{s}", .{self.token().data}),
             .addr_of => {
@@ -679,19 +673,7 @@ pub const Type_AST = union(enum) {
                 try out.print("->", .{});
                 try self.rhs().print_type(out);
             },
-            .product => if (self.product.homotypical != null and self.product.homotypical.?) {
-                try out.print("[{}]", .{self.children().items.len});
-                try self.children().items[0].print_type(out);
-            } else if (self.product.was_slice) {
-                try out.print("[]", .{});
-                try self.children().items[0].print_type(out);
-            } else if (self.children().items.len == 0) {
-                try out.print("()", .{});
-            } else if (self.children().items.len == 1) {
-                try out.print("(", .{});
-                try self.children().items[0].print_type(out);
-                try out.print(",)", .{});
-            } else {
+            .struct_type, .tuple_type => {
                 try out.print("(", .{});
                 for (self.children().items, 0..) |term, i| {
                     try term.print_type(out);
@@ -701,14 +683,15 @@ pub const Type_AST = union(enum) {
                 }
                 try out.print(")", .{});
             },
-            .sum_type => if (self.sum_type.from == .optional) {
+
+            .enum_type => if (self.enum_type.from == .optional) {
                 try out.print("?", .{});
                 try self.get_some_type().child().print_type(out);
             } else {
                 try out.print("(", .{});
-                for (self.sum_type._terms.items, 0..) |term, i| {
+                for (self.enum_type._terms.items, 0..) |term, i| {
                     try term.print_type(out);
-                    if (self.sum_type._terms.items.len == 1 or i + 1 != self.sum_type._terms.items.len) {
+                    if (self.enum_type._terms.items.len == 1 or i + 1 != self.enum_type._terms.items.len) {
                         try out.print(" | ", .{});
                     }
                 }
@@ -771,7 +754,7 @@ pub const Type_AST = union(enum) {
                 return primitive_info.size;
             },
 
-            .product => {
+            .struct_type, .tuple_type => {
                 var total_size: i64 = 0;
                 for (self.children().items) |_child| {
                     total_size = alignment_.next_alignment(total_size, _child.alignof());
@@ -785,7 +768,7 @@ pub const Type_AST = union(enum) {
                 return child_size * @as(i64, @intCast(self.array_of.len.int.data));
             },
 
-            .sum_type => {
+            .enum_type => {
                 var max_size: i64 = 0;
                 for (self.children().items) |_child| {
                     max_size = @max(max_size, _child.sizeof());
@@ -793,7 +776,7 @@ pub const Type_AST = union(enum) {
                 return alignment_.next_alignment(max_size, 8) + 8;
             },
             .untagged_sum_type => {
-                std.debug.assert(self.child().expand_identifier().* == .sum_type); // TOOD: validate...
+                std.debug.assert(self.child().expand_identifier().* == .enum_type); // TOOD: validate...
                 var max_size: i64 = 0;
                 for (self.children().items) |_child| {
                     max_size = @max(max_size, _child.sizeof());
@@ -832,7 +815,7 @@ pub const Type_AST = union(enum) {
                 return primitive_info._align;
             },
 
-            .product => {
+            .struct_type, .tuple_type => {
                 var max_align: i64 = 0;
                 for (self.children().items) |_child| {
                     max_align = @max(max_align, _child.alignof());
@@ -840,7 +823,7 @@ pub const Type_AST = union(enum) {
                 return max_align;
             },
 
-            .sum_type, // this pains me :-( but has to be this way for the tag // TODO: This is fixable...
+            .enum_type, // this pains me :-( but has to be this way for the tag // TODO: This is fixable...
             .function,
             .addr_of,
             .dyn_type,
@@ -848,7 +831,7 @@ pub const Type_AST = union(enum) {
             => return 8,
 
             .untagged_sum_type => {
-                std.debug.assert(self.child().expand_identifier().* == .sum_type);
+                std.debug.assert(self.child().expand_identifier().* == .enum_type);
                 var max_size: i64 = 0;
                 for (self.children().items) |_child| {
                     max_size = @max(max_size, _child.alignof());
@@ -946,7 +929,7 @@ pub const Type_AST = union(enum) {
             .array_of => return types_match(A.child(), B.child()) and A.array_of.len.int.data == B.array_of.len.int.data,
             .anyptr_type => return B.* == .anyptr_type,
             .unit_type => return true,
-            .product => {
+            .struct_type, .tuple_type => {
                 if (B.children().items.len != A.children().items.len) {
                     return false;
                 }
@@ -956,7 +939,7 @@ pub const Type_AST = union(enum) {
                 }
                 return retval;
             },
-            .sum_type, .untagged_sum_type => {
+            .enum_type, .untagged_sum_type => {
                 if (B.children().items.len != A.children().items.len) {
                     return false;
                 }
@@ -1005,27 +988,34 @@ pub const Type_AST = union(enum) {
                 const _rhs = clone(self.rhs(), substs, allocator);
                 return create_function(self.token(), _lhs, _rhs, allocator);
             },
-            .sum_type => {
+            .enum_type => {
                 var new_children = std.ArrayList(*Type_AST).init(allocator);
                 for (self.children().items) |item| {
                     const new_type = item.clone(substs, allocator);
                     new_children.append(new_type) catch unreachable;
                 }
-                var retval = create_sum_type(self.token(), new_children, allocator);
-                retval.sum_type.from = self.sum_type.from;
+                var retval = create_enum_type(self.token(), new_children, allocator);
+                retval.enum_type.from = self.enum_type.from;
                 // NOTE: Do NOT copy over the `all_unit` type, as Self could be unit. Leave it null to be re-evaluated.
                 return retval;
             },
-            .product => {
+            .struct_type => {
                 var new_children = std.ArrayList(*Type_AST).init(allocator);
                 for (self.children().items) |item| {
                     const new_type = item.clone(substs, allocator);
                     new_children.append(new_type) catch unreachable;
                 }
-                var retval = create_product(self.token(), new_children, allocator);
-                retval.product.homotypical = self.product.homotypical;
-                retval.product.was_slice = self.product.was_slice;
+                var retval = create_struct_type(self.token(), new_children, allocator);
+                retval.struct_type.was_slice = self.struct_type.was_slice;
                 return retval;
+            },
+            .tuple_type => {
+                var new_children = std.ArrayList(*Type_AST).init(allocator);
+                for (self.children().items) |item| {
+                    const new_type = item.clone(substs, allocator);
+                    new_children.append(new_type) catch unreachable;
+                }
+                return create_tuple_type(self.token(), new_children, allocator);
             },
             else => std.debug.panic("compiler error: clone doesn't support trait type AST `{s}`", .{@tagName(self.*)}),
         }
@@ -1046,7 +1036,7 @@ pub const Type_AST = union(enum) {
             .addr_of, .array_of => _type.child().refers_to_self(),
             .annotation => _type.child().refers_to_self(),
             .function => _type.lhs().refers_to_self() or _type.rhs().refers_to_self(),
-            .product, .sum_type => {
+            .struct_type, .tuple_type, .enum_type => {
                 for (_type.children().items) |item| {
                     if (item.refers_to_self()) {
                         return true;
@@ -1084,14 +1074,14 @@ pub const Type_AST = union(enum) {
         }
         if (expanded.* == .addr_of) {
             return true;
-        } else if (expanded.* == .product) {
+        } else if (expanded.* == .tuple_type) {
             for (expanded.children().items) |term| {
                 if (!term.is_eq_type()) {
                     return false;
                 }
             }
             return true;
-        } else if (expanded.* == .sum_type) {
+        } else if (expanded.* == .enum_type) {
             return true;
         } else if (expanded.* != .identifier) {
             return false;
@@ -1178,7 +1168,7 @@ pub const Type_AST = union(enum) {
             .unit_type => return other.* == .unit_type,
             .anyptr_type => return other.* == .anyptr_type,
             .dyn_type => return self.child().symbol() == other.child().symbol(),
-            .product, .sum_type, .untagged_sum_type => {
+            .struct_type, .tuple_type, .enum_type, .untagged_sum_type => {
                 if (other.children().items.len != self.children().items.len) {
                     return false;
                 }
@@ -1201,5 +1191,12 @@ pub const Type_AST = union(enum) {
 
     pub fn is_ident_type(self: *Type_AST, name: []const u8) bool {
         return self.* == .identifier and std.mem.eql(u8, self.token().data, name);
+    }
+
+    pub fn is_indirect(self: *const Type_AST) bool {
+        return switch (self.*) {
+            .addr_of, .dyn_type => true,
+            else => false,
+        };
     }
 };

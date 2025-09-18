@@ -13,7 +13,7 @@ impl My_Trait for My_Type {
 }
 
 fn main() -> Int {
-    let my_val: My_Type = (200, 45)
+    let my_val: My_Type = My_Type(200, 45)
     my_val.>a()
     45
 }

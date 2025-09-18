@@ -143,7 +143,7 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
                 else => unreachable,
             };
         },
-        .product => |p| if (p.was_slice) {
+        .struct_type => |p| if (p.was_slice) {
             string_access = "._0";
             specifier = "s";
         },
@@ -159,7 +159,7 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
         try self.emitter.output_symbol(symbol);
         try self.writer.print("(){s});", .{string_access});
     } else {
-        if (codomain.* == .sum_type and codomain.sum_type.from == .@"error") {
+        if (codomain.* == .enum_type and codomain.enum_type.from == .@"error") {
             try self.emitter.output_type(codomain);
             try self.writer.print(" retcode = ", .{});
         }
@@ -170,7 +170,7 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
         , .{});
     }
 
-    if (codomain.* == .sum_type and codomain.sum_type.from == .@"error") {
+    if (codomain.* == .enum_type and codomain.enum_type.from == .@"error") {
         try self.writer.print(
             \\  return retcode.tag;
             \\}}
@@ -326,7 +326,7 @@ fn output_instruction_post_check(self: *Self, instr: *Instruction) CodeGen_Error
             try self.output_var_assign_cast(instr.dest.?, instr.dest.?.get_expanded_type());
             try self.writer.print("{{", .{});
             const dest_type = instr.dest.?.get_expanded_type();
-            if (dest_type.* == .product) { // TODO: Likely need a `load_array` instruction
+            if (dest_type.* == .struct_type or dest_type.* == .tuple_type) { // TODO: Likely need a `load_array` instruction
                 var product_list = dest_type.children().*;
                 for (instr.data.lval_list.items, product_list.items, 1..) |term, expected, i| {
                     if (!expected.is_c_void_type()) {

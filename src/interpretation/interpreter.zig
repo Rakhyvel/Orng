@@ -468,7 +468,7 @@ pub fn extract_ast(self: *Self, address: i64, _type: *Type_AST, span: Span, modu
             self.allocator,
         ).assert_ast_valid(),
         .unit_type => return ast_.AST.create_unit_value(_type.token(), self.allocator).assert_ast_valid(),
-        .sum_type => return self.extract_sum_type(address, _type, span, module_interned_strings),
+        .enum_type => return self.extract_sum_type(address, _type, span, module_interned_strings),
         .product => return self.extract_product_type(address, _type, span, module_interned_strings),
         .array_of => return self.extract_array_type(address, _type, span, module_interned_strings),
         .function => return self.extract_function(address),
@@ -560,12 +560,12 @@ fn extract_function(self: *Self, address: i64) Error!*ast_.AST {
 
 fn extract_sum_type(self: *Self, address: i64, sum_type: *Type_AST, span: Span, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set)) Error!*ast_.AST {
     // self.print_memory(@intCast(address), @intCast(address + _type.sizeof()));
-    var retval = ast_.AST.create_sum_value(sum_type.token(), self.allocator).assert_ast_valid();
+    var retval = ast_.AST.create_enum_value(sum_type.token(), self.allocator).assert_ast_valid();
     const tag = self.memory.load_int(address + sum_type.sizeof() - 8, 8);
     retval.set_pos(@as(usize, @intCast(tag)));
-    retval.sum_value.base = sum_type;
+    retval.enum_value.base = sum_type;
     const proper_term: *Type_AST = sum_type.children().items[@as(usize, @intCast(tag))];
-    retval.sum_value.init = try self.extract_ast(address, proper_term, span, module_interned_strings);
+    retval.enum_value.init = try self.extract_ast(address, proper_term, span, module_interned_strings);
     return retval;
 }
 

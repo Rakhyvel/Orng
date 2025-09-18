@@ -45,10 +45,10 @@ pub fn output_type(self: *Self, old_type: *Type_AST) CodeGen_Error!void {
             const dep = self.module.type_set.get(_type).?;
             try self.output_function_name(dep);
         },
-        .sum_type,
-        .product,
+        .enum_type,
+        .tuple_type,
+        .struct_type,
         .array_of,
-        // .slice_of
         => {
             const dep = self.module.type_set.get(_type).?;
             try self.output_struct_name(dep);

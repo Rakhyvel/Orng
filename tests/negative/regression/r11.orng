@@ -1,6 +1,6 @@
-// r11.orng:6:8: error: expected a value of type `[*]String`, got a value of type `String`
+// r11.orng:6:12: error: expected a value of type `(data: [*]String, length: Int)`, got a value of type `(???, ???, ???)`
 //     let (a, b, c): []String
-//       ^
+//           ^
 // 
 fn main()->() {
     let (a, b, c): []String

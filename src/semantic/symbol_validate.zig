@@ -38,13 +38,31 @@ pub fn validate(symbol: *Symbol, compiler: *Compiler_Context) Validate_Error_Enu
     };
     if (expected) |expected_type| {
         try type_validate_.validate(expected_type, &compiler.errors);
+        if (type_validate_.detect_cycle(expected_type, compiler.allocator())) {
+            compiler.errors.add_error(errs_.Error{ .symbol_error = .{
+                .problem = "cyclic type detected",
+                .span = symbol.span(),
+                .name = symbol.name,
+            } });
+            return error.CompileError;
+        }
     }
     // std.debug.print("type for: {s}: {?}\n", .{ symbol.name, expected });
     // std.debug.print("validating init for: {s}: {?}\n", .{ symbol.name, expected });
     if (symbol.init_value()) |init| {
         // might be null for parameters
         symbol.decl.?.set_decl_init(validate_AST(init, expected, compiler));
+    } else if (symbol.kind == .type and symbol.init_typedef() != null) {
+        try type_validate_.validate(symbol.init_typedef().?, &compiler.errors);
+        if (type_validate_.detect_cycle(symbol.init_typedef().?, compiler.allocator())) {
+            compiler.errors.add_error(errs_.Error{ .basic = .{
+                .msg = "cyclic type detected",
+                .span = symbol.span(),
+            } });
+            return error.CompileError;
+        }
     }
+
     // std.debug.print("init for: {s}: {?}\n", .{ symbol.name, symbol.init_value });
     if (symbol.kind == .trait) {
         try validate_trait(symbol, compiler);
@@ -63,6 +81,7 @@ pub fn validate(symbol: *Symbol, compiler: *Compiler_Context) Validate_Error_Enu
                 .span = symbol.span(),
                 .name = symbol.name,
             } });
+            return error.CompileError;
         }
     } else {
         if (is_capitalized(symbol.name)) {
@@ -71,6 +90,7 @@ pub fn validate(symbol: *Symbol, compiler: *Compiler_Context) Validate_Error_Enu
                 .span = symbol.span(),
                 .name = symbol.name,
             } });
+            return error.CompileError;
         }
     }
 

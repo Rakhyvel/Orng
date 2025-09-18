@@ -3,9 +3,9 @@ struct Pair{a: Int, b: Int}
 
 fn main() -> Int {
     let mut x: [3]Pair = [
-        (1, 2), 
-        (3, 4), 
-        (5, 6)]
+        Pair(1, 2), 
+        Pair(3, 4), 
+        Pair(5, 6)]
     x[1].a = 73
     x[1].a
 }

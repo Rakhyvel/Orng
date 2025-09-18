@@ -1,8 +1,10 @@
-// infer_not_in.orng:6:28: error: member `d` not in sum `(a: () | b: () | c: ())`
-//     let x: (a | b | c) = .d
-//                           ^
+// infer_not_in.orng:8:24: error: member `d` not in sum `My_Type`
+//     let x: My_Type = .d
+//                       ^
 // 
+enum My_Type {a, b, c}
+
 fn main () -> Int {
-    let x: (a | b | c) = .d
+    let x: My_Type = .d
     0
 }

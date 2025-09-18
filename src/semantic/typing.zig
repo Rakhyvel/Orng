@@ -36,9 +36,7 @@ pub fn type_check_int(
     ast: *ast_.AST,
     expected: ?*Type_AST, // This should NOT be expanded < it is, though...
     errors: *errs_.Errors,
-    allocator: std.mem.Allocator,
 ) Validate_Error_Enum!void {
-    _ = allocator;
     const expanded_expected = if (expected != null) expected.?.expand_identifier() else null;
     if (expanded_expected != null) { //and !try checked_types_match(prelude_.unit_type, expanded_expected.?, errors)
         const info = prelude_.info_from_ast(expanded_expected.?);
@@ -159,6 +157,9 @@ pub fn binary_operator_open(
     compiler: *Compiler_Context,
 ) Validate_Error_Enum!*Type_AST {
     ast.set_lhs(validate_AST(ast.lhs(), expected, compiler));
+    if (ast.lhs().* == .identifier and ast.lhs().symbol().?.refers_to_type()) {
+        return error.CompileError;
+    }
     const lhs_type = ast.lhs().typeof(compiler.allocator());
     ast.set_rhs(validate_AST(ast.rhs(), lhs_type, compiler));
     try poison_.assert_none_poisoned(.{ ast.lhs(), ast.rhs() });
@@ -168,7 +169,7 @@ pub fn binary_operator_open(
 pub fn coalesce_operator(lhs_expanded_type: *Type_AST, ast: *ast_.AST, span: Span, errors: *errs_.Errors) Validate_Error_Enum!void {
     std.debug.assert(ast.* == .@"orelse" or ast.* == .@"catch");
     const expected_sum_from: Type_AST.Sum_From = if (ast.* == .@"orelse") .optional else .@"error";
-    if (lhs_expanded_type.* != .sum_type or lhs_expanded_type.sum_type.from != expected_sum_from) {
+    if (lhs_expanded_type.* != .enum_type or lhs_expanded_type.enum_type.from != expected_sum_from) {
         errors.add_error(errs_.Error{ .wrong_from = .{
             .span = span,
             .operator = @tagName(ast.*),
@@ -185,39 +186,14 @@ pub fn validate_args_type(
     expected: *Type_AST,
     compiler: *Compiler_Context,
 ) Validate_Error_Enum!*std.ArrayList(*ast_.AST) {
-    const expected_length = if (expected.* == .unit_type) 0 else if (expected.* == .product) expected.children().items.len else 1;
+    const expected_length = if (expected.* == .unit_type) 0 else if (expected.* == .struct_type or expected.* == .tuple_type) expected.children().items.len else 1;
 
     for (0..expected_length) |i| {
-        const param_type = if (expected.* == .product) expected.children().items[i] else expected;
+        const param_type = if (expected.* == .struct_type or expected.* == .tuple_type) expected.children().items[i] else expected;
         args.items[i] = validate_AST(args.items[i], param_type, compiler);
     }
     try poison_.assert_none_poisoned(args);
     return args;
-}
-
-pub fn merge_sums(
-    lhs: *Type_AST,
-    rhs: *Type_AST,
-    token: Token,
-    errors: *errs_.Errors,
-    allocator: std.mem.Allocator,
-) Validate_Error_Enum!*Type_AST {
-    // List of merged terms for retval sum AST
-    var new_terms = std.ArrayList(*Type_AST).init(allocator);
-    // Map of names to AST, used to detect duplicate names when merging
-    var names = std.StringArrayHashMap(*Type_AST).init(allocator);
-    defer names.deinit();
-
-    try put_many_annot_map(lhs.children(), &new_terms, &names, errors);
-    try put_many_annot_map(rhs.children(), &new_terms, &names, errors);
-
-    const merged_sum = Type_AST.create_sum_type(token, new_terms, allocator);
-    if (lhs.sum_type.from == .@"error" or rhs.sum_type.from == .@"error") {
-        merged_sum.sum_type.from = .@"error";
-    } else {
-        merged_sum.sum_type.from = .none;
-    }
-    return merged_sum;
 }
 
 fn put_many_annot_map(
@@ -247,7 +223,7 @@ pub fn implicit_dereference(
 }
 
 pub fn find_select_pos(_type: *Type_AST, field: []const u8, span: Span, errors: *errs_.Errors) Validate_Error_Enum!usize {
-    if (_type.* != .product and _type.* != .sum_type and _type.* != .untagged_sum_type) {
+    if (_type.* != .struct_type and _type.* != .enum_type and _type.* != .untagged_sum_type) {
         return throw_not_selectable(_type, span, errors);
     }
     for (_type.children().items, 0..) |term, i| {

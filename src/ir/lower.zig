@@ -106,7 +106,7 @@ fn lower_AST_inner(
 ) Lower_Errors!?*lval_.L_Value {
     switch (ast.*) {
         // Unit-values
-        .@"enum", .@"struct", .unit_value, .template, .trait, .impl, .type_alias => return self.lval_from_unit_value(ast),
+        .enum_decl, .struct_decl, .unit_value, .template, .trait, .impl, .type_alias => return self.lval_from_unit_value(ast),
         // Literals
         .int => return self.lval_from_int(ast.int.data, ast.typeof(self.allocator), ast.token().span),
         .char => {
@@ -202,7 +202,7 @@ fn lower_AST_inner(
         // Binary operators
         .assign => {
             const rhs = try self.lower_AST(ast.rhs(), labels) orelse return null;
-            // If product, recursively generate a series of assignments
+            // If tuple, recursively generate a series of assignments
             // Else, create a *single* copy Instruction with an L_Value tree
             try self.generate_assign(ast.lhs(), rhs, labels);
             return self.lval_from_unit_value(ast);
@@ -310,7 +310,7 @@ fn lower_AST_inner(
             if (ast_expanded_type.* == .addr_of) {
                 // Indexing a multi-ptr, don't change lhs
                 std.debug.assert(ast_expanded_type.addr_of.multiptr);
-            } else if (ast_expanded_type.* == .product and ast_expanded_type.product.was_slice) {
+            } else if (ast_expanded_type.* == .struct_type and ast_expanded_type.struct_type.was_slice) {
                 // Indexing a slice; index_val := lhs._0^[rhs]
                 new_lhs = new_lhs.create_select_lval(0, 0, _type.expand_identifier(), null, self.allocator);
                 new_lhs = new_lhs.create_dereference_lval(_type.expand_identifier(), self.allocator);
@@ -326,13 +326,13 @@ fn lower_AST_inner(
 
             // Get the offset into the struct that this select does
             var lhs_expanded_type = ast.lhs().typeof(self.allocator).expand_identifier();
-            const offset = if (lhs_expanded_type.* == .product)
-                lhs_expanded_type.product.get_offset(ast.pos().?)
+            const offset = if (lhs_expanded_type.* == .struct_type)
+                lhs_expanded_type.struct_type.get_offset(ast.pos().?)
             else
                 0;
 
             var tag: ?*lval_.L_Value = null;
-            if (lhs_expanded_type.* == .sum_type) {
+            if (lhs_expanded_type.* == .enum_type) {
                 // Check that the sum value has the proper tag before a selection
                 tag = self.create_temp_lvalue(prelude_.word64_type);
                 self.instructions.append(Instruction.init_get_tag(tag.?, ast_lval.?, ast.token().span, self.allocator)) catch unreachable;
@@ -343,7 +343,7 @@ fn lower_AST_inner(
             const expanded_type = ast.typeof(self.allocator).expand_identifier();
             return ast_lval.?.create_select_lval(field, offset, expanded_type, tag, self.allocator);
         },
-        .product, .array_value => {
+        .struct_value, .tuple_value, .array_value => {
             _ = ast.typeof(self.allocator).expand_identifier();
             const temp = self.create_temp_lvalue(ast.typeof(self.allocator));
             var instr = Instruction.init_load_struct(temp, ast.token().span, self.allocator);
@@ -377,18 +377,18 @@ fn lower_AST_inner(
             self.instructions.append(load_struct) catch unreachable;
             return temp;
         },
-        .sum_value => {
+        .enum_value => {
             var _init: ?*lval_.L_Value = null;
             const pos: usize = ast.pos().?;
             const ast_type = ast.typeof(self.allocator);
-            const proper_term: *Type_AST = if (ast_type.* == .sum_type or ast_type.* == .untagged_sum_type)
+            const proper_term: *Type_AST = if (ast_type.* == .enum_type or ast_type.* == .untagged_sum_type)
                 ast_type.children().items[pos]
             else if (ast_type.* == .annotation)
                 ast_type
             else
                 std.debug.panic("expected either sum type or annot got {}", .{ast_type});
-            if (ast.sum_value.init != null) {
-                const sum_init = try self.lower_AST(ast.sum_value.init.?, labels);
+            if (ast.enum_value.init != null) {
+                const sum_init = try self.lower_AST(ast.enum_value.init.?, labels);
                 if (proper_term.child().* != .unit_type) { // still output the Instruction, but do not refer to it unless the type isn't unit
                     _init = sum_init;
                 }
@@ -773,15 +773,15 @@ fn tuple_equality_flow(
     const new_rhs = rhs; // try L_Value.create_unversioned_symbver(rhs.symbol, rhs.symbol._type.?, allocator);
     const temp = self.create_temp_lvalue(prelude_.bool_type);
     var lhs_type = lhs.get_expanded_type();
-    if (lhs_type.* == .product) {
+    if (lhs_type.* == .tuple_type) {
         for (0..lhs_type.children().items.len) |field| {
             const expanded_type = lhs_type.children().items[field].expand_identifier();
-            const offset = lhs_type.product.get_offset(field);
+            const offset = lhs_type.tuple_type.get_offset(field);
             const lhs_select = new_lhs.create_select_lval(field, offset, expanded_type, null, self.allocator);
             const rhs_select = new_rhs.create_select_lval(field, offset, expanded_type, null, self.allocator);
             self.tuple_equality_flow(lhs_select, rhs_select, fail_label);
         }
-    } else if (lhs_type.* == .sum_type) {
+    } else if (lhs_type.* == .enum_type) {
         const lhs_tag = self.create_temp_lvalue(prelude_.word64_type);
         const rhs_tag = self.create_temp_lvalue(prelude_.word64_type);
         self.instructions.append(Instruction.init_get_tag(lhs_tag, new_lhs, lhs.extract_symbver().symbol.span(), self.allocator)) catch unreachable;
@@ -845,9 +845,9 @@ fn generate_assign(
     rhs: *lval_.L_Value, // L_Value which holds the value to assign
     labels: Labels,
 ) Lower_Errors!void {
-    if (lhs.* == .product) {
-        // Recursively call `generate_assign` for each term in the product.
-        // product-assigns may be nested, for example:
+    if (lhs.* == .tuple_value) {
+        // Recursively call `generate_assign` for each term in the tuple.
+        // tuple-assigns may be nested, for example:
         //     ((x, y), (a, b)) = get_tuple()
         // So it's important that this is recursive
         var lhs_expanded_type = lhs.typeof(self.allocator).expand_identifier();
@@ -857,13 +857,13 @@ fn generate_assign(
                 continue;
             }
             const expanded_type = rhs.get_expanded_type().children().items[field].expand_identifier();
-            const offset = lhs_expanded_type.product.get_offset(field);
+            const offset = lhs_expanded_type.tuple_type.get_offset(field);
             const select = rhs.create_select_lval(field, offset, expanded_type, null, self.allocator);
             try self.generate_assign(term, select, labels);
         }
     } else if (lhs.* == .array_value) {
-        // Recursively call `generate_assign` for each term in the product.
-        // product-assigns may be nested, for example:
+        // Recursively call `generate_assign` for each term in the array.
+        // array-assigns may be nested, for example:
         //     [[x, y], [a, b]] = get_array()
         // So it's important that this is recursive
         const lhs_expanded_type = lhs.typeof(self.allocator).expand_identifier();
@@ -878,11 +878,11 @@ fn generate_assign(
             const index = rhs.create_index_lval(idx, length, expanded_type, self.allocator);
             try self.generate_assign(term, index, labels);
         }
-    } else if (lhs.* == .select and lhs.lhs().typeof(self.allocator).expand_identifier().* == .sum_type) {
-        // Select on a sum-type, convert to a copy of a sum_value
-        const sum_value = self.create_temp_lvalue(lhs.lhs().typeof(self.allocator).expand_identifier());
-        self.instructions.append(Instruction.init_union(sum_value, rhs, lhs.pos().?, lhs.token().span, self.allocator)) catch unreachable;
-        try self.generate_assign(lhs.lhs(), sum_value, labels);
+    } else if (lhs.* == .select and lhs.lhs().typeof(self.allocator).expand_identifier().* == .enum_type) {
+        // Select on a sum-type, convert to a copy of an enum value
+        const enum_value = self.create_temp_lvalue(lhs.lhs().typeof(self.allocator).expand_identifier());
+        self.instructions.append(Instruction.init_union(enum_value, rhs, lhs.pos().?, lhs.token().span, self.allocator)) catch unreachable;
+        try self.generate_assign(lhs.lhs(), enum_value, labels);
     } else {
         // Get L_Value tree, create a `copy` Instruction of L_Value tree and rhs
         const lval = try self.lower_AST(lhs, labels);
@@ -902,13 +902,9 @@ fn generate_indexable_length(
         // Implies multiptr, unfortunately there is no way to get the length
         std.debug.assert(_type.addr_of.multiptr);
         return null;
-    } else if (_type.* == .product and _type.product.was_slice) {
-        const offset = _type.product.get_offset(1);
+    } else if (_type.* == .struct_type and _type.struct_type.was_slice) {
+        const offset = _type.struct_type.get_offset(1);
         return lhs.create_select_lval(1, offset, prelude_.int64_type, null, self.allocator);
-    } else if (_type.* == .product and !_type.product.was_slice) {
-        const retval = self.create_temp_lvalue(prelude_.int_type);
-        self.instructions.append(Instruction.init_int(retval, _type.children().items.len, span, self.allocator)) catch unreachable;
-        return retval;
     } else if (_type.* == .array_of) {
         const retval = self.create_temp_lvalue(prelude_.int_type);
         self.instructions.append(Instruction.init_int(retval, _type.array_of.len.int.data, span, self.allocator)) catch unreachable;
@@ -1071,16 +1067,16 @@ fn generate_match_pattern_check(
             self.instructions.append(Instruction.init(.equal, condition, expr, value, pattern.?.token().span, self.allocator)) catch unreachable;
             self.instructions.append(Instruction.init_branch(condition, next_pattern, pattern.?.token().span, self.allocator)) catch unreachable;
         },
-        .product => {
+        .tuple_value => {
             for (pattern.?.children().items, 0..) |term, field| {
                 const expanded_type = expr.get_expanded_type().children().items[field].expand_identifier();
                 const pattern_type = pattern.?.typeof(self.allocator).expand_identifier();
-                const offset = pattern_type.product.get_offset(field);
+                const offset = pattern_type.tuple_type.get_offset(field);
                 const lval = expr.create_select_lval(field, offset, expanded_type, null, self.allocator);
                 try self.generate_match_pattern_check(term, lval, next_pattern, labels);
             }
         },
-        .select, .sum_value => {
+        .select, .enum_value => {
             // Get tag of pattern
             const sel = self.create_temp_lvalue(prelude_.word64_type);
             self.instructions.append(Instruction.init_int(sel, pattern.?.pos().?, pattern.?.token().span, self.allocator)) catch unreachable;
@@ -1129,7 +1125,7 @@ fn wrap_error_return(
     labels: Labels,
 ) void {
     const expanded_temp_type = expr.get_expanded_type();
-    if (labels.error_label != null and expanded_temp_type.* == .sum_type and expanded_temp_type.sum_type.from == .@"error") {
+    if (labels.error_label != null and expanded_temp_type.* == .enum_type and expanded_temp_type.enum_type.from == .@"error") {
         // Returning error sum, runtime check if error, branch to error path
         const condition = self.create_temp_lvalue(prelude_.word64_type);
         self.instructions.append(Instruction.init_get_tag(condition, expr, span, self.allocator)) catch unreachable; // `ok` is 0 `err`s nonzero
@@ -1195,10 +1191,10 @@ fn generate_pattern(
             const symbver = lval_.L_Value.create_unversioned_symbver(pattern.symbol().?, self.allocator);
             self.instructions.append(Instruction.init_simple_copy(symbver, def, pattern.token().span, self.allocator)) catch unreachable;
         }
-    } else if (pattern.* == .product) {
+    } else if (pattern.* == .tuple_value) {
         for (pattern.children().items, 0..) |term, field| {
             const expanded_type = _type.children().items[field].expand_identifier();
-            const offset = _type.product.get_offset(field);
+            const offset = _type.tuple_type.get_offset(field);
             const lval = def.create_select_lval(field, offset, expanded_type, null, self.allocator);
             try self.generate_pattern(term, expanded_type, lval);
         }
@@ -1211,10 +1207,10 @@ fn generate_pattern(
             const index = def.create_index_lval(idx, length, expanded_type, self.allocator);
             try self.generate_pattern(term, expanded_type, index);
         }
-    } else if (pattern.* == .sum_value) {
-        const expanded_type = pattern.sum_value.domain.?.child().expand_identifier();
+    } else if (pattern.* == .enum_value) {
+        const expanded_type = pattern.enum_value.domain.?.child().expand_identifier();
         const field = pattern.pos().?;
         const lval = def.create_select_lval(field, 0, expanded_type, null, self.allocator);
-        try self.generate_pattern(pattern.sum_value.init.?, expanded_type, lval);
+        try self.generate_pattern(pattern.enum_value.init.?, expanded_type, lval);
     }
 }
