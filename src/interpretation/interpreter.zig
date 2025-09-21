@@ -520,7 +520,7 @@ fn extract_identifier(self: *Self, address: i64, identifier_type: *Type_AST, spa
                 self.memory.load_int(address, info.?.size),
                 self.allocator,
             ).assert_ast_valid();
-            retval.set_represents(identifier_type);
+            // retval.set_represents(identifier_type);
             return retval;
         },
         .unsigned_integer => {
@@ -529,7 +529,7 @@ fn extract_identifier(self: *Self, address: i64, identifier_type: *Type_AST, spa
                 self.memory.load_int(address, info.?.size),
                 self.allocator,
             ).assert_ast_valid();
-            retval.set_represents(identifier_type);
+            // retval.set_represents(identifier_type);
             return retval;
         },
         .floating_point => {
@@ -538,7 +538,7 @@ fn extract_identifier(self: *Self, address: i64, identifier_type: *Type_AST, spa
                 self.memory.load_float(address, info.?.size),
                 self.allocator,
             ).assert_ast_valid();
-            retval.set_represents(identifier_type);
+            // retval.set_represents(identifier_type);
             return retval;
         },
     }

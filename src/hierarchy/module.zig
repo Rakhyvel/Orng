@@ -2,7 +2,6 @@ const std = @import("std");
 const module_validate_ = @import("../semantic/module_validate.zig");
 const ast_ = @import("../ast/ast.zig");
 const CFG = @import("../ir/cfg.zig");
-const cfg_builder_ = @import("../ir/cfg_builder.zig");
 const Cfg_Iterator = @import("../util/dfs.zig").Dfs_Iterator(*CFG);
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
@@ -227,11 +226,11 @@ pub const Module = struct {
             Apply_Ast_Walk(Symbol_Tree).init(Symbol_Tree.new(file_root, &compiler.errors, compiler.allocator())),
             Apply_Ast_Walk(Decorate).init(Decorate.new(file_root, &compiler.errors, compiler.allocator())),
             Apply_Ast_Walk(Decorate_Access).init(Decorate_Access.new(file_root, &compiler.errors, compiler)),
-            Apply_Ast_Walk(Type_Decorate).init(Type_Decorate.new(file_root, &compiler.errors, compiler.allocator())),
+            Apply_Ast_Walk(Type_Decorate).init(Type_Decorate.new(file_root, compiler)),
         });
 
         // Perform checks and collections on the module
-        try module_validate_.validate(module, compiler);
+        try compiler.validate_module.validate(module);
         compiler.module_scope(module.absolute_path).?.collect_traits_and_impls(&module.traits, &module.impls);
         try module.add_all_cfgs(entry_name, compiler);
         if (module.entry) |entry| {
@@ -254,7 +253,7 @@ pub const Module = struct {
 
             // Instruction translation
             const interned_strings = compiler.lookup_interned_string_set(self.uid).?;
-            const cfg = try cfg_builder_.get_cfg(symbol, interned_strings, &compiler.errors, compiler.allocator());
+            const cfg = try compiler.cfg_store.get_cfg(symbol, interned_strings);
             self.collect_cfgs(cfg);
 
             if (need_entry and std.mem.eql(u8, key, entry_name.?)) {
@@ -294,7 +293,7 @@ pub const Module = struct {
             for (impl.impl.method_defs.items) |def| {
                 const symbol = def.symbol().?;
                 const interned_strings = compiler.lookup_interned_string_set(self.uid).?;
-                const cfg = (try cfg_builder_.get_cfg(symbol, interned_strings, &compiler.errors, compiler.allocator()));
+                const cfg = try compiler.cfg_store.get_cfg(symbol, interned_strings);
                 cfg.assert_needed_at_runtime();
                 self.collect_cfgs(cfg);
             }
@@ -308,7 +307,7 @@ pub const Module = struct {
         for (test_asts.items) |test_ast| {
             const symbol = test_ast.symbol().?;
             const interned_strings = compiler.lookup_interned_string_set(self.uid).?;
-            const cfg = (try cfg_builder_.get_cfg(symbol, interned_strings, &compiler.errors, compiler.allocator()));
+            const cfg = try compiler.cfg_store.get_cfg(symbol, interned_strings);
             self.tests.append(cfg) catch unreachable;
             cfg.assert_needed_at_runtime();
             self.collect_cfgs(cfg);

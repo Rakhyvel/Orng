@@ -7,16 +7,9 @@ const prelude_ = @import("../hierarchy/prelude.zig");
 const Span = @import("../util/span.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 
-const Validate_Error_Enum = error{ LexerError, ParseError, CompileError };
+const Validate_Error_Enum = error{CompileError};
 
 pub fn generate_default(_type: *Type_AST, span: Span, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
-    var retval = (try generate_default_unvalidated(_type, span, errors, allocator)).assert_ast_valid();
-    retval.common()._type = _type;
-    return retval;
-}
-
-fn generate_default_unvalidated(_type: *Type_AST, span: Span, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
-    // TODO: Too long
     switch (_type.*) {
         .identifier => {
             const expanded_type = _type.expand_identifier();
@@ -54,7 +47,7 @@ fn generate_default_unvalidated(_type: *Type_AST, span: Span, errors: *errs_.Err
             return retval;
         },
         .untagged_sum_type => {
-            return try generate_default_unvalidated(_type.child(), span, errors, allocator);
+            return try generate_default(_type.child(), span, errors, allocator);
         },
         .struct_type => {
             var value_terms = std.ArrayList(*ast_.AST).init(allocator);

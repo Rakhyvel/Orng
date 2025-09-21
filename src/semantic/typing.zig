@@ -3,7 +3,6 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const args_ = @import("args.zig");
-const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const Interpreter_Context = @import("../interpretation/interpreter.zig");
 const module_ = @import("../hierarchy/module.zig");
@@ -15,9 +14,8 @@ const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
-const validate_AST = @import("ast_validate.zig").validate_AST;
 
-const Validate_Error_Enum = error{ LexerError, ParseError, CompileError };
+const Validate_Error_Enum = error{CompileError};
 
 pub fn type_check(span: Span, got: *Type_AST, expected: ?*Type_AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (expected != null and !got.types_match(expected.?)) {
@@ -36,7 +34,7 @@ pub fn type_check_int(
     ast: *ast_.AST,
     expected: ?*Type_AST, // This should NOT be expanded < it is, though...
     errors: *errs_.Errors,
-) Validate_Error_Enum!void {
+) Validate_Error_Enum!*Type_AST {
     const expanded_expected = if (expected != null) expected.?.expand_identifier() else null;
     if (expanded_expected != null) { //and !try checked_types_match(prelude_.unit_type, expanded_expected.?, errors)
         const info = prelude_.info_from_ast(expanded_expected.?);
@@ -57,14 +55,14 @@ pub fn type_check_int(
             return throw_unexpected_type(ast.token().span, expanded_expected.?, prelude_.int_type, errors);
         }
     }
-    ast.set_represents(expected orelse prelude_.int_type);
+    return expected orelse prelude_.int_type;
 }
 
-pub fn type_check_float(ast: *ast_.AST, expected: ?*Type_AST, errors: *errs_.Errors) Validate_Error_Enum!void {
+pub fn type_check_float(ast: *ast_.AST, expected: ?*Type_AST, errors: *errs_.Errors) Validate_Error_Enum!*Type_AST {
     if (expected != null and !expected.?.can_represent_float()) {
         return throw_unexpected_type(ast.token().span, expected.?, prelude_.float_type, errors);
     }
-    ast.set_represents(expected orelse prelude_.float_type);
+    return expected orelse prelude_.float_type;
 }
 
 pub fn type_check_eq(span: Span, got: *Type_AST, errors: *errs_.Errors) Validate_Error_Enum!void {
@@ -133,39 +131,6 @@ pub fn throw_wrong_from(
     return error.CompileError;
 }
 
-/// Validates a closed binary operator. Returns the valid form of the binary operator.
-pub fn binary_operator_closed(
-    ast: *ast_.AST,
-    self_type: *Type_AST,
-    expected: ?*Type_AST,
-    compiler: *Compiler_Context,
-) Validate_Error_Enum!*ast_.AST {
-    ast.set_lhs(validate_AST(ast.lhs(), self_type, compiler));
-    ast.set_rhs(validate_AST(ast.rhs(), self_type, compiler));
-    try poison_.assert_none_poisoned(.{ ast.lhs(), ast.rhs() });
-    try type_check(ast.token().span, self_type, expected, &compiler.errors);
-    return ast;
-}
-
-/// Validates an open binary operator. An operator is `open` if it returns a type different from the
-/// ones it acts on.
-///
-/// Returns the type of the validated operator.
-pub fn binary_operator_open(
-    ast: *ast_.AST,
-    expected: ?*Type_AST,
-    compiler: *Compiler_Context,
-) Validate_Error_Enum!*Type_AST {
-    ast.set_lhs(validate_AST(ast.lhs(), expected, compiler));
-    if (ast.lhs().* == .identifier and ast.lhs().symbol().?.refers_to_type()) {
-        return error.CompileError;
-    }
-    const lhs_type = ast.lhs().typeof(compiler.allocator());
-    ast.set_rhs(validate_AST(ast.rhs(), lhs_type, compiler));
-    try poison_.assert_none_poisoned(.{ ast.lhs(), ast.rhs() });
-    return lhs_type;
-}
-
 pub fn coalesce_operator(lhs_expanded_type: *Type_AST, ast: *ast_.AST, span: Span, errors: *errs_.Errors) Validate_Error_Enum!void {
     std.debug.assert(ast.* == .@"orelse" or ast.* == .@"catch");
     const expected_sum_from: Type_AST.Sum_From = if (ast.* == .@"orelse") .optional else .@"error";
@@ -180,22 +145,6 @@ pub fn coalesce_operator(lhs_expanded_type: *Type_AST, ast: *ast_.AST, span: Spa
     }
 }
 
-/// Validates just that each argument's type matches its corresponding parameter's type. Assumes arity is valid.
-pub fn validate_args_type(
-    args: *std.ArrayList(*ast_.AST),
-    expected: *Type_AST,
-    compiler: *Compiler_Context,
-) Validate_Error_Enum!*std.ArrayList(*ast_.AST) {
-    const expected_length = if (expected.* == .unit_type) 0 else if (expected.* == .struct_type or expected.* == .tuple_type) expected.children().items.len else 1;
-
-    for (0..expected_length) |i| {
-        const param_type = if (expected.* == .struct_type or expected.* == .tuple_type) expected.children().items[i] else expected;
-        args.items[i] = validate_AST(args.items[i], param_type, compiler);
-    }
-    try poison_.assert_none_poisoned(args);
-    return args;
-}
-
 fn put_many_annot_map(
     asts: *std.ArrayList(*Type_AST),
     new_terms: *std.ArrayList(*Type_AST),
@@ -206,20 +155,6 @@ fn put_many_annot_map(
         try args_.put_ast_map(term.annotation.type, term.annotation.pattern.token().data, term.token().span, map, errors);
         new_terms.append(term) catch unreachable;
     }
-}
-
-pub fn implicit_dereference(
-    ast: *ast_.AST,
-    old_lhs_type: *Type_AST,
-    compiler: *Compiler_Context,
-) Validate_Error_Enum!*Type_AST {
-    var lhs_type = old_lhs_type;
-    if (lhs_type.* == .addr_of and !lhs_type.addr_of.multiptr) {
-        ast.set_lhs(validate_AST(ast_.AST.create_dereference(ast.token(), ast.lhs(), compiler.allocator()), null, compiler));
-        lhs_type = ast.lhs().typeof(compiler.allocator()).expand_identifier();
-    }
-    try poison_.assert_none_poisoned(.{ ast.lhs(), lhs_type });
-    return lhs_type;
 }
 
 pub fn find_select_pos(_type: *Type_AST, field: []const u8, span: Span, errors: *errs_.Errors) Validate_Error_Enum!usize {
