@@ -48,7 +48,7 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
 
     if (ast.import.pattern.* == .pattern_symbol and ast.import.pattern.pattern_symbol.kind == .import) {
         // Re-arrange to be a decl for the import
-        const common = ast_.AST_Common{ ._token = ast.token(), ._type = null };
+        const common = ast_.AST_Common{ ._token = ast.token() };
         ast.* = ast_.AST{ .binding = .{
             .common = common,
             .pattern = ast.import.pattern,
@@ -104,7 +104,7 @@ fn unwrap_access_imports(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.
             asts.insert(idx, const_decl) catch unreachable;
         } else {
             // The last term
-            const common = ast_.AST_Common{ ._token = ast.token(), ._type = null };
+            const common = ast_.AST_Common{ ._token = ast.token() };
             ast.* = ast_.AST{ .binding = .{
                 .common = common,
                 .pattern = ast_.AST.create_pattern_symbol(

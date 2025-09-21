@@ -265,7 +265,7 @@ fn create_prelude(compiler: *Compiler_Context) !void {
         word8_type,
         .int,
         .unsigned_integer,
-        default_word16,
+        default_word8,
         2,
         compiler.allocator(),
     );
@@ -307,19 +307,6 @@ fn create_prelude(compiler: *Compiler_Context) !void {
     _ = create_type_alias_symbol("Int", int64_type, int_type, compiler.allocator());
     _ = create_type_alias_symbol("Float", float64_type, float_type, compiler.allocator());
     _ = create_type_alias_symbol("Byte", word8_type, byte_type, compiler.allocator());
-
-    default_int8.set_represents(int8_type);
-    default_int16.set_represents(int16_type);
-    default_int32.set_represents(int32_type);
-    default_int64.set_represents(int_type);
-
-    default_word8.set_represents(byte_type);
-    default_word16.set_represents(word16_type);
-    default_word32.set_represents(word32_type);
-    default_word64.set_represents(word64_type);
-
-    default_float32.set_represents(float32_type);
-    default_float64.set_represents(float64_type);
 
     var errors = errs_.Errors.init(compiler.allocator());
     defer errors.deinit();

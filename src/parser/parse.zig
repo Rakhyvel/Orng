@@ -293,7 +293,7 @@ fn function_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
             variadic = true;
         }
         exp = Type_AST.create_function(token, exp, try self.error_type_expr(), self.allocator);
-        exp.function.variadic = true;
+        exp.function.variadic = variadic;
     }
     return exp;
 }

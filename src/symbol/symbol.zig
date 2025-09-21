@@ -33,7 +33,7 @@ pub const Storage = union(enum) {
     @"extern": struct { c_name: ?*ast_.AST },
 };
 
-pub const Symbol_Validation_State = validation_state_.Validation_State(*Self);
+pub const Symbol_Validation_State = validation_state_.Validation_State;
 
 var number_of_comptime: usize = 0;
 
@@ -94,12 +94,12 @@ pub fn init(
 }
 
 pub fn assert_symbol_valid(self: *Self) *Self {
-    self.validation_state = Symbol_Validation_State{ .valid = .{ .valid_form = self } };
+    self.validation_state = .valid;
     return self;
 }
 
 pub fn assert_init_valid(self: *Self) *Self {
-    self.init_validation_state = Symbol_Validation_State{ .valid = .{ .valid_form = self } };
+    self.init_validation_state = .valid;
     return self;
 }
 

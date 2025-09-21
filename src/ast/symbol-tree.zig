@@ -177,26 +177,45 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 try walk_.walk_ast(with_decl, new_self);
             }
 
-            // TODO: Don't do this for generic impls (but those'll be a new node anyway)
-            var subst = std.StringArrayHashMap(*Type_AST).init(self.allocator);
-            defer subst.deinit();
-            subst.put("Self", ast.impl._type) catch unreachable;
-            ast.* = ast.clone(&subst, self.allocator).*;
+            const self_type_decl = ast_.AST.create_type_alias(
+                ast.token(),
+                ast_.AST.create_pattern_symbol(
+                    Token.init_simple("Self"),
+                    .type,
+                    .local,
+                    "Self",
+                    self.allocator,
+                ),
+                ast.impl._type,
+                self.allocator,
+            );
+            try walk_.walk_ast(self_type_decl, new_self);
 
             if (ast.impl.trait == null) {
                 // impl'd for an anon trait, create an anon trait for it
-                // TODO: if there is a withlist, define the withs in the traits scope (?)
+                var new_self_for_anon_trait = self;
+                new_self_for_anon_trait.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
+
+                // TODO: Don't do this for generic impls (but those'll be a new node anyway)
+                var subst = std.StringArrayHashMap(*Type_AST).init(self.allocator);
+                defer subst.deinit();
+
                 var token = ast.token();
                 token.kind = .identifier;
                 token.data = next_anon_name("Trait", self.allocator);
+                const cloned_methods = ast_.AST.clone_children(ast.impl.method_defs, &subst, self.allocator);
+                for (cloned_methods.items) |cloned_method| {
+                    cloned_method.method_decl.init = null;
+                }
                 const anon_trait = ast_.AST.create_trait(
                     token,
-                    ast.impl.method_defs,
-                    ast.impl.const_defs,
+                    cloned_methods,
+                    ast_.AST.clone_children(ast.impl.const_defs, &subst, self.allocator),
                     self.allocator,
                 );
-                try walk_.walk_ast(anon_trait, new_self);
+                try walk_.walk_ast(anon_trait, new_self_for_anon_trait);
                 ast.impl.trait = ast_.AST.create_identifier(token, self.allocator);
+                ast.impl.trait.?.set_symbol(anon_trait.symbol().?);
                 ast.impl.impls_anon_trait = true;
             }
 

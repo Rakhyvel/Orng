@@ -4,7 +4,6 @@ const Compiler_Context = @import("../hierarchy/compiler.zig");
 const Decorate = @import("../ast/decorate.zig");
 const Decorate_Access = @import("../ast/decorate-access.zig");
 const errs_ = @import("../util/errors.zig");
-const scope_validate_ = @import("../semantic/scope_validate.zig");
 const Symbol = @import("symbol.zig");
 const Symbol_Tree = @import("../ast/symbol-tree.zig");
 const module_ = @import("../hierarchy/module.zig");
@@ -186,7 +185,7 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
                 std.debug.print("now the impls!\n", .{});
                 try walker_.walk_ast(new_impl, decorate_context); // this doesn't know about the anonymous trait
                 try walker_.walk_ast(new_impl, decorate_access_context);
-                try scope_validate_.validate(new_scope, compiler);
+                try compiler.validate_scope.validate(new_scope);
 
                 impl.impl.instantiations.put(with_list, new_impl);
             }

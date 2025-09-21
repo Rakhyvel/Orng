@@ -26,6 +26,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         else => return self,
 
         .identifier => {
+            if (ast.symbol() != null) return self;
             const res = self.scope.lookup(ast.token().data, .{ .allow_modules = true });
             switch (res) {
                 // Found the symbol, decorate the identifier AST with it
@@ -64,9 +65,11 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             return new_context;
         },
 
-        .fn_decl => {
+        .fn_decl, .method_decl => {
             var new_context = self;
-            new_context.scope = ast.symbol().?.scope;
+            if (ast.symbol() != null) {
+                new_context.scope = ast.symbol().?.scope;
+            }
             return new_context;
         },
 

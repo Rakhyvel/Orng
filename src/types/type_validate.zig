@@ -1,38 +1,46 @@
 //! This file contains the semantic validation logic for types.
 const std = @import("std");
+const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const Type_AST = @import("type.zig").Type_AST;
 
 const Validate_Error_Enum = error{CompileError};
+const Self: type = @This();
 
-pub fn validate(@"type": *Type_AST, errors: *errs_.Errors) Validate_Error_Enum!void {
+ctx: *Compiler_Context,
+
+pub fn init(ctx: *Compiler_Context) Self {
+    return Self{ .ctx = ctx };
+}
+
+pub fn validate(self: *Self, @"type": *Type_AST) Validate_Error_Enum!void {
     switch (@"type".*) {
         .identifier => {
             if (!@"type".symbol().?.refers_to_type()) {
-                errors.add_error(errs_.Error{ .basic = .{ .msg = "expected a type", .span = @"type".token().span } });
+                self.ctx.errors.add_error(errs_.Error{ .basic = .{ .msg = "expected a type", .span = @"type".token().span } });
                 return error.CompileError;
             }
         },
 
         .array_of => {
             if (@"type".array_of.len.* != .int) {
-                errors.add_error(errs_.Error{ .basic = .{ .span = @"type".token().span, .msg = "not integer literal" } });
+                self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = @"type".token().span, .msg = "not integer literal" } });
                 return error.CompileError;
             }
-            try validate(@"type".child(), errors);
+            try self.validate(@"type".child());
         },
 
         .untagged_sum_type => {
             if (@"type".child().expand_identifier().* != .enum_type) { // TODO: What if the identifier is cyclic?
-                errors.add_error(errs_.Error{ .basic = .{ .span = @"type".token().span, .msg = "not an enum type" } });
+                self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = @"type".token().span, .msg = "not an enum type" } });
                 return error.CompileError;
             }
-            try validate(@"type".child(), errors);
+            try self.validate(@"type".child());
         },
 
         .dyn_type => {
             if (@"type".child().* != .identifier or @"type".child().symbol().?.kind != .trait) {
-                errors.add_error(errs_.Error{ .basic = .{ .span = @"type".child().token().span, .msg = "not a trait" } });
+                self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = @"type".child().token().span, .msg = "not a trait" } });
                 return error.CompileError;
             }
         },
@@ -42,12 +50,12 @@ pub fn validate(@"type": *Type_AST, errors: *errs_.Errors) Validate_Error_Enum!v
         .index,
         .domain_of,
         => {
-            try validate(@"type".child(), errors);
+            try self.validate(@"type".child());
         },
 
         .function => {
-            try validate(@"type".lhs(), errors);
-            try validate(@"type".rhs(), errors);
+            try self.validate(@"type".lhs());
+            try self.validate(@"type".rhs());
         },
 
         .enum_type,
@@ -55,7 +63,7 @@ pub fn validate(@"type": *Type_AST, errors: *errs_.Errors) Validate_Error_Enum!v
         .tuple_type,
         => {
             for (@"type".children().items) |child| {
-                try validate(child, errors);
+                try self.validate(child);
             }
         },
 
@@ -63,11 +71,11 @@ pub fn validate(@"type": *Type_AST, errors: *errs_.Errors) Validate_Error_Enum!v
     }
 }
 
-pub fn detect_cycle(ty: *Type_AST, allocator: std.mem.Allocator) bool {
-    var visiting = std.AutoHashMap(*Type_AST, bool).init(allocator);
+pub fn detect_cycle(self: *Self, ty: *Type_AST) bool {
+    var visiting = std.AutoHashMap(*Type_AST, bool).init(self.ctx.allocator());
     defer visiting.deinit();
 
-    var visited = std.AutoHashMap(*Type_AST, bool).init(allocator);
+    var visited = std.AutoHashMap(*Type_AST, bool).init(self.ctx.allocator());
     defer visited.deinit();
 
     return dfs(ty, &visiting, &visited, false);

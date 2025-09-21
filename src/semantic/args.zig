@@ -7,7 +7,7 @@ const errs_ = @import("../util/errors.zig");
 const Span = @import("../util/span.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 
-const Validate_Error_Enum = error{ LexerError, ParseError, CompileError };
+const Validate_Error_Enum = error{CompileError};
 
 pub const Validate_Args_Thing = enum {
     function,
@@ -49,7 +49,7 @@ pub fn default_args(
     if (try args_are_named(asts, errors) and expected.* != .unit_type) {
         return named_args(thing, asts, call_span, expected, errors, allocator) catch |err| switch (err) {
             error.NoDefault => error.CompileError,
-            error.CompileError, error.ParseError, error.LexerError => error.CompileError,
+            error.CompileError => error.CompileError,
         };
     } else {
         return positional_args(thing, asts, call_span, expected, errors, allocator) catch |err| switch (err) {

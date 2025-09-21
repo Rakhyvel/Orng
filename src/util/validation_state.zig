@@ -14,21 +14,16 @@
 ///   unvalidated    - Object has not been validated, yet. This is where all objects start
 ///
 /// TODO: Add `assert_valid` here
-pub fn Validation_State(comptime T: type) type {
-    return union(enum) {
-        /// Validation has not been done, undetermined state.
-        unvalidated,
+pub const Validation_State = union(enum) {
+    /// Validation has not been done, undetermined state.
+    unvalidated,
 
-        /// Validation is currently in progress, undetermined state.
-        validating,
+    /// Validation is currently in progress, undetermined state.
+    validating,
 
-        /// Validation completed successfully.
-        valid: struct {
-            /// The valid form
-            valid_form: T,
-        },
+    /// Validation completed successfully.
+    valid,
 
-        /// Validation completed unsuccessfully.
-        invalid,
-    };
-}
+    /// Validation completed unsuccessfully.
+    invalid,
+};
