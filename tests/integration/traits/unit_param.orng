@@ -5,7 +5,7 @@ trait My_Trait {
     virtual fn b(self, y: ()) -> Int
 }
 
-const My_Type = (x: Int, y: Int)
+struct My_Type { x: Int, y: Int }
 
 impl My_Trait for My_Type {
     fn a(self, x: Int, y: ()) -> Int { _ = y; self.x + self.y * x }
@@ -14,6 +14,6 @@ impl My_Trait for My_Type {
 }
 
 fn main() -> Int {
-    let my_val: My_Type = (211, 50)
+    let my_val = My_Type(211, 50)
     my_val.>a(2, {})
 }

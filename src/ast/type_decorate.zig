@@ -4,17 +4,15 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const errs_ = @import("../util/errors.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
-const Scope = @import("../symbol/scope.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 const walk_ = @import("../ast/walker.zig");
 
-scope: *Scope,
 ctx: *Compiler_Context,
 
 const Self = @This();
 
-pub fn new(scope: *Scope, ctx: *Compiler_Context) Self {
-    return Self{ .scope = scope, .ctx = ctx };
+pub fn new(ctx: *Compiler_Context) Self {
+    return Self{ .ctx = ctx };
 }
 
 pub fn postfix_type(self: Self, _type: *Type_AST) walk_.Error!void {

@@ -32,46 +32,40 @@ pub fn assert_pattern_matches(
     expr_type: *Type_AST,
 ) Validate_Error_Enum!void {
     switch (pattern.*) {
-        .unit_value => try typing_.type_check(pattern.token().span, prelude_.unit_type, expr_type, &self.ctx.errors),
-        .int => _ = try typing_.type_check_int(pattern, expr_type, &self.ctx.errors),
-        .char => try typing_.type_check(pattern.token().span, prelude_.char_type, expr_type, &self.ctx.errors),
-        .string => try typing_.type_check(pattern.token().span, prelude_.string_type, expr_type, &self.ctx.errors), // TODO: Has to wait until we can match on slices
-        .float => _ = try typing_.type_check_float(pattern, expr_type, &self.ctx.errors),
-        .true, .false => try typing_.type_check(pattern.token().span, prelude_.bool_type, expr_type, &self.ctx.errors),
-        .block => {
-            const pattern_type = try self.ctx.typecheck.typecheck_AST(pattern, expr_type);
-            try poison_.assert_none_poisoned(pattern);
-            try typing_.type_check(pattern.token().span, pattern_type, expr_type, &self.ctx.errors);
-        },
-        .select, .enum_value => {
-            const pattern_type = try self.ctx.typecheck.typecheck_AST(pattern, expr_type);
-            try poison_.assert_none_poisoned(pattern);
-            pattern.set_pos(pattern.pos().?);
-            try typing_.type_check(pattern.token().span, pattern_type, expr_type, &self.ctx.errors);
-        },
+        .unit_value,
+        .int,
+        .char,
+        .string,
+        .float,
+        .true,
+        .false,
+        .block,
+        .select,
+        .enum_value,
+        => _ = try self.ctx.typecheck.typecheck_AST(pattern, expr_type),
         .tuple_value => {
-            const pattern_type = try self.ctx.typecheck.typecheck_AST(pattern, expr_type);
             const expanded_expr_type = expr_type.expand_identifier();
             if (expanded_expr_type.* != .tuple_type or expanded_expr_type.children().items.len != pattern.children().items.len) {
-                return typing_.throw_unexpected_type(pattern.token().span, expr_type, pattern_type, &self.ctx.errors);
+                return typing_.throw_unexpected_type(pattern.token().span, expr_type, try self.ctx.typecheck.typecheck_AST(pattern, null), &self.ctx.errors);
             }
             for (pattern.children().items, expanded_expr_type.children().items) |term, expanded_term| {
                 try self.assert_pattern_matches(term, expanded_term);
             }
         },
         .array_value => {
-            const pattern_type = try self.ctx.typecheck.typecheck_AST(pattern, expr_type);
             const expanded_expr_type = expr_type.expand_identifier();
             if (expanded_expr_type.* != .array_of or expanded_expr_type.array_of.len.int.data != pattern.children().items.len) {
-                return typing_.throw_unexpected_type(pattern.token().span, expr_type, pattern_type, &self.ctx.errors);
+                return typing_.throw_unexpected_type(pattern.token().span, expr_type, try self.ctx.typecheck.typecheck_AST(pattern, null), &self.ctx.errors);
             }
+            const elem_type = expanded_expr_type.child();
             for (pattern.children().items) |term| {
-                try self.assert_pattern_matches(term, expanded_expr_type.child());
+                try self.assert_pattern_matches(term, elem_type);
             }
         },
         .pattern_symbol => {},
         else => std.debug.panic("compiler error: unimplemented assert_pattern_matches() for {s}", .{@tagName(pattern.*)}),
     }
+    self.ctx.typecheck.assert_typeof(pattern, expr_type);
     _ = pattern.assert_ast_valid();
 }
 

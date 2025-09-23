@@ -33,7 +33,7 @@ pub fn init(ctx: *Compiler_Context) Self {
 }
 
 pub fn typeof(self: *const Self, ast: *ast_.AST) *Type_AST {
-    if (ast.common().validation_state != .valid and ast.common().validation_state != .invalid) {
+    if ((ast.common().validation_state != .valid and ast.common().validation_state != .invalid) or self.map.get(ast) == null) {
         std.debug.panic("type for ast {} has not been constructed", .{ast});
     }
     return self.map.get(ast) orelse poison_.poisoned_type;
@@ -94,10 +94,11 @@ pub fn typecheck_AST(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Validate
     };
 
     if (expected_type) |_| {
-        typing_.type_check(ast.token().span, actual_type, expected_type.?, &self.ctx.errors) catch |e| {
-            ast.common().validation_state = .invalid;
-            return e;
-        };
+        if (!prelude_.unit_type.types_match(expected_type.?))
+            typing_.type_check(ast.token().span, actual_type, expected_type.?, &self.ctx.errors) catch |e| {
+                ast.common().validation_state = .invalid;
+                return e;
+            };
     }
 
     self.map.put(ast, actual_type) catch unreachable;
@@ -120,7 +121,6 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
 
         // Pattern symbols, traits, and impls are validated elsewhere, the AST doesn't need to be re-validated.
         .module,
-        .pattern_symbol,
         .trait,
         .impl,
         .enum_decl,
@@ -128,6 +128,8 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
         .type_alias,
         .unit_value,
         => return prelude_.unit_type,
+
+        .pattern_symbol => return ast.symbol().?.type(),
 
         .int => return try typing_.type_check_int(ast, expected, &self.ctx.errors),
 
@@ -149,6 +151,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                     self.ctx.errors.add_error(errs_.Error{ .unexpected_type_type = .{ .expected = expected, .span = ast.token().span } });
                     return error.CompileError;
                 }
+                return prelude_.unit_type;
             }
             return symbol.type();
         },
@@ -355,7 +358,10 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 }
             } else if (expanded_lhs_type.* == .tuple_type) {
                 // TODO: comptime expand the index
-                return expanded_lhs_type.children().items[@intCast(ast.rhs().int.data)];
+                const pos = ast.rhs().int.data;
+                ast.* = ast_.AST.create_select(ast.token(), ast.lhs(), ast.rhs(), self.ctx.allocator()).*;
+                ast.set_pos(@as(usize, @intCast(pos)));
+                return self.typecheck_AST(ast, expected);
             } else if (expanded_lhs_type.* == .array_of) {
                 return expanded_lhs_type.child();
             } else if (expanded_lhs_type.* == .addr_of and expanded_lhs_type.addr_of.multiptr) {
@@ -456,25 +462,21 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             return ast.dyn_value.dyn_type;
         },
         .struct_value => {
-            const expanded_expected: ?*Type_AST = if (expected == null) null else expected.?.expand_identifier();
-            if (expanded_expected == null) {
-                // Not expecting anything
-                for (0..ast.children().items.len) |i| {
-                    _ = try self.typecheck_AST(ast.children().items[i], expanded_expected);
-                }
-                return ast.struct_value.parent;
-            } else if (expanded_expected != null and expanded_expected.?.* == .struct_type) {
+            const expanded_expected: *Type_AST = if (expected == null) ast.struct_value.parent.expand_identifier() else expected.?.expand_identifier();
+            if (expanded_expected.* == .struct_type) {
                 // Expecting ast to be a product value of some product type
-                ast.set_children(try args_.default_args(.@"struct", ast.children().*, ast.token().span, expanded_expected.?, &self.ctx.errors, self.ctx.allocator()));
-                try args_.validate_args_arity(.@"struct", ast.children(), expanded_expected.?, false, ast.token().span, &self.ctx.errors);
-                _ = try self.validate_args_type(ast.children(), expanded_expected.?, false);
+                ast.set_children(try args_.default_args(.@"struct", ast.children().*, ast.token().span, expanded_expected, &self.ctx.errors, self.ctx.allocator()));
+                try args_.validate_args_arity(.@"struct", ast.children(), expanded_expected, false, ast.token().span, &self.ctx.errors);
+                _ = try self.validate_args_type(ast.children(), expanded_expected, false);
                 return ast.struct_value.parent;
-            } else if (!prelude_.unit_type.types_match(expanded_expected.?)) {
-                std.debug.print("{s}\n", .{@tagName(expanded_expected.?.*)});
+            } else if (ast.struct_value.parent.expand_identifier().* != .struct_type) {
+                // Parent wasn't even a struct type!
+                return typing_.throw_wrong_from("struct", "struct value", ast.struct_value.parent, ast.token().span, &self.ctx.errors);
+            } else if (!prelude_.unit_type.types_match(expanded_expected)) {
                 // It's ok to assign this to a unit type, something like `_ = (1, 2, 3)`
                 // expecting something that is not a type nor a product is not ok!
                 // poison `got`, so that it doesn't print anything for the `got` section, wouldn't make sense anyway
-                return typing_.throw_unexpected_type(ast.token().span, expected.?, ast.struct_value.parent, &self.ctx.errors);
+                return typing_.throw_unexpected_type(ast.token().span, expanded_expected, ast.struct_value.parent, &self.ctx.errors);
             } else {
                 return prelude_.unit_type;
             }
@@ -577,7 +579,10 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             if (ast.slice_of.mut) {
                 try self.assert_mutable(ast.expr());
             }
-            return Type_AST.create_slice_type(expr_type.child(), ast.slice_of.mut, self.ctx.allocator());
+            const retval = Type_AST.create_slice_type(expr_type.child(), ast.slice_of.mut, self.ctx.allocator());
+            ast.* = ast_.AST.create_slice_value(ast.expr(), ast.slice_of.mut, expr_type, self.ctx.allocator()).*;
+            _ = try self.typecheck_AST(ast, null);
+            return retval;
         },
         .sub_slice => {
             const super_type = try self.typecheck_AST(ast.sub_slice.super, null);

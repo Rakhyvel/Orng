@@ -14,6 +14,13 @@ pub fn unify(lhs: *Type_AST, rhs: *Type_AST, withs: std.ArrayList(*ast_.AST), su
             }
 
             if (rhs.* != .identifier or !std.mem.eql(u8, lhs.token().data, rhs.token().data)) {
+                std.debug.print("unable to unify {s} with {s}\n", .{ lhs.token().data, rhs.token().data });
+                return error.TypesMismatch;
+            }
+        },
+
+        .unit_type => {
+            if (rhs.* != .unit_type) {
                 return error.TypesMismatch;
             }
         },

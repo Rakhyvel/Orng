@@ -232,6 +232,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 var new_self = self;
                 new_self.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
                 new_self.scope.function_depth = new_self.scope.function_depth + 1;
+                ast.method_decl._decl_type = create_method_type(ast, self.allocator);
                 return new_self;
             } else {
                 // Impl method decl
@@ -631,8 +632,7 @@ fn create_method_symbol(
     const receiver_base_type: *Type_AST = ast.method_decl.impl.?.impl._type;
 
     // Create the function type
-    const _type = create_method_type(ast, allocator);
-    ast.method_decl._decl_type = _type;
+    ast.method_decl._decl_type = create_method_type(ast, allocator);
 
     // Create the function scope
     var fn_scope = Scope.init(scope, scope.uid_gen, allocator);

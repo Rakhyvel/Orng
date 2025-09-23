@@ -198,7 +198,7 @@ fn output_typedef(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
         try self.writer.print("}};\n\n", .{});
     } else if (dep.base.* == .dyn_type) {
         try self.emitter.output_dyn_name(dep);
-        try self.writer.print(" {{\n    void* data_ptr;\n    struct vtable_{s}", .{dep.base.expr().symbol().?.name});
+        try self.writer.print(" {{\n    void* data_ptr;\n    struct vtable_{s}", .{dep.base.child().symbol().?.name});
         try self.writer.print("* vtable;\n}};\n\n", .{});
     }
 }

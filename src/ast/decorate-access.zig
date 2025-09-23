@@ -179,6 +179,8 @@ fn extract_symbol_from_decl(decl: *ast_.AST) *Symbol {
         return decl.decl.name.symbol().?;
     } else if (decl.* == .method_decl or decl.* == .fn_decl or decl.* == .trait or decl.* == .struct_decl or decl.* == .enum_decl or decl.* == .type_alias) {
         return decl.symbol().?;
+    } else if (decl.* == .binding) {
+        return decl.binding.pattern.symbol().?;
     } else {
         std.debug.panic("compiler error: unsupported access symbol resolution for decl-like AST: {s}", .{@tagName(decl.*)});
     }

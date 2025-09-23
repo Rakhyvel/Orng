@@ -226,7 +226,7 @@ pub const Module = struct {
             Apply_Ast_Walk(Symbol_Tree).init(Symbol_Tree.new(file_root, &compiler.errors, compiler.allocator())),
             Apply_Ast_Walk(Decorate).init(Decorate.new(file_root, &compiler.errors, compiler.allocator())),
             Apply_Ast_Walk(Decorate_Access).init(Decorate_Access.new(file_root, &compiler.errors, compiler)),
-            Apply_Ast_Walk(Type_Decorate).init(Type_Decorate.new(file_root, compiler)),
+            Apply_Ast_Walk(Type_Decorate).init(Type_Decorate.new(compiler)),
         });
 
         // Perform checks and collections on the module
@@ -283,6 +283,8 @@ pub const Module = struct {
     fn collect_trait_types(self: *Module, allocator: std.mem.Allocator) void {
         for (self.traits.items) |trait| {
             for (trait.trait.method_decls.items) |decl| {
+                const @"type" = decl.method_decl.c_type.?.expand_identifier();
+                if (@"type".refers_to_self()) continue;
                 _ = self.type_set.add(decl.method_decl.c_type.?.expand_identifier(), allocator);
             }
         }

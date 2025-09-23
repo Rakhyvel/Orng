@@ -168,7 +168,7 @@ fn validate_trait(self: *Self, trait: *Symbol) Validate_Error_Enum!void {
 fn is_capitalized(name: []const u8) bool {
     var should_be_upper = true;
     for (name) |c| {
-        if (should_be_upper and !std.ascii.isUpper(c)) {
+        if (should_be_upper and std.ascii.isLower(c)) {
             return false;
         }
         should_be_upper = c == '_';

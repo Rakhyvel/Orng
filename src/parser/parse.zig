@@ -974,6 +974,9 @@ fn call_args(self: *Self) Parser_Error_Enum!std.ArrayList(*ast_.AST) {
     if (!self.peek_kind(.right_parenthesis)) {
         retval.append(try self.assignment_expr()) catch unreachable;
         while (self.accept(.comma)) |_| {
+            if (self.peek_kind(.right_parenthesis)) {
+                break;
+            }
             retval.append(try self.assignment_expr()) catch unreachable;
         }
     }

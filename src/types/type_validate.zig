@@ -1,8 +1,10 @@
 //! This file contains the semantic validation logic for types.
 const std = @import("std");
+const Type_Decorate = @import("../ast/type_decorate.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const Type_AST = @import("type.zig").Type_AST;
+const walk_ = @import("../ast/walker.zig");
 
 const Validate_Error_Enum = error{CompileError};
 const Self: type = @This();
@@ -45,10 +47,18 @@ pub fn validate(self: *Self, @"type": *Type_AST) Validate_Error_Enum!void {
             }
         },
 
+        .type_of => {
+            try walk_.walk_type(@"type", Type_Decorate.new(self.ctx));
+        },
+
+        .domain_of => {
+            try self.validate(@"type".child());
+            try walk_.walk_type(@"type", Type_Decorate.new(self.ctx));
+        },
+
         .annotation,
         .addr_of,
         .index,
-        .domain_of,
         => {
             try self.validate(@"type".child());
         },

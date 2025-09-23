@@ -1656,6 +1656,7 @@ pub const AST = union(enum) {
                 );
                 retval.method_decl.impl = self.method_decl.impl;
                 retval.method_decl.domain = self.method_decl.domain;
+                retval.method_decl._decl_type = if (self.method_decl._decl_type != null) self.method_decl._decl_type.?.clone(substs, allocator) else null;
                 retval.set_symbol(self.symbol());
                 return retval;
             },
@@ -1941,27 +1942,26 @@ pub const AST = union(enum) {
     // Expr must be an array value of length `l`. Slice value is `(&expr[0], l)`.
     pub fn create_slice_value(_expr: *AST, _mut: bool, expr_type: *Type_AST, allocator: std.mem.Allocator) *AST {
         var new_terms = std.ArrayList(*AST).init(allocator);
-        const zero = (AST.create_int(_expr.token(), 0, allocator)).assert_ast_valid();
+        const zero = (AST.create_int(_expr.token(), 0, allocator));
         const index = (AST.create_index(
             _expr.token(),
             _expr,
             zero,
             allocator,
-        )).assert_ast_valid();
+        ));
         const addr = (AST.create_addr_of(
             _expr.token(),
             index,
             _mut,
             true,
             allocator,
-        )).assert_ast_valid();
+        ));
         new_terms.append(addr) catch unreachable;
 
         const length = expr_type.array_of.len;
         new_terms.append(length) catch unreachable;
 
-        const array_type = _expr.typeof(allocator);
-        const elem_type = array_type.child();
+        const elem_type = expr_type.child();
         const slice_type = Type_AST.create_slice_type(elem_type, _mut, allocator);
         var retval = AST.create_struct_value(_expr.token(), slice_type, new_terms, allocator);
         retval.struct_value.was_slice = true;

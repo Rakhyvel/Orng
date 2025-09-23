@@ -3,14 +3,14 @@ trait My_Trait {
     fn a(self, x: Int) -> Int
 }
 
-const My_Type = (x: Int, y: Int)
+struct My_Type { x: Int, y: Int }
 
 impl My_Trait for My_Type {
     fn a(self, x: Int) -> Int { self.x + self.y * x }
 }
 
 fn main() -> Int {
-    let my_val: My_Type = (200, 45)
+    let my_val = My_Type(200, 45)
     let my_val_ptr = &my_val
     my_val_ptr.>a(2) + 3
 }

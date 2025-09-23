@@ -123,11 +123,14 @@ pub fn impl_trait_lookup(self: *Self, for_type: *Type_AST, trait: *Symbol) Impl_
 
 /// Looks up the impl's decl/method_decl ast for a given type, with a given name
 pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, compiler: *Compiler_Context) !?*ast_.AST {
+    if (false) {
+        std.debug.print("searching for {}::{s}\n", .{ for_type, name });
+    }
     // Go through the list of implementations, check to see if the types and traits match
     for (self.impls.items) |impl| {
         var subst = unification_.Substitutions.init(std.heap.page_allocator);
         defer subst.deinit();
-        unification_.unify(impl.impl._type.expand_identifier(), for_type, impl.impl.with_decls, &subst) catch continue;
+        unification_.unify(impl.impl._type.expand_identifier(), for_type.expand_identifier(), impl.impl.with_decls, &subst) catch continue;
 
         // TODO:
         // - attempt to unify for_type and impl._type given impl's `with` list that defines type parameters (nop for concrete impl), or continue
@@ -182,7 +185,6 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
                     try walker_.walk_ast(decl, decorate_context);
                     try walker_.walk_ast(decl, decorate_access_context);
                 }
-                std.debug.print("now the impls!\n", .{});
                 try walker_.walk_ast(new_impl, decorate_context); // this doesn't know about the anonymous trait
                 try walker_.walk_ast(new_impl, decorate_access_context);
                 try compiler.validate_scope.validate(new_scope);
@@ -228,7 +230,7 @@ fn search_impl(impl: *ast_.AST, name: []const u8) ?*ast_.AST {
         }
     }
     for (impl.impl.const_defs.items) |const_def| {
-        if (std.mem.eql(u8, const_def.decl.name.symbol().?.name, name)) {
+        if (std.mem.eql(u8, const_def.binding.pattern.symbol().?.name, name)) {
             return const_def;
         }
     }

@@ -5,7 +5,10 @@ trait My_Trait {
     fn c(&mut self, x: Int) -> ()
 }
 
-const My_Type = (x: Int, y: Int)
+struct My_Type {
+    x: Int
+    y: Int
+}
 
 impl My_Trait for My_Type {
     fn b(&self, x: Int) -> Int { self.x + self.y * x }
@@ -14,7 +17,7 @@ impl My_Trait for My_Type {
 }
 
 fn main() -> Int {
-    let mut my_val: My_Type = (100, 45)
+    let mut my_val = My_Type(100, 45)
     let my_val_ptr = &mut my_val
     my_val_ptr.>c(2)
     my_val_ptr.>b(2) + 4

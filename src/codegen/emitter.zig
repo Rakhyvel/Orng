@@ -34,7 +34,12 @@ pub fn output_type(self: *Self, old_type: *Type_AST) CodeGen_Error!void {
         .identifier => if (_type.common()._expanded_type != null and _type.common()._expanded_type.? != _type) {
             try self.output_type(_type.common()._expanded_type.?);
         } else {
-            try self.writer.print("{s}", .{prelude_.info_from_name(_type.token().data).?.c_name});
+            const info = prelude_.info_from_name(_type.token().data);
+            if (info != null) {
+                try self.writer.print("{s}", .{info.?.c_name});
+            } else {
+                try self.writer.print("{s}", .{_type.token().data});
+            }
         },
         .addr_of => {
             try self.output_type(_type.child());

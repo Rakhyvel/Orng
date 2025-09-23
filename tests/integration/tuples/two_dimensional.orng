@@ -4,7 +4,7 @@ type EF = (Int, Int)
 type My_Type = (CD, EF)
 
 fn main() -> Int {
-    let x: My_Type = (
+    let x = (
         (25, 75),
         (5, 90),
     )

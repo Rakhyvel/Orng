@@ -6,7 +6,7 @@ const My_Type = (
 )
 
 fn main() -> Int {
-    const m: My_Type = (100, 50, 7)
+    const m = My_Type(100, 50, 7)
     comptime { f(m) } + @sizeof(@typeof(m))
 }
 

@@ -36,6 +36,11 @@ pub fn type_check_int(
     errors: *errs_.Errors,
 ) Validate_Error_Enum!*Type_AST {
     const expanded_expected = if (expected != null) expected.?.expand_identifier() else null;
+
+    if (expanded_expected == null or prelude_.unit_type.types_match(expanded_expected.?)) {
+        return prelude_.int_type;
+    }
+
     if (expanded_expected != null) { //and !try checked_types_match(prelude_.unit_type, expanded_expected.?, errors)
         const info = prelude_.info_from_ast(expanded_expected.?);
         if (info != null and info.?.bounds != null) {
