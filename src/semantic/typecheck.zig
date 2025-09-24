@@ -3,6 +3,7 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const args_ = @import("args.zig");
+const Const_Eval = @import("../semantic/const_eval.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const defaults_ = @import("defaults.zig");
 const errs_ = @import("../util/errors.zig");
@@ -17,6 +18,7 @@ const Token = @import("../lexer/token.zig");
 const typing_ = @import("typing.zig");
 const validate_pattern_ = @import("pattern_validate.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
+const walk_ = @import("../ast/walker.zig");
 
 const Validate_Error_Enum = error{CompileError};
 
@@ -340,6 +342,11 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 }
             } else if (expanded_lhs_type.* == .tuple_type) {
                 // TODO: comptime expand the index
+                try walk_.walk_ast(ast.rhs(), Const_Eval.new(self.ctx));
+                if (ast.rhs().* != .int) {
+                    self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "not a constant integer" } });
+                    return error.CompileError;
+                }
                 const pos = ast.rhs().int.data;
                 ast.* = ast_.AST.create_select(ast.token(), ast.lhs(), ast.rhs(), self.ctx.allocator()).*;
                 ast.set_pos(@as(usize, @intCast(pos)));
@@ -590,12 +597,12 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
 
             const expanded_base: *Type_AST = ast.enum_value.base.?.expand_identifier();
             if (expanded_base.* != .enum_type) {
-                return typing_.throw_wrong_from("sum", "sum value", expanded_base, ast.token().span, &self.ctx.errors);
+                return typing_.throw_wrong_from("enum", "enum value", expanded_base, ast.token().span, &self.ctx.errors);
             }
 
             const pos = expanded_base.get_pos(ast.token().data);
             if (pos == null and expanded_base.* == .enum_type) {
-                self.ctx.errors.add_error(errs_.Error{ .member_not_in_type = .{ .span = ast.token().span, .identifier = ast.token().data, .name = "sum", .type = expanded_base } });
+                self.ctx.errors.add_error(errs_.Error{ .member_not_in_type = .{ .span = ast.token().span, .identifier = ast.token().data, .name = "enum", .type = expanded_base } });
                 return error.CompileError;
             }
             ast.set_pos(expanded_base.get_pos(ast.token().data));

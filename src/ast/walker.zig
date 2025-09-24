@@ -284,11 +284,19 @@ pub fn walk_type(maybe_type: ?*Type_AST, context: anytype) Error!void {
 
         .access => try walk_ast(_type.access.inner_access, new_context),
 
-        .annotation,
+        .array_of => {
+            try walk_type(_type.child(), new_context);
+            try walk_ast(_type.array_of.len, new_context);
+        },
+
+        .annotation => {
+            try walk_type(_type.child(), new_context);
+            try walk_ast(_type.annotation.init, new_context);
+        },
+
         .untagged_sum_type,
         .addr_of,
         .dyn_type,
-        .array_of,
         .index,
         .domain_of,
         => {

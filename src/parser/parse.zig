@@ -460,11 +460,11 @@ fn const_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     if (self.accept(.single_colon)) |_| {
         _type = try self.type_expr();
         if (self.peek_kind(.single_equals)) {
-            _ = try self.expect(.single_equals);
-            _init = try self.bool_expr();
+            const init_token = try self.expect(.single_equals);
+            _init = ast_.AST.create_comptime(init_token, try self.bool_expr(), self.allocator);
         }
     } else if (self.accept(.single_equals)) |_| {
-        _init = try self.bool_expr();
+        _init = ast_.AST.create_comptime(token, try self.bool_expr(), self.allocator);
     } else {
         self.errors.add_error(errs_.Error{ .basic = .{
             .span = self.peek().span,
@@ -1244,8 +1244,8 @@ fn param(self: *Self) Parser_Error_Enum!*ast_.AST {
     _ = try self.expect(.single_colon);
     _type = try self.type_expr();
     if (self.peek_kind(.single_equals)) {
-        _ = try self.expect(.single_equals);
-        _init = try self.bool_expr();
+        const token = try self.expect(.single_equals);
+        _init = ast_.AST.create_comptime(token, try self.bool_expr(), self.allocator);
     }
 
     return ast_.AST.create_binding(
@@ -1272,12 +1272,8 @@ fn struct_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
         const field_ident = ast_.AST.create_identifier(ident_token, self.allocator);
         const _type = try self.type_expr();
         var _init: ?*ast_.AST = null;
-        if (self.accept(.single_equals)) |_| {
-            _init = try self.bool_expr();
-            if (!_init.?.is_comptime_expr()) {
-                self.errors.add_error(errs_.Error{ .comptime_known = .{ .span = _init.?.token().span, .what = "default values" } });
-                return error.ParseError;
-            }
+        if (self.accept(.single_equals)) |token| {
+            _init = ast_.AST.create_comptime(token, try self.bool_expr(), self.allocator);
         }
 
         const field = Type_AST.create_annotation(ident_token, field_ident, _type, _init, self.allocator);

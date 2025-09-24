@@ -42,7 +42,7 @@ fn eval_internal(self: *Self, ast: *ast_.AST) walk_.Error!void {
         .@"comptime" => {
             const expected_type = try self.ctx.typecheck.typecheck_AST(ast, null);
             ast.* = (try self.interpret(ast.expr(), expected_type, ast.scope().?)).*;
-            _ = try self.ctx.typecheck.typecheck_AST(ast, null);
+            _ = try self.ctx.typecheck.typecheck_AST(ast, expected_type);
         },
 
         .default => {

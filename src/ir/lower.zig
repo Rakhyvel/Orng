@@ -208,6 +208,8 @@ fn lower_AST_inner(
 
         .@"or", .@"and" => return try self.or_and_op(ast, labels),
 
+        .@"comptime" => return try self.lower_AST(ast.expr(), labels),
+
         .add,
         .sub,
         .mult,
@@ -326,6 +328,8 @@ fn lower_AST_inner(
             var lhs_expanded_type = self.ctx.typecheck.typeof(ast.lhs()).expand_identifier();
             const offset = if (lhs_expanded_type.* == .struct_type)
                 lhs_expanded_type.struct_type.get_offset(ast.pos().?)
+            else if (lhs_expanded_type.* == .tuple_type)
+                lhs_expanded_type.tuple_type.get_offset(ast.pos().?)
             else
                 0;
 

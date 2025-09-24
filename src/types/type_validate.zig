@@ -1,9 +1,11 @@
 //! This file contains the semantic validation logic for types.
 const std = @import("std");
+const Const_Eval = @import("../semantic/const_eval.zig");
 const Type_Decorate = @import("../ast/type_decorate.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const Type_AST = @import("type.zig").Type_AST;
+const prelude_ = @import("../hierarchy/prelude.zig");
 const walk_ = @import("../ast/walker.zig");
 
 const Validate_Error_Enum = error{CompileError};
@@ -25,8 +27,10 @@ pub fn validate(self: *Self, @"type": *Type_AST) Validate_Error_Enum!void {
         },
 
         .array_of => {
+            _ = try self.ctx.typecheck.typecheck_AST(@"type".array_of.len, prelude_.int_type);
+            try walk_.walk_ast(@"type".array_of.len, Const_Eval.new(self.ctx));
             if (@"type".array_of.len.* != .int) {
-                self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = @"type".token().span, .msg = "not integer literal" } });
+                self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = @"type".token().span, .msg = "not a constant integer" } });
                 return error.CompileError;
             }
             try self.validate(@"type".child());

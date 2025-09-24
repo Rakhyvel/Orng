@@ -486,7 +486,7 @@ pub const Error = union(enum) {
                 err.not_selectable._type.print_type(writer) catch unreachable;
                 writer.print("` is not selectable\n", .{}) catch unreachable;
             },
-            .non_exhaustive_sum => writer.print("match over sum type is not exhaustive\n", .{}) catch unreachable,
+            .non_exhaustive_sum => writer.print("match over enum type is not exhaustive\n", .{}) catch unreachable,
             .mismatch_arity => {
                 writer.print("{s} takes {} {s}{s}, {} {s}{s} given\n", .{
                     err.mismatch_arity.thing_name,

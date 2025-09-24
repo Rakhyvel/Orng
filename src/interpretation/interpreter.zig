@@ -556,8 +556,9 @@ fn extract_function(self: *Self, address: i64) Error!*ast_.AST {
 
 fn extract_enum_type(self: *Self, address: i64, enum_type: *Type_AST, span: Span) Error!*ast_.AST {
     // self.print_memory(@intCast(address), @intCast(address + _type.sizeof()));
-    var retval = ast_.AST.create_enum_value(enum_type.token(), self.ctx.allocator());
     const tag = self.memory.load_int(address + enum_type.sizeof() - 8, 8);
+    const token = enum_type.children().items[@intCast(tag)].annotation.pattern.token();
+    var retval = ast_.AST.create_enum_value(token, self.ctx.allocator());
     retval.set_pos(@as(usize, @intCast(tag)));
     retval.enum_value.base = enum_type;
     const proper_term: *Type_AST = enum_type.children().items[@as(usize, @intCast(tag))];
