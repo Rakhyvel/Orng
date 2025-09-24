@@ -1,6 +1,6 @@
-// r33.orng:6:24: error: recursive type detected
+// r33.orng:6:36: error: error: recursive definition detected
 //     main += match const main = main ; 4 { _ => 3 } 
-//                       ^
+//                                   ^
 // 
 fn main() -> Int { 
     main += match const main = main ; 4 { _ => 3 } 

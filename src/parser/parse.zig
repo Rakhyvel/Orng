@@ -1006,11 +1006,9 @@ fn control_flow(self: *Self) Parser_Error_Enum!*ast_.AST {
         return try self.match_expr();
     } else if (self.peek_kind(.@"for")) {
         return try self.for_expr();
-    }
-    // else if (self.accept(.@"comptime")) |token| {
-    //     return ast_.AST.create_comptime(token, try self.block_expr(), self.allocator);
-    // }
-    else {
+    } else if (self.accept(.@"comptime")) |token| {
+        return ast_.AST.create_comptime(token, try self.block_expr(), self.allocator);
+    } else {
         return try self.factor();
     }
 }

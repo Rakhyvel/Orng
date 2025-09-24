@@ -41,8 +41,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         else => {},
 
         // Capture scope
-        // .@"comptime",
-        .access, .invoke, .addr_of => ast.set_scope(self.scope),
+        .@"comptime", .access, .invoke, .addr_of => ast.set_scope(self.scope),
 
         // Check that AST is inside a loop
         .@"break", .@"continue" => try self.in_loop_check(ast, self.errors),
@@ -537,20 +536,20 @@ fn create_receiver_annot(receiver_addr: *Type_AST, receiver: *ast_.AST, allocato
 }
 
 /// Creates the comptime context symbol for `const` initializers
-// fn create_comptime_init(
-//     old_init: *ast_.AST,
-//     scope: *Scope,
-//     allocator: std.mem.Allocator,
-// ) Error!*ast_.AST {
-//     const retval = ast_.AST.create_comptime(old_init.token(), old_init, allocator);
-//     retval.set_scope(scope);
-//     return retval;
-// }
+fn create_comptime_init(
+    old_init: *ast_.AST,
+    scope: *Scope,
+    allocator: std.mem.Allocator,
+) Error!*ast_.AST {
+    const retval = ast_.AST.create_comptime(old_init.token(), old_init, allocator);
+    retval.set_scope(scope);
+    return retval;
+}
 
 /// Creates a symbol which represents the comptime function to be ran.
 pub fn create_temp_comptime_symbol(
     ast: *ast_.AST,
-    rhs_type_hint: ?*ast_.AST,
+    rhs_type_hint: ?*Type_AST,
     scope: *Scope,
     allocator: std.mem.Allocator,
 ) Error!*Symbol {
@@ -568,15 +567,27 @@ pub fn create_temp_comptime_symbol(
     var buf: []const u8 = undefined;
     buf = next_anon_name("comptime", allocator);
 
+    const decl = ast_.AST.create_decl(
+        ast.token(),
+        ast_.AST.create_pattern_symbol(
+            ast.token(),
+            .@"comptime",
+            .local,
+            buf,
+            allocator,
+        ),
+        _type,
+        ast,
+        allocator,
+    );
+
     // Create the symbol
     const retval = Symbol.init(
         comptime_scope,
         buf,
-        ast.token().span,
-        _type,
-        ast,
-        ast,
+        decl,
         .@"comptime",
+        .local,
         allocator,
     );
     comptime_scope.inner_function = retval;

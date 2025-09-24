@@ -64,27 +64,25 @@ start_time: i64,
 
 call_depth: i64,
 
-errors: *errs_.Errors,
-allocator: std.mem.Allocator,
+ctx: *Compiler_Context,
 
 /// Initializes a new interpreter context.
-pub fn init(errors: *errs_.Errors, allocator: std.mem.Allocator) Self {
+pub fn init(ctx: *Compiler_Context) Self {
     return Self{
-        .memory = Memory.init(allocator.alloc(u8, stack_limit) catch unreachable),
+        .memory = Memory.init(ctx.allocator().alloc(u8, stack_limit) catch unreachable),
         .bump_alloc_pointer = stack_limit,
         .stack_pointer = 0,
         .base_pointer = 0,
 
-        .modules = std.AutoArrayHashMap(module_.Module_UID, *module_.Module).init(allocator),
+        .modules = std.AutoArrayHashMap(module_.Module_UID, *module_.Module).init(ctx.allocator()),
         .instruction_pointer = .{ .module_uid = 0, .inst_idx = 0 },
-        .debug_call_stack = std.ArrayList(Span).init(allocator),
+        .debug_call_stack = std.ArrayList(Span).init(ctx.allocator()),
 
         .start_time = std.time.milliTimestamp(),
 
         .call_depth = 0,
 
-        .errors = errors,
-        .allocator = allocator,
+        .ctx = ctx,
     };
 }
 
@@ -115,15 +113,12 @@ pub fn set_entry_point(
 pub fn deinit(self: *Self) void {
     self.modules.deinit();
     self.debug_call_stack.deinit();
-    self.allocator.free(self.memory.memory);
+    self.ctx.allocator().free(self.memory.memory);
 }
 
 /// Interprets the interpreter's instructions until the interpreter has executed more return instructions than call
 /// instructions, and the instruction pointer isn't a trap representation.
-pub fn run(
-    self: *Self,
-    compiler: *Compiler_Context,
-) error{CompileError}!void {
+pub fn run(self: *Self) error{CompileError}!void {
     const initial_call_depth = self.call_depth;
     // Stop whenever has returned more than called, or instruction pointer is not a halt trap representation
     while (self.call_depth >= initial_call_depth and self.instruction_pointer.inst_idx < halt_trap_instruction) : (self.instruction_pointer.inst_idx += 1) {
@@ -142,12 +137,12 @@ pub fn run(
             var in_buffer: [256]u8 = undefined;
             _ = std.io.getStdIn().read(&in_buffer) catch unreachable;
         }
-        try self.execute_instruction(instr, compiler);
+        try self.execute_instruction(instr);
     }
 }
 
 /// Executes an instruction within the interpreter context.
-inline fn execute_instruction(self: *Self, instr: *Instruction, compiler: *Compiler_Context) Error!void { // This doesn't work if it's not inlined, lol!
+inline fn execute_instruction(self: *Self, instr: *Instruction) Error!void { // This doesn't work if it's not inlined, lol!
     switch (instr.kind) {
         // Invalid instructions
         .load_extern,
@@ -165,7 +160,7 @@ inline fn execute_instruction(self: *Self, instr: *Instruction, compiler: *Compi
         .load_float => self.memory.store_float(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), instr.data.float),
         .load_string => {
             self.memory.store(Interned_String_Set.String_Idx, try self.effective_address(instr.dest.?), instr.data.string_id);
-            const interned_strings = compiler.lookup_interned_string_set(self.modules.get(instr.data.string_id.module_uid).?.uid).?;
+            const interned_strings = self.ctx.lookup_interned_string_set(self.modules.get(instr.data.string_id.module_uid).?.uid).?;
             const string = interned_strings.items()[instr.data.string_id.string_idx];
             self.memory.store(u64, try self.effective_address(instr.dest.?) + 8, string.len);
         },
@@ -342,7 +337,7 @@ inline fn execute_instruction(self: *Self, instr: *Instruction, compiler: *Compi
 
             // Intercept method calls to builtin methods
             if (symbol.represents_method(core_.package_type, "find")) {
-                return self.package_find(instr, compiler);
+                return self.package_find(instr);
             }
 
             try self.call(symbol, instr.dest.?, instr.data.lval_list);
@@ -367,17 +362,17 @@ inline fn execute_instruction(self: *Self, instr: *Instruction, compiler: *Compi
     }
 }
 
-fn package_find(self: *Self, instr: *Instruction, compiler: *Compiler_Context) !void {
+fn package_find(self: *Self, instr: *Instruction) !void {
     const arg: *lval_.L_Value = instr.data.lval_list.items[@as(usize, @intCast(0))];
-    const interned_strings = compiler.lookup_interned_string_set(self.modules.get(1).?.uid).?;
-    const src_ast = try self.extract_ast(try self.effective_address(arg), core_.package_source_type.expand_identifier(), instr.span, &compiler.module_interned_strings);
+    const interned_strings = self.ctx.lookup_interned_string_set(self.modules.get(1).?.uid).?;
+    const src_ast = try self.extract_ast(try self.effective_address(arg), core_.package_source_type.expand_identifier(), instr.span);
     const current_module_path = (self.curr_module() catch unreachable).absolute_path;
 
-    if (builtin_.package_find(compiler, self, current_module_path, src_ast)) |package_info| {
+    if (builtin_.package_find(self.ctx, self, current_module_path, src_ast)) |package_info| {
         const adrs = package_info.package_adrs;
         // Store the directory of the package inside the package struct before returning
         const dir_string = interned_strings.add(package_info.package_dirname, self.modules.get(1).?.uid);
-        const dir_offset = core_.package_type.product.get_offset_field("dir");
+        const dir_offset = core_.package_type.struct_type.get_offset_field("dir");
         self.memory.store(Interned_String_Set.String_Idx, adrs + dir_offset, dir_string);
         // Store the address of the package in the retval
         const ret_addr = try self.effective_address(instr.dest.?);
@@ -457,37 +452,38 @@ pub fn alloc(self: *Self, nbytes: i64, align_to: i64) error{CompileError}!usize 
 }
 
 /// Extracts an AST value from a specified memory address in interpreter's memory, based on the given AST type.
-pub fn extract_ast(self: *Self, address: i64, _type: *Type_AST, span: Span, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set)) Error!*ast_.AST {
+pub fn extract_ast(self: *Self, address: i64, _type: *Type_AST, span: Span) Error!*ast_.AST {
     // FIXME: High Cyclo
     std.debug.assert(address >= 0);
     switch (_type.*) {
-        .identifier => return self.extract_identifier(address, _type, span, module_interned_strings),
+        .identifier => return self.extract_identifier(address, _type, span),
         .addr_of => return ast_.AST.create_int(
             Token.init_simple("unsigned int"),
             self.memory.load_int(address, 8),
-            self.allocator,
-        ).assert_ast_valid(),
-        .unit_type => return ast_.AST.create_unit_value(_type.token(), self.allocator).assert_ast_valid(),
-        .enum_type => return self.extract_sum_type(address, _type, span, module_interned_strings),
-        .product => return self.extract_product_type(address, _type, span, module_interned_strings),
-        .array_of => return self.extract_array_type(address, _type, span, module_interned_strings),
+            self.ctx.allocator(),
+        ),
+        .unit_type => return ast_.AST.create_unit_value(_type.token(), self.ctx.allocator()),
+        .enum_type => return self.extract_enum_type(address, _type, span),
+        .struct_type => return self.extract_struct_type(address, _type, span),
+        .tuple_type => return self.extract_tuple_type(address, _type, span),
+        .array_of => return self.extract_array_type(address, _type, span),
         .function => return self.extract_function(address),
         .untagged_sum_type => {
-            self.errors.add_error(errs_.Error{ .basic = .{
+            self.ctx.errors.add_error(errs_.Error{ .basic = .{
                 .span = span,
-                .msg = "comptime untagged sum values cannot propagate to runtime",
+                .msg = "comptime untagged enum values cannot propagate to runtime",
             } });
             return error.CompileError;
         },
-        .annotation => return try self.extract_ast(address, _type.child(), span, module_interned_strings),
+        .annotation => return try self.extract_ast(address, _type.child(), span),
         else => std.debug.panic("interpreter error: unimplemented extract_ast() for: AST.{s}\n", .{@tagName(_type.*)}),
     }
 }
 
-fn extract_identifier(self: *Self, address: i64, identifier_type: *Type_AST, span: Span, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set)) Error!*ast_.AST {
+fn extract_identifier(self: *Self, address: i64, identifier_type: *Type_AST, span: Span) Error!*ast_.AST {
     const info = prelude_.info_from_name(identifier_type.token().data);
     if (info == null) {
-        return try self.extract_ast(address, identifier_type.symbol().?.init_typedef().?, span, module_interned_strings);
+        return try self.extract_ast(address, identifier_type.symbol().?.init_typedef().?, span);
     }
     switch (info.?.type_kind) {
         .type => {
@@ -500,26 +496,26 @@ fn extract_identifier(self: *Self, address: i64, identifier_type: *Type_AST, spa
         },
         .string => {
             const idx = self.memory.load(Interned_String_Set.String_Idx, address);
-            const interned_strings = module_interned_strings.get(idx.module_uid);
+            const interned_strings = self.ctx.module_interned_strings.get(idx.module_uid);
             std.debug.assert(idx.module_uid == interned_strings.?.uid);
             const string = interned_strings.?.items()[idx.string_idx];
-            return ast_.AST.create_string(Token.init_simple("\""), string, self.allocator);
+            return ast_.AST.create_string(Token.init_simple("\""), string, self.ctx.allocator());
         },
         .none => unreachable,
         .boolean => {
             const val = self.memory.load_int(address, info.?.size);
             if (val == 0) {
-                return ast_.AST.create_false(Token.init_simple("false"), self.allocator).assert_ast_valid();
+                return ast_.AST.create_false(Token.init_simple("false"), self.ctx.allocator());
             } else {
-                return ast_.AST.create_true(Token.init_simple("true"), self.allocator).assert_ast_valid();
+                return ast_.AST.create_true(Token.init_simple("true"), self.ctx.allocator());
             }
         },
         .signed_integer => {
             const retval = ast_.AST.create_int(
                 Token.init_simple("signed int"),
                 self.memory.load_int(address, info.?.size),
-                self.allocator,
-            ).assert_ast_valid();
+                self.ctx.allocator(),
+            );
             // retval.set_represents(identifier_type);
             return retval;
         },
@@ -527,8 +523,8 @@ fn extract_identifier(self: *Self, address: i64, identifier_type: *Type_AST, spa
             const retval = ast_.AST.create_int(
                 Token.init_simple("unsigned int"),
                 self.memory.load_int(address, info.?.size),
-                self.allocator,
-            ).assert_ast_valid();
+                self.ctx.allocator(),
+            );
             // retval.set_represents(identifier_type);
             return retval;
         },
@@ -536,8 +532,8 @@ fn extract_identifier(self: *Self, address: i64, identifier_type: *Type_AST, spa
             const retval = ast_.AST.create_float(
                 Token.init_simple("float"),
                 self.memory.load_float(address, info.?.size),
-                self.allocator,
-            ).assert_ast_valid();
+                self.ctx.allocator(),
+            );
             // retval.set_represents(identifier_type);
             return retval;
         },
@@ -552,46 +548,60 @@ fn extract_function(self: *Self, address: i64) Error!*ast_.AST {
         .@"fn",
         .local,
         symbol.name,
-        self.allocator,
+        self.ctx.allocator(),
     );
     ast.set_symbol(symbol);
-    return ast.assert_ast_valid();
+    return ast;
 }
 
-fn extract_sum_type(self: *Self, address: i64, sum_type: *Type_AST, span: Span, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set)) Error!*ast_.AST {
+fn extract_enum_type(self: *Self, address: i64, enum_type: *Type_AST, span: Span) Error!*ast_.AST {
     // self.print_memory(@intCast(address), @intCast(address + _type.sizeof()));
-    var retval = ast_.AST.create_enum_value(sum_type.token(), self.allocator).assert_ast_valid();
-    const tag = self.memory.load_int(address + sum_type.sizeof() - 8, 8);
+    var retval = ast_.AST.create_enum_value(enum_type.token(), self.ctx.allocator());
+    const tag = self.memory.load_int(address + enum_type.sizeof() - 8, 8);
     retval.set_pos(@as(usize, @intCast(tag)));
-    retval.enum_value.base = sum_type;
-    const proper_term: *Type_AST = sum_type.children().items[@as(usize, @intCast(tag))];
-    retval.enum_value.init = try self.extract_ast(address, proper_term, span, module_interned_strings);
+    retval.enum_value.base = enum_type;
+    const proper_term: *Type_AST = enum_type.children().items[@as(usize, @intCast(tag))];
+    retval.enum_value.init = try self.extract_ast(address, proper_term, span);
     return retval;
 }
 
-fn extract_product_type(self: *Self, address: i64, product_type: *Type_AST, span: Span, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set)) Error!*ast_.AST {
-    if (product_type.types_match(prelude_.string_type)) {
+fn extract_struct_type(self: *Self, address: i64, struct_type: *Type_AST, span: Span) Error!*ast_.AST {
+    if (struct_type.types_match(prelude_.string_type)) {
         const idx = self.memory.load(Interned_String_Set.String_Idx, address);
-        const interned_strings = module_interned_strings.get(idx.module_uid);
+        const interned_strings = self.ctx.module_interned_strings.get(idx.module_uid);
         std.debug.assert(idx.module_uid == interned_strings.?.uid);
         const string = interned_strings.?.items()[idx.string_idx];
-        return ast_.AST.create_string(Token.init_simple("\""), string, self.allocator);
+        return ast_.AST.create_string(Token.init_simple("\""), string, self.ctx.allocator());
     }
-    var value_terms = std.ArrayList(*ast_.AST).init(self.allocator);
+    var value_terms = std.ArrayList(*ast_.AST).init(self.ctx.allocator());
     errdefer value_terms.deinit();
-    for (0.., product_type.children().items) |i, term| {
+    for (0.., struct_type.children().items) |i, term| {
         // std.debug.print("term:{}\n", .{i});
-        const offset = product_type.product.get_offset(i);
+        const offset = struct_type.struct_type.get_offset(i);
         // std.debug.print("offset:{}\n", .{offset});
-        const extracted_term = try self.extract_ast(address + offset, term, span, module_interned_strings);
+        const extracted_term = try self.extract_ast(address + offset, term, span);
         // std.debug.print("extracted_term:{}\n", .{extracted_term});
         value_terms.append(extracted_term) catch unreachable;
     }
-    return ast_.AST.create_product(product_type.token(), value_terms, self.allocator).assert_ast_valid();
+    return ast_.AST.create_struct_value(struct_type.token(), struct_type, value_terms, self.ctx.allocator());
 }
 
-fn extract_array_type(self: *Self, address: i64, array_type: *Type_AST, span: Span, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set)) Error!*ast_.AST {
-    var value_terms = std.ArrayList(*ast_.AST).init(self.allocator);
+fn extract_tuple_type(self: *Self, address: i64, tuple_type: *Type_AST, span: Span) Error!*ast_.AST {
+    var value_terms = std.ArrayList(*ast_.AST).init(self.ctx.allocator());
+    errdefer value_terms.deinit();
+    for (0.., tuple_type.children().items) |i, term| {
+        // std.debug.print("term:{}\n", .{i});
+        const offset = tuple_type.tuple_type.get_offset(i);
+        // std.debug.print("offset:{}\n", .{offset});
+        const extracted_term = try self.extract_ast(address + offset, term, span);
+        // std.debug.print("extracted_term:{}\n", .{extracted_term});
+        value_terms.append(extracted_term) catch unreachable;
+    }
+    return ast_.AST.create_tuple_value(tuple_type.token(), value_terms, self.ctx.allocator());
+}
+
+fn extract_array_type(self: *Self, address: i64, array_type: *Type_AST, span: Span) Error!*ast_.AST {
+    var value_terms = std.ArrayList(*ast_.AST).init(self.ctx.allocator());
     errdefer value_terms.deinit();
     const length: usize = @intCast(array_type.array_of.len.int.data);
     const elem_type = array_type.child();
@@ -599,11 +609,11 @@ fn extract_array_type(self: *Self, address: i64, array_type: *Type_AST, span: Sp
         // std.debug.print("term:{}\n", .{i});
         const offset = array_type.array_of.get_offset(i);
         // std.debug.print("offset:{}\n", .{offset});
-        const extracted_term = try self.extract_ast(address + offset, elem_type, span, module_interned_strings);
+        const extracted_term = try self.extract_ast(address + offset, elem_type, span);
         // std.debug.print("extracted_term:{}\n", .{extracted_term});
         value_terms.append(extracted_term) catch unreachable;
     }
-    return ast_.AST.create_array(array_type.token(), value_terms, self.allocator).assert_ast_valid();
+    return ast_.AST.create_array_value(array_type.token(), value_terms, self.ctx.allocator());
 }
 
 /// Prints the values of the interpreter's registers

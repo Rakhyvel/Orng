@@ -101,13 +101,13 @@ pub const AST = union(enum) {
         _expr: *AST,
         _symbol: ?*Symbol, // `try`'s must be in functions. This is the function's symbol.
     },
-    // @"comptime": struct {
-    //     common: AST_Common,
-    //     _expr: *AST,
-    //     name: ?*AST = null,
-    //     result: ?*AST = null,
-    //     _scope: ?*Scope = null, // Surrounding scope. Filled in at symbol-tree creation. Used to create a comptime symbol
-    // },
+    @"comptime": struct {
+        common: AST_Common,
+        _expr: *AST,
+        name: ?*AST = null,
+        result: ?*AST = null,
+        _scope: ?*Scope = null, // Surrounding scope. Filled in at symbol-tree creation. Used to create a comptime symbol
+    },
 
     // Binary operators
     // TODO: We could de-duplicate this, I suppose.
@@ -531,13 +531,13 @@ pub const AST = union(enum) {
         return AST.box(AST{ .@"try" = .{ .common = _common, ._expr = _expr, ._symbol = null } }, allocator);
     }
 
-    // pub fn create_comptime(_token: Token, _expr: *AST, allocator: std.mem.Allocator) *AST {
-    //     const _common: AST_Common = .{ ._token = _token };
-    //     return AST.box(
-    //         AST{ .@"comptime" = .{ .common = _common, ._expr = _expr, .name = null } },
-    //         allocator,
-    //     );
-    // }
+    pub fn create_comptime(_token: Token, _expr: *AST, allocator: std.mem.Allocator) *AST {
+        const _common: AST_Common = .{ ._token = _token };
+        return AST.box(
+            AST{ .@"comptime" = .{ .common = _common, ._expr = _expr, .name = null } },
+            allocator,
+        );
+    }
 
     pub fn create_default(_token: Token, _expr: *Type_AST, allocator: std.mem.Allocator) *AST {
         return AST.box(AST{ .default = .{
@@ -1278,7 +1278,7 @@ pub const AST = union(enum) {
             .@"try" => return create_try(self.token(), self.expr().clone(substs, allocator), allocator),
             .default => return create_default(self.token(), self.default._type.clone(substs, allocator), allocator),
             .size_of => return create_size_of(self.token(), self.size_of._type.clone(substs, allocator), allocator),
-            // .@"comptime" => return create_comptime(self.token(), self.expr().clone(substs, allocator), allocator),
+            .@"comptime" => return create_comptime(self.token(), self.expr().clone(substs, allocator), allocator),
 
             .assign => return create_assign(
                 self.token(),
@@ -2048,7 +2048,7 @@ pub const AST = union(enum) {
                 try out.writer().print(")", .{});
             },
             .size_of => try out.writer().print("size_of({})", .{self.expr()}),
-            // .@"comptime" => try out.writer().print("comptime({})", .{self.expr()}),
+            .@"comptime" => try out.writer().print("comptime({})", .{self.expr()}),
 
             .assign => {
                 try out.writer().print("assign({}, {})", .{ self.lhs(), self.rhs() });

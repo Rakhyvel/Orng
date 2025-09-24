@@ -43,7 +43,7 @@ pub fn package_find(compiler: *Compiler_Context, interpreter: *Interpreter_Conte
 
     // Jump to the `build()` fn
     try interpreter.call(build_cfg.symbol, retval_place, std.ArrayList(*lval_.L_Value).init(compiler.allocator()));
-    try interpreter.run(compiler);
+    try interpreter.run();
 
     return .{ .package_adrs = adrs, .package_dirname = package_absolute_path };
 }

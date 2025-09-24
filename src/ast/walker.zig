@@ -61,7 +61,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
 
     var new_context = context;
     if (@hasDecl(@TypeOf(context), "prefix")) {
-        const maybe_new_context = try context.prefix(ast);
+        const maybe_new_context = try new_context.prefix(ast);
         if (maybe_new_context == null) {
             return;
         } else {
@@ -104,7 +104,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .negate,
         .dereference,
         .@"try",
-        // .@"comptime",
+        .@"comptime",
         .addr_of,
         .slice_of,
         .dyn_value,

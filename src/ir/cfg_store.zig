@@ -27,7 +27,7 @@ pub fn get_cfg(
     symbol: *Symbol,
     interned_strings: *Interned_String_Set,
 ) Lower_Context.Lower_Errors!*CFG {
-    std.debug.assert(symbol.kind == .@"fn" or symbol.kind == .@"test");
+    std.debug.assert(symbol.kind == .@"fn" or symbol.kind == .@"test" or symbol.kind == .@"comptime");
     std.debug.assert(symbol.validation_state == .valid);
     if (symbol.init_validation_state == .validating) {
         self.ctx.errors.add_error(errs_.Error{ .recursive_definition = .{

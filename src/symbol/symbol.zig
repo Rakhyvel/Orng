@@ -14,6 +14,7 @@ const Self = @This();
 pub const Kind = union(enum) {
     @"fn",
     @"const",
+    @"comptime",
     let,
     mut,
     type,

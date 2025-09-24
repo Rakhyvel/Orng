@@ -91,7 +91,7 @@ fn run_build_orng(compiler: *Compiler_Context, interpreter: *Interpreter_Context
     const build_cfg = compiler.compile_build_file(build_path) catch return error.CompileError;
     interpreter.set_entry_point(build_cfg, core_.package_type.expand_identifier());
     try interpreter.run(compiler);
-    return try interpreter.extract_ast(0, core_.package_type, Span.phony, &compiler.module_interned_strings);
+    return try interpreter.extract_ast(0, core_.package_type, Span.phony);
 }
 
 /// Runs the package executable after it's built
@@ -195,7 +195,7 @@ fn make_package(
         const requirement = maybe_requirement_addr.enum_value.init.?;
         const required_package_name: []const u8 = requirement.children().items[0].string.data;
         const required_package_addr: i64 = @intCast(requirement.children().items[1].int.data);
-        const required_package = try interpreter.extract_ast(required_package_addr, core_.package_type, Span.phony, &compiler.module_interned_strings);
+        const required_package = try interpreter.extract_ast(required_package_addr, core_.package_type, Span.phony);
         const required_package_dir = required_package.get_field(core_.package_type, "dir").string.data;
 
         const new_working_directory_buffer = compiler.allocator().alloc(u8, std.fs.max_path_bytes) catch unreachable;

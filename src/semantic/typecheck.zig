@@ -233,25 +233,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             try self.ctx.validate_type.validate(ast.size_of._type);
             return prelude_.int_type;
         },
-        // .@"comptime" => {
-        //     if (ast.@"comptime".result != null) {
-        //         return ast.@"comptime".result.?;
-        //     }
-        //     ast.set_expr(try self.typecheck_AST(ast.expr(), expected));
-        //     const ast_type = ast.expr().typeof(allocator);
-        //     const expanded_ast_type = ast_type.expand_identifier();
-        //     if (try typing_.checked_types_match(expanded_ast_type, prelude_.void_type, &self.ctx.errors)) {
-        //         return typing_.throw_unexpected_void_type(ast.expr().token().span, &self.ctx.errors);
-        //     }
-        //     try typing_.type_check(ast.token().span, expanded_ast_type, expected, &self.ctx.errors);
-
-        //     var expanded_expected = expected;
-        //     if (expected != null and expected.?.* == .type_of) {
-        //         expanded_expected = expected.?.expand_identifier();
-        //     }
-        //     ast.@"comptime".result = try interpret(ast.expr(), expanded_expected orelse expanded_ast_type, ast.scope().?, &self.ctx.errors, self.ctx.allocator());
-        //     return ast.@"comptime".result.?;
-        // },
+        .@"comptime" => return try self.typecheck_AST(ast.expr(), expected),
         .assign => {
             try self.validate_L_Value(ast.lhs());
             const lhs_type = try self.typecheck_AST(ast.lhs(), null);
