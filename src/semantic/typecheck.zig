@@ -20,7 +20,12 @@ const validate_pattern_ = @import("pattern_validate.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 const walk_ = @import("../ast/walker.zig");
 
-const Validate_Error_Enum = error{CompileError};
+const Validate_Error_Enum = error{
+    // Returned when there is a type check compile error
+    CompileError,
+    // Returned when a type is encountered, which may or may not be expected
+    UnexpectedTypeType,
+};
 
 const Self: type = @This();
 
@@ -153,12 +158,15 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                     self.ctx.errors.add_error(errs_.Error{ .unexpected_type_type = .{ .expected = expected, .span = ast.token().span } });
                     return error.CompileError;
                 }
-                return prelude_.unit_type;
+                return error.UnexpectedTypeType;
             }
             return symbol.type();
         },
         .access => {
-            _ = try self.typecheck_AST(ast.lhs(), null);
+            _ = self.typecheck_AST(ast.lhs(), null) catch |e| switch (e) {
+                error.CompileError => return error.CompileError,
+                error.UnexpectedTypeType => {}, // This is expected
+            };
 
             // look up symbol, that's the type
             const symbol = ast.symbol().?;

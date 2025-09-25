@@ -61,7 +61,13 @@ pub fn validate(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
     // std.debug.print("validating init for: {s}: {?}\n", .{ symbol.name, expected });
     if (symbol.init_value()) |_init| {
         // might be null for parameters
-        _ = try self.ctx.typecheck.typecheck_AST(_init, expected);
+        _ = self.ctx.typecheck.typecheck_AST(_init, expected) catch |e| switch (e) {
+            error.CompileError => return error.CompileError,
+            error.UnexpectedTypeType => {
+                self.ctx.errors.add_error(errs_.Error{ .unexpected_type_type = .{ .expected = expected, .span = _init.token().span } });
+                return error.CompileError;
+            },
+        };
         if (_init.* != .module) {
             try walk_.walk_ast(_init, Const_Eval.new(self.ctx));
         }
@@ -109,7 +115,7 @@ pub fn validate(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
 
     if (symbol.storage == .@"extern") {
         if (symbol.storage.@"extern".c_name != null) {
-            _ = try self.ctx.typecheck.typecheck_AST(symbol.storage.@"extern".c_name.?, prelude_.string_type);
+            _ = self.ctx.typecheck.typecheck_AST(symbol.storage.@"extern".c_name.?, prelude_.string_type) catch return error.CompileError;
         } else {
             symbol.storage.@"extern".c_name = ast_.AST.create_string(Token.init_simple(symbol.name), symbol.name, self.ctx.allocator());
         }

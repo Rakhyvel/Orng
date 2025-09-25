@@ -21,7 +21,7 @@ pub fn init(ctx: *Compiler_Context) Self {
 pub fn validate(self: *Self, module: *module_.Module) Validate_Error_Enum!void {
     try self.ctx.validate_scope.validate(self.ctx.module_scope(module.absolute_path).?);
     for (0..module.cincludes.items.len) |i| {
-        _ = try self.ctx.typecheck.typecheck_AST(module.cincludes.items[i], prelude_.string_type);
+        _ = self.ctx.typecheck.typecheck_AST(module.cincludes.items[i], prelude_.string_type) catch return error.CompileError;
     }
     try poison_.assert_none_poisoned(module.cincludes.items);
     if (self.ctx.errors.errors_list.items.len > 0) {

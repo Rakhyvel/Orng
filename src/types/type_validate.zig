@@ -27,7 +27,7 @@ pub fn validate(self: *Self, @"type": *Type_AST) Validate_Error_Enum!void {
         },
 
         .array_of => {
-            _ = try self.ctx.typecheck.typecheck_AST(@"type".array_of.len, prelude_.int_type);
+            _ = self.ctx.typecheck.typecheck_AST(@"type".array_of.len, prelude_.int_type) catch return error.CompileError;
             try walk_.walk_ast(@"type".array_of.len, Const_Eval.new(self.ctx));
             if (@"type".array_of.len.* != .int) {
                 self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = @"type".token().span, .msg = "not a constant integer" } });

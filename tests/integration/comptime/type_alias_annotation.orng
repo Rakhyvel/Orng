@@ -1,8 +1,0 @@
-// 241
-const My_Type = (a: Int)
-
-fn main() -> Int {
-    let x: My_Type = 241
-    _ = x // TODO: Built-in to convert this to Int?
-    241
-}

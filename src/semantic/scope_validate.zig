@@ -189,7 +189,7 @@ fn validate_impl(self: *Self, impl: *ast_.AST) Validate_Error_Enum!void {
     }
 
     for (impl.impl.method_defs.items) |def| {
-        _ = try self.ctx.typecheck.typecheck_AST(def, null);
+        _ = self.ctx.typecheck.typecheck_AST(def, null) catch return error.CompileError;
     }
 }
 

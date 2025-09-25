@@ -7,7 +7,6 @@ const errs_ = @import("../util/errors.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const Span = @import("../util/span.zig");
 const poison_ = @import("../ast/poison.zig");
-const typecheck_AST = @import("typecheck.zig").typecheck_AST;
 const typing_ = @import("typing.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 
@@ -42,11 +41,12 @@ pub fn assert_pattern_matches(
         .block,
         .select,
         .enum_value,
-        => _ = try self.ctx.typecheck.typecheck_AST(pattern, expr_type),
+        => _ = self.ctx.typecheck.typecheck_AST(pattern, expr_type) catch return error.CompileError,
         .tuple_value => {
             const expanded_expr_type = expr_type.expand_identifier();
             if (expanded_expr_type.* != .tuple_type or expanded_expr_type.children().items.len != pattern.children().items.len) {
-                return typing_.throw_unexpected_type(pattern.token().span, expr_type, try self.ctx.typecheck.typecheck_AST(pattern, null), &self.ctx.errors);
+                const got = self.ctx.typecheck.typecheck_AST(pattern, null) catch return error.CompileError;
+                return typing_.throw_unexpected_type(pattern.token().span, expr_type, got, &self.ctx.errors);
             }
             for (pattern.children().items, expanded_expr_type.children().items) |term, expanded_term| {
                 try self.assert_pattern_matches(term, expanded_term);
@@ -55,7 +55,8 @@ pub fn assert_pattern_matches(
         .array_value => {
             const expanded_expr_type = expr_type.expand_identifier();
             if (expanded_expr_type.* != .array_of or expanded_expr_type.array_of.len.int.data != pattern.children().items.len) {
-                return typing_.throw_unexpected_type(pattern.token().span, expr_type, try self.ctx.typecheck.typecheck_AST(pattern, null), &self.ctx.errors);
+                const got = self.ctx.typecheck.typecheck_AST(pattern, null) catch return error.CompileError;
+                return typing_.throw_unexpected_type(pattern.token().span, expr_type, got, &self.ctx.errors);
             }
             const elem_type = expanded_expr_type.child();
             for (pattern.children().items) |term| {

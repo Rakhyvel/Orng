@@ -460,11 +460,13 @@ fn const_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     if (self.accept(.single_colon)) |_| {
         _type = try self.type_expr();
         if (self.peek_kind(.single_equals)) {
-            const init_token = try self.expect(.single_equals);
-            _init = ast_.AST.create_comptime(init_token, try self.bool_expr(), self.allocator);
+            _ = try self.expect(.single_equals);
+            const inner_expr = try self.bool_expr();
+            _init = ast_.AST.create_comptime(inner_expr.token(), inner_expr, self.allocator);
         }
     } else if (self.accept(.single_equals)) |_| {
-        _init = ast_.AST.create_comptime(token, try self.bool_expr(), self.allocator);
+        const inner_expr = try self.bool_expr();
+        _init = ast_.AST.create_comptime(inner_expr.token(), inner_expr, self.allocator);
     } else {
         self.errors.add_error(errs_.Error{ .basic = .{
             .span = self.peek().span,
@@ -476,8 +478,8 @@ fn const_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     return ast_.AST.create_binding(
         token,
         pattern,
-        _type orelse Type_AST.create_type_of(token, _init.?, self.allocator), // type inference done here!
-        _init orelse ast_.AST.create_default(token, _type.?, self.allocator), // default value generate done here!
+        _type orelse Type_AST.create_type_of(_init.?.token(), _init.?, self.allocator), // type inference done here!
+        _init orelse ast_.AST.create_default(_type.?.token(), _type.?, self.allocator), // default value generate done here!
         self.allocator,
     );
 }
@@ -513,8 +515,8 @@ fn let_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     return ast_.AST.create_binding(
         token,
         ident,
-        _type orelse Type_AST.create_type_of(token, _init.?, self.allocator), // type inference done here!
-        _init orelse if (is_undefined) null else ast_.AST.create_default(token, _type.?, self.allocator), // default value generate done here!
+        _type orelse Type_AST.create_type_of(_init.?.token(), _init.?, self.allocator), // type inference done here!
+        _init orelse if (is_undefined) null else ast_.AST.create_default(_type.?.token(), _type.?, self.allocator), // default value generate done here!
         self.allocator,
     );
 }

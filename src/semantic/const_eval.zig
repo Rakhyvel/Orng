@@ -40,21 +40,22 @@ fn eval_internal(self: *Self, ast: *ast_.AST) walk_.Error!void {
         else => {},
 
         .@"comptime" => {
-            const expected_type = try self.ctx.typecheck.typecheck_AST(ast, null);
+            try self.eval_internal(ast.expr());
+            const expected_type = self.ctx.typecheck.typecheck_AST(ast, null) catch return error.CompileError;
             ast.* = (try self.interpret(ast.expr(), expected_type, ast.scope().?)).*;
-            _ = try self.ctx.typecheck.typecheck_AST(ast, expected_type);
+            _ = self.ctx.typecheck.typecheck_AST(ast, expected_type) catch return error.CompileError;
         },
 
         .default => {
             const _type = ast.default._type;
             ast.* = (try defaults_.generate_default(ast.default._type, ast.token().span, &self.ctx.errors, self.ctx.allocator())).*;
-            _ = try self.ctx.typecheck.typecheck_AST(ast, _type);
+            _ = self.ctx.typecheck.typecheck_AST(ast, _type) catch return error.CompileError;
         },
 
         .size_of => {
             const _type = ast.size_of._type;
             ast.* = ast_.AST.create_int(ast.token(), _type.sizeof(), self.ctx.allocator()).*;
-            _ = try self.ctx.typecheck.typecheck_AST(ast, null);
+            _ = self.ctx.typecheck.typecheck_AST(ast, null) catch return error.CompileError;
         },
     }
 }
