@@ -1,6 +1,6 @@
-// default_opaque_extern.orng:8:8: error: no default value for type `C_Int`
+// default_opaque_extern.orng:8:18: error: no default value for type `C_Int`
 //     let mut xs: [5]C_Int
-//       ^
+//                 ^
 // 
 extern ("int") type C_Int
 

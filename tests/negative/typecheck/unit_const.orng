@@ -1,12 +1,6 @@
-// unit_const.orng:12:16: error: symbol `Ident` must start with an lowercase letter
+// unit_const.orng:6:16: error: symbol `Ident` must start with an lowercase letter
 //     const Ident = ()
 //               ^
-// unit_const.orng:13:19: error: expected a type
-//     const x: Ident = {}
-//                  ^
-// unit_const.orng:13:19: error: expected a type
-//     const x: Ident = {}
-//                  ^
 // 
 fn main() -> Int {
     const Ident = ()

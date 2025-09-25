@@ -187,11 +187,11 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
         },
         .true, .false => return prelude_.bool_type,
         .not => {
-            _ = try self.typecheck_AST(ast.expr(), prelude_.bool_type);
+            _ = self.typecheck_AST(ast.expr(), prelude_.bool_type) catch return error.CompileError;
             return prelude_.bool_type;
         },
         .negate => {
-            const expr_type = try self.typecheck_AST(ast.expr(), expected);
+            const expr_type = self.typecheck_AST(ast.expr(), expected) catch return error.CompileError;
             try typing_.type_check_arithmetic(ast.token().span, expr_type, &self.ctx.errors);
             return expr_type;
         },
@@ -203,7 +203,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 else
                     null;
 
-            const expr_type = try self.typecheck_AST(ast.expr(), expr_expected_type);
+            const expr_type = self.typecheck_AST(ast.expr(), expr_expected_type) catch return error.CompileError;
             const expanded_expr_type = expr_type.expand_identifier();
             if (expanded_expr_type.* != .addr_of) {
                 return typing_.throw_wrong_from("address", "dereference", expanded_expr_type, expr_span, &self.ctx.errors);
@@ -213,7 +213,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
         },
         .@"try" => {
             const expr_span = ast.expr().token().span;
-            const expr_type = try self.typecheck_AST(ast.expr(), null);
+            const expr_type = self.typecheck_AST(ast.expr(), null) catch return error.CompileError;
             var expanded_expr_type = expr_type.expand_identifier();
             if (expanded_expr_type.* != .enum_type or expanded_expr_type.enum_type.from != .@"error") {
                 return typing_.throw_wrong_from("error", "try", expanded_expr_type, expr_span, &self.ctx.errors);
@@ -243,18 +243,25 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             try self.ctx.validate_type.validate(ast.size_of._type);
             return prelude_.int_type;
         },
-        .@"comptime" => return try self.typecheck_AST(ast.expr(), expected),
+        .@"comptime" => {
+            const expr_type = self.typecheck_AST(ast.expr(), expected) catch return error.CompileError;
+            const expr_expanded_type = expr_type.expand_identifier();
+            if (expr_expanded_type.types_match(prelude_.void_type)) {
+                return typing_.throw_unexpected_void_type(ast.expr().token().span, &self.ctx.errors);
+            }
+            return expr_type;
+        },
         .assign => {
             try self.validate_L_Value(ast.lhs());
-            const lhs_type = try self.typecheck_AST(ast.lhs(), null);
+            const lhs_type = self.typecheck_AST(ast.lhs(), null) catch return error.CompileError;
             const rhs_expected: ?*Type_AST = if (ast.lhs().* == .identifier and std.mem.eql(u8, ast.lhs().token().data, "_")) null else lhs_type;
-            _ = try self.typecheck_AST(ast.rhs(), rhs_expected);
+            _ = self.typecheck_AST(ast.rhs(), rhs_expected) catch return error.CompileError;
             try self.assert_mutable(ast.lhs());
             return prelude_.unit_type;
         },
         .@"or", .@"and" => {
-            _ = try self.typecheck_AST(ast.lhs(), prelude_.bool_type);
-            _ = try self.typecheck_AST(ast.rhs(), prelude_.bool_type);
+            _ = self.typecheck_AST(ast.lhs(), prelude_.bool_type) catch return error.CompileError;
+            _ = self.typecheck_AST(ast.rhs(), prelude_.bool_type) catch return error.CompileError;
             return prelude_.bool_type;
         },
         .add, .sub, .mult, .div => {
@@ -281,8 +288,8 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
         },
         .@"catch", .@"orelse" => {
             const lhs_span = ast.lhs().token().span;
-            const lhs_type = try self.typecheck_AST(ast.lhs(), null);
-            _ = try self.typecheck_AST(ast.rhs(), expected);
+            const lhs_type = self.typecheck_AST(ast.lhs(), null) catch return error.CompileError;
+            _ = self.typecheck_AST(ast.rhs(), expected) catch return error.CompileError;
             var expanded_lhs_type = lhs_type.expand_identifier();
             try typing_.coalesce_operator(expanded_lhs_type, ast, lhs_span, &self.ctx.errors);
             return expanded_lhs_type.get_nominal_type().child();
@@ -290,7 +297,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
         .bit_and, .bit_or, .bit_xor => {
             var retval: ?*Type_AST = null;
             for (0..ast.children().items.len) |i| {
-                const arg_type = try self.typecheck_AST(ast.children().items[i], expected);
+                const arg_type = self.typecheck_AST(ast.children().items[i], expected) catch return error.CompileError;
                 if (retval == null) {
                     retval = arg_type;
                 }
@@ -299,19 +306,19 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             return retval.?;
         },
         .bit_not => {
-            const expr_type = try self.typecheck_AST(ast.expr(), expected);
+            const expr_type = self.typecheck_AST(ast.expr(), expected) catch return error.CompileError;
             try typing_.type_check_bits(ast.token().span, expr_type, &self.ctx.errors);
             return expr_type;
         },
         .left_shift, .right_shift => {
-            const lhs_type = try self.typecheck_AST(ast.lhs(), expected);
-            _ = try self.typecheck_AST(ast.rhs(), expected);
+            const lhs_type = self.typecheck_AST(ast.lhs(), expected) catch return error.CompileError;
+            _ = self.typecheck_AST(ast.rhs(), expected) catch return error.CompileError;
             try typing_.type_check_bits(ast.token().span, lhs_type, &self.ctx.errors);
             return lhs_type;
         },
         .call => {
             const lhs_span = ast.lhs().token().span;
-            var lhs_type = try self.typecheck_AST(ast.lhs(), null);
+            var lhs_type = self.typecheck_AST(ast.lhs(), null) catch return error.CompileError;
             const expanded_lhs_type = lhs_type.expand_identifier();
             if (ast.lhs().* != .enum_value and expanded_lhs_type.* != .function) {
                 return typing_.throw_wrong_from(
@@ -336,8 +343,8 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
         },
         .index => {
             const lhs_span = ast.lhs().token().span; // Used for error reporting
-            const lhs_type = try self.typecheck_AST(ast.lhs(), null);
-            _ = try self.typecheck_AST(ast.rhs(), prelude_.int_type);
+            const lhs_type = self.typecheck_AST(ast.lhs(), null) catch return error.CompileError;
+            _ = self.typecheck_AST(ast.rhs(), prelude_.int_type) catch return error.CompileError;
 
             const expanded_lhs_type = try self.implicit_dereference(ast, lhs_type.expand_identifier());
 
@@ -369,7 +376,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             }
         },
         .select => {
-            const lhs_type = try self.typecheck_AST(ast.lhs(), null);
+            const lhs_type = self.typecheck_AST(ast.lhs(), null) catch return error.CompileError;
             const expanded_lhs_type = try self.implicit_dereference(ast, lhs_type.expand_identifier());
 
             if (ast.pos() == null) {
@@ -386,7 +393,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
 
         .invoke => {
             // true_lhs_type is lhs's type
-            const true_lhs_type = try self.typecheck_AST(ast.lhs(), null);
+            const true_lhs_type = self.typecheck_AST(ast.lhs(), null) catch return error.CompileError;
             // method_decl is the method_decl AST of the method being invoked
             var method_decl: ?*ast_.AST = undefined;
             if (true_lhs_type.expand_identifier().* == .dyn_type) {
@@ -408,7 +415,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 });
                 return error.CompileError;
             }
-            _ = try self.typecheck_AST(method_decl.?, null);
+            _ = self.typecheck_AST(method_decl.?, null) catch return error.CompileError;
             ast.invoke.method_decl = method_decl.?;
             const domain: *Type_AST = method_decl.?.method_decl.domain.?;
             const expanded_true_lhs_type = true_lhs_type.expand_identifier();
@@ -442,7 +449,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             return ast.invoke.method_decl.?.method_decl.ret_type;
         },
         .dyn_value => {
-            const expr_type = try self.typecheck_AST(ast.expr(), null);
+            const expr_type = self.typecheck_AST(ast.expr(), null) catch return error.CompileError;
             try self.ctx.validate_type.validate(ast.dyn_value.dyn_type);
 
             const impl = ast.scope().?.impl_trait_lookup(expr_type, ast.dyn_value.dyn_type.child().symbol().?);
@@ -486,7 +493,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 terms = std.ArrayList(*Type_AST).init(self.ctx.allocator());
                 // Not expecting anything
                 for (0..ast.children().items.len) |i| {
-                    const term_type = try self.typecheck_AST(ast.children().items[i], null);
+                    const term_type = self.typecheck_AST(ast.children().items[i], null) catch return error.CompileError;
                     terms.append(term_type) catch unreachable;
                 }
             } else if (expanded_expected != null and expanded_expected.?.* == .tuple_type) {
@@ -508,9 +515,9 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 return typing_.throw_wrong_from("array", "array value", expanded_expanded.?, ast.token().span, &self.ctx.errors);
             }
             const elem_type = if (expanded_expanded == null) null else expanded_expanded.?.array_of._child;
-            const first_type = try self.typecheck_AST(ast.children().items[0], elem_type);
+            const first_type = self.typecheck_AST(ast.children().items[0], elem_type) catch return error.CompileError;
             for (ast.children().items[1..]) |child| {
-                _ = try self.typecheck_AST(child, first_type);
+                _ = self.typecheck_AST(child, first_type) catch return error.CompileError;
             }
             return Type_AST.create_array_of(ast.token(), first_type, ast_.AST.create_int(ast.token(), ast.children().items.len, self.ctx.allocator()), self.ctx.allocator());
         },
@@ -518,7 +525,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             // FIXME: High cyclo
             if (expected == null) {
                 // Not expecting anything, just validate expr
-                const child_type = try self.typecheck_AST(ast.expr(), null);
+                const child_type = self.typecheck_AST(ast.expr(), null) catch return error.CompileError;
                 try self.validate_L_Value(ast.expr());
                 return Type_AST.create_addr_of(ast.token(), child_type, ast.addr_of.mut, ast.addr_of.multiptr, self.ctx.allocator());
             } else {
@@ -534,7 +541,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                         ast.addr_of.mut,
                         self.ctx.allocator(),
                     ).*;
-                    return try self.typecheck_AST(ast, expected);
+                    return self.typecheck_AST(ast, expected);
                 } else if (expanded_expected.* != .addr_of) {
                     // Didn't expect an address type. Validate expr and report error
                     return typing_.throw_unexpected_type(ast.token().span, expected.?, poison_.poisoned_type, &self.ctx.errors);
@@ -542,7 +549,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 _ = expanded_expected.child().expand_identifier();
 
                 // Everythings Ok.
-                const child_type = try self.typecheck_AST(ast.expr(), expanded_expected.child());
+                const child_type = self.typecheck_AST(ast.expr(), expanded_expected.child()) catch return error.CompileError;
                 if (ast.expr().* != .tuple_value) {
                     // Validate that expr is an L-value *only if* expr is not a tuple
                     // It is possible to take a addr of a tuple. The address is the address of the temporary
@@ -556,7 +563,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             }
         },
         .slice_of => {
-            const expr_type = try self.typecheck_AST(ast.expr(), null);
+            const expr_type = self.typecheck_AST(ast.expr(), null) catch return error.CompileError;
 
             // ast.expr() must be homotypical tuple type of expected
             if (expr_type.* != .array_of) {
@@ -578,13 +585,13 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             }
             const retval = Type_AST.create_slice_type(expr_type.child(), ast.slice_of.mut, self.ctx.allocator());
             ast.* = ast_.AST.create_slice_value(ast.expr(), ast.slice_of.mut, expr_type, self.ctx.allocator()).*;
-            _ = try self.typecheck_AST(ast, null);
+            _ = self.typecheck_AST(ast, null) catch return error.CompileError;
             return retval;
         },
         .sub_slice => {
-            const super_type = try self.typecheck_AST(ast.sub_slice.super, null);
-            _ = try self.typecheck_AST(ast.sub_slice.lower.?, null); // lower and upper should exist
-            _ = try self.typecheck_AST(ast.sub_slice.upper.?, null); // they are set in expand phase
+            const super_type = self.typecheck_AST(ast.sub_slice.super, null) catch return error.CompileError;
+            _ = self.typecheck_AST(ast.sub_slice.lower.?, null) catch return error.CompileError; // lower and upper should exist
+            _ = self.typecheck_AST(ast.sub_slice.upper.?, null) catch return error.CompileError; // they are set in expand phase
             if (super_type.* != .struct_type or !super_type.struct_type.was_slice) {
                 self.ctx.errors.add_error(errs_.Error{ .basic = .{
                     .span = ast.token().span,
@@ -594,6 +601,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             }
             return super_type;
         },
+
         .enum_value => {
             if (ast.enum_value.base == null and expected == null) {
                 self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "cannot infer type for initializer" } });
@@ -621,16 +629,16 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 ast.enum_value.init = ast.enum_value.domain.?.annotation.init orelse
                     try defaults_.generate_default(ast.enum_value.domain.?.child(), ast.token().span, &self.ctx.errors, self.ctx.allocator());
             }
-            _ = try self.typecheck_AST(ast.enum_value.init.?, ast.enum_value.domain.?.child());
+            _ = self.typecheck_AST(ast.enum_value.init.?, ast.enum_value.domain.?.child()) catch return error.CompileError;
             return ast.enum_value.base.?;
         },
         .@"if" => {
             // FIXME: High cyclo
             if (ast.@"if".let) |let| {
-                _ = try self.typecheck_AST(let, null);
+                _ = self.typecheck_AST(let, null) catch return error.CompileError;
             }
 
-            _ = try self.typecheck_AST(ast.@"if".condition, prelude_.bool_type);
+            _ = self.typecheck_AST(ast.@"if".condition, prelude_.bool_type) catch return error.CompileError;
 
             // expecting a type
             var expected_type: ?*Type_AST = undefined;
@@ -652,10 +660,10 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 }
             }
 
-            const body_type = try self.typecheck_AST(ast.body_block(), expected_type);
+            const body_type = self.typecheck_AST(ast.body_block(), expected_type) catch return error.CompileError;
             var else_type: ?*Type_AST = null;
             if (ast.else_block() != null) {
-                else_type = try self.typecheck_AST(ast.else_block().?, expected_type);
+                else_type = self.typecheck_AST(ast.else_block().?, expected_type) catch return error.CompileError;
             }
             if (body_type.is_ident_type("Void") and ast.else_block() != null) {
                 return else_type.?;
@@ -670,15 +678,15 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
         },
         .match => {
             if (ast.match.let != null) {
-                _ = try self.typecheck_AST(ast.match.let.?, null);
+                _ = self.typecheck_AST(ast.match.let.?, null) catch return error.CompileError;
             }
-            const expr_type = try self.typecheck_AST(ast.expr(), null);
+            const expr_type = self.typecheck_AST(ast.expr(), null) catch return error.CompileError;
 
             const expanded_expr_type = expr_type.expand_identifier();
 
             var retval: ?*Type_AST = null;
             for (0..ast.children().items.len) |i| {
-                const child_type = try self.typecheck_AST(ast.children().items[i], expected);
+                const child_type = self.typecheck_AST(ast.children().items[i], expected) catch return error.CompileError;
                 if (!child_type.is_ident_type("Void")) {
                     retval = child_type;
                 }
@@ -688,19 +696,19 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             try self.ctx.validate_pattern.exhaustive_check(expanded_expr_type, ast.children(), ast.token().span);
             return retval orelse prelude_.void_type;
         },
-        .mapping => return try self.typecheck_AST(ast.rhs(), expected),
+        .mapping => return self.typecheck_AST(ast.rhs(), expected),
         .@"while" => {
             if (ast.@"while".let) |let| {
-                _ = try self.typecheck_AST(let, null);
+                _ = self.typecheck_AST(let, null) catch return error.CompileError;
             }
             if (ast.@"while".post) |post| {
-                _ = try self.typecheck_AST(post, null);
+                _ = self.typecheck_AST(post, null) catch return error.CompileError;
             }
-            _ = try self.typecheck_AST(ast.@"while".condition, prelude_.bool_type);
+            _ = self.typecheck_AST(ast.@"while".condition, prelude_.bool_type) catch return error.CompileError;
 
-            _ = try self.typecheck_AST(ast.body_block(), null);
+            _ = self.typecheck_AST(ast.body_block(), null) catch return error.CompileError;
             if (ast.else_block() != null) {
-                _ = try self.typecheck_AST(ast.else_block().?, null);
+                _ = self.typecheck_AST(ast.else_block().?, null) catch return error.CompileError;
             }
 
             return prelude_.unit_type;
@@ -709,7 +717,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             var last_type: ?*Type_AST = null;
             for (0..ast.children().items.len) |i| {
                 const expected_type: ?*Type_AST = if (ast.block.final == null and i == ast.children().items.len - 1) expected else null;
-                const statement_type = try self.typecheck_AST(ast.children().items[i], expected_type);
+                const statement_type = self.typecheck_AST(ast.children().items[i], expected_type) catch return error.CompileError;
                 const statement = ast.children().items[i];
                 last_type = statement_type;
                 // A middle-statement is any but the last statement if there is no final, or any statement if there is a final
@@ -722,7 +730,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 }
             }
             if (ast.block.final) |final| {
-                _ = try self.typecheck_AST(final, expected);
+                _ = self.typecheck_AST(final, expected) catch return error.CompileError;
                 return prelude_.void_type;
             } else if (ast.children().items.len == 0) {
                 return prelude_.unit_type;
@@ -733,14 +741,14 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
         .@"break", .@"continue", .@"unreachable" => return prelude_.void_type,
         .@"return" => {
             if (ast.@"return"._ret_expr) |expr| {
-                _ = try self.typecheck_AST(expr, ast.symbol().?.type().rhs());
+                _ = self.typecheck_AST(expr, ast.symbol().?.type().rhs()) catch return error.CompileError;
             } else if (expected != null and (expected.?.expand_identifier()).* != .unit_type) {
                 return typing_.throw_unexpected_type(ast.token().span, expected.?, prelude_.void_type, &self.ctx.errors);
             }
             return prelude_.void_type;
         },
         .@"defer", .@"errdefer" => {
-            _ = try self.typecheck_AST(ast.statement(), null);
+            _ = self.typecheck_AST(ast.statement(), null) catch return error.CompileError;
             return prelude_.unit_type;
         },
         .fn_decl => {
@@ -761,7 +769,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             // ast.decl.type = try self.typecheck_AST(ast.decl.type, prelude_.type_type);
             try self.ctx.validate_type.validate(ast.decl.type);
             if (ast.decl.init) |_init| {
-                _ = try self.typecheck_AST(_init, ast.decl.type);
+                _ = self.typecheck_AST(_init, ast.decl.type) catch return error.CompileError;
             }
             try self.ctx.validate_symbol.validate(ast.decl.name.symbol().?);
             return prelude_.unit_type;
@@ -769,7 +777,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
         .binding => {
             try self.ctx.validate_type.validate(ast.binding.type);
             if (ast.binding.init) |_init| {
-                _ = try self.typecheck_AST(_init, ast.binding.type);
+                _ = self.typecheck_AST(_init, ast.binding.type) catch return error.CompileError;
             }
             for (ast.binding.decls.items) |decl| {
                 try self.ctx.validate_symbol.validate(decl.decl.name.symbol().?);
@@ -777,7 +785,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             try self.ctx.validate_pattern.assert_pattern_matches(ast.binding.pattern, ast.binding.type);
             return prelude_.unit_type;
         },
-        else => std.debug.panic("compiler error: try self.typecheck_AST() unimplemented for {s}", .{@tagName(ast.*)}),
+        else => std.debug.panic("compiler error: typecheck_AST() unimplemented for {s}", .{@tagName(ast.*)}),
     }
 }
 
@@ -790,11 +798,11 @@ pub fn binary_operator_open(
     ast: *ast_.AST,
     expected: ?*Type_AST,
 ) Validate_Error_Enum!*Type_AST {
-    const lhs_type = try self.typecheck_AST(ast.lhs(), expected);
+    const lhs_type = self.typecheck_AST(ast.lhs(), expected) catch return error.CompileError;
     if (ast.lhs().* == .identifier and ast.lhs().symbol().?.refers_to_type()) {
         return error.CompileError;
     }
-    _ = try self.typecheck_AST(ast.rhs(), lhs_type);
+    _ = self.typecheck_AST(ast.rhs(), lhs_type) catch return error.CompileError;
     return lhs_type;
 }
 
@@ -811,12 +819,12 @@ pub fn validate_args_type(
     errdefer terms.deinit();
     for (0..expected_length) |i| {
         const param_type = if (expected.* == .struct_type or expected.* == .tuple_type) expected.children().items[i] else expected;
-        const term_type = try self.typecheck_AST(args.items[i], param_type);
+        const term_type = self.typecheck_AST(args.items[i], param_type) catch return error.CompileError;
         terms.append(term_type) catch unreachable;
     }
     if (variadic) {
         for (expected_length..args.items.len) |i| {
-            const term_type = try self.typecheck_AST(args.items[i], null);
+            const term_type = self.typecheck_AST(args.items[i], null) catch return error.CompileError;
             terms.append(term_type) catch unreachable;
         }
     }
@@ -848,7 +856,7 @@ fn implicit_dereference(self: *Self, ast: *ast_.AST, old_lhs_type: *Type_AST) Va
     var lhs_type = old_lhs_type;
     if (lhs_type.* == .addr_of and !lhs_type.addr_of.multiptr) {
         ast.set_lhs(ast_.AST.create_dereference(ast.token(), ast.lhs(), self.ctx.allocator()));
-        lhs_type = (try self.typecheck_AST(ast.lhs(), null)).expand_identifier();
+        lhs_type = (self.typecheck_AST(ast.lhs(), null) catch return error.CompileError).expand_identifier();
     }
     try poison_.assert_none_poisoned(.{ ast.lhs(), lhs_type });
     return lhs_type;

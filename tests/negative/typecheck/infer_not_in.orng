@@ -1,4 +1,4 @@
-// infer_not_in.orng:8:24: error: member `d` not in sum `My_Type`
+// infer_not_in.orng:8:24: error: member `d` not in enum `My_Type`
 //     let x: My_Type = .d
 //                       ^
 // 

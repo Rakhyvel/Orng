@@ -1,6 +1,6 @@
-// self_referential_const.orng:5:8: error: error: recursive definition of symbol `x` detected
+// self_referential_const.orng:5:19: error: error: recursive definition detected
 // const x = comptime{x}
-//       ^
+//                  ^
 // 
 const x = comptime{x}
 

@@ -1,6 +1,6 @@
-// r38.orng:6:10: error: no default value for type `()->()`
+// r38.orng:6:21: error: no default value for type `()->()`
 //     const a: @typeof( fn () -> () { } )
-//         ^
+//                    ^
 // 
 fn main() -> Int { 
     const a: @typeof( fn () -> () { } )

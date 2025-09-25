@@ -1,4 +1,4 @@
-// r14.orng:6:18: error: not integer literal
+// r14.orng:6:18: error: not a constant integer
 //     let mut x : [unreachable] Int
 //                 ^
 // 
