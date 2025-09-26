@@ -50,6 +50,11 @@ pub const Type_AST = union(enum) {
         inner_access: *AST,
         _symbol: ?*Symbol = null,
     },
+    generic_apply: struct {
+        common: Type_AST_Common,
+        _lhs: *Type_AST,
+        args: std.ArrayList(*Type_AST),
+    },
     function: struct {
         common: Type_AST_Common,
         _lhs: *Type_AST,
@@ -221,6 +226,15 @@ pub const Type_AST = union(enum) {
         return Type_AST.box(Type_AST{ .access = .{
             .common = _common,
             .inner_access = inner_access,
+        } }, allocator);
+    }
+
+    pub fn create_generic_apply(_token: Token, _lhs: *Type_AST, args: std.ArrayList(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
+        const _common: Type_AST_Common = .{ ._token = _token };
+        return Type_AST.box(Type_AST{ .generic_apply = .{
+            .common = _common,
+            ._lhs = _lhs,
+            .args = args,
         } }, allocator);
     }
 
@@ -546,6 +560,7 @@ pub const Type_AST = union(enum) {
 
     pub fn children(self: *const Type_AST) *const std.ArrayList(*Type_AST) {
         return switch (self.*) {
+            .generic_apply => &self.generic_apply.args,
             .enum_type => &self.enum_type._terms,
             .untagged_sum_type => self.child().expand_identifier().children(),
             .struct_type => &self.struct_type._terms,
@@ -699,6 +714,13 @@ pub const Type_AST = union(enum) {
             },
             .access => {
                 try out.print("{}", .{self.access.inner_access});
+            },
+            .generic_apply => {
+                try out.print("{}[{}", .{ self.generic_apply._lhs, self.generic_apply.args.items[0] });
+                for (self.generic_apply.args.items[1..]) |arg| {
+                    try out.print(", {}", .{arg});
+                }
+                try out.print("]", .{});
             },
             .annotation => {
                 try out.print("{s}: ", .{self.annotation.pattern.token().data});
@@ -944,6 +966,7 @@ pub const Type_AST = union(enum) {
                     return false;
                 }
                 var retval = true;
+                // need to make sure the types and variant names match
                 for (A.children().items, B.children().items) |term, B_term| {
                     const this_name = term.annotation.pattern.token().data;
                     const B_name = B_term.annotation.pattern.token().data;

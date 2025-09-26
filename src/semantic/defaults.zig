@@ -94,6 +94,7 @@ pub fn generate_default(_type: *Type_AST, span: Span, errors: *errs_.Errors, all
         .type_of,
         .domain_of,
         .index,
+        .generic_apply, // TODO: This should be possible I think
         => std.debug.panic("compiler error: unimplemented generate_default() for: AST.{s}", .{@tagName(_type.*)}),
     }
 }

@@ -154,6 +154,7 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
                         with_decl.token(),
                         with_decl.decl.name,
                         decl_init,
+                        std.ArrayList(*ast_.AST).init(compiler.allocator()),
                         compiler.allocator(),
                     );
                     const_decls.append(decl) catch unreachable;

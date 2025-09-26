@@ -86,6 +86,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .receiver,
         .template,
         .identifier,
+        .type_param_decl,
         .import,
         => {},
 
@@ -94,6 +95,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .type_alias,
         => {
             try walk_type(ast.decl_typedef(), new_context);
+            try walk_asts(ast.generic_params(), new_context);
         },
 
         .module => std.debug.panic("compiler error: walking over modules not implemented!\n", .{}),
@@ -283,6 +285,11 @@ pub fn walk_type(maybe_type: ?*Type_AST, context: anytype) Error!void {
         .type_of => try walk_ast(_type.type_of._expr, new_context),
 
         .access => try walk_ast(_type.access.inner_access, new_context),
+
+        .generic_apply => {
+            try walk_type(_type.lhs(), new_context);
+            try walk_types(_type.children(), new_context);
+        },
 
         .array_of => {
             try walk_type(_type.child(), new_context);

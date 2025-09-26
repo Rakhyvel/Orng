@@ -375,6 +375,7 @@ fn create_type_alias_symbol(name: []const u8, _type: *Type_AST, repr_ident: *Typ
         token,
         ast_.AST.create_pattern_symbol(token, .type, .local, name, allocator),
         _type,
+        std.ArrayList(*ast_.AST).init(allocator),
         allocator,
     );
     var symbol = Symbol.init(
@@ -399,6 +400,7 @@ fn create_c_extern_symbol(name: []const u8, c_name: []const u8, allocator: std.m
         token,
         ast_.AST.create_pattern_symbol(token, .type, storage, name, allocator),
         null,
+        std.ArrayList(*ast_.AST).init(allocator),
         allocator,
     );
     var symbol = Symbol.init(

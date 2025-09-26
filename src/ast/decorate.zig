@@ -59,7 +59,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             return self;
         },
 
-        .@"if", .match, .mapping, .@"while", .@"for", .block, .impl, .trait => {
+        .@"if", .match, .mapping, .@"while", .@"for", .block, .impl, .trait, .struct_decl, .enum_decl, .type_alias => {
             var new_context = self;
             new_context.scope = ast.scope().?;
             return new_context;

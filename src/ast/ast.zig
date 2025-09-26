@@ -364,25 +364,35 @@ pub const AST = union(enum) {
             }
         }
     },
+    type_param_decl: struct {
+        common: AST_Common,
+        _symbol: ?*Symbol = null,
+    },
     struct_decl: struct {
         common: AST_Common,
         name: *AST,
         fields: std.ArrayList(*Type_AST),
+        _generic_params: std.ArrayList(*AST),
         _type: *Type_AST,
         _symbol: ?*Symbol = null,
+        _scope: ?*Scope = null,
     },
     enum_decl: struct {
         common: AST_Common,
         name: *AST,
         fields: std.ArrayList(*Type_AST),
+        _generic_params: std.ArrayList(*AST),
         _type: *Type_AST,
         _symbol: ?*Symbol = null,
+        _scope: ?*Scope = null,
     },
     type_alias: struct {
         common: AST_Common,
         name: *AST,
         init: ?*Type_AST,
+        _generic_params: std.ArrayList(*AST),
         _symbol: ?*Symbol = null,
+        _scope: ?*Scope = null,
     },
     method_decl: struct {
         common: AST_Common,
@@ -1122,16 +1132,27 @@ pub const AST = union(enum) {
         } }, allocator);
     }
 
+    pub fn create_type_param_decl(
+        _token: Token,
+        allocator: std.mem.Allocator,
+    ) *AST {
+        return AST.box(AST{ .type_param_decl = .{
+            .common = AST_Common{ ._token = _token },
+        } }, allocator);
+    }
+
     pub fn create_struct_decl(
         _token: Token,
         name: *AST,
         fields: std.ArrayList(*Type_AST),
+        _generic_params: std.ArrayList(*AST),
         allocator: std.mem.Allocator,
     ) *AST {
         return AST.box(AST{ .struct_decl = .{
             .common = AST_Common{ ._token = _token },
             .name = name,
             .fields = fields,
+            ._generic_params = _generic_params,
             ._type = Type_AST.create_struct_type(_token, fields, allocator),
         } }, allocator);
     }
@@ -1140,12 +1161,14 @@ pub const AST = union(enum) {
         _token: Token,
         name: *AST,
         fields: std.ArrayList(*Type_AST),
+        _generic_params: std.ArrayList(*AST),
         allocator: std.mem.Allocator,
     ) *AST {
         return AST.box(AST{ .enum_decl = .{
             .common = AST_Common{ ._token = _token },
             .name = name,
             .fields = fields,
+            ._generic_params = _generic_params,
             ._type = Type_AST.create_enum_type(_token, fields, allocator),
         } }, allocator);
     }
@@ -1154,12 +1177,14 @@ pub const AST = union(enum) {
         _token: Token,
         name: *AST,
         init: ?*Type_AST,
+        _generic_params: std.ArrayList(*AST),
         allocator: std.mem.Allocator,
     ) *AST {
         return AST.box(AST{ .type_alias = .{
             .common = AST_Common{ ._token = _token },
             .name = name,
             .init = init,
+            ._generic_params = _generic_params,
         } }, allocator);
     }
 
@@ -1459,6 +1484,7 @@ pub const AST = union(enum) {
                 retval.enum_value.init = self.enum_value.init;
                 return retval;
             },
+            .type_param_decl => return create_type_param_decl(self.token(), allocator),
             .struct_value => {
                 const cloned_terms = clone_children(self.children().*, substs, allocator);
                 var retval = create_struct_value(
@@ -1488,10 +1514,12 @@ pub const AST = union(enum) {
             },
             .struct_decl => {
                 const cloned_terms = Type_AST.clone_types(self.struct_decl.fields, substs, allocator);
+                const cloned_generic_params = clone_children(self.struct_decl._generic_params, substs, allocator);
                 var retval = create_struct_decl(
                     self.token(),
                     self.struct_decl.name.clone(substs, allocator),
-                    cloned_terms, // TODO: clone types
+                    cloned_terms,
+                    cloned_generic_params,
                     allocator,
                 );
                 retval.set_symbol(self.symbol());
@@ -1499,20 +1527,24 @@ pub const AST = union(enum) {
             },
             .enum_decl => {
                 const cloned_terms = Type_AST.clone_types(self.enum_decl.fields, substs, allocator);
+                const cloned_generic_params = clone_children(self.enum_decl._generic_params, substs, allocator);
                 var retval = create_enum_decl(
                     self.token(),
                     self.enum_decl.name.clone(substs, allocator),
                     cloned_terms,
+                    cloned_generic_params,
                     allocator,
                 );
                 retval.set_symbol(self.symbol());
                 return retval;
             },
             .type_alias => {
+                const cloned_generic_params = clone_children(self.type_alias._generic_params, substs, allocator);
                 var retval = create_type_alias(
                     self.token(),
                     self.type_alias.name.clone(substs, allocator),
                     if (self.type_alias.init == null) null else self.type_alias.init.?.clone(substs, allocator),
+                    cloned_generic_params,
                     allocator,
                 );
                 retval.set_symbol(self.symbol());
@@ -1824,6 +1856,7 @@ pub const AST = union(enum) {
             .struct_decl => self.struct_decl._type,
             .enum_decl => self.enum_decl._type,
             .type_alias => self.type_alias.init,
+            .type_param_decl => null, // No type... yet!
             else => std.debug.panic("compiler error: cannot call `.decl_typedef()` on the AST `{s}`", .{@tagName(self.*)}),
         };
     }
@@ -1843,6 +1876,15 @@ pub const AST = union(enum) {
             .method_decl => &self.method_decl._param_symbols,
             .@"test" => null,
             else => std.debug.panic("compiler error: cannot call `.param_symbols()` on the AST `{s}`", .{@tagName(self.*)}),
+        };
+    }
+
+    pub fn generic_params(self: *AST) *std.ArrayList(*AST) {
+        return switch (self.*) {
+            .struct_decl => &self.struct_decl._generic_params,
+            .enum_decl => &self.enum_decl._generic_params,
+            .type_alias => &self.type_alias._generic_params,
+            else => std.debug.panic("compiler error: cannot call `.generic_params()` on the AST `{}`", .{self.*}),
         };
     }
 
@@ -2125,6 +2167,7 @@ pub const AST = union(enum) {
             .enum_value => {
                 try out.writer().print("enum_value(.name={s}, .init={?}, .tag={?})", .{ self.enum_value.get_name(), self.enum_value.init, self.enum_value._pos });
             },
+            .type_param_decl => try out.writer().print("type_param_decl({s})", .{self.type_param_decl.common._token.data}),
             .struct_decl => {
                 try out.writer().print("struct()", .{});
             },

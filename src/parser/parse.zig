@@ -413,6 +413,9 @@ fn postfix_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
                 ast_.AST.create_field(try self.expect(.identifier), self.allocator),
                 self.allocator,
             );
+        } else if (self.peek_kind(.left_square)) {
+            const args = try self.generics_args();
+            exp = Type_AST.create_generic_apply(exp.token(), exp, args, self.allocator);
         } else {
             if (val_access) |val| {
                 return Type_AST.create_access(val.token(), val, self.allocator);
@@ -986,6 +989,20 @@ fn call_args(self: *Self) Parser_Error_Enum!std.ArrayList(*ast_.AST) {
     return retval;
 }
 
+fn generics_args(self: *Self) Parser_Error_Enum!std.ArrayList(*Type_AST) {
+    _ = try self.expect(.left_square);
+    var retval = std.ArrayList(*Type_AST).init(self.allocator);
+    retval.append(try self.type_expr()) catch unreachable;
+    while (self.accept(.comma)) |_| {
+        if (self.peek_kind(.right_square)) {
+            break;
+        }
+        retval.append(try self.type_expr()) catch unreachable;
+    }
+    _ = try self.expect(.right_square);
+    return retval;
+}
+
 fn call_type_args(self: *Self) Parser_Error_Enum!std.ArrayList(*Type_AST) {
     _ = try self.expect(.left_parenthesis);
     var retval = std.ArrayList(*Type_AST).init(self.allocator);
@@ -1263,6 +1280,9 @@ fn struct_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     _ = try self.expect(.@"struct");
     const identifier = try self.expect(.identifier);
     const name = ast_.AST.create_pattern_symbol(identifier, .type, .local, identifier.data, self.allocator);
+
+    const gen_params = try self.generic_params();
+
     _ = try self.expect(.left_brace);
 
     var fields = std.ArrayList(*Type_AST).init(self.allocator);
@@ -1291,13 +1311,16 @@ fn struct_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     }
 
     _ = try self.expect(.right_brace);
-    return ast_.AST.create_struct_decl(identifier, name, fields, self.allocator);
+    return ast_.AST.create_struct_decl(identifier, name, fields, gen_params, self.allocator);
 }
 
 fn enum_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     _ = try self.expect(.@"enum");
     const identifier = try self.expect(.identifier);
     const name = ast_.AST.create_pattern_symbol(identifier, .type, .local, identifier.data, self.allocator);
+
+    const gen_params = try self.generic_params();
+
     _ = try self.expect(.left_brace);
 
     var fields: std.ArrayList(*Type_AST) = std.ArrayList(*Type_AST).init(self.allocator);
@@ -1325,7 +1348,7 @@ fn enum_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     self.newlines();
 
     _ = try self.expect(.right_brace);
-    return ast_.AST.create_enum_decl(identifier, name, fields, self.allocator);
+    return ast_.AST.create_enum_decl(identifier, name, fields, gen_params, self.allocator);
 }
 
 fn type_alias_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
@@ -1333,13 +1356,31 @@ fn type_alias_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     const identifier = try self.expect(.identifier);
     const name = ast_.AST.create_pattern_symbol(identifier, .type, .local, identifier.data, self.allocator);
 
+    const gen_params = try self.generic_params();
+
     var _init: ?*Type_AST = null;
 
     if (self.accept(.single_equals)) |_| {
         _init = try self.type_expr();
     }
 
-    return ast_.AST.create_type_alias(identifier, name, _init, self.allocator);
+    return ast_.AST.create_type_alias(identifier, name, _init, gen_params, self.allocator);
+}
+
+fn generic_params(self: *Self) Parser_Error_Enum!std.ArrayList(*ast_.AST) {
+    var params = std.ArrayList(*ast_.AST).init(self.allocator);
+    if (self.accept(.left_square) != null) {
+        while (!self.peek_kind(.right_square)) {
+            const param_token = try self.expect(.identifier);
+            const param_ident = ast_.AST.create_type_param_decl(param_token, self.allocator);
+            params.append(param_ident) catch unreachable;
+            if (self.accept(.comma) == null) {
+                break;
+            }
+        }
+        _ = try self.expect(.right_square);
+    }
+    return params;
 }
 
 fn trait_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {

@@ -1,0 +1,9 @@
+// 360
+struct List[T] {
+    items: [5]T,
+}
+
+fn main() -> Int {
+    let x: List[Int]
+    x.items[2] = 360
+}

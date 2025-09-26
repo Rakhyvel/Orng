@@ -105,7 +105,7 @@ pub fn assert_init_valid(self: *Self) *Self {
 }
 
 pub fn refers_to_type(self: *const Self) bool {
-    return self.decl.?.* == .struct_decl or self.decl.?.* == .enum_decl or self.decl.?.* == .type_alias;
+    return self.decl.?.* == .struct_decl or self.decl.?.* == .enum_decl or self.decl.?.* == .type_alias or self.decl.?.* == .type_param_decl;
 }
 
 pub fn @"type"(self: *const Self) *Type_AST {

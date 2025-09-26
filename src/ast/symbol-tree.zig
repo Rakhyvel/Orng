@@ -102,12 +102,31 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         },
 
         .struct_decl, .enum_decl, .type_alias => {
+            var new_self = self;
+            new_self.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
+
             const symbol = Symbol.init(
                 self.scope,
                 ast.decl_name().token().data,
                 ast,
                 .type,
                 ast.decl_name().pattern_symbol.storage,
+                self.allocator,
+            );
+            try self.register_symbol(ast, symbol);
+
+            ast.set_scope(new_self.scope);
+            return new_self;
+        },
+
+        .type_param_decl => {
+            std.debug.print("could define a type param {s}...\n", .{ast.token().data});
+            const symbol = Symbol.init(
+                self.scope,
+                ast.token().data,
+                ast,
+                .type,
+                .local,
                 self.allocator,
             );
             try self.register_symbol(ast, symbol);
@@ -158,6 +177,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                     self.allocator,
                 ),
                 null,
+                std.ArrayList(*ast_.AST).init(self.allocator),
                 self.allocator,
             );
             try walk_.walk_ast(self_type_decl, new_self);
@@ -186,6 +206,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                     self.allocator,
                 ),
                 ast.impl._type,
+                std.ArrayList(*ast_.AST).init(self.allocator),
                 self.allocator,
             );
             try walk_.walk_ast(self_type_decl, new_self);
