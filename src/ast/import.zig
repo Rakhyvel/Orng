@@ -118,7 +118,8 @@ fn unwrap_access_imports(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.
                 .init = null,
                 .decls = std.ArrayList(*ast_.AST).init(self.compiler.allocator()),
             } };
-            _ = try self.resolve_import(ast.binding.pattern);
+            const symb = try self.resolve_import(ast.binding.pattern);
+            symb.defined = true;
         }
     }
 
