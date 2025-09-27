@@ -120,7 +120,6 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         },
 
         .type_param_decl => {
-            std.debug.print("could define a type param {s}...\n", .{ast.token().data});
             const symbol = Symbol.init(
                 self.scope,
                 ast.token().data,

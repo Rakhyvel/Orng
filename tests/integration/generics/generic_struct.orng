@@ -4,6 +4,7 @@ struct List[T] {
 }
 
 fn main() -> Int {
-    let x: List[Int]
+    let mut x: List[Int]
     x.items[2] = 360
+    x.items[2]
 }

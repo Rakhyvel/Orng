@@ -620,6 +620,9 @@ pub const Type_AST = union(enum) {
         if (self.* == .annotation) {
             return self.child().expand_identifier();
         }
+        if (self.* == .generic_apply) {
+            return self.generic_apply.mono.?;
+        }
         var res = self;
         while ((res.* == .identifier or res.* == .access) and res.symbol().?.init_typedef() != null) {
             const new = res.symbol().?.init_typedef().?;
