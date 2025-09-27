@@ -2317,7 +2317,7 @@ pub const AST = union(enum) {
                         try out.writer().print(",", .{});
                     }
                 }
-                try out.writer().print("])", .{});
+                try out.writer().print("], .ret_type={})", .{self.method_decl.ret_type});
             },
             .@"test" => try out.writer().print("test(.name={?})", .{self.@"test".name}),
             .@"defer" => try out.writer().print("defer()", .{}),

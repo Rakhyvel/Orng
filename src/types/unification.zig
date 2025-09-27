@@ -6,6 +6,11 @@ pub const Substitutions = std.StringArrayHashMap(*Type_AST);
 
 // Attempt to match the rhs with the lhs
 pub fn unify(lhs: *Type_AST, rhs: *Type_AST, withs: std.ArrayList(*ast_.AST), subst: *Substitutions) !void {
+    if (lhs.* == .identifier and lhs.symbol().?.decl.?.* == .type_alias and lhs.symbol().?.init_typedef() != null) {
+        return try unify(lhs.symbol().?.init_typedef().?, rhs, withs, subst);
+    } else if (rhs.* == .identifier and rhs.symbol().?.decl.?.* == .type_alias and rhs.symbol().?.init_typedef() != null) {
+        return try unify(lhs, rhs.symbol().?.init_typedef().?, withs, subst);
+    }
     switch (lhs.*) {
         .identifier => {
             if (identifier_is_type_param(lhs, withs)) |_| {
@@ -14,7 +19,6 @@ pub fn unify(lhs: *Type_AST, rhs: *Type_AST, withs: std.ArrayList(*ast_.AST), su
             }
 
             if (rhs.* != .identifier or !std.mem.eql(u8, lhs.token().data, rhs.token().data)) {
-                std.debug.print("unable to unify {s} with {s}\n", .{ lhs.token().data, rhs.token().data });
                 return error.TypesMismatch;
             }
         },
