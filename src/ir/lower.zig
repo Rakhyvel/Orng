@@ -301,7 +301,7 @@ fn lower_AST_inner(
         },
         .index => {
             const lhs = (try self.lower_AST(ast.lhs(), labels)) orelse return null;
-            const rhs = (try self.lower_AST(ast.rhs(), labels)) orelse return null;
+            const rhs = (try self.lower_AST(ast.children().items[0], labels)) orelse return null;
             var new_lhs = lhs;
 
             // Get the type of the index ast. This will determine if this is an array index or a slice index

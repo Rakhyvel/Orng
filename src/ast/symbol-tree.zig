@@ -352,7 +352,9 @@ fn create_symbol(
             for (pattern.children().items, 0..) |term, i| {
                 const index = ast_.AST.create_int(pattern.token(), i, allocator);
                 const new_type: *Type_AST = Type_AST.create_index(_type.token(), _type, index, allocator);
-                const new_init: *ast_.AST = ast_.AST.create_index(init.?.token(), init.?, index, allocator);
+                var index_rhs = std.ArrayList(*ast_.AST).init(allocator);
+                index_rhs.append(index) catch unreachable;
+                const new_init: *ast_.AST = ast_.AST.create_index(init.?.token(), init.?, index_rhs, allocator);
                 try create_symbol(symbols, term, decl, new_type, new_init, scope, errors, allocator);
             }
         },

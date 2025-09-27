@@ -7,5 +7,5 @@ struct Recurse[T] {
 
 fn main() -> Int {
     let r = Recurse[Int](.next = .none, .value = 372)
-    r.value
+   r.value
 }

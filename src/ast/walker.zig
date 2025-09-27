@@ -130,7 +130,6 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .lesser_equal,
         .@"catch",
         .@"orelse",
-        .index,
         .select,
         .access,
         .left_shift,
@@ -144,7 +143,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             try walk_ast(ast.rhs(), new_context);
             try walk_asts(ast.children(), new_context);
         },
-        .call => {
+        .call, .index => {
             try walk_ast(ast.lhs(), new_context);
             try walk_asts(ast.children(), new_context);
         },

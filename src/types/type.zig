@@ -456,7 +456,9 @@ pub const Type_AST = union(enum) {
             .index => blk: {
                 const base = from_ast(ast.lhs(), allocator);
                 var args = std.ArrayList(*Type_AST).init(allocator);
-                args.append(from_ast(ast.rhs(), allocator)) catch unreachable;
+                for (ast.children().items) |arg| {
+                    args.append(from_ast(arg, allocator)) catch unreachable;
+                }
                 break :blk Type_AST.create_generic_apply(ast.token(), base, args, allocator);
             },
             else => unreachable, // or handle errors

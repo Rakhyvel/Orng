@@ -134,7 +134,7 @@ pub const AST = union(enum) {
     bit_not: struct { common: AST_Common, _expr: *AST },
     left_shift: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
     right_shift: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
-    index: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
+    index: struct { common: AST_Common, _lhs: *AST, _children: std.ArrayList(*AST) },
     select: struct {
         common: AST_Common,
         _lhs: *AST,
@@ -742,11 +742,11 @@ pub const AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn create_index(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
+    pub fn create_index(_token: Token, _lhs: *AST, _children: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
         return AST.box(AST{ .index = .{
             .common = AST_Common{ ._token = _token },
             ._lhs = _lhs,
-            ._rhs = _rhs,
+            ._children = _children,
         } }, allocator);
     }
 
@@ -1423,7 +1423,7 @@ pub const AST = union(enum) {
             .index => return create_index(
                 self.token(),
                 self.lhs().clone(substs, allocator),
-                self.rhs().clone(substs, allocator),
+                clone_children(self.children().*, substs, allocator),
                 allocator,
             ),
             .select => return create_select(
@@ -1780,6 +1780,7 @@ pub const AST = union(enum) {
     pub fn children(self: *AST) *std.ArrayList(*AST) {
         return switch (self.*) {
             .call => &self.call._args,
+            .index => &self.index._children,
             .struct_value => &self.struct_value._terms,
             .tuple_value => &self.tuple_value._terms,
             .array_value => &self.array_value._terms,
@@ -1985,10 +1986,12 @@ pub const AST = union(enum) {
     pub fn create_slice_value(_expr: *AST, _mut: bool, expr_type: *Type_AST, allocator: std.mem.Allocator) *AST {
         var new_terms = std.ArrayList(*AST).init(allocator);
         const zero = (AST.create_int(_expr.token(), 0, allocator));
+        var index_rhs = std.ArrayList(*AST).init(allocator);
+        index_rhs.append(zero) catch unreachable;
         const index = (AST.create_index(
             _expr.token(),
             _expr,
-            zero,
+            index_rhs,
             allocator,
         ));
         const addr = (AST.create_addr_of(
@@ -2163,7 +2166,16 @@ pub const AST = union(enum) {
             .bit_not => try out.writer().print("@bit_not({})", .{self.expr()}),
             .left_shift => try out.writer().print("@left_shift({}, {})", .{ self.lhs(), self.rhs() }),
             .right_shift => try out.writer().print("@right_shift({}, {})", .{ self.lhs(), self.rhs() }),
-            .index => try out.writer().print("index({}, {})", .{ self.lhs(), self.rhs() }),
+            .index => {
+                try out.writer().print("index(lhs={},args=[", .{self.index._lhs});
+                for (self.index._children.items, 0..) |item, i| {
+                    try out.writer().print("{}", .{item});
+                    if (i < self.index._children.items.len - 1) {
+                        try out.writer().print(",", .{});
+                    }
+                }
+                try out.writer().print("])", .{});
+            },
             .select => {
                 try out.writer().print("select({},{})", .{ self.lhs(), self.rhs() });
             },

@@ -344,7 +344,11 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
         .index => {
             const lhs_span = ast.lhs().token().span; // Used for error reporting
             const lhs_type = self.typecheck_AST(ast.lhs(), null) catch return error.CompileError;
-            _ = self.typecheck_AST(ast.rhs(), prelude_.int_type) catch return error.CompileError;
+            if (ast.children().items.len > 1) {
+                self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "too many indices" } });
+                return error.CompileError;
+            }
+            _ = self.typecheck_AST(ast.children().items[0], prelude_.int_type) catch return error.CompileError;
 
             const expanded_lhs_type = try self.implicit_dereference(ast, lhs_type.expand_identifier());
 
@@ -357,13 +361,13 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 }
             } else if (expanded_lhs_type.* == .tuple_type) {
                 // TODO: comptime expand the index
-                try walk_.walk_ast(ast.rhs(), Const_Eval.new(self.ctx));
-                if (ast.rhs().* != .int) {
+                try walk_.walk_ast(ast.children().items[0], Const_Eval.new(self.ctx));
+                if (ast.children().items[0].* != .int) {
                     self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "not a constant integer" } });
                     return error.CompileError;
                 }
-                const pos = ast.rhs().int.data;
-                ast.* = ast_.AST.create_select(ast.token(), ast.lhs(), ast.rhs(), self.ctx.allocator()).*;
+                const pos = ast.children().items[0].int.data;
+                ast.* = ast_.AST.create_select(ast.token(), ast.lhs(), ast.children().items[0], self.ctx.allocator()).*;
                 ast.set_pos(@as(usize, @intCast(pos)));
                 return self.typecheck_AST(ast, expected);
             } else if (expanded_lhs_type.* == .array_of) {

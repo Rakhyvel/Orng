@@ -929,13 +929,18 @@ fn postfix_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
                 exp = ast_.AST.create_sub_slice(token, exp, first, second, self.allocator);
             } else {
                 // Simple index
-                exp = ast_.AST.create_index(token, exp, first orelse {
+                var children = std.ArrayList(*ast_.AST).init(self.allocator);
+                children.append(first orelse {
                     self.errors.add_error(errs_.Error{ .expected_basic_token = .{
                         .expected = "an expression here",
                         .got = self.peek(),
                     } });
                     return Parser_Error_Enum.ParseError;
-                }, self.allocator);
+                }) catch unreachable;
+                while (self.accept(.comma)) |_| {
+                    children.append(try self.assignment_expr()) catch unreachable;
+                }
+                exp = ast_.AST.create_index(token, exp, children, self.allocator);
             }
             if (self.peek_kind(.right_square)) {
                 _ = self.expect(.right_square) catch {};
