@@ -1233,7 +1233,7 @@ fn paramlist(self: *Self) Parser_Error_Enum!std.ArrayList(*ast_.AST) {
     errdefer params.deinit();
 
     const token = try self.expect(.left_parenthesis);
-    if (self.peek_kind(.mut) or self.peek_kind(.@"const") or self.peek_kind(.left_parenthesis) or self.peek_kind(.identifier)) {
+    if (self.peek_kind(.mut) or self.peek_kind(.left_parenthesis) or self.peek_kind(.identifier)) {
         params.append(try self.param()) catch unreachable;
 
         while (self.accept(.comma)) |_| {
@@ -1254,8 +1254,6 @@ fn param(self: *Self) Parser_Error_Enum!*ast_.AST {
     var kind: Symbol.Kind = undefined;
     if (self.accept(.mut) != null) {
         kind = .mut;
-    } else if (self.accept(.@"const") != null) {
-        kind = .@"const";
     } else {
         kind = .let;
     }
