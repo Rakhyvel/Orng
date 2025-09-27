@@ -19,6 +19,30 @@ pub fn init(ctx: *Compiler_Context) Self {
 
 pub fn validate(self: *Self, @"type": *Type_AST) Validate_Error_Enum!void {
     switch (@"type".*) {
+        .generic_apply => {
+            try self.validate(@"type".lhs());
+
+            const sym = @"type".lhs().symbol().?;
+            const params = sym.decl.?.generic_params();
+            if (params.items.len != @"type".children().items.len) {
+                self.ctx.errors.add_error(errs_.Error{ .mismatch_arity = .{
+                    .span = @"type".token().span,
+                    .takes = params.items.len,
+                    .given = @"type".children().items.len,
+                    .thing_name = sym.name,
+                    .takes_name = "type parameter",
+                    .given_name = "argument",
+                } });
+                return error.CompileError;
+            }
+
+            for (@"type".children().items) |child| {
+                try self.validate(child);
+            }
+
+            @"type".generic_apply.mono = sym.monomorphize(@"type".children().*, self.ctx.allocator());
+        },
+
         .identifier => {
             if (!@"type".symbol().?.refers_to_type()) {
                 self.ctx.errors.add_error(errs_.Error{ .basic = .{ .msg = "expected a type", .span = @"type".token().span } });

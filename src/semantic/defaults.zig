@@ -88,13 +88,14 @@ pub fn generate_default(_type: *Type_AST, span: Span, errors: *errs_.Errors, all
             return ast_.AST.create_array_value(_type.token(), value_terms, allocator);
         },
 
+        .generic_apply => return generate_default(_type.generic_apply.mono.?, span, errors, allocator),
+
         .poison,
         .anyptr_type,
         .access,
         .type_of,
         .domain_of,
         .index,
-        .generic_apply, // TODO: This should be possible I think
         => std.debug.panic("compiler error: unimplemented generate_default() for: AST.{s}", .{@tagName(_type.*)}),
     }
 }

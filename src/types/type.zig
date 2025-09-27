@@ -54,6 +54,7 @@ pub const Type_AST = union(enum) {
         common: Type_AST_Common,
         _lhs: *Type_AST,
         args: std.ArrayList(*Type_AST),
+        mono: ?*Type_AST = null,
     },
     function: struct {
         common: Type_AST_Common,
@@ -906,6 +907,11 @@ pub const Type_AST = union(enum) {
         } else if (B.* == .access) {
             return types_match(A, B.symbol().?.init_typedef().?);
         }
+        if (A.* == .generic_apply) {
+            return types_match(A.generic_apply.mono.?, B);
+        } else if (B.* == .generic_apply) {
+            return types_match(A, B.generic_apply.mono.?);
+        }
         if (B.* == .anyptr_type and A.* == .addr_of) {
             return true;
         }
@@ -982,11 +988,7 @@ pub const Type_AST = union(enum) {
         }
     }
 
-    pub fn clone(
-        self: *Type_AST,
-        substs: *unification_.Substitutions,
-        allocator: std.mem.Allocator,
-    ) *Type_AST {
+    pub fn clone(self: *Type_AST, substs: *unification_.Substitutions, allocator: std.mem.Allocator) *Type_AST {
         switch (self.*) {
             .anyptr_type, .dyn_type, .unit_type => return self,
             .identifier => if (substs.get(self.token().data)) |replacement| {

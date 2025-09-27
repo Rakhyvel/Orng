@@ -7,6 +7,8 @@ const Scope = @import("../symbol/scope.zig");
 const Span = @import("../util/span.zig");
 const Token = @import("../lexer/token.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
+const Type_Map = @import("../ast/type_map.zig").Type_Map;
+const unification_ = @import("../types/unification.zig");
 const validation_state_ = @import("../util/validation_state.zig");
 
 const Self = @This();
@@ -50,6 +52,8 @@ cfg: ?*CFG,
 decl: ?*ast_.AST,
 storage: Storage,
 
+monomorphs: Type_Map(*Type_AST),
+
 // Use-def
 aliases: u64 = 0, // How many times the symbol is taken as a mutable address
 roots: u64 = 0, // How many times the symbol is the root of an lvaue tree
@@ -83,6 +87,7 @@ pub fn init(
     retval.offset = null;
     retval.kind = kind;
     retval.storage = storage;
+    retval.monomorphs = Type_Map(*Type_AST).init(allocator);
     retval.cfg = null;
     if (kind == .@"fn" or kind == .@"const") {
         retval.defined = true;
@@ -217,4 +222,26 @@ pub fn represents_method(self: *Self, impl_for_type: *Type_AST, method_name: []c
         self.decl.?.method_decl.impl != null and
         self.decl.?.method_decl.impl.?.impl._type.types_match(impl_for_type) and
         std.mem.eql(u8, self.name, method_name);
+}
+
+pub fn monomorphize(
+    self: *Self,
+    key: std.ArrayList(*Type_AST),
+    allocator: std.mem.Allocator,
+) *Type_AST {
+    if (self.monomorphs.get(key)) |retval| {
+        return retval;
+    } else {
+        var subst = unification_.Substitutions.init(allocator);
+        defer subst.deinit();
+
+        for (self.decl.?.generic_params().items, key.items) |param, arg| {
+            subst.put(param.token().data, arg) catch unreachable;
+        }
+
+        const clone = self.init_typedef().?.clone(&subst, allocator);
+        self.monomorphs.put(key, clone);
+
+        return clone;
+    }
 }
