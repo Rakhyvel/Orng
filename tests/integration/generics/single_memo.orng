@@ -1,10 +1,10 @@
 // 367
-fn Wrapper(const T: Type) -> Type {
-    (value: T,)
+struct Wrapper[T] {
+    value: T
 }
 
 fn main() -> Int {
-    let a: Wrapper(Int) = (.value = 300,)
-    let b: Wrapper(Int) = (.value = 67,)
+    let a = Wrapper[Int](300)
+    let b = Wrapper[Int](67)
     a.value + b.value
 }

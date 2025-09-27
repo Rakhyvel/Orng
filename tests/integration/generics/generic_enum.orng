@@ -1,0 +1,10 @@
+// 361
+enum Option[T] {
+    some(T)
+    none
+}
+
+fn main() -> Int {
+    let x: Option[Int] = .some(361)
+    x.some
+}

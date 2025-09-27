@@ -1045,6 +1045,15 @@ pub const Type_AST = union(enum) {
                 }
                 return create_tuple_type(self.token(), new_children, allocator);
             },
+            .generic_apply => {
+                const new_args = clone_types(self.children().*, substs, allocator);
+                return create_generic_apply(
+                    self.token(),
+                    self.lhs().clone(substs, allocator),
+                    new_args,
+                    allocator,
+                );
+            },
             else => std.debug.panic("compiler error: clone doesn't support trait type AST `{s}`", .{@tagName(self.*)}),
         }
     }

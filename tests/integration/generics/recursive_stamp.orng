@@ -1,10 +1,11 @@
 // 372 - TODO: for closed-world, validate template with type parameters, validate args match, don't re-validate
 
-fn Recurse(const T: Type) -> Type {
-    (next: ?&Recurse(T), value: T)
+struct Recurse[T] {
+    next: ?&Recurse[T]
+    value: T
 }
 
 fn main() -> Int {
-    let r: Recurse(Int) = (.next = .none, .value = 372)
+    let r = Recurse[Int](.next = .none, .value = 372)
     r.value
 }

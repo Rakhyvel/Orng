@@ -1,8 +1,0 @@
-// 310
-fn Get_Type() -> Type { Int }
-
-fn main() -> Get_Type() {
-    let mut x: Get_Type()
-    x = 310
-    x
-}

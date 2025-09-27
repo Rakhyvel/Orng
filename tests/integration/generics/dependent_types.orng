@@ -1,10 +1,10 @@
 // 370
-fn Ptr_Wrapper(const T: Type) -> Type {
-    (ptr: &T,)
+struct Ptr_Wrapper[T] {
+    ptr: &T
 }
 
 fn main() -> Int {
     let x = 370
-    let pw: Ptr_Wrapper(Int) = (.ptr = &x,)
+    let pw = Ptr_Wrapper[Int](&x)
     pw.ptr^
 }

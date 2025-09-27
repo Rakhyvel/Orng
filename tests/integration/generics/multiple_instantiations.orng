@@ -1,11 +1,11 @@
 // 366
-fn Wrapper(const T: Type) -> Type {
-    (value: T,)
+struct Wrapper[T] {
+    value: T
 }
 
 fn main() -> Int {
-    let x: Wrapper(Int) = (.value = 366,)
-    let y: Wrapper(Bool) = (.value = true,)
+    let x: Wrapper[Int] = Wrapper[Int](.value = 366)
+    let y: Wrapper[Bool] = Wrapper[Bool](.value = true)
     if y.value {
         x.value
     } else {

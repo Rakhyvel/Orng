@@ -1,9 +1,9 @@
 // 372
-fn Wrapper(const T: Type) -> Type {
-    (value: T,)
+struct Wrapper[T] {
+    value: T
 }
 
 fn main() -> Int {
-    let x: Wrapper(Wrapper(Int)) = (.value = (.value = 372,),)
+    let x = Wrapper[Wrapper[Int]](Wrapper[Int](.value = 372,))
     x.value.value
 }

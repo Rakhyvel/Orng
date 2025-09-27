@@ -466,6 +466,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             return ast.dyn_value.dyn_type;
         },
         .struct_value => {
+            try self.ctx.validate_type.validate(ast.struct_value.parent);
             const expanded_expected: *Type_AST = if (expected == null) ast.struct_value.parent.expand_identifier() else expected.?.expand_identifier();
             if (expanded_expected.* == .struct_type) {
                 // Expecting ast to be a product value of some product type
