@@ -236,7 +236,7 @@ pub const Module = struct {
         if (module.entry) |entry| {
             entry.assert_needed_at_runtime();
         }
-        try module.collect_impl_cfgs(compiler);
+        try module.collect_impls_cfgs(compiler);
         try module.collect_tests(compiler);
         module.collect_trait_types(compiler.allocator());
         module.collect_types(compiler.allocator());
@@ -290,15 +290,25 @@ pub const Module = struct {
         }
     }
 
-    fn collect_impl_cfgs(self: *Module, compiler: *Compiler_Context) Module_Errors!void {
+    fn collect_impls_cfgs(self: *Module, compiler: *Compiler_Context) Module_Errors!void {
         for (self.impls.items) |impl| {
-            for (impl.impl.method_defs.items) |def| {
-                const symbol = def.symbol().?;
-                const interned_strings = compiler.lookup_interned_string_set(self.uid).?;
-                const cfg = try compiler.cfg_store.get_cfg(symbol, interned_strings);
-                cfg.assert_needed_at_runtime();
-                self.collect_cfgs(cfg);
+            if (impl.impl.instantiations.pairs.items.len == 0) {
+                try self.collect_impl_cfgs(impl, compiler);
+            } else {
+                for (impl.impl.instantiations.pairs.items) |pair| {
+                    try self.collect_impl_cfgs(pair.value, compiler);
+                }
             }
+        }
+    }
+
+    fn collect_impl_cfgs(self: *Module, impl: *ast_.AST, compiler: *Compiler_Context) Module_Errors!void {
+        for (impl.impl.method_defs.items) |def| {
+            const symbol = def.symbol().?;
+            const interned_strings = compiler.lookup_interned_string_set(self.uid).?;
+            const cfg = try compiler.cfg_store.get_cfg(symbol, interned_strings);
+            cfg.assert_needed_at_runtime();
+            self.collect_cfgs(cfg);
         }
     }
 

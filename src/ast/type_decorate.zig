@@ -32,7 +32,7 @@ pub fn postfix_type(self: Self, _type: *Type_AST) walk_.Error!void {
                         return error.CompileError;
                     },
                 };
-                _type.* = typeof_expr.expand_identifier().*;
+                _type.* = typeof_expr.*;
             },
             .domain_of => {
                 var child = _type.domain_of._child;

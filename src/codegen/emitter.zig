@@ -38,7 +38,7 @@ pub fn output_type(self: *Self, old_type: *Type_AST) CodeGen_Error!void {
             if (info != null) {
                 try self.writer.print("{s}", .{info.?.c_name});
             } else {
-                try self.writer.print("{s}", .{_type.token().data});
+                try self.writer.print("{s} /*{?}*/", .{ _type.token().data, _type.symbol().?.init_typedef() });
             }
         },
         .addr_of => {

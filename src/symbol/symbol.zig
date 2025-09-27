@@ -242,6 +242,8 @@ pub fn monomorphize(
         const clone = self.init_typedef().?.clone(&subst, allocator);
         self.monomorphs.put(key, clone);
 
+        // Here, need to attempt to
+
         return clone;
     }
 }

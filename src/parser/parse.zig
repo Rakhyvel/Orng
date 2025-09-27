@@ -1411,22 +1411,19 @@ fn trait_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
 
 fn impl_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     const token = try self.expect(.impl);
+
+    const gen_params = try self.generic_params();
+
     const trait_ident: ?*ast_.AST = if (!self.peek_kind(.@"for")) (try self.bool_expr()) else null;
     _ = try self.expect(.@"for");
     const _type = try self.type_expr();
-    self.newlines();
-    const with_decls =
-        if (self.accept(.with) != null)
-            try self.withlist()
-        else
-            std.ArrayList(*ast_.AST).init(self.allocator);
     self.newlines();
     _ = try self.expect(.left_brace);
     var method_defs = std.ArrayList(*ast_.AST).init(self.allocator);
     errdefer method_defs.deinit();
     var const_defs = std.ArrayList(*ast_.AST).init(self.allocator);
     errdefer const_defs.deinit();
-    const retval = ast_.AST.create_impl(token, trait_ident, _type, method_defs, const_defs, with_decls, self.allocator);
+    const retval = ast_.AST.create_impl(token, trait_ident, _type, method_defs, const_defs, gen_params, self.allocator);
 
     self.newlines();
     while (self.peek_kind(.@"fn") or self.peek_kind(.virtual) or self.peek_kind(.@"const")) {
@@ -1443,34 +1440,6 @@ fn impl_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     retval.impl.method_defs = method_defs;
     retval.impl.const_defs = const_defs;
     return retval;
-}
-
-fn withlist(self: *Self) Parser_Error_Enum!std.ArrayList(*ast_.AST) {
-    var withs = std.ArrayList(*ast_.AST).init(self.allocator);
-    errdefer withs.deinit();
-
-    withs.append(try self.with_decl()) catch unreachable;
-
-    while (self.accept(.comma)) |_| {
-        withs.append(try self.with_decl()) catch unreachable;
-    }
-
-    return withs;
-}
-
-fn with_decl(self: *Self) Parser_Error_Enum!*ast_.AST {
-    const identifier = try self.expect(.identifier);
-    const ident = ast_.AST.create_pattern_symbol(identifier, .@"const", .local, identifier.data, self.allocator);
-    _ = try self.expect(.single_colon);
-    const _type = try self.type_expr();
-
-    return ast_.AST.create_decl(
-        ident.token(),
-        ident,
-        _type,
-        null,
-        self.allocator,
-    );
 }
 
 fn test_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {

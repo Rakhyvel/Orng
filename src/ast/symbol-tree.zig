@@ -191,10 +191,6 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             new_self.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
             ast.set_scope(new_self.scope);
 
-            for (ast.impl.with_decls.items) |with_decl| {
-                try walk_.walk_ast(with_decl, new_self);
-            }
-
             const self_type_decl = ast_.AST.create_type_alias(
                 ast.token(),
                 ast_.AST.create_pattern_symbol(

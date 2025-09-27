@@ -41,7 +41,12 @@ pub fn validate(self: *Self, @"type": *Type_AST) Validate_Error_Enum!void {
                 try self.validate(child);
             }
 
-            @"type".generic_apply.mono = sym.monomorphize(@"type".children().*, self.ctx.allocator());
+            if (@"type".generic_apply.state == .unmorphed) {
+                @"type".generic_apply.state = .morphing;
+                @"type".generic_apply.mono = sym.monomorphize(@"type".children().*, self.ctx.allocator());
+                @"type".generic_apply.state = .morphed;
+                try self.validate(@"type".generic_apply.mono.?);
+            }
         },
 
         .identifier => {

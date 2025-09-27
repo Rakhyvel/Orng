@@ -172,7 +172,7 @@ pub const AST = union(enum) {
         _type: *Type_AST, // The `for` type for this impl
         method_defs: std.ArrayList(*AST),
         const_defs: std.ArrayList(*AST),
-        with_decls: std.ArrayList(*AST), // list of annotations
+        _generic_params: std.ArrayList(*AST), // list of annotations
         num_virtual_methods: i64 = 0,
         _scope: ?*Scope = null, // Scope used for `impl` methods, rooted in `impl`'s scope.
         impls_anon_trait: bool = false, // true when this impl implements an anonymous trait
@@ -793,7 +793,7 @@ pub const AST = union(enum) {
         _type: *Type_AST,
         method_defs: std.ArrayList(*AST),
         const_defs: std.ArrayList(*AST),
-        with_decls: std.ArrayList(*AST),
+        _generic_params: std.ArrayList(*AST),
         allocator: std.mem.Allocator,
     ) *AST {
         return AST.box(
@@ -803,7 +803,7 @@ pub const AST = union(enum) {
                 ._type = _type,
                 .method_defs = method_defs,
                 .const_defs = const_defs,
-                .with_decls = with_decls,
+                ._generic_params = _generic_params,
                 .instantiations = Type_Map(*AST).init(allocator),
             } },
             allocator,
@@ -1454,16 +1454,19 @@ pub const AST = union(enum) {
             .impl => {
                 const cloned_method_defs = clone_children(self.impl.method_defs, substs, allocator);
                 const cloned_const_defs = clone_children(self.impl.const_defs, substs, allocator);
-                const cloned_with_decls = clone_children(self.impl.with_decls, substs, allocator);
+                const cloned_generic_params = clone_children(self.impl._generic_params, substs, allocator);
                 var retval = create_impl(
                     self.token(),
                     if (self.impl.trait) |_trait| _trait.clone(substs, allocator) else null,
                     self.impl._type.clone(substs, allocator),
                     cloned_method_defs,
                     cloned_const_defs,
-                    cloned_with_decls,
+                    cloned_generic_params,
                     allocator,
                 );
+                for (cloned_method_defs.items) |method_def| {
+                    method_def.method_decl.impl = retval;
+                }
                 retval.impl.impls_anon_trait = self.impl.impls_anon_trait;
                 retval.set_scope(self.scope());
                 return retval;
@@ -1570,11 +1573,15 @@ pub const AST = union(enum) {
                 if (self.sub_slice.upper) |upper| upper.clone(substs, allocator) else null,
                 allocator,
             ),
-            .receiver => return create_receiver(
-                self.token(),
-                self.receiver.kind,
-                allocator,
-            ),
+            .receiver => {
+                var retval = create_receiver(
+                    self.token(),
+                    self.receiver.kind,
+                    allocator,
+                );
+                retval.receiver._type = if (retval.receiver._type) |_type| _type.clone(substs, allocator) else null;
+                return retval;
+            },
 
             .@"if" => {
                 var retval = create_if(
@@ -1689,7 +1696,7 @@ pub const AST = union(enum) {
                 retval.method_decl.impl = self.method_decl.impl;
                 retval.method_decl.domain = self.method_decl.domain;
                 retval.method_decl._decl_type = if (self.method_decl._decl_type != null) self.method_decl._decl_type.?.clone(substs, allocator) else null;
-                retval.set_symbol(self.symbol());
+                retval.set_symbol(null);
                 return retval;
             },
             .@"test" => return create_test(
@@ -1885,6 +1892,7 @@ pub const AST = union(enum) {
             .struct_decl => &self.struct_decl._generic_params,
             .enum_decl => &self.enum_decl._generic_params,
             .type_alias => &self.type_alias._generic_params,
+            .impl => &self.impl._generic_params,
             else => std.debug.panic("compiler error: cannot call `.generic_params()` on the AST `{}`", .{self.*}),
         };
     }
@@ -2183,7 +2191,13 @@ pub const AST = union(enum) {
                 try out.writer().print("access({},{})", .{ self.lhs(), self.rhs() });
             },
             .trait => try out.writer().print("trait({*})", .{if (self.symbol() != null) self.symbol() else null}),
-            .impl => try out.writer().print("impl(.trait={?}, .type={})", .{ self.impl.trait, self.impl._type }),
+            .impl => {
+                try out.writer().print("impl(.trait={?}, .type={}\n", .{ self.impl.trait, self.impl._type });
+                for (self.impl.method_defs.items) |method| {
+                    try out.writer().print("    {}\n", .{method});
+                }
+                try out.writer().print(")", .{});
+            },
             .invoke => try out.writer().print("invoke()", .{}),
             .dyn_value => try out.writer().print("dyn_value()", .{}),
             .enum_value => {
@@ -2233,7 +2247,7 @@ pub const AST = union(enum) {
             .addr_of => try out.writer().print("addr_of({})", .{self.expr()}),
             .slice_of => try out.writer().print("slice_of()", .{}),
             .sub_slice => try out.writer().print("sub_slice()", .{}),
-            .receiver => try out.writer().print("receiver({s})", .{@tagName(self.receiver.kind)}),
+            .receiver => try out.writer().print("receiver({?})", .{self.receiver._type}),
 
             .@"if" => try out.writer().print("if()", .{}),
             .match => try out.writer().print("match()", .{}),
@@ -2293,7 +2307,7 @@ pub const AST = union(enum) {
             .cinclude => try out.writer().print("cinclude({})", .{self.cinclude._expr}),
             .template => try out.writer().print("template()", .{}),
             .method_decl => {
-                try out.writer().print("method_decl(.name={s}, .receiver={?}, .params=[", .{
+                try out.writer().print("method_decl(.name={s}, .receiver={?}, . .params=[", .{
                     self.method_decl.name,
                     self.method_decl.receiver,
                 });

@@ -42,13 +42,6 @@ pub fn Type_Map(comptime Value: type) type {
             }
 
             for (lhs.items, rhs.items) |lhs_item, rhs_item| {
-                // TODO: Deal with substitution of constants later
-                // if (lhs_item.* == .int) {
-                //     if (rhs_item.* != .int) {
-                //         return false;
-                //     }
-                //     return lhs_item.int.data == rhs_item.int.data;
-                // } else
                 if (!lhs_item.types_match(rhs_item) or !rhs_item.types_match(lhs_item)) {
                     return false;
                 }

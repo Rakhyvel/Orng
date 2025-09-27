@@ -55,6 +55,7 @@ pub const Type_AST = union(enum) {
         _lhs: *Type_AST,
         args: std.ArrayList(*Type_AST),
         mono: ?*Type_AST = null,
+        state: enum { unmorphed, morphing, morphed } = .unmorphed,
     },
     function: struct {
         common: Type_AST_Common,
@@ -914,7 +915,7 @@ pub const Type_AST = union(enum) {
     /// Assumes ASTs structurally can refer to compile-time constant types.
     pub fn types_match(A: *Type_AST, B: *Type_AST) bool {
         // FIXME: High Cyclo
-        // std.debug.print("{s} == {s}\n", .{ @tagName(A.*), @tagName(B.*) });
+        // std.debug.print("{} == {}\n", .{ A, B });
         if (A.* == .annotation) {
             return types_match(A.child(), B);
         } else if (B.* == .annotation) {
@@ -925,9 +926,9 @@ pub const Type_AST = union(enum) {
         } else if (B.* == .access) {
             return types_match(A, B.symbol().?.init_typedef().?);
         }
-        if (A.* == .generic_apply and A.generic_apply.mono != null) {
+        if (A.* == .generic_apply and A.generic_apply.mono != null and B.* != .generic_apply) {
             return types_match(A.generic_apply.mono.?, B);
-        } else if (B.* == .generic_apply and B.generic_apply.mono != null) {
+        } else if (B.* == .generic_apply and B.generic_apply.mono != null and A.* != .generic_apply) {
             return types_match(A, B.generic_apply.mono.?);
         }
         if (B.* == .anyptr_type and A.* == .addr_of) {
@@ -948,6 +949,9 @@ pub const Type_AST = union(enum) {
         } else if (A.* != .identifier and B.* == .identifier and B != B.expand_identifier()) {
             // If only B is an identifier, and B isn't an atom type, dive
             return types_match(A, B.expand_identifier());
+        }
+        if (B.* == .identifier and B.symbol().?.decl.?.* == .type_param_decl) {
+            return true;
         }
         if (A.* == .poison or B.* == .poison) {
             return true; // Whatever
