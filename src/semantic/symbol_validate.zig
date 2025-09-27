@@ -48,7 +48,7 @@ pub fn validate(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
     };
     if (expected) |expected_type| {
         try self.ctx.validate_type.validate(expected_type);
-        if (self.ctx.validate_type.detect_cycle(expected_type)) {
+        if (self.ctx.validate_type.detect_cycle(expected_type, null)) {
             self.ctx.errors.add_error(errs_.Error{ .symbol_error = .{
                 .problem = "cyclic type detected",
                 .span = symbol.span(),
@@ -73,7 +73,7 @@ pub fn validate(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
         }
     } else if (symbol.kind == .type and symbol.init_typedef() != null) {
         try self.ctx.validate_type.validate(symbol.init_typedef().?);
-        if (self.ctx.validate_type.detect_cycle(symbol.init_typedef().?)) {
+        if (self.ctx.validate_type.detect_cycle(symbol.init_typedef().?, symbol)) {
             self.ctx.errors.add_error(errs_.Error{ .basic = .{
                 .msg = "cyclic type detected",
                 .span = symbol.span(),

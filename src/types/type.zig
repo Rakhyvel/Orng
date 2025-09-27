@@ -914,7 +914,7 @@ pub const Type_AST = union(enum) {
     /// Assumes ASTs structurally can refer to compile-time constant types.
     pub fn types_match(A: *Type_AST, B: *Type_AST) bool {
         // FIXME: High Cyclo
-        // std.debug.print("{} == {}\n", .{ A, B });
+        // std.debug.print("{s} == {s}\n", .{ @tagName(A.*), @tagName(B.*) });
         if (A.* == .annotation) {
             return types_match(A.child(), B);
         } else if (B.* == .annotation) {
@@ -935,8 +935,10 @@ pub const Type_AST = union(enum) {
         }
         if (A.* == .identifier and A.symbol().?.is_alias() and A != A.expand_identifier()) {
             // If A is a type alias, expand
+            // std.debug.print("{} => {}\n", .{ A, A.expand_identifier() });
             return types_match(A.expand_identifier(), B);
         } else if (B.* == .identifier and B.symbol().?.is_alias() and B != B.expand_identifier()) {
+            // std.debug.print("{} => {}\n", .{ B, B.expand_identifier() });
             // If B is a type alias, expand
             return types_match(A, B.expand_identifier());
         }
@@ -946,14 +948,6 @@ pub const Type_AST = union(enum) {
         } else if (A.* != .identifier and B.* == .identifier and B != B.expand_identifier()) {
             // If only B is an identifier, and B isn't an atom type, dive
             return types_match(A, B.expand_identifier());
-        }
-        if (A.* == .type_of and B.is_ident_type("Type")) {
-            // @type_of(t) : $T -> Type
-            return true;
-        }
-        if (B.* == .type_of and A.is_ident_type("Type")) {
-            // @type_of(t) : $T -> Type
-            return true;
         }
         if (A.* == .poison or B.* == .poison) {
             return true; // Whatever
@@ -969,7 +963,10 @@ pub const Type_AST = union(enum) {
         }
 
         switch (A.*) {
-            .identifier => return std.mem.eql(u8, A.token().data, B.token().data),
+            .identifier => {
+                // std.debug.print("{s} == {s}\n", .{ A.symbol().?.name, B.symbol().?.name });
+                return A.symbol().? == B.symbol().?;
+            },
             .addr_of => return (!B.addr_of.mut or B.addr_of.mut == A.addr_of.mut) and (B.addr_of.multiptr == A.addr_of.multiptr) and types_match(A.child(), B.child()),
             // .slice_of => return (!B.slice_of.mut or B.slice_of.mut == A.slice_of.mut) and types_match(A.child(), B.child()),
             .array_of => return types_match(A.child(), B.child()) and A.array_of.len.int.data == B.array_of.len.int.data,

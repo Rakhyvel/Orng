@@ -5,6 +5,7 @@ const Type_Decorate = @import("../ast/type_decorate.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const Type_AST = @import("type.zig").Type_AST;
+const Symbol = @import("../symbol/symbol.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const walk_ = @import("../ast/walker.zig");
 
@@ -109,67 +110,64 @@ pub fn validate(self: *Self, @"type": *Type_AST) Validate_Error_Enum!void {
     }
 }
 
-pub fn detect_cycle(self: *Self, ty: *Type_AST) bool {
-    var visiting = std.AutoHashMap(*Type_AST, bool).init(self.ctx.allocator());
+pub fn detect_cycle(self: *Self, ty: *Type_AST, append_me: ?*Symbol) bool {
+    _ = append_me;
+    var visiting = std.AutoArrayHashMap(*Type_AST, bool).init(self.ctx.allocator());
     defer visiting.deinit();
 
-    var visited = std.AutoHashMap(*Type_AST, bool).init(self.ctx.allocator());
+    var visited = std.AutoArrayHashMap(*Type_AST, bool).init(self.ctx.allocator());
     defer visited.deinit();
 
-    return dfs(ty, &visiting, &visited, false);
+    var path = std.AutoArrayHashMap(*Symbol, bool).init(self.ctx.allocator());
+    defer path.deinit();
+
+    // if (append_me) |to_append| {
+    // path.put(to_append, true) catch unreachable;
+    // }
+
+    return dfs(ty, &visiting, &path, &visited, false);
 }
 
 fn dfs(
     ty: *Type_AST,
-    visiting: *std.AutoHashMap(*Type_AST, bool),
-    visited: *std.AutoHashMap(*Type_AST, bool),
-    seen_indirection: bool,
+    visiting: *std.AutoArrayHashMap(*Type_AST, bool),
+    path: *std.AutoArrayHashMap(*Symbol, bool),
+    visited: *std.AutoArrayHashMap(*Type_AST, bool),
+    has_indirection: bool,
 ) bool {
     if (visited.contains(ty)) return false;
 
-    if (visiting.contains(ty)) {
-        // cycle detected
-        return !seen_indirection; // invalid if no indirection seen
-    }
+    if (visiting.contains(ty) and ty.* == .identifier and ty.symbol().?.decl.?.* == .type_alias) return true; // unsafe cycle detected
+    if (visiting.contains(ty) and ty.* == .identifier) return !has_indirection; // unsafe cycle detected
 
     visiting.put(ty, true) catch unreachable;
 
-    const next_seen = seen_indirection or ty.is_indirect();
-
     switch (ty.*) {
-        else => {},
-
-        .identifier, .access => if (ty.symbol().?.init_typedef() != null and dfs(ty.symbol().?.init_typedef().?, visiting, visited, next_seen)) return true,
-
-        .array_of,
-        .untagged_sum_type,
-        .annotation,
-        .addr_of,
-        .index,
-        .domain_of,
-        => {
-            if (dfs(ty.child(), visiting, visited, next_seen)) return true;
-        },
-
-        .function => {
-            if (dfs(ty.lhs(), visiting, visited, next_seen)) return true;
-            if (dfs(ty.rhs(), visiting, visited, next_seen)) return true;
-        },
-
-        .enum_type,
-        .struct_type,
-        .tuple_type,
-        => {
-            for (ty.children().items) |child| {
-                if (dfs(child, visiting, visited, next_seen)) {
-                    return true; // invalid cycle found
+        .identifier => if (ty.symbol()) |sym| {
+            if (path.contains(sym)) {
+                if (sym.decl.?.* == .type_alias) {
+                    return true; // invalid alias cycle
                 }
+            } else {
+                path.put(sym, true) catch unreachable;
+                if (ty.symbol().?.init_typedef()) |inner| {
+                    if (dfs(inner, visiting, path, visited, has_indirection)) return true;
+                }
+                _ = path.swapRemove(sym);
             }
         },
+        .struct_type, .tuple_type, .enum_type => {
+            for (ty.children().items) |child| {
+                if (dfs(child, visiting, path, visited, has_indirection)) return true;
+            }
+        },
+        .array_of, .index, .addr_of, .annotation => {
+            if (dfs(ty.child(), visiting, path, visited, has_indirection or ty.* == .addr_of)) return true;
+        },
+        else => {},
     }
 
-    _ = visiting.remove(ty);
+    _ = visiting.swapRemove(ty);
     visited.put(ty, true) catch unreachable;
-
     return false;
 }
