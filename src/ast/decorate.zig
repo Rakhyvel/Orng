@@ -139,32 +139,15 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
 
         .call => {
             if (ast.lhs().* == .enum_value) {
+                // Enum value
                 ast.lhs().enum_value.init = ast.children().items[0];
                 ast.* = ast.lhs().*;
-            } else if (ast.lhs().* == .identifier and ast.lhs().symbol().?.refers_to_type()) {
-                const struct_identifier = Type_AST.create_identifier(ast.lhs().token(), self.allocator);
-                struct_identifier.set_symbol(ast.lhs().symbol().?);
+            } else if (ast.lhs().refers_to_type()) {
+                // Struct value construction
+                const struct_type = Type_AST.from_ast(ast.lhs(), self.allocator);
                 const struct_value = ast_.AST.create_struct_value(
                     ast.lhs().token(),
-                    struct_identifier,
-                    ast.children().*,
-                    self.allocator,
-                );
-                ast.* = struct_value.*;
-            } else if (ast.lhs().* == .index and ast.lhs().lhs().* == .identifier and ast.lhs().lhs().symbol().?.refers_to_type()) {
-                const struct_identifier = Type_AST.create_identifier(ast.lhs().lhs().token(), self.allocator);
-                struct_identifier.set_symbol(ast.lhs().lhs().symbol().?);
-
-                var generic_apply_args = std.ArrayList(*Type_AST).init(self.allocator);
-                // TODO: Handle nested and multiple args
-                const generic_apply_arg = Type_AST.create_identifier(ast.lhs().rhs().token(), self.allocator);
-                generic_apply_arg.set_symbol(ast.lhs().rhs().symbol().?);
-                generic_apply_args.append(generic_apply_arg) catch unreachable;
-                const generic_apply = Type_AST.create_generic_apply(ast.lhs().token(), struct_identifier, generic_apply_args, self.allocator);
-
-                const struct_value = ast_.AST.create_struct_value(
-                    ast.lhs().token(),
-                    generic_apply,
+                    struct_type,
                     ast.children().*,
                     self.allocator,
                 );

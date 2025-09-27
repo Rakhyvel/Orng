@@ -1,4 +1,4 @@
-// 372 - TODO: for closed-world, validate template with type parameters, validate args match, don't re-validate
+// 372
 
 struct Recurse[T] {
     next: ?&Recurse[T]

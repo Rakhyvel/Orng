@@ -446,6 +446,23 @@ pub const Type_AST = union(enum) {
         return retval;
     }
 
+    pub fn from_ast(ast: *AST, allocator: std.mem.Allocator) *Type_AST {
+        return switch (ast.*) {
+            .identifier => blk: {
+                const id = Type_AST.create_identifier(ast.token(), allocator);
+                id.set_symbol(ast.symbol().?);
+                break :blk id;
+            },
+            .index => blk: {
+                const base = from_ast(ast.lhs(), allocator);
+                var args = std.ArrayList(*Type_AST).init(allocator);
+                args.append(from_ast(ast.rhs(), allocator)) catch unreachable;
+                break :blk Type_AST.create_generic_apply(ast.token(), base, args, allocator);
+            },
+            else => unreachable, // or handle errors
+        };
+    }
+
     pub fn common(self: *const Type_AST) *const Type_AST_Common {
         return get_field_const_ref(self, "common");
     }
@@ -762,10 +779,8 @@ pub const Type_AST = union(enum) {
     /// Retrieves the size in bytes of an AST node.
     pub fn sizeof(self: *Type_AST) i64 {
         if (self.common()._size == null) {
-            self.set_sizeof(self.sizeof_internal()); // memoize call
+            self.set_sizeof(self.expand_identifier().sizeof_internal()); // memoize call
         }
-
-        // std.debug.assert(self.common()._expanded_type != null); // get the size of expanded types only
 
         return self.common()._size.?;
     }
@@ -823,10 +838,8 @@ pub const Type_AST = union(enum) {
     /// Calculates the alignment of an AST type in bytes. Call is memoized.
     pub fn alignof(self: *Type_AST) i64 {
         if (self.common()._alignof == null) {
-            self.set_alignof(self.alignof_internal()); // memoize call
+            self.set_alignof(self.expand_identifier().alignof_internal()); // memoize call
         }
-
-        // std.debug.assert(self.common()._expanded_type != null); // get the align of expanded types only
 
         return self.common()._alignof.?;
     }
@@ -910,9 +923,9 @@ pub const Type_AST = union(enum) {
         } else if (B.* == .access) {
             return types_match(A, B.symbol().?.init_typedef().?);
         }
-        if (A.* == .generic_apply) {
+        if (A.* == .generic_apply and A.generic_apply.mono != null) {
             return types_match(A.generic_apply.mono.?, B);
-        } else if (B.* == .generic_apply) {
+        } else if (B.* == .generic_apply and B.generic_apply.mono != null) {
             return types_match(A, B.generic_apply.mono.?);
         }
         if (B.* == .anyptr_type and A.* == .addr_of) {
@@ -965,6 +978,16 @@ pub const Type_AST = union(enum) {
                     return false;
                 }
                 var retval = true;
+                for (A.children().items, B.children().items) |term, B_term| {
+                    retval = retval and term.types_match(B_term);
+                }
+                return retval;
+            },
+            .generic_apply => {
+                if (B.children().items.len != A.children().items.len) {
+                    return false;
+                }
+                var retval = A.lhs().symbol() == B.lhs().symbol();
                 for (A.children().items, B.children().items) |term, B_term| {
                     retval = retval and term.types_match(B_term);
                 }
@@ -1212,6 +1235,16 @@ pub const Type_AST = union(enum) {
                 var retval = true;
                 for (self.children().items, other.children().items) |term, other_term| {
                     retval = retval and term.c_types_match(other_term);
+                }
+                return retval;
+            },
+            .generic_apply => {
+                if (other.children().items.len != self.children().items.len) {
+                    return false;
+                }
+                var retval = self.lhs().symbol() == other.lhs().symbol();
+                for (self.children().items, other.children().items) |term, B_term| {
+                    retval = retval and term.c_types_match(B_term);
                 }
                 return retval;
             },

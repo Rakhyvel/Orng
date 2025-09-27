@@ -2051,6 +2051,16 @@ pub const AST = union(enum) {
         // would be annoying to have to wrap these in comptime.
     }
 
+    pub fn refers_to_type(self: *AST) bool {
+        return switch (self.*) {
+            else => false,
+
+            .identifier => self.symbol().?.refers_to_type(),
+
+            .index => self.lhs().refers_to_type(), // generic type
+        };
+    }
+
     /// Used to poison an AST node. Marks as valid, so any attempt to validate is memoized to return poison.
     pub fn enpoison(self: *AST) void {
         self.common().validation_state = .invalid;
