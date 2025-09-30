@@ -7,6 +7,7 @@ const Symbol = @import("../symbol/symbol.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const term_ = @import("term.zig");
 const Token = @import("../lexer/token.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 
 pub const Error_Config = struct {
     print_full_path: bool = true,
@@ -85,17 +86,17 @@ pub const Error = union(enum) {
         first_defined_span: Span,
         redefined_span: Span,
         name: ?[]const u8,
-        _type: *ast_.AST,
+        _type: *Type_AST,
     },
     type_not_impl_method: struct { // TODO: This should take in an enum to determine if the name is of a method or of a member
         span: Span,
         method_name: []const u8,
-        _type: *ast_.AST,
+        _type: *Type_AST,
     },
     type_not_impl_trait: struct {
         span: Span,
         trait_name: []const u8,
-        _type: *ast_.AST,
+        _type: *Type_AST,
     },
     method_not_in_trait: struct {
         method_span: Span,
@@ -119,7 +120,7 @@ pub const Error = union(enum) {
         receiver_span: Span,
         method_receiver: ast_.Receiver_Kind,
         method_name: []const u8,
-        lhs_type: *ast_.AST,
+        lhs_type: *Type_AST,
     },
     mismatch_method_param_arity: struct {
         span: Span,
@@ -130,8 +131,8 @@ pub const Error = union(enum) {
     },
     mismatch_method_type: struct {
         span: Span,
-        trait_type: *ast_.AST,
-        impl_type: *ast_.AST,
+        trait_type: *Type_AST,
+        impl_type: *Type_AST,
         method_name: []const u8,
         trait_name: []const u8,
     },
@@ -151,24 +152,34 @@ pub const Error = union(enum) {
     // Typecheck
     unexpected_type: struct {
         span: Span,
-        expected: *ast_.AST,
-        got: *ast_.AST,
+        expected: *Type_AST,
+        got: *Type_AST,
+    },
+    unexpected_type_type: struct {
+        span: Span,
+        expected: ?*Type_AST,
     },
     expected_builtin_typeclass: struct {
         span: Span,
         expected: []const u8, // name of the type class
-        got: *ast_.AST,
+        got: *Type_AST,
     },
     duplicate: struct {
         span: Span,
         identifier: []const u8,
         first: ?Span, // printed writer as extra information
     },
-    member_not_in: struct {
+    member_not_in_type: struct {
         span: Span,
         identifier: []const u8,
         name: []const u8,
-        group: *ast_.AST,
+        type: *Type_AST,
+    },
+    member_not_in_module: struct {
+        span: Span,
+        identifier: []const u8,
+        name: []const u8,
+        module_name: []const u8,
     },
     undeclared_identifier: struct {
         identifier: Token,
@@ -186,13 +197,23 @@ pub const Error = union(enum) {
     modify_immutable: struct {
         identifier: Token,
     },
+    not_selectable: struct {
+        span: Span,
+        _type: *Type_AST,
+    },
     not_indexable: struct {
         span: Span,
-        _type: *ast_.AST,
+        _type: *Type_AST,
+    },
+    bad_index: struct {
+        span: Span,
+        _type: *Type_AST,
+        index: i128,
+        length: usize,
     },
     non_exhaustive_sum: struct {
         span: Span,
-        forgotten: std.ArrayList(*ast_.AST),
+        forgotten: std.ArrayList(*Type_AST),
     },
     mismatch_arity: struct {
         span: Span,
@@ -204,22 +225,22 @@ pub const Error = union(enum) {
     },
     no_default: struct {
         span: Span,
-        _type: *ast_.AST,
+        _type: *Type_AST,
     },
     wrong_from: struct {
         span: Span,
         operator: []const u8, // either "orelse" or "catch"
         from: []const u8, // either "optional" or "error"
-        got: *ast_.AST, // What the type actually was
+        got: *Type_AST, // What the type actually was
     },
     integer_out_of_bounds: struct {
         span: Span,
-        expected: *ast_.AST,
+        expected: *Type_AST,
         value: i128,
     },
     invalid_type: struct {
         span: Span,
-        got: *ast_.AST,
+        got: *Type_AST,
     },
     recursive_definition: struct {
         span: Span,
@@ -259,15 +280,19 @@ pub const Error = union(enum) {
             .trait_virtual_refers_to_self => return self.trait_virtual_refers_to_self.span,
 
             .unexpected_type => return self.unexpected_type.span,
+            .unexpected_type_type => return self.unexpected_type_type.span,
             .expected_builtin_typeclass => return self.expected_builtin_typeclass.span,
             .duplicate => return self.duplicate.span,
-            .member_not_in => return self.member_not_in.span,
+            .member_not_in_type => return self.member_not_in_type.span,
+            .member_not_in_module => return self.member_not_in_module.span,
             .undeclared_identifier => return self.undeclared_identifier.identifier.span,
             .comptime_access_runtime => return self.comptime_access_runtime.identifier.span,
             .inner_fn_access_runtime => return self.inner_fn_access_runtime.identifier.span,
             .use_before_def => return self.use_before_def.identifier.span,
             .modify_immutable => return self.modify_immutable.identifier.span,
             .not_indexable => return self.not_indexable.span,
+            .bad_index => return self.bad_index.span,
+            .not_selectable => return self.not_selectable.span,
             .non_exhaustive_sum => return self.non_exhaustive_sum.span,
             .mismatch_arity => return self.mismatch_arity.span,
             .no_default => return self.no_default.span,
@@ -430,16 +455,24 @@ pub const Error = union(enum) {
                 }
                 writer.print("`\n", .{}) catch unreachable;
             },
+            .unexpected_type_type => {
+                if (err.unexpected_type_type.expected) |expected| {
+                    writer.print("expected a value of type `{}`, got a type\n", .{expected}) catch unreachable;
+                } else {
+                    writer.print("unexpected type\n", .{}) catch unreachable;
+                }
+            },
             .expected_builtin_typeclass => {
                 writer.print("expected a value of a(n) {s} type, got `", .{err.expected_builtin_typeclass.expected}) catch unreachable;
                 err.expected_builtin_typeclass.got.print_type(writer) catch unreachable;
                 writer.print("`\n", .{}) catch unreachable;
             },
             .duplicate => writer.print("duplicate item `{s}`\n", .{err.duplicate.identifier}) catch unreachable,
-            .member_not_in => {
-                writer.print("member `{s}` not in {s} `", .{ err.member_not_in.identifier, err.member_not_in.name }) catch unreachable;
-                err.member_not_in.group.print_type(writer) catch unreachable;
-                writer.print("`\n", .{}) catch unreachable;
+            .member_not_in_type => {
+                writer.print("member `{s}` not in {s} `{}`\n", .{ err.member_not_in_type.identifier, err.member_not_in_type.name, err.member_not_in_type.type }) catch unreachable;
+            },
+            .member_not_in_module => {
+                writer.print("member `{s}` not in {s} `{s}`\n", .{ err.member_not_in_module.identifier, err.member_not_in_module.name, err.member_not_in_module.module_name }) catch unreachable;
             },
             .undeclared_identifier => writer.print("use of undeclared identifier `{s}`\n", .{err.undeclared_identifier.identifier.data}) catch unreachable,
             .comptime_access_runtime => writer.print("cannot access non-const variable `{s}` in a comptime context\n", .{
@@ -455,7 +488,15 @@ pub const Error = union(enum) {
                 err.not_indexable._type.print_type(writer) catch unreachable;
                 writer.print("` is not indexable\n", .{}) catch unreachable;
             },
-            .non_exhaustive_sum => writer.print("match over sum type is not exhaustive\n", .{}) catch unreachable,
+            .bad_index => {
+                writer.print("cannot index the type `{}`, which has length {}, with index {}\n", .{ err.bad_index._type, err.bad_index.length, err.bad_index.index }) catch unreachable;
+            },
+            .not_selectable => {
+                writer.print("the type `", .{}) catch unreachable;
+                err.not_selectable._type.print_type(writer) catch unreachable;
+                writer.print("` is not selectable\n", .{}) catch unreachable;
+            },
+            .non_exhaustive_sum => writer.print("match over enum type is not exhaustive\n", .{}) catch unreachable,
             .mismatch_arity => {
                 writer.print("{s} takes {} {s}{s}, {} {s}{s} given\n", .{
                     err.mismatch_arity.thing_name,

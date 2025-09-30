@@ -1,0 +1,7 @@
+// 362
+type Pair[T] = (T, T)
+
+fn main() -> Int {
+    let x: Pair[Int] = (300, 62)
+    x[0] + x[1]
+}

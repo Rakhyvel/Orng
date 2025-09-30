@@ -1,6 +1,6 @@
-// try_error.orng:10:8: error: expected a value of type `(ok: Int | err: Char)`, got a value of type `Int`
+// try_error.orng:10:11: error: expected a value of type `(ok: Int | err: ())`, got a value of type `(ok: Int | err: Char)`
 //     try g()
-//       ^
+//          ^
 // 
 fn main() -> Int {
     f() catch 0

@@ -7,47 +7,66 @@ const errs_ = @import("../util/errors.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const Span = @import("../util/span.zig");
 const poison_ = @import("../ast/poison.zig");
-const validate_AST = @import("ast_validate.zig").validate_AST;
 const typing_ = @import("typing.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 
-const Validate_Error_Enum = error{ LexerError, ParseError, CompileError };
+const Validate_Error_Enum = error{CompileError};
+
+const Self: type = @This();
+
+ctx: *Compiler_Context,
+map: std.AutoArrayHashMap(*ast_.AST, *Type_AST),
+
+pub fn init(ctx: *Compiler_Context) Self {
+    return Self{
+        .ctx = ctx,
+        .map = std.AutoArrayHashMap(*ast_.AST, *Type_AST).init(ctx.allocator()),
+    };
+}
 
 /// Validates that `pattern` is valid given a match's `expr`
 pub fn assert_pattern_matches(
+    self: *Self,
     pattern: *ast_.AST,
-    expr_type: *ast_.AST,
-    compiler: *Compiler_Context,
+    expr_type: *Type_AST,
 ) Validate_Error_Enum!void {
     switch (pattern.*) {
-        .unit_value => try typing_.type_check(pattern.token().span, prelude_.unit_type, expr_type, &compiler.errors),
-        .int => try typing_.type_check_int(pattern, expr_type, &compiler.errors, compiler.allocator()),
-        .char => try typing_.type_check(pattern.token().span, prelude_.char_type, expr_type, &compiler.errors),
-        .string => try typing_.type_check(pattern.token().span, prelude_.string_type, expr_type, &compiler.errors), // TODO: Has to wait until we can match on slices
-        .float => try typing_.type_check_float(pattern, expr_type, &compiler.errors),
-        .true, .false => try typing_.type_check(pattern.token().span, prelude_.bool_type, expr_type, &compiler.errors),
-        .block => {
-            const new_pattern = validate_AST(pattern, expr_type, compiler);
-            try poison_.assert_none_poisoned(new_pattern);
-            try typing_.type_check(pattern.token().span, new_pattern.typeof(compiler.allocator()), expr_type, &compiler.errors);
-        },
-        .select, .sum_value => {
-            const new_pattern = validate_AST(pattern, expr_type, compiler);
-            try poison_.assert_none_poisoned(new_pattern);
-            pattern.set_pos(new_pattern.pos().?);
-            try typing_.type_check(pattern.token().span, new_pattern.typeof(compiler.allocator()), expr_type, &compiler.errors);
-        },
-        .product => {
-            const expanded_expr_type = expr_type.expand_type(compiler.allocator());
-            if (expanded_expr_type.* != .product or expanded_expr_type.children().items.len != pattern.children().items.len) {
-                return typing_.throw_unexpected_type(pattern.token().span, expr_type, pattern.typeof(compiler.allocator()), &compiler.errors);
+        .unit_value,
+        .int,
+        .char,
+        .string,
+        .float,
+        .true,
+        .false,
+        .block,
+        .select,
+        .enum_value,
+        => _ = self.ctx.typecheck.typecheck_AST(pattern, expr_type) catch return error.CompileError,
+        .tuple_value => {
+            const expanded_expr_type = expr_type.expand_identifier();
+            if (expanded_expr_type.* != .tuple_type or expanded_expr_type.children().items.len != pattern.children().items.len) {
+                const got = self.ctx.typecheck.typecheck_AST(pattern, null) catch return error.CompileError;
+                return typing_.throw_unexpected_type(pattern.token().span, expr_type, got, &self.ctx.errors);
             }
             for (pattern.children().items, expanded_expr_type.children().items) |term, expanded_term| {
-                try assert_pattern_matches(term, expanded_term, compiler);
+                try self.assert_pattern_matches(term, expanded_term);
+            }
+        },
+        .array_value => {
+            const expanded_expr_type = expr_type.expand_identifier();
+            if (expanded_expr_type.* != .array_of or expanded_expr_type.array_of.len.int.data != pattern.children().items.len) {
+                const got = self.ctx.typecheck.typecheck_AST(pattern, null) catch return error.CompileError;
+                return typing_.throw_unexpected_type(pattern.token().span, expr_type, got, &self.ctx.errors);
+            }
+            const elem_type = expanded_expr_type.child();
+            for (pattern.children().items) |term| {
+                try self.assert_pattern_matches(term, elem_type);
             }
         },
         .pattern_symbol => {},
         else => std.debug.panic("compiler error: unimplemented assert_pattern_matches() for {s}", .{@tagName(pattern.*)}),
     }
+    self.ctx.typecheck.assert_typeof(pattern, expr_type);
     _ = pattern.assert_ast_valid();
 }
 
@@ -56,14 +75,13 @@ pub fn assert_pattern_matches(
 /// Currently only checks that all sums are covered.
 /// HUGE TODO: Figure out how to do this fr for products
 pub fn exhaustive_check(
-    _type: *ast_.AST,
+    self: *Self,
+    _type: *Type_AST,
     mappings: *std.ArrayList(*ast_.AST),
     match_span: Span,
-    errors: *errs_.Errors,
-    allocator: std.mem.Allocator,
 ) Validate_Error_Enum!void {
-    if (_type.* == .sum_type) {
-        var total_sum_ids = std.ArrayList(usize).init(allocator);
+    if (_type.* == .enum_type) {
+        var total_sum_ids = std.ArrayList(usize).init(self.ctx.allocator());
         defer total_sum_ids.deinit();
 
         // Append all sum IDs to the ids list
@@ -77,11 +95,11 @@ pub fn exhaustive_check(
         }
         // If there were any IDs that weren't removed, they weren't covered with a pattern match
         if (total_sum_ids.items.len > 0) {
-            var forgotten_sum_variants = std.ArrayList(*ast_.AST).init(allocator); // Not deallocated, lives until error emission
+            var forgotten_sum_variants = std.ArrayList(*Type_AST).init(self.ctx.allocator()); // Not deallocated, lives until error emission
             for (total_sum_ids.items) |id| {
                 forgotten_sum_variants.append(_type.children().items[id]) catch unreachable;
             }
-            errors.add_error(errs_.Error{ .non_exhaustive_sum = .{ .span = match_span, .forgotten = forgotten_sum_variants } });
+            self.ctx.errors.add_error(errs_.Error{ .non_exhaustive_sum = .{ .span = match_span, .forgotten = forgotten_sum_variants } });
             return error.CompileError;
         }
     }
@@ -89,7 +107,7 @@ pub fn exhaustive_check(
 
 fn exhaustive_check_sub(ast: *ast_.AST, ids: *std.ArrayList(usize)) void {
     switch (ast.*) {
-        .select, .sum_value => {
+        .select, .enum_value => {
             for (ids.items, 0..) |item, i| {
                 if (item == ast.pos().?) {
                     _ = ids.swapRemove(i);

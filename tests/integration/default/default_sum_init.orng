@@ -1,5 +1,0 @@
-// 134
-fn main() -> Int {
-    let x: (a: Int=134 | b | c)
-    x.a
-}

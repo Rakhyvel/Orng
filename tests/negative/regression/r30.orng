@@ -1,8 +1,0 @@
-// r30.orng:6:20: error: error: expected a compile-time constant type, got comptime
-//     let x: comptime {?match () { _ => Int }}
-//                   ^
-// 
-fn main() -> Int { 
-    let x: comptime {?match () { _ => Int }}
-    x.some
-} 

@@ -21,8 +21,8 @@ const Package_Find_Result = struct { package_adrs: i64, package_dirname: []const
 pub fn package_find(compiler: *Compiler_Context, interpreter: *Interpreter_Context, current_module_path: []const u8, package_src: *AST) Error!Package_Find_Result {
     // Construct the path to the package's `build.orng` file
     const package_absolute_path = switch (package_src.pos().?) {
-        0 => try package_find_relative(current_module_path, package_src.sum_value.init.?, compiler.allocator()),
-        1 => try package_find_git(compiler, package_src.sum_value.init.?),
+        0 => try package_find_relative(current_module_path, package_src.enum_value.init.?, compiler.allocator()),
+        1 => try package_find_git(compiler, package_src.enum_value.init.?),
         else => unreachable,
     };
 
@@ -43,7 +43,7 @@ pub fn package_find(compiler: *Compiler_Context, interpreter: *Interpreter_Conte
 
     // Jump to the `build()` fn
     try interpreter.call(build_cfg.symbol, retval_place, std.ArrayList(*lval_.L_Value).init(compiler.allocator()));
-    try interpreter.run(compiler);
+    try interpreter.run();
 
     return .{ .package_adrs = adrs, .package_dirname = package_absolute_path };
 }

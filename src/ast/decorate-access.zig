@@ -5,11 +5,13 @@ const ast_ = @import("../ast/ast.zig");
 const core_ = @import("../hierarchy/core.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
+const primitives_ = @import("../hierarchy/prelude.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const token_ = @import("../lexer/token.zig");
 const walk_ = @import("../ast/walker.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 
 scope: *Scope,
 errors: *errs_.Errors,
@@ -27,6 +29,17 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
 
         .access => {
             _ = try self.resolve_symbol_from_ast(ast);
+            return null;
+        },
+    }
+}
+
+pub fn prefix_type(self: Self, _type: *Type_AST) walk_.Error!?Self {
+    switch (_type.*) {
+        else => return self,
+
+        .access => {
+            _ = try self.resolve_symbol_from_ast(_type.access.inner_access);
             return null;
         },
     }
@@ -89,21 +102,31 @@ fn resolve_symbol_from_import_identlike(self: Self, identlike_ast: *ast_.AST) *S
 /// Takes in container symbol (lhs) and field ast (rhs), and returns the symbol that `lhs::rhs` refers to.
 fn resolve_access_symbol(self: Self, lhs: *Symbol, rhs: *ast_.AST, scope: *Scope) walk_.Error!*Symbol {
     switch (lhs.kind) {
-        else => std.debug.panic("unsupported: {}\n", .{lhs.kind}),
-
         .module => return self.resolve_access_module(lhs, rhs),
 
         .import => return self.resolve_access_import(lhs, rhs, scope),
 
-        .import_inner => return try self.resolve_access_symbol(try self.resolve_symbol_from_ast(lhs.init_value.?), rhs, scope),
+        .import_inner => return try self.resolve_access_symbol(try self.resolve_symbol_from_ast(lhs.init_value().?), rhs, scope),
 
-        .@"const" => return self.resolve_access_const(lhs, rhs, scope),
+        .type => return self.resolve_access_const(lhs, rhs, scope),
+
+        else => {
+            self.compiler.errors.add_error(errs_.Error{
+                .member_not_in_module = .{
+                    .span = rhs.token().span,
+                    .identifier = rhs.token().data,
+                    .name = "symbol",
+                    .module_name = lhs.name,
+                },
+            });
+            return error.CompileError;
+        },
     }
 }
 
 /// Resolves a symbol access from a module
 fn resolve_access_module(self: Self, module_symbol: *Symbol, rhs: *ast_.AST) walk_.Error!*Symbol {
-    const module_lookup_res = module_symbol.init_value.?.scope().?.lookup(
+    const module_lookup_res = module_symbol.init_value().?.scope().?.lookup(
         rhs.token().data,
         .{},
     );
@@ -111,11 +134,11 @@ fn resolve_access_module(self: Self, module_symbol: *Symbol, rhs: *ast_.AST) wal
         .found => module_lookup_res.found.decl.?,
         else => {
             self.compiler.errors.add_error(errs_.Error{
-                .member_not_in = .{
+                .member_not_in_module = .{
                     .span = rhs.token().span,
                     .identifier = rhs.token().data,
                     .name = "module",
-                    .group = module_symbol.init_value.?,
+                    .module_name = module_symbol.name,
                 },
             });
             return error.CompileError;
@@ -133,9 +156,9 @@ fn resolve_access_import(self: Self, import_symbol: *Symbol, rhs: *ast_.AST, sco
 
 /// Resolves a symbol access on a constant symbol, likely a trait lookup
 fn resolve_access_const(self: Self, const_symbol: *Symbol, rhs: *ast_.AST, scope: *Scope) walk_.Error!*Symbol {
-    var test_ident = ast_.AST.create_identifier(token_.init_simple(const_symbol.name), self.compiler.allocator());
+    var test_ident = Type_AST.create_identifier(token_.init_simple(const_symbol.name), self.compiler.allocator());
     test_ident.set_symbol(const_symbol);
-    const rhs_decl = scope.lookup_impl_member(test_ident, rhs.token().data);
+    const rhs_decl = scope.lookup_impl_member(test_ident, rhs.token().data, self.compiler) catch return error.CompileError;
     if (rhs_decl == null) {
         self.compiler.errors.add_error(errs_.Error{
             .type_not_impl_method = .{
@@ -153,10 +176,11 @@ fn resolve_access_const(self: Self, const_symbol: *Symbol, rhs: *ast_.AST, scope
 /// Extracts the symbol that a decl-like AST decls
 fn extract_symbol_from_decl(decl: *ast_.AST) *Symbol {
     if (decl.* == .decl) {
-        std.debug.assert(decl.decl.symbols.items.len > 0);
-        return decl.decl.symbols.items[0];
-    } else if (decl.* == .method_decl or decl.* == .fn_decl or decl.* == .trait) {
+        return decl.decl.name.symbol().?;
+    } else if (decl.* == .method_decl or decl.* == .fn_decl or decl.* == .trait or decl.* == .struct_decl or decl.* == .enum_decl or decl.* == .type_alias) {
         return decl.symbol().?;
+    } else if (decl.* == .binding) {
+        return decl.binding.pattern.symbol().?;
     } else {
         std.debug.panic("compiler error: unsupported access symbol resolution for decl-like AST: {s}", .{@tagName(decl.*)});
     }

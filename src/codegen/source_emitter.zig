@@ -13,6 +13,7 @@ const prelude_ = @import("../hierarchy/prelude.zig");
 const module_ = @import("../hierarchy/module.zig");
 const Span = @import("../util/span.zig");
 const String = @import("../zig-string/zig-string.zig").String;
+const Type_AST = @import("../types/type.zig").Type_AST;
 const Type_Set = @import("../ast/type-set.zig");
 const Dependency_Node = @import("../ast/dependency_node.zig");
 const Symbol = @import("../symbol/symbol.zig");
@@ -90,7 +91,7 @@ pub fn output_function_definition(self: *Self, cfg: *CFG) CodeGen_Error!void {
 
     // Declare local variables
     for (cfg.symbvers.items) |symbver| {
-        if (symbver.symbol.expanded_type.?.sizeof() == 0 or // symbol's C type is `void`
+        if (symbver.symbol.expanded_type().sizeof() == 0 or // symbol's C type is `void`
             (symbver.symbol.uses == 0 and symbver.symbol.name[0] != '$') // non-bookkeeping symbol is not used
         ) {
             continue; // Do not output unit variables
@@ -104,7 +105,7 @@ pub fn output_function_definition(self: *Self, cfg: *CFG) CodeGen_Error!void {
         for (param_symbols.?.items) |param| {
             // Do this only if they aren't discarded in source
             // Users can discard parameters, however used parameters may also become unused through optimizations
-            if (!param.expanded_type.?.is_c_void_type() and // unit-typed parameters aren't emitted
+            if (!param.expanded_type().is_c_void_type() and // unit-typed parameters aren't emitted
                 param.uses == 0)
             {
                 try self.writer.print("    (void)", .{});
@@ -129,7 +130,7 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
     }
     const symbol = self.module.entry.?.symbol;
 
-    const codomain = symbol.expanded_type.?.rhs();
+    const codomain = symbol.expanded_type().rhs().expand_identifier();
     var string_access: []const u8 = "";
     var specifier: ?[]const u8 = null;
     switch (codomain.*) {
@@ -142,7 +143,7 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
                 else => unreachable,
             };
         },
-        .product => {
+        .struct_type => |p| if (p.was_slice) {
             string_access = "._0";
             specifier = "s";
         },
@@ -158,7 +159,7 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
         try self.emitter.output_symbol(symbol);
         try self.writer.print("(){s});", .{string_access});
     } else {
-        if (codomain.* == .sum_type and codomain.sum_type.from == .@"error") {
+        if (codomain.* == .enum_type and codomain.enum_type.from == .@"error") {
             try self.emitter.output_type(codomain);
             try self.writer.print(" retcode = ", .{});
         }
@@ -169,7 +170,7 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
         , .{});
     }
 
-    if (codomain.* == .sum_type and codomain.sum_type.from == .@"error") {
+    if (codomain.* == .enum_type and codomain.enum_type.from == .@"error") {
         try self.writer.print(
             \\  return retcode.tag;
             \\}}
@@ -324,12 +325,23 @@ fn output_instruction_post_check(self: *Self, instr: *Instruction) CodeGen_Error
         .load_struct => {
             try self.output_var_assign_cast(instr.dest.?, instr.dest.?.get_expanded_type());
             try self.writer.print("{{", .{});
-            var product_list = instr.dest.?.get_expanded_type().children().*;
-            for (instr.data.lval_list.items, product_list.items, 1..) |term, expected, i| {
-                if (!expected.is_c_void_type()) {
+            const dest_type = instr.dest.?.get_expanded_type();
+            if (dest_type.* == .struct_type or dest_type.* == .tuple_type) { // TODO: Likely need a `load_array` instruction
+                var product_list = dest_type.children().*;
+                for (instr.data.lval_list.items, product_list.items, 1..) |term, expected, i| {
+                    if (!expected.is_c_void_type()) {
+                        // Don't use values of type `void` (don't exist in C! (Goobersville!))
+                        try self.output_rvalue(term, instr.kind.precedence());
+                        if (i < product_list.items.len and !product_list.items[i - 1].is_c_void_type()) {
+                            try self.writer.print(", ", .{});
+                        }
+                    }
+                }
+            } else {
+                for (instr.data.lval_list.items, 1..) |term, i| {
                     // Don't use values of type `void` (don't exist in C! (Goobersville!))
                     try self.output_rvalue(term, instr.kind.precedence());
-                    if (i < product_list.items.len and !product_list.items[i - 1].is_c_void_type()) {
+                    if (i < instr.data.lval_list.items.len) {
                         try self.writer.print(", ", .{});
                     }
                 }
@@ -551,8 +563,8 @@ fn output_rvalue(self: *Self, lvalue: *lval_.L_Value, outer_precedence: i128) Co
         },
         .select => {
             try self.output_rvalue(lvalue.select.lhs, lvalue.lval_precedence()); // This will dereference, no need for `->`
-            const unexpanded_type: ?*ast_.AST = lvalue.select.lhs.get_expanded_type().common()._unexpanded_type;
-            if (unexpanded_type != null and unexpanded_type.?.* == .identifier and unexpanded_type.?.symbol() != null and unexpanded_type.?.symbol().?.kind == .@"extern") {
+            const unexpanded_type: ?*Type_AST = lvalue.select.lhs.get_expanded_type().common()._unexpanded_type;
+            if (unexpanded_type != null and unexpanded_type.?.* == .identifier and unexpanded_type.?.symbol() != null and unexpanded_type.?.symbol().?.storage == .@"extern") {
                 // Select the nominal C name
                 const field_name = lvalue.select.lhs.get_expanded_type().children().items[@intCast(lvalue.select.field)].annotation.pattern.token().data;
                 try self.writer.print(".{s}", .{field_name});
@@ -561,7 +573,14 @@ fn output_rvalue(self: *Self, lvalue: *lval_.L_Value, outer_precedence: i128) Co
                 try self.writer.print("._{}", .{lvalue.select.field});
             }
         },
-        .symbver => try self.emitter.output_symbol(lvalue.symbver.symbol),
+        .symbver => {
+            if (lvalue.symbver.symbol.decl.?.* == .receiver) {
+                try self.writer.print("(", .{});
+                try self.emitter.output_type(lvalue.get_expanded_type());
+                try self.writer.print(")", .{});
+            }
+            try self.emitter.output_symbol(lvalue.symbver.symbol);
+        },
         .raw_address => std.debug.panic("compiler error: cannot output raw address lvalue", .{}),
     }
     if (outer_precedence < lvalue.lval_precedence()) {
@@ -622,7 +641,7 @@ fn output_lvalue(self: *Self, lvalue: *lval_.L_Value, outer_precedence: i128) Co
 /// Emits the return statement from a function
 fn output_return(self: *Self, return_symbol: *Symbol) CodeGen_Error!void {
     try self.writer.print("    return", .{});
-    if (return_symbol.defs > 0 and !return_symbol.expanded_type.?.is_c_void_type()) {
+    if (return_symbol.defs > 0 and !return_symbol.expanded_type().is_c_void_type()) {
         try self.writer.print(" ", .{});
         try self.emitter.output_symbol(return_symbol);
     }
@@ -638,7 +657,7 @@ fn output_var_assign(self: *Self, lval: *lval_.L_Value) CodeGen_Error!void {
 }
 
 /// Outputs the C code for assigning a value to a variable with a cast.
-fn output_var_assign_cast(self: *Self, lval: *lval_.L_Value, _type: *ast_.AST) CodeGen_Error!void {
+fn output_var_assign_cast(self: *Self, lval: *lval_.L_Value, _type: *Type_AST) CodeGen_Error!void {
     try self.output_var_assign(lval);
     try self.writer.print("(", .{});
     try self.emitter.output_type(_type);

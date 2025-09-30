@@ -1,0 +1,16 @@
+// 104
+enum Int_Or_Bool {
+    int(Int)
+    bool(Bool)
+}
+
+enum Sum_Or_No_Sum {
+    sum(Int_Or_Bool)
+    not_sum
+}
+
+fn main() -> Int {
+    let mut x: Sum_Or_No_Sum = .sum(.int(4))
+    x.sum.int = 104
+    x.sum.int
+}

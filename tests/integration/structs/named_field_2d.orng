@@ -1,0 +1,13 @@
+// 195
+struct CD {c: Int, d: Int}
+struct EF {e: Int, f: Int}
+struct My_Type {a: CD, b: EF}
+
+fn main() -> Int {
+    let x = My_Type(
+        .a = CD(.c = 25, .d = 75),
+        .b = EF(.e = 5,  .f = 90)
+    )
+
+    x.a.c + x.a.d + x.b.e + x.b.f
+}

@@ -1,0 +1,9 @@
+// 372
+struct Wrapper[T] {
+    value: T
+}
+
+fn main() -> Int {
+    let x = Wrapper[Wrapper[Int]](Wrapper[Int](.value = 372,))
+    x.value.value
+}

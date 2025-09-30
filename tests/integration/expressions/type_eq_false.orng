@@ -1,8 +1,0 @@
-// 252
-fn main() -> Int {
-    if Int == Char {
-        unreachable
-    } else {
-        252
-    }
-}

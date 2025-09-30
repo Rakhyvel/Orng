@@ -1,10 +1,10 @@
 // 352
-const My_Int: Type = (
+struct My_Int {
     x: Int
-)
+}
 
 impl for My_Int {
-    fn new(x: Int) -> (x: Int,) { (.x = x,) }
+    fn new(x: Int) -> My_Int { My_Int(.x = x) }
 }
 
 fn main ( ) -> Int { 

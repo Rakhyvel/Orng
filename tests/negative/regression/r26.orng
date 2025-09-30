@@ -1,7 +1,0 @@
-// r26.orng:5:41: error: `break` is not inside a loop
-// fn ident ( ) -> ident .> ident ( { break } ) {
-//                                        ^
-// 
-fn ident ( ) -> ident .> ident ( { break } ) {
-
-} 

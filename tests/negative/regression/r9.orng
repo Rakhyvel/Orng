@@ -1,5 +1,0 @@
-// r9.orng:5:22: error: error: expected a compile-time constant type, got unreachable
-// const x : unreachable = 3
-//                     ^
-// 
-const x : unreachable = 3

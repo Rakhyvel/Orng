@@ -25,41 +25,12 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
     switch (ast.*) {
         else => {},
 
-        .sum_type => try self.expand_sum_type(ast),
+        // TOOD: A pass that ensures that there are no duplicate fields in product and sum types
 
         .sub_slice => self.expand_subslice(ast),
     }
 
     return self;
-}
-
-fn expand_sum_type(self: Self, ast: *ast_.AST) walk_.Error!void {
-    var changed = false;
-    var new_terms = std.ArrayList(*ast_.AST).init(self.allocator);
-    var idents_seen = std.StringArrayHashMap(*ast_.AST).init(self.allocator);
-    defer idents_seen.deinit();
-    errdefer new_terms.deinit();
-
-    // Make sure identifiers aren't repeated
-    for (ast.children().items) |term| {
-        changed = changed or term.* == .identifier;
-        var annotation: *ast_.AST = try annot_from_ast(term, self.errors, self.allocator);
-        new_terms.append(annotation) catch unreachable;
-        const name = annotation.annotation.pattern.token().data;
-        const res = idents_seen.fetchPut(name, annotation) catch unreachable;
-        if (res) |_res| {
-            self.errors.add_error(errs_.Error{
-                .duplicate = .{ .span = term.token().span, .identifier = name, .first = _res.value.token().span },
-            });
-            return error.CompileError;
-        }
-    }
-
-    if (changed) {
-        ast.set_children(new_terms);
-    } else {
-        new_terms.deinit();
-    }
 }
 
 fn expand_subslice(self: Self, ast: *ast_.AST) void {

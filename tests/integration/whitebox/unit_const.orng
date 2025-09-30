@@ -1,6 +1,6 @@
 // 320
 fn main() -> Int {
-    const Ident = ()
+    type Ident = ()
     const x: Ident = {}
     _ = x
     320

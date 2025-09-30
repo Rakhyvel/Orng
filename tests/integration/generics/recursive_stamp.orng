@@ -1,0 +1,11 @@
+// 372
+
+struct Recurse[T] {
+    next: ?&Recurse[T]
+    value: T
+}
+
+fn main() -> Int {
+    let r = Recurse[Int](.next = .none, .value = 372)
+   r.value
+}

@@ -1,8 +1,9 @@
-// sum.orng:6:22: error: expected a value of type `Int`, got a value of type `Type`
-//     let x: Int = (x | y)
-//                     ^
+// sum.orng:7:24: error: expected a value of type `Int`, got a type
+//     let x: Int = X_Or_Y
+//                       ^
 // 
+enum X_Or_Y {x, y}
 fn main() -> Int {
-    let x: Int = (x | y)
+    let x: Int = X_Or_Y
     x
 }

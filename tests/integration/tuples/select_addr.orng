@@ -1,6 +1,0 @@
-// 76
-fn main() -> Int {
-    let mut x: (a: Int, b: Int) = (1, 2)
-    (&mut x).a = 76
-    (&mut x).a
-}

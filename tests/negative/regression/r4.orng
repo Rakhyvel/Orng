@@ -1,5 +1,5 @@
-// r4.orng:5:13: error: array length is not positive
+// r4.orng:5:22: error: expected a value of type `[int(0)]Float`, got a value of type `()`
 // fn b () -> [0]Float { }
-//            ^
+//                     ^
 // 
 fn b () -> [0]Float { }

@@ -1,6 +1,6 @@
 // 78
 fn main() -> Int {
-    let mut x: [4]Int = (1, 2, 3, 4)
+    let mut x: [4]Int = [1, 2, 3, 4]
     f(&mut x)^[3]
 }
 

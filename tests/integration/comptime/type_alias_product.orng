@@ -1,7 +1,0 @@
-// 240
-const My_Type = (a: Int, b: Int)
-
-fn main() -> Int {
-    let x: My_Type = (200, 40)
-    x.a + x.b
-}

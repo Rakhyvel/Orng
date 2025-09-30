@@ -1,0 +1,11 @@
+// 235
+enum The_Type { x(Int) }
+
+fn main() -> Int {
+    let a = get_the_sum()
+    a.x
+}
+
+fn get_the_sum() -> The_Type {
+    .x(235)
+}

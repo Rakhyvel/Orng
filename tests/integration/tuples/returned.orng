@@ -1,8 +1,9 @@
 // 221
+
 fn main() -> Int {
-    f().y
+    f()[1]
 }
 
-fn f() -> (x: Int, y: Int) {
+fn f() -> (Int, Int) {
     (45, 221)
 }

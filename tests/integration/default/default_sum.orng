@@ -1,6 +1,12 @@
 // 133
+enum My_Type {
+    a(Int)
+    b
+    c
+}
+
 fn main() -> Int {
-    let x: (a: Int | b | c)
+    let x: My_Type
     if x.a == 0 {
         133
     } else {

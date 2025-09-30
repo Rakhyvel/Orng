@@ -1,0 +1,9 @@
+// 160
+fn main()->Int {
+    let [a, b]: [2]Int
+    if a + b == 0 {
+        160
+    } else {
+        61
+    }
+}

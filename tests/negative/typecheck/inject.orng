@@ -3,8 +3,8 @@
 //                   ^
 // 
 fn main() -> Int {
-    const T = (a: Int | b: Int)
-    const S = (a: Int | b: Char)
+    enum T { a(Int), b(Int) }
+    enum S { a(Int), b(Char) }
     let x:T = S.b(3)
     0
 }

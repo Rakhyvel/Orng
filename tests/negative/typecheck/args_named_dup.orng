@@ -1,8 +1,13 @@
-// args_named_dup.orng:6:44: error: duplicate item `a`
-//     let x: (a: Int, b: Int) = (.a = 4, .a = 5, .b = 4)
-//                                           ^
+// args_named_dup.orng:11:33: error: duplicate item `a`
+//     let x = My_Type(.a = 4, .a = 5, .b = 4)
+//                                ^
 // 
+struct My_Type {
+    a: Int
+    b: Int
+}
+
 fn main() -> Int {
-    let x: (a: Int, b: Int) = (.a = 4, .a = 5, .b = 4)
+    let x = My_Type(.a = 4, .a = 5, .b = 4)
     0
 }

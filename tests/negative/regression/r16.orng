@@ -1,7 +1,0 @@
-// r16.orng:6:6: error: expected a value of type `Int`
-//     & mut ? if & mut [ ] & ? { } { }
-//     ^
-// 
-fn main ( ) -> Int { 
-    & mut ? if & mut [ ] & ? { } { }
-} 

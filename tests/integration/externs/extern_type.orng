@@ -1,11 +1,14 @@
 // 341
 
 cinclude "helper.h"
-extern const Some_Type: Type = (x: Int, y: Int)
+extern struct Some_Type {
+    x: Int
+    y: Int
+}
 extern const sum: Some_Type -> Int
 
 fn main() -> Int {
-    let mut x: Some_Type = (300, 40)
+    let mut x = Some_Type(300, 40)
     x.y = 41
     sum(x)
 }

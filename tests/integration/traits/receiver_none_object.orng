@@ -3,7 +3,7 @@ trait My_Trait {
     virtual fn d(x: Int, y: Int) -> Int
 }
 
-const My_Type = (x: Int, y: Int)
+struct My_Type { x: Int, y: Int }
 
 impl My_Trait for My_Type {
     virtual fn d(x: Int, y: Int) -> Int {
@@ -12,7 +12,7 @@ impl My_Trait for My_Type {
 }
 
 fn main() -> Int {
-    let my_val: My_Type = (100, 45)
+    let my_val = My_Type(100, 45)
     let my_dyn: &dyn My_Trait = &my_val
     _ = my_dyn
     my_dyn.>d(200, 91)

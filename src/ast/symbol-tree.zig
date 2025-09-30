@@ -9,6 +9,8 @@ const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
+const Type_Map = @import("../ast/type_map.zig").Type_Map;
 const walk_ = @import("../ast/walker.zig");
 
 scope: *Scope,
@@ -39,7 +41,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         else => {},
 
         // Capture scope
-        .access, .invoke, .addr_of, .@"comptime" => ast.set_scope(self.scope),
+        .@"comptime", .access, .invoke, .addr_of => ast.set_scope(self.scope),
 
         // Check that AST is inside a loop
         .@"break", .@"continue" => try self.in_loop_check(ast, self.errors),
@@ -81,19 +83,52 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         },
 
         // Create symbols (potentially >1) from pattern, put inside scope
-        .decl,
-        => {
+        .binding => {
+            var symbols = std.ArrayList(*Symbol).init(self.allocator);
             try create_symbol(
-                &ast.decl.symbols,
-                ast.decl.pattern,
+                &symbols,
+                ast.binding.pattern,
                 ast,
-                ast.decl.type,
-                ast.decl.init,
+                ast.binding.type,
+                ast.binding.init,
                 self.scope,
                 self.errors,
                 self.allocator,
             );
-            try self.scope.put_all_symbols(&ast.decl.symbols, self.errors);
+            for (symbols.items) |symbol| {
+                ast.binding.decls.append(symbol.decl.?) catch unreachable;
+            }
+            try self.scope.put_all_symbols(&symbols, self.errors);
+        },
+
+        .struct_decl, .enum_decl, .type_alias => {
+            var new_self = self;
+            new_self.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
+
+            const symbol = Symbol.init(
+                self.scope,
+                ast.decl_name().token().data,
+                ast,
+                .type,
+                ast.decl_name().pattern_symbol.storage,
+                self.allocator,
+            );
+            try self.register_symbol(ast, symbol);
+
+            ast.set_scope(new_self.scope);
+            return new_self;
+        },
+
+        .type_param_decl => {
+            const symbol = Symbol.init(
+                self.scope,
+                ast.token().data,
+                ast,
+                .type,
+                .local,
+                self.allocator,
+            );
+            try self.register_symbol(ast, symbol);
         },
 
         .@"test" => {
@@ -109,28 +144,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 // Do not re-do symbol if already declared
                 return null;
             } else if (ast.fn_decl.is_templated()) {
-                if (ast.fn_decl.name == null) {
-                    self.errors.add_error(
-                        errs_.Error{
-                            .basic = .{
-                                .msg = "anonymous functions specified with const parameters", // TODO: Could use some better wording
-                                .span = ast.token().span,
-                            },
-                        },
-                    );
-                    return error.CompileError;
-                }
-                // Template declaration, transform function into template
-                // Clone the fn declaration and keep it to be templated out when stamping
-                const template_pattern_fn_decl = ast.clone(self.allocator);
-                const common = ast_.AST_Common{ ._token = ast.token(), ._type = null };
-                ast.* = ast_.AST{ .template = .{
-                    .common = common,
-                    .decl = template_pattern_fn_decl,
-                    .memo = null,
-                } };
-                const symbol = try create_template_symbol(ast, self.scope, self.allocator);
-                try self.register_symbol(ast, symbol);
+                // TOOD: stamp
             } else {
                 // Normal function declaration
                 const symbol = try create_function_symbol(ast, self.scope, self.errors, self.allocator);
@@ -152,17 +166,17 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             const symbol = try create_trait_symbol(ast, self.scope, self.allocator);
             try self.register_symbol(ast, symbol);
 
-            const self_type_decl = ast_.AST.create_decl(
+            const self_type_decl = ast_.AST.create_type_alias(
                 ast.token(),
                 ast_.AST.create_pattern_symbol(
                     Token.init_simple("Self"),
-                    .@"const",
+                    .type,
+                    .local,
                     "Self",
                     self.allocator,
                 ),
-                prelude_.type_type,
-                prelude_.unit_type,
-                true,
+                null,
+                std.ArrayList(*ast_.AST).init(self.allocator),
                 self.allocator,
             );
             try walk_.walk_ast(self_type_decl, new_self);
@@ -177,33 +191,48 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             new_self.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
             ast.set_scope(new_self.scope);
 
-            if (ast.impl.trait == null) {
-                // impl'd for an anon trait, create an anon trait for it
-                var token = ast.token();
-                token.kind = .identifier;
-                token.data = next_anon_name("trait", self.allocator);
-                ast.impl.trait = ast_.AST.create_trait(
-                    token,
-                    ast.impl.method_defs,
-                    ast.impl.const_defs,
-                    self.allocator,
-                );
-                ast.impl.impls_anon_trait = true;
-            }
-            const self_type_decl = ast_.AST.create_decl(
+            const self_type_decl = ast_.AST.create_type_alias(
                 ast.token(),
                 ast_.AST.create_pattern_symbol(
                     Token.init_simple("Self"),
-                    .@"const",
+                    .type,
+                    .local,
                     "Self",
                     self.allocator,
                 ),
-                prelude_.type_type,
                 ast.impl._type,
-                true,
+                std.ArrayList(*ast_.AST).init(self.allocator),
                 self.allocator,
             );
             try walk_.walk_ast(self_type_decl, new_self);
+
+            if (ast.impl.trait == null) {
+                // impl'd for an anon trait, create an anon trait for it
+                var new_self_for_anon_trait = self;
+                new_self_for_anon_trait.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
+
+                // TODO: Don't do this for generic impls (but those'll be a new node anyway)
+                var subst = std.StringArrayHashMap(*Type_AST).init(self.allocator);
+                defer subst.deinit();
+
+                var token = ast.token();
+                token.kind = .identifier;
+                token.data = next_anon_name("Trait", self.allocator);
+                const cloned_methods = ast_.AST.clone_children(ast.impl.method_defs, &subst, self.allocator);
+                for (cloned_methods.items) |cloned_method| {
+                    cloned_method.method_decl.init = null;
+                }
+                const anon_trait = ast_.AST.create_trait(
+                    token,
+                    cloned_methods,
+                    ast_.AST.clone_children(ast.impl.const_defs, &subst, self.allocator),
+                    self.allocator,
+                );
+                try walk_.walk_ast(anon_trait, new_self_for_anon_trait);
+                ast.impl.trait = ast_.AST.create_identifier(token, self.allocator);
+                ast.impl.trait.?.set_symbol(anon_trait.symbol().?);
+                ast.impl.impls_anon_trait = true;
+            }
 
             return new_self;
         },
@@ -218,6 +247,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 var new_self = self;
                 new_self.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
                 new_self.scope.function_depth = new_self.scope.function_depth + 1;
+                ast.method_decl._decl_type = create_method_type(ast, self.allocator);
                 return new_self;
             } else {
                 // Impl method decl
@@ -242,29 +272,6 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
 
         .match => {
             try create_match_pattern_symbol(ast, self.scope, self.errors, self.allocator);
-        },
-
-        .decl => {
-            if (ast.decl._top_level) {
-                for (ast.decl.symbols.items) |symbol| {
-                    if (symbol.kind != .@"const" and symbol.kind != .@"extern" and symbol.kind != .import) {
-                        self.errors.add_error(errs_.Error{ .basic = .{
-                            .span = symbol.span,
-                            .msg = "top level symbols must be marked `const`",
-                        } });
-                        return error.CompileError;
-                    }
-                }
-            }
-
-            if (!self.is_param_scope and !ast.decl.prohibit_defaults and ast.decl.init == null) {
-                // If this isn't a parameter, and the init is null, set the init to the default value of the type
-                ast.decl.init = ast_.AST.create_default(
-                    ast.token(),
-                    ast.decl.type,
-                    self.allocator,
-                );
-            }
         },
 
         .trait => {
@@ -293,12 +300,6 @@ fn in_function_check(ast: *ast_.AST, scope: *Scope, errors: *errs_.Errors) Error
             .name = @tagName(ast.*),
         } });
         return error.CompileError;
-    } else if (scope.inner_function.?.kind == .@"comptime") {
-        errors.add_error(errs_.Error{ .basic = .{
-            .span = ast.token().span,
-            .msg = "`return` cannot be within comptime",
-        } });
-        return error.CompileError;
     } else {
         return scope.inner_function.?;
     }
@@ -309,7 +310,7 @@ fn create_symbol(
     symbols: *std.ArrayList(*Symbol), // Mutable list that accumulates all the created symbols for a given scope, to be put() later.
     pattern: *ast_.AST, // Represents the pattern being matched; processed recursively to create symbols.
     decl: ?*ast_.AST, // Potential decl AST to be given to symbols.
-    _type: *ast_.AST, // Type of the current pattern.
+    _type: *Type_AST, // Type of the current pattern.
     init: ?*ast_.AST, // The value being matched on. Null for function parameter symbols.
     scope: *Scope,
     errors: *errs_.Errors,
@@ -332,42 +333,34 @@ fn create_symbol(
                 }
             }
 
-            const symbol_init = if (pattern.pattern_symbol.kind != .@"const" or decl != null and decl.?.decl.is_alias)
-                init
-            else if (init != null)
-                // Wrap init in comptime if symbol is const and non-alias
-                try create_comptime_init(init.?, scope, allocator)
-            else
-                null;
-
             const symbol = Symbol.init(
                 scope,
                 pattern.pattern_symbol.name,
-                pattern.token().span,
-                _type,
-                symbol_init,
-                decl,
+                ast_.AST.create_decl(pattern.token(), pattern, _type, init, allocator),
                 pattern.pattern_symbol.kind,
+                pattern.pattern_symbol.storage,
                 allocator,
             );
             pattern.set_symbol(symbol);
             symbols.append(symbol) catch unreachable;
         },
-        .product => {
+        .tuple_value, .array_value => {
             for (pattern.children().items, 0..) |term, i| {
                 const index = ast_.AST.create_int(pattern.token(), i, allocator);
-                const new_type: *ast_.AST = ast_.AST.create_index(_type.token(), _type, index, allocator);
-                const new_init: *ast_.AST = ast_.AST.create_index(init.?.token(), init.?, index, allocator);
+                const new_type: *Type_AST = Type_AST.create_index(_type.token(), _type, index, allocator);
+                var index_rhs = std.ArrayList(*ast_.AST).init(allocator);
+                index_rhs.append(index) catch unreachable;
+                const new_init: *ast_.AST = ast_.AST.create_index(init.?.token(), init.?, index_rhs, allocator);
                 try create_symbol(symbols, term, decl, new_type, new_init, scope, errors, allocator);
             }
         },
-        .sum_value => {
-            const lhs_type = ast_.AST.create_type_of(pattern.token(), init.?, allocator);
-            const rhs_type = ast_.AST.create_domain_of(pattern.token(), lhs_type, pattern, allocator);
+        .enum_value => {
+            const lhs_type = Type_AST.create_type_of(pattern.token(), init.?, allocator);
+            const rhs_type = Type_AST.create_domain_of(pattern.token(), lhs_type, pattern.enum_value.get_name(), allocator);
 
-            if (pattern.sum_value.init != null) {
+            if (pattern.enum_value.init != null) {
                 // Here init is null!
-                try create_symbol(symbols, pattern.sum_value.init.?, decl, rhs_type, pattern.sum_value.init.?, scope, errors, allocator);
+                try create_symbol(symbols, pattern.enum_value.init.?, decl, rhs_type, pattern.enum_value.init.?, scope, errors, allocator);
             }
         },
 
@@ -386,10 +379,13 @@ fn create_match_pattern_symbol(match: *ast_.AST, scope: *Scope, errors: *errs_.E
         defer symbols.deinit();
         const match_expr = match.expr();
         const match_expr_token = match_expr.token();
-        const _type = ast_.AST.create_type_of(match_expr_token, match_expr, allocator);
+        const _type = Type_AST.create_type_of(match_expr_token, match_expr, allocator);
         try create_symbol(&symbols, mapping.lhs(), null, _type, match_expr, new_scope, errors, allocator);
         for (symbols.items) |symbol| {
             symbol.defined = true;
+        }
+        for (symbols.items) |symbol| {
+            mapping.mapping.captures.append(symbol.decl.?) catch unreachable;
         }
         try new_scope.put_all_symbols(&symbols, errors);
         try walk_.walk_ast(mapping.rhs(), Self.new(new_scope, errors, allocator));
@@ -406,12 +402,13 @@ pub fn create_function_symbol(
     const domain = extract_domain(ast.children().*, allocator);
 
     // Create the function type
-    const _type = ast_.AST.create_function(
+    const _type = Type_AST.create_function(
         ast.fn_decl.ret_type.token(),
         domain,
         ast.fn_decl.ret_type,
         allocator,
     );
+    ast.fn_decl._decl_type = _type;
 
     // Create the function scope
     var fn_scope = Scope.init(scope, scope.uid_gen, allocator);
@@ -421,11 +418,10 @@ pub fn create_function_symbol(
     var symbol_walk = Self.new(fn_scope, errors, allocator);
     symbol_walk.is_param_scope = true;
     try walk_.walk_asts(ast.children(), symbol_walk);
-    try walk_.walk_ast(ast.fn_decl.ret_type, symbol_walk);
 
     // Put the param symbols in the param symbols list
-    for (ast.children().items) |param| {
-        const symbol = param.decl.symbols.items[0];
+    for (ast.children().items) |param_binding| {
+        const symbol = param_binding.binding.decls.items[0].decl.name.symbol().?;
         ast.param_symbols().?.append(symbol) catch unreachable;
     }
 
@@ -447,11 +443,9 @@ pub fn create_function_symbol(
     const retval = Symbol.init(
         fn_scope,
         buf,
-        if (ast.fn_decl.name) |name| name.token().span else ast.token().span,
-        _type,
-        ast.fn_decl.init,
         ast,
         .@"fn",
+        .local,
         allocator,
     );
     fn_scope.inner_function = retval;
@@ -466,13 +460,6 @@ pub fn create_test_symbol(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Error!*Symbol {
-    const _type = ast_.AST.create_function(
-        ast.token(),
-        prelude_.unit_type,
-        core_.test_result_type,
-        allocator,
-    );
-
     // Create the function scope
     var fn_scope = Scope.init(scope, scope.uid_gen, allocator);
     fn_scope.function_depth = scope.function_depth + 1;
@@ -482,11 +469,9 @@ pub fn create_test_symbol(
     const retval = Symbol.init(
         fn_scope,
         buf,
-        if (ast.@"test".name) |name| name.token().span else ast.token().span,
-        _type,
-        ast.@"test".init,
         ast,
         .@"test",
+        .local,
         allocator,
     );
     fn_scope.inner_function = retval;
@@ -497,73 +482,72 @@ pub fn create_test_symbol(
 }
 
 var num_anons: usize = 0;
-fn next_anon_name(class: []const u8, allocator: std.mem.Allocator) []const u8 {
+pub fn next_anon_name(class: []const u8, allocator: std.mem.Allocator) []const u8 {
     defer num_anons += 1;
     var out = String.init(allocator);
     defer out.deinit();
     const writer = out.writer();
-    writer.print("${s}{}", .{ class, num_anons }) catch unreachable;
+    writer.print("{s}${}", .{ class, num_anons }) catch unreachable;
     return (out.toOwned() catch unreachable).?;
 }
 
-pub fn extract_domain(params: std.ArrayList(*ast_.AST), allocator: std.mem.Allocator) *ast_.AST {
+pub fn extract_domain(params: std.ArrayList(*ast_.AST), allocator: std.mem.Allocator) *Type_AST {
     if (params.items.len == 0) {
         return prelude_.unit_type;
     } else if (params.items.len <= 1) {
-        return ast_.AST.create_annotation(
+        return Type_AST.create_annotation(
             params.items[0].token(),
-            params.items[0].decl.pattern,
-            params.items[0].decl.type,
-            null,
-            params.items[0].decl.init,
+            params.items[0].binding.pattern,
+            params.items[0].binding.type,
+            params.items[0].binding.init,
             allocator,
         );
     } else {
         std.debug.assert(params.items.len >= 2);
-        var param_types = std.ArrayList(*ast_.AST).init(allocator);
+        var param_types = std.ArrayList(*Type_AST).init(allocator);
         return build_paramlist(params, &param_types, allocator);
     }
 }
 
-fn extract_domain_with_receiver(impl_type: *ast_.AST, receiver: *ast_.AST, params: std.ArrayList(*ast_.AST), allocator: std.mem.Allocator) *ast_.AST {
-    const _receiver_type = create_receiver_annot(create_receiver_addr(impl_type, receiver, allocator), receiver, allocator);
+fn extract_domain_with_receiver(impl_type: *Type_AST, receiver: *ast_.AST, params: std.ArrayList(*ast_.AST), allocator: std.mem.Allocator) *Type_AST {
+    const receiver_addr_type = create_receiver_addr(impl_type, receiver, allocator);
+    receiver.receiver._type = receiver_addr_type;
+    const _receiver_type = create_receiver_annot(receiver_addr_type, receiver, allocator);
     if (params.items.len == 0) {
         return _receiver_type;
     } else {
-        var param_types = std.ArrayList(*ast_.AST).init(allocator);
+        var param_types = std.ArrayList(*Type_AST).init(allocator);
         param_types.append(_receiver_type) catch unreachable;
         return build_paramlist(params, &param_types, allocator);
     }
 }
 
-fn build_paramlist(params: std.ArrayList(*ast_.AST), param_types: *std.ArrayList(*ast_.AST), allocator: std.mem.Allocator) *ast_.AST {
+fn build_paramlist(params: std.ArrayList(*ast_.AST), param_types: *std.ArrayList(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
     for (0..params.items.len) |i| {
-        param_types.append(ast_.AST.create_annotation(
+        param_types.append(Type_AST.create_annotation(
             params.items[i].token(),
-            params.items[i].decl.pattern,
-            params.items[i].decl.type,
-            null,
-            params.items[i].decl.init,
+            params.items[i].binding.pattern,
+            params.items[i].binding.type,
+            params.items[i].binding.init,
             allocator,
         )) catch unreachable;
     }
-    const retval = ast_.AST.create_product(params.items[0].token(), param_types.*, allocator);
+    const retval = Type_AST.create_tuple_type(params.items[0].token(), param_types.*, allocator);
     return retval;
 }
 
-fn create_receiver_addr(impl_type: *ast_.AST, receiver: *ast_.AST, allocator: std.mem.Allocator) *ast_.AST {
+fn create_receiver_addr(impl_type: *Type_AST, receiver: *ast_.AST, allocator: std.mem.Allocator) *Type_AST {
     return switch (receiver.receiver.kind) {
-        .value, .addr_of => ast_.AST.create_addr_of(receiver.token(), impl_type, false, false, allocator),
-        .mut_addr_of => ast_.AST.create_addr_of(receiver.token(), impl_type, true, false, allocator),
+        .value, .addr_of => Type_AST.create_addr_of(receiver.token(), impl_type, false, false, allocator),
+        .mut_addr_of => Type_AST.create_addr_of(receiver.token(), impl_type, true, false, allocator),
     };
 }
 
-fn create_receiver_annot(receiver_addr: *ast_.AST, receiver: *ast_.AST, allocator: std.mem.Allocator) *ast_.AST {
-    return ast_.AST.create_annotation(
+fn create_receiver_annot(receiver_addr: *Type_AST, receiver: *ast_.AST, allocator: std.mem.Allocator) *Type_AST {
+    return Type_AST.create_annotation(
         receiver.token(),
         ast_.AST.create_identifier(receiver.token(), allocator),
         receiver_addr,
-        null,
         null,
         allocator,
     );
@@ -583,14 +567,14 @@ fn create_comptime_init(
 /// Creates a symbol which represents the comptime function to be ran.
 pub fn create_temp_comptime_symbol(
     ast: *ast_.AST,
-    rhs_type_hint: ?*ast_.AST,
+    rhs_type_hint: ?*Type_AST,
     scope: *Scope,
     allocator: std.mem.Allocator,
 ) Error!*Symbol {
     // Create the function type. The rhs is a typeof node, since type expansion is done in a later time
     const lhs = prelude_.unit_type;
-    const rhs = ast_.AST.create_type_of(ast.token(), ast, allocator);
-    const _type = ast_.AST.create_function(ast.token(), lhs, rhs_type_hint orelse rhs, allocator);
+    const rhs = Type_AST.create_type_of(ast.token(), ast, allocator);
+    const _type = Type_AST.create_function(ast.token(), lhs, rhs_type_hint orelse rhs, allocator);
 
     // Create the comptime scope
     // This is to prevent `comptime` expressions from using runtime variables
@@ -601,15 +585,27 @@ pub fn create_temp_comptime_symbol(
     var buf: []const u8 = undefined;
     buf = next_anon_name("comptime", allocator);
 
+    const decl = ast_.AST.create_decl(
+        ast.token(),
+        ast_.AST.create_pattern_symbol(
+            ast.token(),
+            .@"comptime",
+            .local,
+            buf,
+            allocator,
+        ),
+        _type,
+        ast,
+        allocator,
+    );
+
     // Create the symbol
     const retval = Symbol.init(
         comptime_scope,
         buf,
-        ast.token().span,
-        _type,
-        ast,
-        ast,
+        decl,
         .@"comptime",
+        .local,
         allocator,
     );
     comptime_scope.inner_function = retval;
@@ -626,22 +622,20 @@ fn create_trait_symbol(
     const retval = Symbol.init(
         scope,
         ast.token().data,
-        ast.token().span,
-        prelude_.unit_type,
-        prelude_.unit_value,
         ast,
         .trait,
+        .local,
         allocator,
     );
     retval.defined = true;
     return retval;
 }
 
-fn create_method_type(ast: *ast_.AST, allocator: std.mem.Allocator) *ast_.AST {
-    const receiver_base_type: *ast_.AST = if (ast.method_decl.impl != null)
+fn create_method_type(ast: *ast_.AST, allocator: std.mem.Allocator) *Type_AST {
+    const receiver_base_type: *Type_AST = if (ast.method_decl.impl != null)
         ast.method_decl.impl.?.impl._type
     else
-        ast_.AST.create_anyptr_type(ast.token(), allocator);
+        Type_AST.create_anyptr_type(ast.token(), allocator);
     // Calculate the domain type from the function paramter types
     ast.method_decl.domain = if (ast.method_decl.receiver) |receiver|
         extract_domain_with_receiver(receiver_base_type, receiver, ast.children().*, allocator)
@@ -649,7 +643,7 @@ fn create_method_type(ast: *ast_.AST, allocator: std.mem.Allocator) *ast_.AST {
         extract_domain(ast.children().*, allocator);
 
     // Create the function type
-    const _type = ast_.AST.create_function(
+    const _type = Type_AST.create_function(
         ast.method_decl.ret_type.token(),
         ast.method_decl.domain.?,
         ast.method_decl.ret_type,
@@ -664,20 +658,19 @@ fn create_method_symbol(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Error!*Symbol {
-    const receiver_base_type: *ast_.AST = ast.method_decl.impl.?.impl._type;
+    const receiver_base_type: *Type_AST = ast.method_decl.impl.?.impl._type;
 
     // Create the function type
-    const _type = create_method_type(ast, allocator);
+    ast.method_decl._decl_type = create_method_type(ast, allocator);
 
     // Create the function scope
     var fn_scope = Scope.init(scope, scope.uid_gen, allocator);
     fn_scope.function_depth = scope.function_depth + 1;
 
     // Recurse parameters and init
-
     const symbol_walk = Self.new(fn_scope, errors, allocator);
     try walk_.walk_asts(ast.children(), symbol_walk);
-    try walk_.walk_ast(ast.method_decl.ret_type, symbol_walk);
+    // try walk_.walk_ast(ast.method_decl.ret_type, symbol_walk); // TODO: walk types
 
     if (ast.method_decl.receiver != null) {
         // addr-of receiver, prepend receiver to parameters as normal
@@ -687,26 +680,23 @@ fn create_method_symbol(
         const receiver_symbol = Symbol.init(
             fn_scope,
             if (ast.method_decl.receiver.?.receiver.kind == .value) "$self_ptr" else "self",
-            ast.token().span,
-            recv_type,
-            null,
             ast.method_decl.receiver,
             .let,
+            .local,
             allocator,
         );
         try fn_scope.put_symbol(receiver_symbol, errors);
         ast.param_symbols().?.append(receiver_symbol) catch unreachable;
 
         if (ast.method_decl.receiver.?.receiver.kind == .value) {
-            const self_type = recv_type.expr();
+            const self_type = recv_type.child();
             const self_init = ast_.AST.create_dereference(ast.token(), ast_.AST.create_identifier(Token.init_simple("$self_ptr"), allocator), allocator);
             const receiver_span = ast.method_decl.receiver.?.token().span;
-            const self_decl = ast_.AST.create_decl(
+            const self_decl = ast_.AST.create_binding(
                 ast.token(),
-                ast_.AST.create_pattern_symbol(Token.init("self", .identifier, receiver_span.filename, receiver_span.line_text, receiver_span.line_number, receiver_span.col), .let, "self", allocator),
+                ast_.AST.create_pattern_symbol(Token.init("self", .identifier, receiver_span.filename, receiver_span.line_text, receiver_span.line_number, receiver_span.col), .let, .local, "self", allocator),
                 self_type,
                 self_init,
-                false,
                 allocator,
             );
             if (ast.method_decl.init.?.* != .unit_value) {
@@ -722,8 +712,8 @@ fn create_method_symbol(
     }
 
     // Put the param symbols in the param symbols list
-    for (ast.children().items) |param| {
-        const symbol = param.decl.symbols.items[0];
+    for (ast.children().items) |param_binding| {
+        const symbol = param_binding.binding.decls.items[0].decl.name.symbol().?;
         ast.param_symbols().?.append(symbol) catch unreachable;
     }
 
@@ -738,11 +728,9 @@ fn create_method_symbol(
     const retval = Symbol.init(
         fn_scope,
         ast.method_decl.name.token().data,
-        ast.method_decl.name.token().span,
-        _type,
-        ast.method_decl.init.?,
         ast,
         .@"fn",
+        .local,
         allocator,
     );
     fn_scope.inner_function = retval;

@@ -1,8 +1,14 @@
-// args_mix.orng:6:36: error: mixed positional and named arguments are not allowed
-//     let x: (x: Int, y: Int) = (.x = 4, 5)
-//                                   ^
+// args_mix.orng:12:25: error: mixed positional and named arguments are not allowed
+//     let x = My_Type(.x = 4, 5)
+//                        ^
 // 
+
+struct My_Type {
+    x: Int
+    y: Int
+}
+
 fn main() -> Int {
-    let x: (x: Int, y: Int) = (.x = 4, 5)
+    let x = My_Type(.x = 4, 5)
     x.x
 }

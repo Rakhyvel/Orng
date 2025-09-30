@@ -1,0 +1,10 @@
+// 60
+struct Pair {
+    a: Int
+    b: Int
+}
+
+fn main() -> Int {
+    let x = Pair(.a = 20, .b = 3)
+    x.a * x.b
+}

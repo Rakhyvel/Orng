@@ -1,0 +1,10 @@
+// 286
+struct A { x: ?&B, y: Int }
+struct B { x: ?&A, y: Int }
+
+fn main() -> Int {
+    let mut a: A = A(.none, 200)
+    let b: B = B(.none, 86)
+    a.x = .some(&b)
+    a.y + a.x.some.y
+}

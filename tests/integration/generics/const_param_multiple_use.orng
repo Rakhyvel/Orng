@@ -1,0 +1,11 @@
+// 369
+struct Pair[T] { left: T, right: T }
+
+fn main() -> Int {
+    let p = Pair[Bool](.left = true, .right = false)
+    if p.left and not p.right {
+        369
+    } else {
+        unreachable
+    }
+}

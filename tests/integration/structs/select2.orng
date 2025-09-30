@@ -1,0 +1,14 @@
+// 300
+struct Pair {
+    y: (Int, Int)
+    x: Int
+}
+
+fn main() -> Int {
+    let x = Pair((50, 150), 300)
+    f(x)
+}
+
+fn f(a: Pair) -> Int {
+    a.x
+}

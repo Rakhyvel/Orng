@@ -1,15 +1,20 @@
 // 299
 
-impl for (x: Int, y: Int) {
+struct My_Type {
+    x: Int
+    y: Int
+}
+
+impl for My_Type {
     fn add(self, other: Self) -> Self {
-        (self.x + other.x, self.y + other.y)
+        My_Type(self.x + other.x, self.y + other.y)
     }
 
     fn cab(self) -> Int { self.x + self.y }
 }
 
 fn main() -> Int {
-    let mut a: (x: Int, y: Int) = (100, 90)
-    a = a.>add((100, 9))
+    let mut a = My_Type(100, 90)
+    a = a.>add(My_Type(100, 9))
     a.>cab()
 }

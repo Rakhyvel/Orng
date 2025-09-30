@@ -9,6 +9,7 @@ const prelude_ = @import("../hierarchy/prelude.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 const walker_ = @import("../ast/walker.zig");
 
 package_absolute_path: []const u8,
@@ -47,18 +48,15 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
 
     if (ast.import.pattern.* == .pattern_symbol and ast.import.pattern.pattern_symbol.kind == .import) {
         // Re-arrange to be a decl for the import
-        const common = ast_.AST_Common{ ._token = ast.token(), ._type = null };
-        ast.* = ast_.AST{ .decl = .{
+        const common = ast_.AST_Common{ ._token = ast.token() };
+        ast.* = ast_.AST{ .binding = .{
             .common = common,
-            .symbols = std.ArrayList(*Symbol).init(self.compiler.allocator()),
             .pattern = ast.import.pattern,
-            .type = prelude_.type_type,
-            .init = prelude_.unit_type,
-            ._top_level = true,
-            .is_alias = false,
-            .prohibit_defaults = false,
+            .type = prelude_.unit_type,
+            .init = null,
+            .decls = std.ArrayList(*ast_.AST).init(self.compiler.allocator()),
         } };
-        _ = try self.resolve_import(ast.decl.pattern);
+        _ = try self.resolve_import(ast.binding.pattern);
         return 0;
     } else if (ast.import.pattern.* == .access) {
         return self.unwrap_access_imports(ast, asts, idx);
@@ -95,34 +93,33 @@ fn unwrap_access_imports(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.
                 ast_.AST.create_pattern_symbol(
                     ast.token(),
                     .import_inner,
+                    .local,
                     anon_names.items[i],
                     self.compiler.allocator(),
                 ),
-                ast_.AST.create_type_of(ast.token(), init, self.compiler.allocator()),
+                Type_AST.create_type_of(ast.token(), init, self.compiler.allocator()),
                 init,
-                false,
                 self.compiler.allocator(),
             );
             asts.insert(idx, const_decl) catch unreachable;
         } else {
             // The last term
-            const common = ast_.AST_Common{ ._token = ast.token(), ._type = null };
-            ast.* = ast_.AST{ .decl = .{
+            const common = ast_.AST_Common{ ._token = ast.token() };
+            ast.* = ast_.AST{ .binding = .{
                 .common = common,
-                .symbols = std.ArrayList(*Symbol).init(self.compiler.allocator()),
                 .pattern = ast_.AST.create_pattern_symbol(
                     ast.token(),
                     .{ .import = .{ .real_name = term.token().data } },
+                    .local,
                     anon_names.items[i],
                     self.compiler.allocator(),
                 ),
-                .type = prelude_.type_type,
-                .init = prelude_.unit_type,
-                ._top_level = true,
-                .is_alias = false,
-                .prohibit_defaults = false,
+                .type = prelude_.unit_type,
+                .init = null,
+                .decls = std.ArrayList(*ast_.AST).init(self.compiler.allocator()),
             } };
-            _ = try self.resolve_import(ast.decl.pattern);
+            const symb = try self.resolve_import(ast.binding.pattern);
+            symb.defined = true;
         }
     }
 
@@ -155,7 +152,7 @@ fn create_anon_names(self: Self, terms: *std.ArrayList(*ast_.AST)) std.ArrayList
     var anon_names = std.ArrayList([]const u8).init(self.compiler.allocator());
     for (0.., terms.items) |i, term| {
         anon_names.append(
-            if (i == 0) term.token().data else next_anon_name("anon", self.compiler.allocator()),
+            if (i == 0) term.token().data else next_anon_name("anon_import", self.compiler.allocator()),
         ) catch unreachable;
     }
     return anon_names;
@@ -170,7 +167,7 @@ fn resolve_import(self: Self, pattern_ast: *ast_.AST) walker_.Error!*Symbol {
 
     const import_symbol: *Symbol = try self.lookup_import_module(pattern_ast, import_name, import_file_path);
 
-    self.local_imported_modules.put(import_symbol.init_value.?.module.module, void{}) catch unreachable;
+    self.local_imported_modules.put(import_symbol.init_value().?.module.module, void{}) catch unreachable;
     return import_symbol;
 }
 

@@ -1,0 +1,18 @@
+// fizzbuzz
+fn main() -> String {
+    fizzbuzz(30).string
+}
+
+enum Fizz_Buzz_Result {
+    string(String)
+    integer(Int)
+}
+
+fn fizzbuzz(n: Int) -> Fizz_Buzz_Result {
+    match 0 {
+        {n % 15} => .string("fizzbuzz")
+        {n % 5}  => .string("buzz")
+        {n % 3}  => .string("fizz")
+        _        => .integer(n)
+    }
+}

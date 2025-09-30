@@ -1,5 +1,0 @@
-// error.orng:5:29: error: expected a value of type `Int`, got a value of type `Type`
-// fn main() -> Int {Int ! Char}
-//                            ^
-// 
-fn main() -> Int {Int ! Char}

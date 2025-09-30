@@ -1,4 +1,4 @@
-// r22.orng:6:20: error: error: expected a compile-time constant type, got comptime
+// r22.orng:6:20: error: comptime cannot be type `Void`
 //     const ident = { return }
 //                   ^
 // 

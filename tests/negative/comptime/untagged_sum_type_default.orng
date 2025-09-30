@@ -1,5 +1,3 @@
-// untagged_sum_type_default.orng:5:28: error: comptime untagged sum values cannot propagate to runtime
-// const x : @Untagged ( ? Int ) 
-//                           ^
+// error: expected a value of type `untagged_sum_type`, got a value of type `?Int`
 // 
 const x : @Untagged ( ? Int ) 

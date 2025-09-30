@@ -1,0 +1,18 @@
+// 329
+fn main() -> Int {
+    let (_, x) = comptime { get_variant() }
+    if x.variant_1 == 4 {
+        329
+    } else {
+        unreachable
+    }
+}
+
+enum My_Sum {
+    variant_1(Int)
+    variant_2(Int)
+}
+
+fn get_variant() -> (String, My_Sum) {
+    ("Hello, World!", .variant_1(4))
+}

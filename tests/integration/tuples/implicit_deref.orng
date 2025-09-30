@@ -1,7 +1,8 @@
 // 61
+
 fn main() -> Int {
-    let mut x: (a: Int, b: Int) = (11, 11)
+    let mut x: (Int, Int) = (11, 11)
     let y = &mut x
-    y.a = 50
-    y.a + y.b
+    y[0] = 50
+    y[0] + y[1]
 }

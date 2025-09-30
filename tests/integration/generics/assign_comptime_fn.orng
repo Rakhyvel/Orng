@@ -1,6 +1,0 @@
-// 323
-fn main() -> Int { 
-    let x = fn ident (const ident: ()) -> () {}
-    _ = x
-    323
-}

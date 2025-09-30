@@ -15,7 +15,7 @@ pub fn output_modules(compiler: *Compiler_Context) !void {
     // Start from root module, of each package, DFS through imports and generate
     for (compiler.packages.keys()) |package_name| {
         const package = compiler.lookup_package(package_name).?;
-        const package_root_module = package.root.init_value.?.module.module;
+        const package_root_module = package.root.init_value().?.module.module;
 
         const build_path = package.get_build_path(compiler.allocator());
         _ = std.fs.openDirAbsolute(build_path, .{}) catch {

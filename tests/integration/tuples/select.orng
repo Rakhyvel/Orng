@@ -1,5 +1,7 @@
 // 55
+type Pair = (Int, Int)
+
 fn main() -> Int {
-    let x: (a: Int, b: Int) = (50, 5)
-    x.a + x.b
+    let x: Pair = (50, 5)
+    x[0] + x[1]
 }

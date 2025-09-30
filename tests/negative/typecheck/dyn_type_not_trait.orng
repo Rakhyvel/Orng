@@ -1,4 +1,4 @@
-// dyn_type_not_trait.orng:7:18: error: expected trait type for dyn, got `y`
+// dyn_type_not_trait.orng:7:18: error: not a trait
 //     let x: &dyn y = (4, 5)
 //                 ^
 // 

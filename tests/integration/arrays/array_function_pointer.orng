@@ -1,7 +1,7 @@
 // 214
 fn main() -> Int {
-    let mut x: [3]((Int, Int)->Int) = (sum, diff, div)
-    let y: [3](Int->Int) = (double, halve, double)
+    let mut x: [3]((Int, Int)->Int) = [sum, diff, div]
+    let y: [3](Int->Int) = [double, halve, double]
     x[1] = mult
     y[1](x[1](4, 107))
 }

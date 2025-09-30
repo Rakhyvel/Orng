@@ -1,0 +1,14 @@
+// 280
+enum A_Or_B {
+    a(Int)
+    b(Int)
+}
+
+fn main() -> Int {
+    let x: A_Or_B = .a
+    if x.a == @default(Int) {
+        280
+    } else {
+        unreachable
+    }
+}

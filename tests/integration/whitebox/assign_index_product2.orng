@@ -1,6 +1,6 @@
 // 162
 fn main() -> Int {
-    let mut x: [2]Int = (2, 324)
+    let mut x: [2]Int = [2, 324]
     (x[0], x[1]) = (x[1], x[0])
     x[0] / x[1]
 }

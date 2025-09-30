@@ -1,9 +1,0 @@
-// 280
-fn main() -> Int {
-    let x: (a: Int | b: Int) = .a
-    if x.a == @default(Int) {
-        280
-    } else {
-        unreachable
-    }
-}

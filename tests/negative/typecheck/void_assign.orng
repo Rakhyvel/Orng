@@ -1,4 +1,4 @@
-// void_assign.orng:6:20: error: error: expected a compile-time constant type, got int
+// void_assign.orng:6:20: error: cannot assign a value of type `Int` to type `Void`
 //     let x: Void = 0
 //                   ^
 // 

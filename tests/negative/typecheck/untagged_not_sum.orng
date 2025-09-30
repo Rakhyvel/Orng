@@ -1,4 +1,4 @@
-// untagged_not_sum.orng:5:19: error: not a sum type
+// untagged_not_sum.orng:5:19: error: not an enum type
 // const x: @Untagged(Int)
 //                  ^
 // 

@@ -1,5 +1,5 @@
 // 156
 fn main() -> Int {
-    let (a, _, c):[3]Int = (100, 300, 56)
+    let (a, _, c): (Int, Int, Int) = (100, 300, 56)
     a + c
 }

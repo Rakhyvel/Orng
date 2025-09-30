@@ -46,9 +46,6 @@ pub fn validate_cfg(cfg: *CFG, errors: *errs_.Errors) error{CompileError}!void {
                     try err_if_chain_undefd(lval, errors, cfg.return_symbol, instr.span);
                 }
             }
-            try valid_lvalue_expanded_type_check(instr.span, instr.dest, errors);
-            try valid_lvalue_expanded_type_check(instr.span, instr.src1, errors);
-            try valid_lvalue_expanded_type_check(instr.span, instr.src2, errors);
         }
     }
 }
@@ -73,15 +70,5 @@ fn err_if_chain_undefd(maybe_lval: ?*lval_.L_Value, errors: *errs_.Errors, retur
             try err_if_chain_undefd(maybe_lval.?.select.lhs, errors, return_symbol, use);
         },
         .raw_address => std.debug.panic("compiler error: undefined err_if_chain_undefd for raw_address", .{}),
-    }
-}
-
-fn valid_lvalue_expanded_type_check(span: Span, lvalue: ?*lval_.L_Value, errors: *errs_.Errors) error{CompileError}!void {
-    if (lvalue != null and !lvalue.?.get_expanded_type().valid_type()) {
-        errors.add_error(errs_.Error{ .recursive_definition = .{
-            .span = span,
-            .symbol_name = null,
-        } });
-        return error.CompileError;
     }
 }

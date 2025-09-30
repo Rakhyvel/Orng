@@ -21,9 +21,14 @@ fn main() -> Int {
     let y: Int = 150
     let x_d: &dyn Trait_A = &x
     let y_d: &dyn Trait_B = &y
-    do_things((x_d, y_d))
+    do_things(Thingy(x_d, y_d))
 }
 
-fn do_things(t: (a: &dyn Trait_A, b: &dyn Trait_B)) -> Int {
+struct Thingy {
+    a: &dyn Trait_A
+    b: &dyn Trait_B
+}
+
+fn do_things(t: Thingy) -> Int {
     t.a.>a() + t.b.>b()
 }

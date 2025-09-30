@@ -1,11 +1,16 @@
-// try_sum_not_error.orng:6:11: error: expected error type for try, got `(ok: Int | err: Char)`
+// try_sum_not_error.orng:11:11: error: expected error type for try, got `My_Error`
 //     try f()
 //          ^
 // 
+enum My_Error {
+    ok(Int)
+    err(Char)
+}
+
 fn main() -> Int {
     try f()
 }
 
-fn f() -> (ok: Int | err: Char) {
+fn f() -> My_Error {
     return .err('d')
 }

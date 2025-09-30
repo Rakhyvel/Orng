@@ -6,6 +6,7 @@ const Instruction = @import("../ir/instruction.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Symbol_Version = @import("symbol_version.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 
 /// Represents different forms of l-values in an l-value tree.
 ///
@@ -24,7 +25,7 @@ pub const L_Value = union(enum) {
         /// Address to dereference
         expr: *L_Value,
         /// Dereference's resulting expanded type
-        expanded_type: *ast_.AST,
+        expanded_type: *Type_AST,
         /// Allocator that allocated this lvalue
         allocator: std.mem.Allocator,
     },
@@ -40,7 +41,7 @@ pub const L_Value = union(enum) {
         /// Debug UB info. Is the length of the array/slice. In debug mode, a panic is raised if rhs is greater-to-or-equal to this length.
         length: ?*L_Value,
         /// Index's resulting expanded type
-        expanded_type: *ast_.AST,
+        expanded_type: *Type_AST,
         /// Allocator that allocated this lvalue
         allocator: std.mem.Allocator,
     },
@@ -56,7 +57,7 @@ pub const L_Value = union(enum) {
         /// The offset, in bytes, of the selection from the `lhs` address. Used by interpreter.
         offset: i64,
         /// Selection's resulting expanded type
-        expanded_type: *ast_.AST,
+        expanded_type: *Type_AST,
         /// Debug UB info. Populated by a `get_tag` before selection.
         /// In debug mode, a panic is raised if this doesn't match `field` at runtime.
         tag: ?*L_Value,
@@ -83,7 +84,7 @@ pub const L_Value = union(enum) {
         return retval;
     }
 
-    pub fn create_dereference_lval(lhs: *L_Value, expanded_type: *ast_.AST, allocator: std.mem.Allocator) *L_Value {
+    pub fn create_dereference_lval(lhs: *L_Value, expanded_type: *Type_AST, allocator: std.mem.Allocator) *L_Value {
         const retval = allocator.create(L_Value) catch unreachable;
         retval.* = L_Value{
             .dereference = .{
@@ -99,7 +100,7 @@ pub const L_Value = union(enum) {
         lhs: *L_Value,
         rhs: *L_Value,
         length: ?*L_Value,
-        expanded_type: *ast_.AST,
+        expanded_type: *Type_AST,
         allocator: std.mem.Allocator,
     ) *L_Value {
         const retval = allocator.create(L_Value) catch unreachable;
@@ -117,7 +118,7 @@ pub const L_Value = union(enum) {
         lhs: *L_Value,
         field: i128,
         offset: i64,
-        expanded_type: *ast_.AST,
+        expanded_type: *Type_AST,
         tag: ?*L_Value,
         allocator: std.mem.Allocator,
     ) *L_Value {
@@ -201,7 +202,6 @@ pub const L_Value = union(enum) {
     }
 
     pub fn expanded_type_sizeof(self: *L_Value) i64 {
-        std.debug.assert(self.get_expanded_type().valid_type()); // This is it!
         return self.get_expanded_type().sizeof();
     }
 
@@ -209,7 +209,7 @@ pub const L_Value = union(enum) {
         return self.get_expanded_type().alignof();
     }
 
-    pub fn get_expanded_type(self: *L_Value) *ast_.AST {
+    pub fn get_expanded_type(self: *L_Value) *Type_AST {
         switch (self.*) {
             .symbver => return self.symbver.get_expanded_type(),
             .dereference => return self.dereference.expanded_type,

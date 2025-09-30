@@ -1,6 +1,7 @@
 // 171
+enum The_Type { a, b, c }
+
 fn main() -> Int {
-    const The_Type = (a | b | c)
     let x: The_Type = The_Type.b
 
     match x {

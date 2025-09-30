@@ -1,10 +1,10 @@
-// lowercase_type.orng:5:10: error: symbol `int` of type `Type` must start with an uppercase letter
-// const int: Type = (a: Int, b: Int)
-//         ^
+// lowercase_type.orng:5:9: error: symbol `int` must start with an uppercase letter
+// type int = (Int, Int)
+//        ^
 // 
-const int: Type = (a: Int, b: Int)
+type int = (Int, Int)
 
 fn main() -> Int {
     let x: int = (3, 4)
-    x.a
+    x[0]
 }

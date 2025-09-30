@@ -1,7 +1,8 @@
 // 235
 fn main() -> Int {
     comptime {
-        let x: (a: Int, b: Int) = (100, 235)
+        struct My_Type {a: Int, b: Int}
+        let x = My_Type(100, 235)
         x.b
     }
 }

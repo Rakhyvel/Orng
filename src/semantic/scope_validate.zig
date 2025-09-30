@@ -2,7 +2,6 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
-const validate_AST = @import("ast_validate.zig").validate_AST;
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
@@ -10,42 +9,48 @@ const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const typing_ = @import("typing.zig");
-const validate_symbol_ = @import("symbol_validate.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 
-const Validate_Error_Enum = error{ LexerError, ParseError, CompileError };
+const Validate_Error_Enum = error{CompileError};
 
-pub fn validate(scope: *Scope, compiler: *Compiler_Context) Validate_Error_Enum!void {
+const Self: type = @This();
+
+ctx: *Compiler_Context,
+
+pub fn init(ctx: *Compiler_Context) Self {
+    return Self{ .ctx = ctx };
+}
+
+pub fn validate(self: *Self, scope: *Scope) Validate_Error_Enum!void {
     for (scope.symbols.keys()) |key| {
         const symbol = scope.symbols.get(key).?;
-        if (symbol.kind == .@"comptime") {
-            continue;
-        }
-        try validate_symbol_.validate(symbol, compiler);
+
+        try self.ctx.validate_symbol.validate(symbol);
     }
     for (scope.children.items) |child| {
-        try validate(child, compiler);
+        try self.validate(child);
     }
     for (scope.impls.items) |impl| {
-        try validate_impl(impl, compiler);
+        try self.validate_impl(impl);
     }
 }
 
 // TODO: Split up into smaller functions
-fn validate_impl(impl: *ast_.AST, compiler: *Compiler_Context) Validate_Error_Enum!void {
+fn validate_impl(self: *Self, impl: *ast_.AST) Validate_Error_Enum!void {
     if (impl.impl._type.* == .addr_of) {
-        compiler.errors.add_error(errs_.Error{ .basic = .{
+        self.ctx.errors.add_error(errs_.Error{ .basic = .{
             .span = impl.impl._type.token().span,
             .msg = "cannot implement method for address types",
         } });
         return error.CompileError;
     }
 
-    impl.impl._type = validate_AST(impl.impl._type, prelude_.type_type, compiler);
+    try self.ctx.validate_type.validate(impl.impl._type);
 
     const trait_symbol: *Symbol = impl.impl.trait.?.symbol().?;
     if (trait_symbol.kind != .trait) {
-        compiler.errors.add_error(errs_.Error{ .basic = .{
-            .span = trait_symbol.span,
+        self.ctx.errors.add_error(errs_.Error{ .basic = .{
+            .span = trait_symbol.span(),
             .msg = "cannot implement for this, not a trait",
         } });
         return error.CompileError;
@@ -56,7 +61,7 @@ fn validate_impl(impl: *ast_.AST, compiler: *Compiler_Context) Validate_Error_En
     const lookup_res = impl.scope().?.impl_trait_lookup(impl.impl._type, trait_symbol);
     if (lookup_res.count > 1) {
         // Check if there's already an implementation for the same trait and type
-        compiler.errors.add_error(errs_.Error{ .reimpl = .{
+        self.ctx.errors.add_error(errs_.Error{ .reimpl = .{
             .first_defined_span = lookup_res.ast.?.token().span,
             .redefined_span = impl.token().span,
             .name = if (!impl.impl.impls_anon_trait) trait_symbol.name else null,
@@ -66,7 +71,7 @@ fn validate_impl(impl: *ast_.AST, compiler: *Compiler_Context) Validate_Error_En
     }
 
     // Construct a map of all trait decls
-    var trait_decls = std.StringArrayHashMap(*ast_.AST).init(compiler.allocator()); // Map name -> Method Decl
+    var trait_decls = std.StringArrayHashMap(*ast_.AST).init(self.ctx.allocator()); // Map name -> Method Decl
     defer trait_decls.deinit();
     for (trait_ast.trait.method_decls.items) |decl| {
         trait_decls.put(decl.method_decl.name.token().data, decl) catch unreachable;
@@ -79,7 +84,7 @@ fn validate_impl(impl: *ast_.AST, compiler: *Compiler_Context) Validate_Error_En
 
         // Check that the trait defines the method
         if (trait_decl == null) {
-            compiler.errors.add_error(errs_.Error{ .method_not_in_trait = .{
+            self.ctx.errors.add_error(errs_.Error{ .method_not_in_trait = .{
                 .method_span = def.token().span,
                 .method_name = def.method_decl.name.token().data,
                 .trait_name = trait_ast.token().data,
@@ -89,7 +94,7 @@ fn validate_impl(impl: *ast_.AST, compiler: *Compiler_Context) Validate_Error_En
 
         // Check that receivers match
         if (!receivers_match(def.method_decl.receiver, trait_decl.?.method_decl.receiver)) {
-            compiler.errors.add_error(errs_.Error{ .impl_receiver_mismatch = .{
+            self.ctx.errors.add_error(errs_.Error{ .impl_receiver_mismatch = .{
                 .receiver_span = if (def.method_decl.receiver != null) def.method_decl.receiver.?.token().span else def.token().span,
                 .method_name = def.method_decl.name.token().data,
                 .trait_name = trait_ast.token().data,
@@ -101,7 +106,7 @@ fn validate_impl(impl: *ast_.AST, compiler: *Compiler_Context) Validate_Error_En
 
         // Check that paramter arity matches
         if (def.children().items.len != trait_decl.?.children().items.len) {
-            compiler.errors.add_error(errs_.Error{ .mismatch_method_param_arity = .{
+            self.ctx.errors.add_error(errs_.Error{ .mismatch_method_param_arity = .{
                 .span = def.token().span,
                 .method_name = def.method_decl.name.token().data,
                 .trait_name = trait_ast.token().data,
@@ -112,13 +117,16 @@ fn validate_impl(impl: *ast_.AST, compiler: *Compiler_Context) Validate_Error_En
         }
 
         // Check that parameters match
+        var subst = std.StringArrayHashMap(*Type_AST).init(self.ctx.allocator());
+        defer subst.deinit();
+        subst.put("Self", impl.impl._type) catch unreachable;
+
         for (def.children().items, trait_decl.?.children().items) |impl_param, trait_param| {
-            _ = try typing_.checked_types_match(trait_param.decl.type, prelude_.type_type, &compiler.errors);
-            const impl_type = impl_param.decl.type;
-            const trait_type = ast_.AST.convert_self_type(trait_param.decl.type, impl.impl._type, compiler.allocator());
-            if (!try typing_.checked_types_match(impl_type, trait_type, &compiler.errors)) {
-                compiler.errors.add_error(errs_.Error{ .mismatch_method_type = .{
-                    .span = impl_param.decl.type.token().span,
+            const impl_type = impl_param.binding.type;
+            const trait_type = Type_AST.clone(trait_param.binding.type, &subst, self.ctx.allocator());
+            if (!impl_type.types_match(trait_type)) {
+                self.ctx.errors.add_error(errs_.Error{ .mismatch_method_type = .{
+                    .span = impl_param.binding.type.token().span,
                     .method_name = def.method_decl.name.token().data,
                     .trait_name = trait_ast.token().data,
                     .trait_type = trait_type,
@@ -129,9 +137,10 @@ fn validate_impl(impl: *ast_.AST, compiler: *Compiler_Context) Validate_Error_En
         }
 
         // Check that return type matches
-        const trait_method_ret_type = ast_.AST.convert_self_type(trait_decl.?.method_decl.ret_type, impl.impl._type, compiler.allocator());
-        if (!try typing_.checked_types_match(def.method_decl.ret_type, trait_method_ret_type, &compiler.errors)) {
-            compiler.errors.add_error(errs_.Error{ .mismatch_method_type = .{
+        const trait_method_ret_type = Type_AST.clone(trait_decl.?.method_decl.ret_type, &subst, self.ctx.allocator());
+        const def_method_ret_type = Type_AST.clone(def.method_decl.ret_type, &subst, self.ctx.allocator());
+        if (!def_method_ret_type.types_match(trait_method_ret_type)) {
+            self.ctx.errors.add_error(errs_.Error{ .mismatch_method_type = .{
                 .span = def.method_decl.ret_type.token().span,
                 .method_name = def.method_decl.name.token().data,
                 .trait_name = trait_ast.token().data,
@@ -146,7 +155,7 @@ fn validate_impl(impl: *ast_.AST, compiler: *Compiler_Context) Validate_Error_En
 
         // Verify that impl virtuality matches trait virtuality
         if (def.method_decl.is_virtual != trait_decl.?.method_decl.is_virtual) {
-            compiler.errors.add_error(errs_.Error{ .mismatch_method_virtuality = .{
+            self.ctx.errors.add_error(errs_.Error{ .mismatch_method_virtuality = .{
                 .span = def.token().span,
                 .method_name = def.method_decl.name.token().data,
                 .trait_name = trait_ast.token().data,
@@ -167,7 +176,7 @@ fn validate_impl(impl: *ast_.AST, compiler: *Compiler_Context) Validate_Error_En
     var errant = false;
     for (trait_decls.keys()) |trait_key| {
         const trait_decl = trait_decls.get(trait_key).?;
-        compiler.errors.add_error(errs_.Error{ .method_not_in_impl = .{
+        self.ctx.errors.add_error(errs_.Error{ .method_not_in_impl = .{
             .impl_span = impl.token().span,
             .method_span = trait_decl.token().span,
             .method_name = trait_decl.method_decl.name.token().data,
@@ -179,8 +188,8 @@ fn validate_impl(impl: *ast_.AST, compiler: *Compiler_Context) Validate_Error_En
         return error.CompileError;
     }
 
-    for (impl.impl.method_defs.items, 0..) |def, i| {
-        impl.impl.method_defs.items[i] = validate_AST(def, null, compiler);
+    for (impl.impl.method_defs.items) |def| {
+        _ = self.ctx.typecheck.typecheck_AST(def, null) catch return error.CompileError;
     }
 }
 

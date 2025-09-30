@@ -1,9 +1,9 @@
-// index_product.orng:7:6: error: array is not homotypical and index is not compile-time known
+// index_product.orng:7:7: error: not a constant integer
 //     x[f()]
-//     ^
+//      ^
 // 
 fn main() -> Int {
-    let x: (a: Int, b: Char, c: Bool, d: Int)
+    let x: (Int, Char, Bool, Int)
     x[f()]
 }
 

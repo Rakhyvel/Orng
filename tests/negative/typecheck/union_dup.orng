@@ -1,8 +1,0 @@
-// union_dup.orng:6:25: error: duplicate item `b`
-//     let x: (a | b) || (b | c) = .b
-//                        ^
-// 
-fn main() -> Int {
-    let x: (a | b) || (b | c) = .b
-    0
-}

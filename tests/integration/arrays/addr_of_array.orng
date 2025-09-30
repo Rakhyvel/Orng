@@ -1,6 +1,6 @@
 // 209
 fn main() -> Int {
-    sum(&(200, 0, 9)) // Address of product literal
+    sum(&[200, 0, 9]) // Address of product literal
 }
 
 fn sum(xs: &[3]Int) -> Int {

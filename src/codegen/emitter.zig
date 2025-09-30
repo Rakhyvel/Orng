@@ -4,6 +4,7 @@ const CFG = @import("../ir/cfg.zig");
 const Module = @import("../hierarchy/module.zig").Module;
 const prelude_ = @import("../hierarchy/prelude.zig");
 const Dependency_Node = @import("../ast/dependency_node.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 const Symbol = @import("../symbol/symbol.zig");
 
 const Writer = std.fs.File.Writer;
@@ -19,36 +20,29 @@ pub fn init(module: *Module, writer: Writer) Self {
 }
 
 /// Outputs the C type which corresponds to an AST type.
-pub fn output_type(self: *Self, _type: *AST) CodeGen_Error!void {
-    if (_type.common()._unexpanded_type != null and
-        _type.common()._unexpanded_type.?.* == .identifier and
-        _type.common()._unexpanded_type.?.symbol() != null and
-        _type.common()._unexpanded_type.?.symbol().?.kind == .@"extern")
-    {
-        // Output simply the C name for an extern type
-        try self.writer.print("{s}", .{_type.common()._unexpanded_type.?.symbol().?.kind.@"extern".c_name.?.string.data});
+pub fn output_type(self: *Self, old_type: *Type_AST) CodeGen_Error!void {
+    if (old_type.unexpand_type() != old_type) {
+        return try self.output_type(old_type.unexpand_type());
+    }
+    if (old_type.* == .identifier and old_type.symbol() != null and old_type.symbol().?.storage == .@"extern") {
+        try self.writer.print("{s}", .{old_type.symbol().?.storage.@"extern".c_name.?.string.data});
         return;
     }
-
-    // if (_type.common()._expanded_type != null and _type.common()._expanded_type.?.* == .@"comptime") {
-    //     return try self.output_type(_type.common()._expanded_type.?.@"comptime".result.?);
-    // }
-    std.debug.assert(_type.common()._expanded_type == null or _type.common()._expanded_type.?.* != .@"comptime");
-
-    if (_type.common()._expanded_type != null and _type.common()._expanded_type.?.sizeof() == 0) {
-        // For zero-size types that are still required to be output, ie pointers to empty untagged unions, structs, or ()
-        try self.writer.print("void", .{});
-        return;
-    }
+    var _type = old_type.expand_identifier();
 
     switch (_type.*) {
         .identifier => if (_type.common()._expanded_type != null and _type.common()._expanded_type.? != _type) {
             try self.output_type(_type.common()._expanded_type.?);
         } else {
-            try self.writer.print("{s}", .{prelude_.info_from_name(_type.token().data).?.c_name});
+            const info = prelude_.info_from_name(_type.token().data);
+            if (info != null) {
+                try self.writer.print("{s}", .{info.?.c_name});
+            } else {
+                try self.writer.print("{s} /*{?}*/", .{ _type.token().data, _type.symbol().?.init_typedef() });
+            }
         },
         .addr_of => {
-            try self.output_type(_type.expr());
+            try self.output_type(_type.child());
             try self.writer.print("*", .{});
         },
         .anyptr_type => try self.writer.print("void", .{}),
@@ -56,7 +50,11 @@ pub fn output_type(self: *Self, _type: *AST) CodeGen_Error!void {
             const dep = self.module.type_set.get(_type).?;
             try self.output_function_name(dep);
         },
-        .sum_type, .product => {
+        .enum_type,
+        .tuple_type,
+        .struct_type,
+        .array_of,
+        => {
             const dep = self.module.type_set.get(_type).?;
             try self.output_struct_name(dep);
         },
@@ -69,7 +67,7 @@ pub fn output_type(self: *Self, _type: *AST) CodeGen_Error!void {
             try self.output_dyn_name(dep);
         },
         .unit_type => try self.writer.print("void", .{}),
-        .annotation => try self.output_type(_type.annotation.type),
+        .annotation => try self.output_type(_type.child()),
         else => std.debug.panic("compiler error: unimplemented output_type() for {?}", .{_type.*}),
     }
 }
@@ -121,7 +119,7 @@ pub fn output_function_prototype(
     cfg: *CFG, // TODO: Accept cfg symbol
 ) CodeGen_Error!void {
     // Output function return type and name
-    try self.output_type(cfg.symbol.expanded_type.?.rhs());
+    try self.output_type(cfg.symbol.expanded_type().rhs());
     try self.writer.print(" ", .{});
     try self.output_symbol(cfg.symbol);
 
@@ -132,7 +130,7 @@ pub fn output_function_prototype(
     const param_symbols = decl.param_symbols();
     if (param_symbols != null) {
         for (param_symbols.?.items, 0..) |term, i| {
-            if (!term.expanded_type.?.is_c_void_type()) {
+            if (!term.expanded_type().is_c_void_type()) {
                 if (decl.* == .method_decl and decl.method_decl.receiver != null and i == 0) {
                     // Print out method receiver
                     try self.writer.print("void* ", .{});
@@ -141,7 +139,7 @@ pub fn output_function_prototype(
                     // Print out parameter declarations
                     try self.output_var_decl(term, true);
                 }
-                if (i + 1 < param_symbols.?.items.len and !param_symbols.?.items[i + 1].expanded_type.?.is_c_void_type()) {
+                if (i + 1 < param_symbols.?.items.len and !param_symbols.?.items[i + 1].expanded_type().is_c_void_type()) {
                     try self.writer.print(", ", .{});
                 }
                 num_non_unit_params += 1;
@@ -166,7 +164,7 @@ pub fn output_var_decl(
     if (!is_parameter) {
         try self.writer.print("    ", .{});
     }
-    try self.output_type(symbol.expanded_type.?);
+    try self.output_type(symbol.type());
     try self.writer.print(" ", .{});
     try self.output_symbol(symbol);
     if (!is_parameter) {
@@ -176,8 +174,8 @@ pub fn output_var_decl(
 
 /// Outputs a symbol with it's file's unique identifier
 pub fn output_symbol(self: *Self, symbol: *Symbol) CodeGen_Error!void {
-    if (symbol.kind == .@"extern") {
-        try self.writer.print("{s}", .{symbol.kind.@"extern".c_name.?.string.data});
+    if (symbol.storage == .@"extern") {
+        try self.writer.print("{s}", .{symbol.storage.@"extern".c_name.?.string.data});
     } else if (symbol.decl != null and symbol.decl.?.* != .receiver and symbol.decl.?.top_level()) {
         try self.writer.print("p{s}_m{s}_{}_{s}", .{ symbol.scope.module.?.package_name, symbol.scope.module.?.name(), symbol.scope.uid, symbol.name });
     } else {

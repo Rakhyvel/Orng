@@ -1,0 +1,10 @@
+// 367
+struct Wrapper[T] {
+    value: T
+}
+
+fn main() -> Int {
+    let a = Wrapper[Int](300)
+    let b = Wrapper[Int](67)
+    a.value + b.value
+}

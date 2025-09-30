@@ -89,9 +89,9 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
 /// info for how to build the package
 fn run_build_orng(compiler: *Compiler_Context, interpreter: *Interpreter_Context, build_path: []const u8) !*ast_.AST {
     const build_cfg = compiler.compile_build_file(build_path) catch return error.CompileError;
-    interpreter.set_entry_point(build_cfg, core_.package_type.expand_type(compiler.allocator()));
-    try interpreter.run(compiler);
-    return try interpreter.extract_ast(0, core_.package_type, Span.phony, &compiler.module_interned_strings);
+    interpreter.set_entry_point(build_cfg, core_.package_type.expand_identifier());
+    try interpreter.run();
+    return try interpreter.extract_ast(0, core_.package_type, Span.phony);
 }
 
 /// Runs the package executable after it's built
@@ -189,13 +189,13 @@ fn make_package(
     compiler.register_package(package_absolute_path, package_kind);
 
     for (package.get_field(core_.package_type, "requirements").children().items) |maybe_requirement_addr| {
-        if (maybe_requirement_addr.sum_value._pos != 0) {
+        if (maybe_requirement_addr.enum_value._pos != 0) {
             continue;
         }
-        const requirement = maybe_requirement_addr.sum_value.init.?;
+        const requirement = maybe_requirement_addr.enum_value.init.?;
         const required_package_name: []const u8 = requirement.children().items[0].string.data;
         const required_package_addr: i64 = @intCast(requirement.children().items[1].int.data);
-        const required_package = try interpreter.extract_ast(required_package_addr, core_.package_type, Span.phony, &compiler.module_interned_strings);
+        const required_package = try interpreter.extract_ast(required_package_addr, core_.package_type, Span.phony);
         const required_package_dir = required_package.get_field(core_.package_type, "dir").string.data;
 
         const new_working_directory_buffer = compiler.allocator().alloc(u8, std.fs.max_path_bytes) catch unreachable;
@@ -230,10 +230,10 @@ fn set_package_include_dirs(
     package_absolute_path: []const u8,
 ) void {
     for (package.get_field(core_.package_type, "include_dirs").children().items) |maybe_include_dir_addr| {
-        if (maybe_include_dir_addr.sum_value._pos != 0) {
+        if (maybe_include_dir_addr.enum_value._pos != 0) {
             continue;
         }
-        const include_dir = maybe_include_dir_addr.sum_value.init.?;
+        const include_dir = maybe_include_dir_addr.enum_value.init.?;
         compiler.lookup_package(package_absolute_path).?.include_directories.put(include_dir.string.data, void{}) catch unreachable;
     }
 }
@@ -245,10 +245,10 @@ fn set_package_lib_dirs(
     package_absolute_path: []const u8,
 ) void {
     for (package.get_field(core_.package_type, "lib_dirs").children().items) |maybe_lib_dir_addr| {
-        if (maybe_lib_dir_addr.sum_value._pos != 0) {
+        if (maybe_lib_dir_addr.enum_value._pos != 0) {
             continue;
         }
-        const include_dir = maybe_lib_dir_addr.sum_value.init.?;
+        const include_dir = maybe_lib_dir_addr.enum_value.init.?;
         compiler.lookup_package(package_absolute_path).?.library_directories.put(include_dir.string.data, void{}) catch unreachable;
     }
 }
@@ -260,10 +260,10 @@ fn set_package_libs(
     package_absolute_path: []const u8,
 ) void {
     for (package.get_field(core_.package_type, "libs").children().items) |maybe_lib_addr| {
-        if (maybe_lib_addr.sum_value._pos != 0) {
+        if (maybe_lib_addr.enum_value._pos != 0) {
             continue;
         }
-        const include_dir = maybe_lib_addr.sum_value.init.?;
+        const include_dir = maybe_lib_addr.enum_value.init.?;
         compiler.lookup_package(package_absolute_path).?.libraries.put(include_dir.string.data, void{}) catch unreachable;
     }
 }
@@ -377,7 +377,7 @@ fn construct_package_dag(compiler: *Compiler_Context) Command_Error![]const u8 {
         else => return error.CompileError,
     };
 
-    var interpreter = Interpreter_Context.init(&compiler.errors, compiler.allocator());
+    var interpreter = Interpreter_Context.init(compiler);
     defer interpreter.deinit();
 
     const package_dag = try run_build_orng(compiler, &interpreter, build_path);

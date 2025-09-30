@@ -1,0 +1,15 @@
+// 371
+struct Either[A, B] {
+    a: A
+    b: B
+}
+
+fn main() -> Int {
+    let e1 = Either[Int, Bool](1, true)
+    let e2 = Either[Bool, Int](false, 2)
+    if e1.b and not e2.a {
+        371
+    } else {
+        unreachable
+    }
+}

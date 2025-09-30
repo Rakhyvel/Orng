@@ -1,0 +1,7 @@
+// tuple_infer_given_unit.orng:6:13: error: expected a value of type `()`
+//     ( .none, .none )
+//            ^
+// 
+fn main() -> () {
+    ( .none, .none )
+}

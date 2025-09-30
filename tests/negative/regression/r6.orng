@@ -1,5 +1,0 @@
-// r6.orng:5:20: error: error: expected a compile-time constant type, got function
-// fn () -> (_ = Bool, _ = String) {}
-//                   ^
-// 
-fn () -> (_ = Bool, _ = String) {}

@@ -1,0 +1,12 @@
+// cyclic3.orng:5:9: error: cyclic type detected
+// struct A { b:B }
+//        ^
+// 
+struct A { b:B }
+struct B { a:A }
+
+fn main() -> Int {
+    let x: A
+    _ = x
+    2
+}

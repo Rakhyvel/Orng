@@ -1,9 +1,0 @@
-// 243
-const My_Type: Type = (Int, Int)->Int
-
-fn main() -> Int {
-    let f: My_Type = add
-    f(200, 43)
-}
-
-fn add(x: Int, y: Int) -> Int { x + y }

@@ -9,6 +9,7 @@ const Span = @import("../util/span.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const String_Idx = @import("../ir/interned_string_set.zig").String_Idx;
 const Symbol = @import("../symbol/symbol.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 
 const Self = @This();
 
@@ -432,7 +433,7 @@ pub fn convert_to_unop(self: *Self, src1: *lval_.L_Value, kind: Kind) void {
 
 /// Checks if a value fits within the bounds of a given type and reports an overflow error if it does not, modifying the
 /// error list.
-fn assert_fits(val: i128, _type: *ast_.AST, span: Span, errors: *errs_.Errors) error{CompileError}!void {
+fn assert_fits(val: i128, _type: *Type_AST, span: Span, errors: *errs_.Errors) error{CompileError}!void {
     const bounds = prelude_.bounds_from_ast(_type);
     if (bounds != null and (val < bounds.?.lower or val > bounds.?.upper)) {
         errors.add_error(errs_.Error{ .integer_out_of_bounds = .{

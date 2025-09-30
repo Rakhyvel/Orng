@@ -15,6 +15,7 @@ const String = @import("../zig-string/zig-string.zig").String;
 const Type_Set = @import("../ast/type-set.zig");
 const Dependency_Node = @import("../ast/dependency_node.zig");
 const Symbol = @import("../symbol/symbol.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 
 const Self = @This();
 
@@ -98,7 +99,7 @@ fn output_forward_typedefs(self: *Self) CodeGen_Error!void {
 
     // Forward declare all structs/unions
     for (self.module.type_set.types.items) |dep| {
-        if (dep.base.* == .product or dep.base.* == .sum_type) {
+        if (dep.base.* == .struct_type or dep.base.* == .tuple_type or dep.base.* == .enum_type) {
             try self.emitter.output_struct_name(dep);
             try self.writer.print(";\n", .{});
         } else if (dep.base.* == .dyn_type) {
@@ -141,7 +142,7 @@ fn output_typedef(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
         try self.writer.print("(*", .{});
         try self.emitter.output_function_name(dep);
         try self.writer.print(")(", .{});
-        if (dep.base.lhs().* == .product) {
+        if (dep.base.lhs().* == .tuple_type) {
             // Function pointer takes more than one argument
             const product = dep.base.lhs();
             for (product.children().items, 0..) |term, i| {
@@ -158,15 +159,31 @@ fn output_typedef(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
             try self.emitter.output_type(dep.base.lhs());
         }
         try self.writer.print(");\n\n", .{});
-    } else if (dep.base.* == .product) {
+    } else if (dep.base.* == .struct_type or dep.base.* == .tuple_type) {
         try self.emitter.output_struct_name(dep);
         try self.writer.print(" {{\n", .{});
         try self.output_field_list(dep.base.children(), 4);
         try self.writer.print("}};\n\n", .{});
-    } else if (dep.base.* == .sum_type) {
+    } else if (dep.base.* == .array_of) {
+        try self.emitter.output_struct_name(dep);
+        try self.writer.print(" {{\n    ", .{});
+        try self.emitter.output_type(dep.base.child());
+        try self.writer.print(" _0[{}];\n", .{dep.base.array_of.len.int.data});
+        try self.writer.print("}};\n\n", .{});
+    }
+    // else if (dep.base.* == .slice_of) {
+    //     try self.emitter.output_struct_name(dep);
+    //     try self.writer.print(" {{\n    ", .{});
+    //     try self.emitter.output_type(dep.base.child());
+    //     try self.writer.print(" _0;\n    ", .{});
+    //     try self.emitter.output_type(prelude_.int_type);
+    //     try self.writer.print(" _1;\n", .{});
+    //     try self.writer.print("}};\n\n", .{});
+    // }
+    else if (dep.base.* == .enum_type) {
         try self.emitter.output_struct_name(dep);
         try self.writer.print(" {{\n    uint64_t tag;\n", .{});
-        if (!dep.base.sum_type.is_all_unit()) {
+        if (!dep.base.enum_type.is_all_unit()) {
             try self.writer.print("    union {{\n", .{});
             try self.output_field_list(dep.base.children(), 8);
             try self.writer.print("    }};\n", .{});
@@ -175,19 +192,19 @@ fn output_typedef(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
     } else if (dep.base.* == .untagged_sum_type) {
         try self.emitter.output_untagged_sum_name(dep);
         try self.writer.print(" {{\n", .{});
-        if (!dep.base.expr().sum_type.is_all_unit()) {
+        if (!dep.base.child().expand_identifier().enum_type.is_all_unit()) {
             try self.output_field_list(dep.base.children(), 4);
         }
         try self.writer.print("}};\n\n", .{});
     } else if (dep.base.* == .dyn_type) {
         try self.emitter.output_dyn_name(dep);
-        try self.writer.print(" {{\n    void* data_ptr;\n    struct vtable_{s}", .{dep.base.expr().symbol().?.name});
+        try self.writer.print(" {{\n    void* data_ptr;\n    struct vtable_{s}", .{dep.base.child().symbol().?.name});
         try self.writer.print("* vtable;\n}};\n\n", .{});
     }
 }
 
 /// Outputs the fields of a structure or union type based on the provided list of AST types.
-fn output_field_list(self: *Self, fields: *std.ArrayList(*ast_.AST), spaces: usize) CodeGen_Error!void {
+fn output_field_list(self: *Self, fields: *const std.ArrayList(*Type_AST), spaces: usize) CodeGen_Error!void {
     // output each field in the list
     for (fields.items, 0..) |term, i| {
         if (!term.is_c_void_type()) {
@@ -228,17 +245,17 @@ fn output_traits(self: *Self) CodeGen_Error!void {
             // Output receiver parameter
             if (method_decl_has_receiver) {
                 try self.writer.print("void*", .{});
-                if (decl.children().items.len > 0 and !decl.children().items[0].decl.type.is_c_void_type()) {
+                if (decl.children().items.len > 0 and !decl.children().items[0].binding.type.is_c_void_type()) {
                     try self.writer.print(", ", .{});
                 }
             }
 
             // Output regular parameters
             for (decl.children().items, 0..) |param_decl, i| {
-                if (!param_decl.decl.type.is_c_void_type()) {
+                if (!param_decl.binding.type.is_c_void_type()) {
                     // Do not output `void` parameters
-                    try self.emitter.output_type(param_decl.decl.type);
-                    if (i + 1 < num_method_params and !decl.children().items[i + 1].decl.type.is_c_void_type()) {
+                    try self.emitter.output_type(param_decl.binding.type);
+                    if (i + 1 < num_method_params and !decl.children().items[i + 1].binding.type.is_c_void_type()) {
                         try self.writer.print(", ", .{});
                     }
                 }

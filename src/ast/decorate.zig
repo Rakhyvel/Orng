@@ -4,6 +4,7 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const errs_ = @import("../util/errors.zig");
 const Scope = @import("../symbol/scope.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 const walk_ = @import("../ast/walker.zig");
 
 scope: *Scope,
@@ -25,7 +26,8 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         else => return self,
 
         .identifier => {
-            const res = self.scope.lookup(ast.token().data, .{});
+            if (ast.symbol() != null) return self;
+            const res = self.scope.lookup(ast.token().data, .{ .allow_modules = true });
             switch (res) {
                 // Found the symbol, decorate the identifier AST with it
                 .found => ast.set_symbol(res.found),
@@ -49,20 +51,25 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 },
             }
 
-            try ast.symbol().?.err_if_undefined(self.errors);
+            if ((ast.symbol().?.kind == .let or ast.symbol().?.kind == .mut) and !ast.symbol().?.defined) {
+                self.errors.add_error(errs_.Error{ .use_before_def = .{ .identifier = ast.token() } });
+                return error.CompileError;
+            }
 
             return self;
         },
 
-        .@"if", .match, .mapping, .@"while", .@"for", .block, .impl, .trait => {
+        .@"if", .match, .mapping, .@"while", .@"for", .block, .impl, .trait, .struct_decl, .enum_decl, .type_alias => {
             var new_context = self;
             new_context.scope = ast.scope().?;
             return new_context;
         },
 
-        .fn_decl => {
+        .fn_decl, .method_decl => {
             var new_context = self;
-            new_context.scope = ast.symbol().?.scope;
+            if (ast.symbol() != null) {
+                new_context.scope = ast.symbol().?.scope;
+            }
             return new_context;
         },
 
@@ -74,17 +81,78 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
     }
 }
 
+pub fn prefix_type(self: Self, _type: *Type_AST) walk_.Error!?Self {
+    switch (_type.*) {
+        else => return self,
+
+        .identifier => {
+            const res = self.scope.lookup(_type.token().data, .{});
+            switch (res) {
+                // Found the symbol, decorate the identifier AST with it
+                .found => _type.set_symbol(res.found),
+
+                // Couldn't find the symbol
+                .not_found => {
+                    self.errors.add_error(errs_.Error{ .undeclared_identifier = .{ .identifier = _type.token(), .expected = null } });
+                    return error.CompileError;
+                },
+
+                // Found the symbol, but must cross a comptime-boundary to access it, and it is not const
+                .found_but_rt => {
+                    self.errors.add_error(errs_.Error{ .comptime_access_runtime = .{ .identifier = _type.token() } });
+                    return error.CompileError;
+                },
+
+                // Found the symbol, but must cross an inner-function boundary to access it, and it is not const
+                .found_but_fn => {
+                    self.errors.add_error(errs_.Error{ .inner_fn_access_runtime = .{ .identifier = _type.token() } });
+                    return error.CompileError;
+                },
+            }
+
+            return self;
+        },
+    }
+}
+
 pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
     switch (ast.*) {
         else => {},
 
-        .decl => {
-            for (ast.decl.symbols.items) |symbol| {
-                symbol.defined = true;
+        .binding => {
+            for (ast.binding.decls.items) |decl| {
+                decl.decl.name.symbol().?.defined = true;
             }
         },
         .trait => self.scope.traits.append(ast) catch unreachable,
         .impl => self.scope.impls.append(ast) catch unreachable,
         .@"test" => self.scope.tests.append(ast) catch unreachable,
+
+        .select => {
+            if (ast.lhs().* == .identifier and ast.lhs().symbol() != null and ast.lhs().symbol().?.refers_to_type()) {
+                const enum_value = ast_.AST.create_enum_value(ast.rhs().token(), self.allocator);
+                enum_value.enum_value.base = Type_AST.create_identifier(ast.lhs().token(), self.allocator);
+                enum_value.enum_value.base.?.set_symbol(ast.lhs().symbol());
+                ast.* = enum_value.*;
+            }
+        },
+
+        .call => {
+            if (ast.lhs().* == .enum_value) {
+                // Enum value
+                ast.lhs().enum_value.init = ast.children().items[0];
+                ast.* = ast.lhs().*;
+            } else if (ast.lhs().refers_to_type()) {
+                // Struct value construction
+                const struct_type = Type_AST.from_ast(ast.lhs(), self.allocator);
+                const struct_value = ast_.AST.create_struct_value(
+                    ast.lhs().token(),
+                    struct_type,
+                    ast.children().*,
+                    self.allocator,
+                );
+                ast.* = struct_value.*;
+            }
+        },
     }
 }

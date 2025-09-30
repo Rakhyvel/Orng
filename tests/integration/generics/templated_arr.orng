@@ -1,7 +1,0 @@
-// 52
-fn template(const n: Int) -> Type { [n]Char }
-
-fn main() -> Char {
-    let x: template(4) = ('1', '2', '3', '4')
-    x[3]
-}

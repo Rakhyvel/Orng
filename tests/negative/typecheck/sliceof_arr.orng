@@ -1,9 +1,9 @@
-// sliceof_arr.orng:7:24: error: expected a value of type `Type`, got a value of type `(Char, Char, Char)`
-//     let y: []Int = [3]x
-//                       ^
+// sliceof_arr.orng:7:23: error: expected a value of type `(data: [*]Int, length: Int)`, got a value of type `(data: [*]Char, length: Int)`
+//     let y: []Int = []x
+//                      ^
 // 
 fn main() -> Int {
-    let x: [3]Char = ('a', 'b', 'c')
-    let y: []Int = [3]x
+    let x: [3]Char = ['a', 'b', 'c']
+    let y: []Int = []x
     0
 }

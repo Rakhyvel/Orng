@@ -1,5 +1,0 @@
-// 60
-fn main() -> Int {
-    let x: (a: Int, b: Int) = (.a = 20, .b = 3)
-    x.a * x.b
-}

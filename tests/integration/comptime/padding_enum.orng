@@ -1,0 +1,10 @@
+// 258
+enum My_Type {
+    x(Int8)
+}
+
+fn main() -> Int {
+    let a: My_Type
+    _ = a
+    @sizeof(@typeof(a)) + 242
+}

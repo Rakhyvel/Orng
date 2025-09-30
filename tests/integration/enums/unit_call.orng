@@ -1,0 +1,9 @@
+// 308
+enum My_Type { a, b, c }
+fn main() -> Int {
+    let x: My_Type = My_Type.a({})
+    match x {
+        .a() => 308
+        _ => unreachable
+    }
+}

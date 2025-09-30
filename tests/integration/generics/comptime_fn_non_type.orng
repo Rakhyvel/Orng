@@ -1,7 +1,0 @@
-// 314
-
-fn getval(const t: Int, const s: Int) -> Int { s + t }
-
-fn main() -> Int {
-    getval(300, 14)
-}

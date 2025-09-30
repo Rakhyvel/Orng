@@ -1,7 +1,8 @@
 // 340
 cinclude "helper.h"
-extern const Some_Type: Type
-extern const construct_some_type: () -> Some_Type
+
+extern type Some_Type
+extern const construct_some_type: (Int, Int) -> Some_Type
 extern const sum: Some_Type -> Int
 
 fn main() -> Int {

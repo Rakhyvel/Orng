@@ -1,4 +1,4 @@
-// untagged_sum_type.orng:6:23: error: comptime untagged sum values cannot propagate to runtime
+// untagged_sum_type.orng:6:23: error: comptime untagged enum values cannot propagate to runtime
 //     let x = comptime {
 //                      ^
 // 

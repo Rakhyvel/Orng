@@ -1,9 +1,6 @@
-// typeclass_eq.orng:9:30: error: error: expected a compile-time constant type, got unreachable
-//     let x: Void = unreachable
-//                             ^
-// typeclass_eq.orng:10:30: error: error: expected a compile-time constant type, got unreachable
-//     let y: Void = unreachable
-//                             ^
+// typeclass_eq.orng:8:9: error: expected a value of a(n) equalable type, got `Void`
+//     x == y // the ONLY type that isn't equalable
+//        ^
 // 
 fn main() -> Bool {
     let x: Void = unreachable

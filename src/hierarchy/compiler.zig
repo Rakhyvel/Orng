@@ -1,6 +1,7 @@
 const std = @import("std");
 const AST = @import("../ast/ast.zig").AST;
 const CFG = @import("../ir/cfg.zig");
+const CFG_Store = @import("../ir/cfg_store.zig");
 const core_ = @import("core.zig");
 const errs_ = @import("../util/errors.zig");
 const Interned_String_Set = @import("../ir/interned_string_set.zig");
@@ -15,6 +16,14 @@ const repo_ = @import("../util/repo.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
 const Scope = @import("../symbol/scope.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
+
+const Validate_Module = @import("../semantic/module_validate.zig");
+const Validate_Scope = @import("../semantic/scope_validate.zig");
+const Validate_Symbol = @import("../semantic/symbol_validate.zig");
+const Validate_Type = @import("../types/type_validate.zig");
+const Validate_Pattern = @import("../semantic/pattern_validate.zig");
+const Typecheck = @import("../semantic/typecheck.zig");
 
 const Self = @This();
 
@@ -38,6 +47,15 @@ core: ?*Scope, // Null when compiling prelude and core module itself!
 /// Maps module absolute paths to their symbol
 modules: std.StringArrayHashMap(*Symbol),
 
+cfg_store: CFG_Store,
+
+validate_module: Validate_Module,
+validate_scope: Validate_Scope,
+validate_symbol: Validate_Symbol,
+validate_type: Validate_Type,
+validate_pattern: Validate_Pattern,
+typecheck: Typecheck,
+
 /// Maps module absolute paths to the interned string set for that module
 module_interned_strings: std.AutoArrayHashMap(u32, *Interned_String_Set),
 
@@ -57,8 +75,20 @@ pub fn init(stderr: ?std.fs.File.Writer, alloc: std.mem.Allocator) Error!*Self {
     retval.core = null;
     retval.stderr = stderr;
 
+    retval.cfg_store = CFG_Store.init(retval);
+
+    retval.validate_module = Validate_Module.init(retval);
+    retval.validate_scope = Validate_Scope.init(retval);
+    retval.validate_symbol = Validate_Symbol.init(retval);
+    retval.validate_type = Validate_Type.init(retval);
+    retval.validate_pattern = Validate_Pattern.init(retval);
+    retval.typecheck = Typecheck.init(retval);
+
     retval.prelude = try prelude_.get_scope(retval);
-    retval.core = try core_.get_scope(retval);
+    retval.core = core_.get_scope(retval) catch |e| {
+        retval.errors.print_errors(stderr orelse return e, .{});
+        return e;
+    };
 
     retval.register_package(core_.core_package_name, .static_library);
     const core_module_symbol = retval.lookup_module(retval.core.?.module.?.absolute_path).?;
@@ -81,7 +111,7 @@ pub fn allocator(self: *Self) std.mem.Allocator {
 
 pub fn compile_build_file(self: *Self, absolute_path: []const u8) Error!*CFG {
     const build_module = try self.compile_module(absolute_path, "build", false);
-    return build_module.init_value.?.scope().?.lookup("build", .{}).found.cfg.?;
+    return build_module.init_value().?.scope().?.lookup("build", .{}).found.cfg.?;
 }
 
 /// Compiles a module from a file
@@ -132,7 +162,7 @@ pub fn register_module(self: *Self, absolute_path: []const u8, module: *Symbol) 
 
 pub fn module_scope(self: *Self, absolute_path: []const u8) ?*Scope {
     const module_symbol = self.lookup_module(absolute_path) orelse return null;
-    return module_symbol.init_value.?.scope();
+    return module_symbol.init_value().?.scope();
 }
 
 pub fn register_interned_string_set(self: *Self, module_uid: u32) void {
@@ -141,9 +171,9 @@ pub fn register_interned_string_set(self: *Self, module_uid: u32) void {
     self.module_interned_strings.put(module_uid, interned_strings) catch unreachable;
 }
 
-pub fn get_core_type(self: *Self, name: []const u8) *AST {
+pub fn get_core_type(self: *Self, name: []const u8) *Type_AST {
     const prelude_abs_path = self.core.?.module.?.absolute_path;
-    return self.module_scope(prelude_abs_path).?.lookup(name, .{}).found.init_value.?;
+    return self.module_scope(prelude_abs_path).?.lookup(name, .{}).found.init_typedef().?;
 }
 
 pub fn lookup_interned_string_set(self: *Self, module_uid: u32) ?*Interned_String_Set {
@@ -210,7 +240,7 @@ pub fn clean_package(self: *Self, package_absolute_path: []const u8) void {
 pub fn collect_package_local_modules(self: *Self) void {
     for (self.packages.keys()) |package_name| {
         const package = self.lookup_package(package_name).?;
-        const module = package.root.init_value.?.module.module;
+        const module = package.root.init_value().?.module.module;
 
         const package_path = module.get_package_abs_path();
         const build_paths = [_][]const u8{ package_path, "build" };

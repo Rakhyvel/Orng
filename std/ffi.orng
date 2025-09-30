@@ -1,11 +1,12 @@
 cinclude "ffi.h"
 
-fn ref_from_ptr(const T: Type, ptr: [*]T) -> ()!&T {
-    extern const ptr_is_null: [*]T -> Bool
-    extern const ref_from_ptr_helper: [*]T -> &T
-    if ptr_is_null(ptr) {
-        return .err
-    } else {
-        return .ok(ref_from_ptr_helper(ptr))
-    }
-}
+// TODO: Re-add once we get generic functions
+//fn ref_from_ptr(const T: Type, ptr: [*]T) -> ()!&T {
+//    extern const ptr_is_null: [*]T -> Bool
+//    extern const ref_from_ptr_helper: [*]T -> &T
+//    if ptr_is_null(ptr) {
+//        return .err
+//    } else {
+//        return .ok(ref_from_ptr_helper(ptr))
+//    }
+//}

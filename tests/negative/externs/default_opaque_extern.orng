@@ -1,15 +1,12 @@
-// default_opaque_extern.orng:10:29: error: no default value for type `C_Int`
-//         let mut xs: [5]C_Int
-//                            ^
-// error: comptime cannot be type `Void`
+// default_opaque_extern.orng:8:18: error: no default value for type `C_Int`
+//     let mut xs: [5]C_Int
+//                 ^
 // 
-extern ("int") const C_Int: Type
+extern ("int") type C_Int
 
 fn main() -> Int {
-    comptime { 
-        let mut xs: [5]C_Int
-        xs[3] = 2
-        xs[2] = 0xFFFFFFFFFFFFFFF
-        xs[3] + 340
-    }
+    let mut xs: [5]C_Int
+    xs[3] = 2
+    xs[2] = 0xFFFFFFFFFFFFFFF
+    xs[3] + 340
 }

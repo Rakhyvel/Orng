@@ -1,8 +1,0 @@
-// args_named_not.orng:6:30: error: expected type does not accept named fields
-//     let x: (Int, Int) = (.a = 4, .b = 4)
-//                             ^
-// 
-fn main() -> Int {
-    let x: (Int, Int) = (.a = 4, .b = 4)
-    0
-}

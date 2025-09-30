@@ -1,8 +1,0 @@
-// union_right_non_sum.orng:6:29: error: expected sum type for union, got `Int`
-//     const A = (x | y) || Int
-//                            ^
-// 
-fn main() -> Int {
-    const A = (x | y) || Int
-    0
-}

@@ -1,0 +1,14 @@
+// 366
+struct Wrapper[T] {
+    value: T
+}
+
+fn main() -> Int {
+    let x: Wrapper[Int] = Wrapper[Int](.value = 366)
+    let y: Wrapper[Bool] = Wrapper[Bool](.value = true)
+    if y.value {
+        x.value
+    } else {
+        unreachable
+    }
+}

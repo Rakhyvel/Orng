@@ -1,7 +1,9 @@
 // 59
+type Pair = (&Int, &Int)
+
 fn main() -> Int {
     let x = 30
     let y = 29
-    let z: (a: &Int, b: &Int) = (&x, &y)
-    z.a^ + z.b^
+    let z: Pair = (&x, &y)
+    z[0]^ + z[1]^
 }

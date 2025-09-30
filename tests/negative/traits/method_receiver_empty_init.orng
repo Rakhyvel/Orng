@@ -6,14 +6,14 @@ trait My_Trait {
     fn a(self) -> ()
 }
 
-const My_Type = (x: Int, y: Int)
+struct My_Type {a: Int, b: Int}
 
 impl My_Trait for My_Type {
     fn a(self) -> () {  }
 }
 
 fn main() -> Int {
-    let my_val: My_Type = (200, 45)
+    let my_val: My_Type = My_Type(200, 45)
     my_val.>a()
     45
 }

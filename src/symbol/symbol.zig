@@ -2,9 +2,13 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const CFG = @import("../ir/cfg.zig");
 const errs_ = @import("../util/errors.zig");
+const poison_ = @import("../ast/poison.zig");
 const Scope = @import("../symbol/scope.zig");
 const Span = @import("../util/span.zig");
 const Token = @import("../lexer/token.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
+const Type_Map = @import("../ast/type_map.zig").Type_Map;
+const unification_ = @import("../types/unification.zig");
 const validation_state_ = @import("../util/validation_state.zig");
 
 const Self = @This();
@@ -12,10 +16,10 @@ const Self = @This();
 pub const Kind = union(enum) {
     @"fn",
     @"const",
-    @"extern": struct { c_name: ?*ast_.AST },
+    @"comptime",
     let,
     mut,
-    @"comptime",
+    type,
     trait,
     template,
     import: struct { // Refers indirectly to modules, or to refinements on modules.
@@ -27,20 +31,28 @@ pub const Kind = union(enum) {
     @"test",
 };
 
-pub const Symbol_Validation_State = validation_state_.Validation_State(*Self);
+pub const Storage = union(enum) {
+    local,
+    @"extern": struct { c_name: ?*ast_.AST },
+};
+
+pub const Symbol_Validation_State = validation_state_.Validation_State;
 
 var number_of_comptime: usize = 0;
 
 // TODO: Much like AST, create a symbol-create.zig, and usingnamespace it here with `create_comptime_init`, `create_symbol`, `create_method_type`, `create_temp_comptime_symbol`, `create_template_symbol`, `create_function_symbol`, and any other supporting infra
 scope: *Scope, // Enclosing parent scope
 name: []const u8,
-span: Span,
-_type: *ast_.AST,
-expanded_type: ?*ast_.AST,
-init_value: ?*ast_.AST,
+// span: Span,
+// _type: *Type_AST,
+// expanded_type: ?*Type_AST,
+// init_value: ?*ast_.AST,
 kind: Kind,
 cfg: ?*CFG,
 decl: ?*ast_.AST,
+storage: Storage,
+
+monomorphs: Type_Map(*Type_AST),
 
 // Use-def
 aliases: u64 = 0, // How many times the symbol is taken as a mutable address
@@ -52,36 +64,32 @@ defined: bool, // Used for decorating identifiers. True when the symbol is defin
 validation_state: Symbol_Validation_State,
 init_validation_state: Symbol_Validation_State,
 param: bool, // True when the symbol is a parameter in a function
-is_temp: bool = false, // True
+is_temp: bool = false, // Whether this symbol is a temporary when lowered
 
 // Offset
-offset: ?i64, // The offset from the BP that this symbol
+offset: ?i64, // The offset from the BP that this symbol, for local variables and parameters
 
 pub fn init(
     scope: *Scope,
     name: []const u8,
-    span: Span,
-    _type: *ast_.AST,
-    _init: ?*ast_.AST,
     decl: ?*ast_.AST,
     kind: Kind,
+    storage: Storage,
     allocator: std.mem.Allocator,
 ) *Self {
     var retval = allocator.create(Self) catch unreachable;
     retval.scope = scope;
     retval.name = name;
-    retval.span = span;
-    retval._type = _type;
-    retval.expanded_type = null;
-    retval.init_value = _init;
     retval.decl = decl;
     retval.aliases = 0;
     retval.roots = 0;
     retval.uses = 0;
     retval.offset = null;
     retval.kind = kind;
+    retval.storage = storage;
+    retval.monomorphs = Type_Map(*Type_AST).init(allocator);
     retval.cfg = null;
-    if (kind == .@"fn" or kind == .@"const" or kind == .@"comptime") {
+    if (kind == .@"fn" or kind == .@"const") {
         retval.defined = true;
     } else {
         retval.defined = false;
@@ -92,18 +100,47 @@ pub fn init(
 }
 
 pub fn assert_symbol_valid(self: *Self) *Self {
-    self.validation_state = Symbol_Validation_State{ .valid = .{ .valid_form = self } };
+    self.validation_state = .valid;
     return self;
 }
 
 pub fn assert_init_valid(self: *Self) *Self {
-    self.init_validation_state = Symbol_Validation_State{ .valid = .{ .valid_form = self } };
+    self.init_validation_state = .valid;
     return self;
+}
+
+pub fn refers_to_type(self: *const Self) bool {
+    return self.decl.?.* == .struct_decl or self.decl.?.* == .enum_decl or self.decl.?.* == .type_alias or self.decl.?.* == .type_param_decl;
+}
+
+pub fn @"type"(self: *const Self) *Type_AST {
+    return self.decl.?.decl_type();
+}
+
+pub fn init_value(self: *const Self) ?*ast_.AST {
+    return self.decl.?.decl_init();
+}
+
+pub fn init_typedef(self: *const Self) ?*Type_AST {
+    return self.decl.?.decl_typedef();
+}
+
+pub fn span(self: *const Self) Span {
+    return self.decl.?.token().span;
+}
+
+pub fn set_span(self: *Self, _span: Span) void {
+    self.decl.?.common()._token.span = _span;
+}
+
+pub fn expanded_type(self: *const Self) *Type_AST {
+    return self.type().expand_identifier();
 }
 
 /// when this is true, this symbol is a type-alias, and should be expanded before use
 pub fn is_alias(self: *Self) bool {
-    return if (self.decl != null and self.decl.?.* == .decl) self.decl.?.decl.is_alias else false;
+    if (self.decl != null and self.decl.?.* == .type_alias) return true;
+    return false;
 }
 
 pub fn lvalue_is_symbol(self: *Self, return_symbol: *Self) bool {
@@ -125,7 +162,7 @@ pub fn err_if_unused(self: *Self, errors: *errs_.Errors) error{CompileError}!voi
         self.uses == 0)
     {
         errors.add_error(errs_.Error{ .symbol_error = .{
-            .span = self.span,
+            .span = self.span(),
             .context_span = null,
             .name = self.name,
             .problem = "is never used",
@@ -140,11 +177,11 @@ pub fn err_if_undefd(self: *Self, errors: *errs_.Errors, use: Span) error{Compil
     if (self.uses != 0 and // symbol has been used somewhere
         self.defs == 0 and // symbol hasn't been defined anywhere
         !self.param and // symbol isn't a parameter (these don't have defs!)
-        self.kind != .@"extern" // symbol isn't an extern (these also don't have defs!)
+        self.storage != .@"extern" // symbol isn't an extern (these also don't have defs!)
     ) {
         errors.add_error(errs_.Error{ .symbol_error = .{
             .span = use,
-            .context_span = self.span,
+            .context_span = self.span(),
             .name = self.name,
             .problem = "is never defined",
             .context_message = "declared here",
@@ -164,7 +201,7 @@ pub fn err_if_var_not_mutated(self: *Self, errors: *errs_.Errors) error{CompileE
         self.roots == 0)
     {
         errors.add_error(errs_.Error{ .symbol_error = .{
-            .span = self.span,
+            .span = self.span(),
             .context_span = null,
             .name = self.name,
             .problem = "is marked `mut` but is never mutated",
@@ -176,13 +213,37 @@ pub fn err_if_var_not_mutated(self: *Self, errors: *errs_.Errors) error{CompileE
 
 pub fn set_offset(self: *Self, local_offsets: i64) i64 {
     self.offset = local_offsets;
-    return @as(i64, @intCast(self.expanded_type.?.sizeof()));
+    return @as(i64, @intCast(self.expanded_type().sizeof()));
 }
 
-pub fn represents_method(self: *Self, impl_for_type: *ast_.AST, method_name: []const u8) bool {
+pub fn represents_method(self: *Self, impl_for_type: *Type_AST, method_name: []const u8) bool {
     return self.decl != null and
         self.decl.?.* == .method_decl and
         self.decl.?.method_decl.impl != null and
         self.decl.?.method_decl.impl.?.impl._type.types_match(impl_for_type) and
         std.mem.eql(u8, self.name, method_name);
+}
+
+pub fn monomorphize(
+    self: *Self,
+    key: std.ArrayList(*Type_AST),
+    allocator: std.mem.Allocator,
+) *Type_AST {
+    if (self.monomorphs.get(key)) |retval| {
+        return retval;
+    } else {
+        var subst = unification_.Substitutions.init(allocator);
+        defer subst.deinit();
+
+        for (self.decl.?.generic_params().items, key.items) |param, arg| {
+            subst.put(param.token().data, arg) catch unreachable;
+        }
+
+        const clone = self.init_typedef().?.clone(&subst, allocator);
+        self.monomorphs.put(key, clone);
+
+        // Here, need to attempt to
+
+        return clone;
+    }
 }

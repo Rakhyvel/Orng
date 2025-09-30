@@ -1,9 +1,16 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
+const Compiler_Context = @import("../hierarchy/compiler.zig");
+const Decorate = @import("../ast/decorate.zig");
+const Decorate_Access = @import("../ast/decorate-access.zig");
 const errs_ = @import("../util/errors.zig");
 const Symbol = @import("symbol.zig");
+const Symbol_Tree = @import("../ast/symbol-tree.zig");
 const module_ = @import("../hierarchy/module.zig");
+const unification_ = @import("../types/unification.zig");
 const UID_Gen = @import("../util/uid_gen.zig");
+const walker_ = @import("../ast/walker.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 
 const Self = @This();
 
@@ -79,13 +86,7 @@ pub fn lookup(self: *Self, name: []const u8, flags: Lookup_Flags) Lookup_Result 
         var new_flags = flags;
         new_flags.crossed_boundary = parent.function_depth < self.function_depth or flags.crossed_boundary;
         const res = parent.lookup(name, new_flags);
-        if (res == .found_but_fn and self.inner_function != null and self.inner_function.?.kind == .@"comptime") {
-            // If have to cross a `comptime` boundary, change fn error to rt error
-            return .found_but_rt;
-        } else {
-            // (normal recursion)
-            return res;
-        }
+        return res;
     } else {
         // Did not find the symbol at all
         return .not_found;
@@ -95,7 +96,7 @@ pub fn lookup(self: *Self, name: []const u8, flags: Lookup_Flags) Lookup_Result 
 const Impl_Trait_Lookup_Result = struct { count: u8, ast: ?*ast_.AST };
 
 /// Returns the number of impls found for a given type-trait pair, and the impl ast. The impl is unique if count == 1.
-pub fn impl_trait_lookup(self: *Self, for_type: *ast_.AST, trait: *Symbol) Impl_Trait_Lookup_Result {
+pub fn impl_trait_lookup(self: *Self, for_type: *Type_AST, trait: *Symbol) Impl_Trait_Lookup_Result {
     var retval: Impl_Trait_Lookup_Result = .{ .count = 0, .ast = null };
 
     // Go through the scope's list of implementations, check to see if the types and traits match
@@ -121,32 +122,80 @@ pub fn impl_trait_lookup(self: *Self, for_type: *ast_.AST, trait: *Symbol) Impl_
 }
 
 /// Looks up the impl's decl/method_decl ast for a given type, with a given name
-pub fn lookup_impl_member(self: *Self, for_type: *ast_.AST, name: []const u8) ?*ast_.AST {
-    std.debug.assert(for_type.* != .@"comptime"); // these must be in expanded form
-    if (!for_type.valid_type()) {
-        return null;
+pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, compiler: *Compiler_Context) !?*ast_.AST {
+    if (false) {
+        std.debug.print("searching for {}::{s}\n", .{ for_type, name });
     }
     // Go through the list of implementations, check to see if the types and traits match
     for (self.impls.items) |impl| {
-        if (!impl.impl._type.valid_type()) {
-            // The type of the impl isn't even valid
-            // This is an edge case for badly formed programs
-            return null;
-        }
-        if (!impl.impl._type.types_match(for_type) or !for_type.types_match(impl.impl._type)) {
-            // The type for this impl does not equal the given type
-            continue;
-        }
-        for (impl.impl.method_defs.items) |method_def| {
-            if (std.mem.eql(u8, method_def.method_decl.name.token().data, name)) {
-                return method_def;
+        var subst = unification_.Substitutions.init(std.heap.page_allocator);
+        defer subst.deinit();
+        try compiler.validate_type.validate(impl.impl._type);
+        unification_.unify(impl.impl._type, for_type, impl.impl._generic_params, &subst) catch continue;
+
+        // TODO:
+        // - attempt to unify for_type and impl._type given impl's `with` list that defines type parameters (nop for concrete impl), or continue
+        // - check types/constraints (nop for concrete impl), or continue
+        // - let TheImpl = the instantiation given the unification parameters (nop for concrete impl), create if doesnt exist (Q: Where are these stored? In the impl? How is lookup based on unification parameters done?)
+        // - perform normal method lookup on TheImpl
+        var the_impl = impl;
+        if (impl.impl._generic_params.items.len > 0) {
+            const with_list = unification_.type_param_list_from_subst_map(&subst, impl.impl._generic_params, std.heap.page_allocator);
+            if (impl.impl.instantiations.get(with_list) == null) {
+                const new_impl: *ast_.AST = impl.clone(&subst, std.heap.page_allocator);
+                const new_scope = init(self, self.uid_gen, std.heap.page_allocator);
+
+                new_impl.set_scope(new_scope);
+
+                // Define each parameter in the new scope
+                // var const_decls = std.ArrayList(*ast_.AST).init(compiler.allocator());
+                // for (impl.impl._generic_params.items) |type_param| {
+                //     const decl_init = subst.get(type_param.token().data);
+                //     const decl = ast_.AST.create_type_alias(
+                //         type_param.token(),
+                //         ast_.AST.create_pattern_symbol(type_param.token(), .type, .local, name, compiler.allocator()),
+                //         decl_init,
+                //         std.ArrayList(*ast_.AST).init(compiler.allocator()),
+                //         compiler.allocator(),
+                //     );
+                //     const_decls.append(decl) catch unreachable;
+                // }
+
+                try walker_.walk_ast(new_impl, Symbol_Tree.new(new_scope, &compiler.errors, compiler.allocator()));
+
+                if (new_impl.impl.trait == null or new_impl.impl.impls_anon_trait) {
+                    // impl'd for an anon trait, create an anon trait for it
+                    // TODO: if there is a withlist, define the withs in the traits scope (?)
+                    var token = new_impl.token();
+                    token.kind = .identifier;
+                    token.data = Symbol_Tree.next_anon_name("Trait", compiler.allocator());
+                    const anon_trait = ast_.AST.create_trait(
+                        token,
+                        new_impl.impl.method_defs,
+                        new_impl.impl.const_defs,
+                        compiler.allocator(),
+                    );
+                    try walker_.walk_ast(anon_trait, Symbol_Tree.new(new_scope, &compiler.errors, compiler.allocator()));
+                    new_impl.impl.trait = ast_.AST.create_identifier(token, compiler.allocator());
+                    new_impl.impl.impls_anon_trait = true;
+                }
+
+                // Decorate identifiers, validate
+                const decorate_context = Decorate.new(new_scope, &compiler.errors, compiler.allocator());
+                const decorate_access_context = Decorate_Access.new(new_scope, &compiler.errors, compiler);
+                // for (const_decls.items) |decl| {
+                //     try walker_.walk_ast(decl, decorate_context);
+                //     try walker_.walk_ast(decl, decorate_access_context);
+                // }
+                try walker_.walk_ast(new_impl, decorate_context); // this doesn't know about the anonymous trait
+                try walker_.walk_ast(new_impl, decorate_access_context);
+                try compiler.validate_scope.validate(new_scope);
+
+                impl.impl.instantiations.put(with_list, new_impl);
             }
+            the_impl = impl.impl.instantiations.get(with_list).?; // TODO: substitutions need to be in the same order as withs
         }
-        for (impl.impl.const_defs.items) |const_def| {
-            if (std.mem.eql(u8, const_def.decl.symbols.items[0].name, name)) {
-                return const_def;
-            }
-        }
+        return search_impl(the_impl, name) orelse continue;
     }
 
     // Search for any imports
@@ -156,8 +205,8 @@ pub fn lookup_impl_member(self: *Self, for_type: *ast_.AST, name: []const u8) ?*
             const res = self.parent.?.lookup(symbol.kind.import.real_name, .{ .allow_modules = true });
             switch (res) {
                 .found => {
-                    const module_scope = res.found.init_value.?.scope().?;
-                    const module_scope_lookup = module_scope.lookup_impl_member(for_type, name);
+                    const module_scope = res.found.init_value().?.scope().?;
+                    const module_scope_lookup = try module_scope.lookup_impl_member(for_type, name, compiler);
                     if (module_scope_lookup != null) {
                         return module_scope_lookup;
                     }
@@ -169,18 +218,32 @@ pub fn lookup_impl_member(self: *Self, for_type: *ast_.AST, name: []const u8) ?*
 
     if (self.parent != null) {
         // Did not match in this scope. Try parent scope
-        return self.parent.?.lookup_impl_member(for_type, name);
+        return self.parent.?.lookup_impl_member(for_type, name, compiler);
     } else {
         // Not found, parent scope is null
         return null;
     }
 }
 
+fn search_impl(impl: *ast_.AST, name: []const u8) ?*ast_.AST {
+    for (impl.impl.method_defs.items) |method_def| {
+        if (std.mem.eql(u8, method_def.method_decl.name.token().data, name)) {
+            return method_def;
+        }
+    }
+    for (impl.impl.const_defs.items) |const_def| {
+        if (std.mem.eql(u8, const_def.binding.pattern.symbol().?.name, name)) {
+            return const_def;
+        }
+    }
+    return null;
+}
+
 pub fn pprint(self: *Self) void {
     std.debug.print("scope_{}:\n", .{self.uid});
     for (self.symbols.keys()) |name| {
         const symbol = self.symbols.get(name).?;
-        std.debug.print("  {s} {s}\n", .{ @tagName(symbol.kind), name });
+        std.debug.print("  {s} {s} \n", .{ @tagName(symbol.kind), name });
     }
 }
 
@@ -190,8 +253,8 @@ pub fn put_symbol(scope: *Self, symbol: *Symbol, errors: *errs_.Errors) error{Co
         .found => {
             const first = res.found;
             errors.add_error(errs_.Error{ .redefinition = .{
-                .first_defined_span = first.span,
-                .redefined_span = symbol.span,
+                .first_defined_span = first.span(),
+                .redefined_span = symbol.span(),
                 .name = symbol.name,
             } });
             return error.CompileError;

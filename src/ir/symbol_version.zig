@@ -3,6 +3,7 @@ const AST = @import("../ast/ast.zig").AST;
 const Symbol = @import("../symbol/symbol.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Instruction = @import("../ir/instruction.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 
 const Self = @This();
 
@@ -60,8 +61,8 @@ pub fn set_def(self: *Self, def: ?*Instruction) void {
     }
 }
 
-pub fn get_expanded_type(self: *Self) *AST {
-    return self.symbol.expanded_type.?;
+pub fn get_expanded_type(self: *Self) *Type_AST {
+    return self.symbol.expanded_type();
 }
 
 pub fn reset_usage(self: *Self) void {

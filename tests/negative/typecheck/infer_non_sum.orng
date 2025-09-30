@@ -1,4 +1,4 @@
-// infer_non_sum.orng:6:22: error: expected sum type for sum value, got `Int`
+// infer_non_sum.orng:6:22: error: expected enum type for enum value, got `Int`
 //     let x: Int = .lol
 //                     ^
 // 

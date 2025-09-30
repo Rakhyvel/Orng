@@ -1,6 +1,6 @@
 // 216
 fn main() -> Int {
-    let res = safe_div_vec((216, 432, 648), (1, 2, 3))
+    let res = safe_div_vec([216, 432, 648], [1, 2, 3])
     res[1].some
 }
 
