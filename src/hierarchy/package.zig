@@ -110,14 +110,6 @@ fn get_required_package(self: *Package, requirement_name: []const u8, packages: 
     return required_package;
 }
 
-fn get_required_package(self: *Package, requirement_name: []const u8, packages: std.StringArrayHashMap(*Package)) *Package {
-    const requirement_root_module_symbol: ?*Symbol = self.requirements.get(requirement_name);
-    const requirement_root_module: *Module = requirement_root_module_symbol.?.init_value.?.module.module;
-    const requirement_root_abs_path: []const u8 = requirement_root_module.get_package_abs_path();
-    const required_package: *Package = packages.get(requirement_root_abs_path).?;
-    return required_package;
-}
-
 /// A package is modified if:
 /// - Any of its modules are modified
 /// - Any of its dependencies are modified
