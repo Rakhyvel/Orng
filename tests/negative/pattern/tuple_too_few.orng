@@ -1,0 +1,7 @@
+// tuple_too_few.orng:6:16: error: expected a value of type `(Int, Int)`, got a value of type `(Int, Int, (Int, Int)[int(2)])`
+//     let (mut c, d, mut e) = (1, 2)
+//               ^
+// 
+fn main() -> Int {
+    let (mut c, d, mut e) = (1, 2)
+}

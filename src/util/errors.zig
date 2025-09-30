@@ -205,6 +205,12 @@ pub const Error = union(enum) {
         span: Span,
         _type: *Type_AST,
     },
+    bad_index: struct {
+        span: Span,
+        _type: *Type_AST,
+        index: i128,
+        length: usize,
+    },
     non_exhaustive_sum: struct {
         span: Span,
         forgotten: std.ArrayList(*Type_AST),
@@ -285,6 +291,7 @@ pub const Error = union(enum) {
             .use_before_def => return self.use_before_def.identifier.span,
             .modify_immutable => return self.modify_immutable.identifier.span,
             .not_indexable => return self.not_indexable.span,
+            .bad_index => return self.bad_index.span,
             .not_selectable => return self.not_selectable.span,
             .non_exhaustive_sum => return self.non_exhaustive_sum.span,
             .mismatch_arity => return self.mismatch_arity.span,
@@ -480,6 +487,9 @@ pub const Error = union(enum) {
                 writer.print("the type `", .{}) catch unreachable;
                 err.not_indexable._type.print_type(writer) catch unreachable;
                 writer.print("` is not indexable\n", .{}) catch unreachable;
+            },
+            .bad_index => {
+                writer.print("cannot index the type `{}`, which has length {}, with index {}\n", .{ err.bad_index._type, err.bad_index.length, err.bad_index.index }) catch unreachable;
             },
             .not_selectable => {
                 writer.print("the type `", .{}) catch unreachable;

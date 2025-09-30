@@ -1,0 +1,5 @@
+fn main () -> Int { 
+    let mut x: (Int, Int) = (19, 58 - 19)
+    let y = &mut x
+    y^[2]
+}

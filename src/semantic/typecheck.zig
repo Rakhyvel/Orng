@@ -40,7 +40,7 @@ pub fn init(ctx: *Compiler_Context) Self {
 }
 
 pub fn typeof(self: *const Self, ast: *ast_.AST) *Type_AST {
-    if ((ast.common().validation_state != .valid and ast.common().validation_state != .invalid) or self.map.get(ast) == null) {
+    if ((ast.common().validation_state != .valid and ast.common().validation_state != .invalid)) {
         std.debug.panic("type for ast {} has not been constructed", .{ast});
     }
     return self.map.get(ast) orelse poison_.poisoned_type;
@@ -388,6 +388,15 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             }
 
             var select_lhs_type = expanded_lhs_type;
+            if (ast.pos().? < 0 or ast.pos().? >= select_lhs_type.children().items.len) {
+                self.ctx.errors.add_error(errs_.Error{ .bad_index = .{
+                    .span = ast.token().span,
+                    ._type = lhs_type,
+                    .index = ast.pos().?,
+                    .length = select_lhs_type.children().items.len,
+                } });
+                return error.CompileError;
+            }
             var retval = select_lhs_type.children().items[ast.pos().?];
             while (retval.* == .annotation) {
                 retval = retval.child();
@@ -507,7 +516,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 try args_.validate_args_arity(.tuple, ast.children(), expanded_expected.?, false, ast.token().span, &self.ctx.errors);
                 terms = try self.validate_args_type(ast.children(), expanded_expected.?, false);
                 return expected.?;
-            } else if (!prelude_.unit_type.types_match(expanded_expected.?)) {
+            } else {
                 // It's ok to assign this to a unit type, something like `_ = (1, 2, 3)`
                 // expecting something that is not a type nor a product is not ok!
                 // poison `got`, so that it doesn't print anything for the `got` section, wouldn't make sense anyway

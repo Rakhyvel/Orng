@@ -720,6 +720,7 @@ fn effective_address(self: *Self, lval: *lval_.L_Value) error{CompileError}!i64 
         .index => {
             const base = try self.effective_address(lval.index.lhs);
             const index = self.memory.load(i64, try self.effective_address(lval.index.rhs));
+            // TODO: Check that index isn't greater than lval.index.length
             return base + index * lval.expanded_type_sizeof();
         },
         .select => {
