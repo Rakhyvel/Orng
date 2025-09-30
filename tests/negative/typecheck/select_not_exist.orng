@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 // select_not_exist.orng:8:7: error: member `c` not in struct `My_Type`
-=======
-// select_not_exist.orng:7:7: error: member `c` not in tuple `[2]a: Int`
->>>>>>> origin
 //     x.c
 //      ^
 // 

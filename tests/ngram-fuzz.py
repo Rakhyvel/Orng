@@ -56,11 +56,7 @@ def run_program(input_path: str, kcov_out: str, program_tokens: list[str]):
         except:
             pass
         print("timeout")
-<<<<<<< HEAD
         res = 0
-=======
-        res = 1
->>>>>>> origin
         program_display += "// timeout"
 
     if res != 0:

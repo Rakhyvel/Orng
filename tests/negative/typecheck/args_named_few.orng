@@ -1,12 +1,6 @@
-<<<<<<< HEAD
 // args_named_few.orng:11:20: error: struct takes 2 fields, 1 value given
 //     let x = My_Type(.a = 43)
 //                   ^
-=======
-// args_named_few.orng:6:40: error: product takes 2 fields, 1 value given
-//     let x: (a: Int, b: Int) = (.a = 43,)
-//                                       ^
->>>>>>> origin
 // 
 struct My_Type {
     a: Int
@@ -14,10 +8,6 @@ struct My_Type {
 }
 
 fn main() -> Int {
-<<<<<<< HEAD
     let x = My_Type(.a = 43)
-=======
-    let x: (a: Int, b: Int) = (.a = 43,)
->>>>>>> origin
     4
 }
