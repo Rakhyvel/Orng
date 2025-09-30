@@ -7,10 +7,19 @@ fn bar(index: Int) -> Int {
     f().a[index]
 }
 
+<<<<<<< HEAD
 struct Foo {
     a: [4]Int
 }
 
 fn f() -> Foo {
     Foo(.a = [150, 250, 350, 450])
+=======
+const Foo = (
+    a: [4]Int,
+)
+
+fn f() -> Foo {
+    (.a = (150, 250, 350, 450),)
+>>>>>>> origin
 }

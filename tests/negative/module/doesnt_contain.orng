@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 // doesnt_contain.orng:7:34: error: member `The_Type` not in module `doesnt_contain`
+=======
+// doesnt_contain.orng:7:34: error: member `The_Type` not in module `module::doesnt_contain`
+>>>>>>> origin
 // const x: doesnt_contain::The_Type
 //                                 ^
 // 

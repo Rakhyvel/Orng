@@ -453,7 +453,11 @@ pub fn bounds_from_ast(_type: *Type_AST) ?Bounds {
     }
 }
 
+<<<<<<< HEAD
 fn bounds_from_identifier(ident_type: *Type_AST) ?Bounds {
+=======
+fn bounds_from_identifier(ident_type: *ast_.AST) ?Bounds {
+>>>>>>> origin
     const info = primitives.get(ident_type.token().data) orelse return null;
     if (info.bounds == null) {
         return null;
@@ -466,7 +470,11 @@ fn bounds_from_identifier(ident_type: *Type_AST) ?Bounds {
     };
 }
 
+<<<<<<< HEAD
 pub fn info_from_ast(expanded_type: *Type_AST) ?Primitive_Info {
+=======
+pub fn info_from_ast(expanded_type: *ast_.AST) ?Primitive_Info {
+>>>>>>> origin
     var unwrapped = expanded_type;
     while (unwrapped.* == .annotation) {
         unwrapped = unwrapped.child();

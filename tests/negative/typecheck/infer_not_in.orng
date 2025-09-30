@@ -1,6 +1,12 @@
+<<<<<<< HEAD
 // infer_not_in.orng:8:24: error: member `d` not in enum `My_Type`
 //     let x: My_Type = .d
 //                       ^
+=======
+// infer_not_in.orng:6:28: error: member `d` not in sum `(a: () | b: () | c: ())`
+//     let x: (a | b | c) = .d
+//                           ^
+>>>>>>> origin
 // 
 enum My_Type {a, b, c}
 
