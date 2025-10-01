@@ -25,7 +25,7 @@ fn run_inner(previous_value: anytype, pipeline: anytype, comptime step_index: us
     const fields = std.meta.fields(PipelineType);
     const field = fields[step_index];
     var step = @field(pipeline, field.name);
-    std.debug.print("step: {}\n", .{@TypeOf(step)});
+    // std.debug.print("step: {}\n", .{@TypeOf(step)});
 
     // Run the step on the previous value
     if (!@hasDecl(@TypeOf(step), "run")) {

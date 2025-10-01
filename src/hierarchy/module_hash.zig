@@ -67,6 +67,7 @@ pub fn output_new_json(self: *Self, allocator: std.mem.Allocator) void {
     }
     var json_file_handle = std.fs.createFileAbsolute(self.json_absolute_path, .{}) catch unreachable;
     defer json_file_handle.close();
-    var writer = json_file_handle.writer(&.{}).interface;
-    std.json.Stringify.value(self.json_parsed.?.value, .{}, &writer) catch unreachable;
+    var out: std.io.Writer.Allocating = .init(allocator);
+    std.json.Stringify.value(self.json_parsed.?.value, .{}, &out.writer) catch unreachable;
+    json_file_handle.writeAll(out.written()) catch unreachable;
 }

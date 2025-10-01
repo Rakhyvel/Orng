@@ -8,7 +8,6 @@ pub fn init(allocator: std.mem.Allocator) Self {
 }
 
 pub fn run(self: Self, absolute_path: []const u8) error{FileNotFound}![]const u8 {
-    std.debug.print("{s}\n", .{absolute_path});
     var file = std.fs.openFileAbsolute(absolute_path, .{}) catch return error.FileNotFound;
     defer file.close();
 

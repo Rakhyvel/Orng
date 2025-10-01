@@ -102,7 +102,6 @@ pub const Module = struct {
         retval.uid_gen = UID_Gen.init();
         module_uids += 1;
         std.debug.assert(std.fs.path.isAbsolute(absolute_path));
-        std.debug.print("Module.init: {s}\n", .{absolute_path});
         retval.absolute_path = absolute_path;
         retval.package_name = std.fs.path.basename(std.fs.path.dirname(absolute_path).?);
         retval.allocator = allocator;
@@ -334,7 +333,6 @@ pub const Module = struct {
     }
 
     pub fn get_package_abs_path(self: *Module) []const u8 {
-        std.debug.print("Module.get_package_abs_path: {s}\n", .{self.absolute_path});
         return std.fs.path.dirname(self.absolute_path).?;
     }
 

@@ -105,7 +105,6 @@ fn get_required_package(self: *Package, requirement_name: []const u8, packages: 
     const requirement_root_module_symbol: ?*Symbol = self.requirements.get(requirement_name);
     const requirement_root_module: *Module = requirement_root_module_symbol.?.init_value().?.module.module;
     const requirement_root_abs_path: []const u8 = requirement_root_module.get_package_abs_path();
-    std.debug.print("Package.get_required_package: {s}\n", .{requirement_root_abs_path});
     const required_package: *Package = packages.get(requirement_root_abs_path).?;
     return required_package;
 }

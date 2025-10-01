@@ -175,7 +175,6 @@ fn build_import_path(self: Self, import_name: []const u8) []const u8 {
     var import_filename = std.array_list.Managed(u8).init(self.compiler.allocator());
     defer import_filename.deinit();
     import_filename.print("{s}.orng", .{import_name}) catch unreachable;
-    std.debug.print("Here should have orng => {s}\n", .{import_filename.items});
     const import_file_paths = [_][]const u8{ self.package_absolute_path, import_filename.items };
     return std.fs.path.join(self.compiler.allocator(), &import_file_paths) catch unreachable;
 }

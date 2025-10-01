@@ -65,6 +65,9 @@ fn output(
     defer c_buffer.deinit();
     var source_emitter = Source_Emitter.init(module, module_interned_strings, &c_buffer);
     source_emitter.generate() catch return error.CompileError;
+
+    output_c_file.writeAll(c_buffer.items) catch unreachable;
+    output_h_file.writeAll(h_buffer.items) catch unreachable;
 }
 
 /// Takes in a statically correct module, writes the tests out to C source and header files
@@ -86,6 +89,9 @@ fn output_tests(
 
     var test_emitter = Test_Emitter.init(module, module_interned_strings, &c_buffer, &h_buffer);
     test_emitter.generate() catch return error.CompileError;
+
+    output_c_file.writeAll(c_buffer.items) catch unreachable;
+    output_h_file.writeAll(h_buffer.items) catch unreachable;
 }
 
 fn output_start(module: *Module, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set), build_path: []const u8, allocator: std.mem.Allocator) !void {
@@ -102,6 +108,8 @@ fn output_start(module: *Module, module_interned_strings: *const std.AutoArrayHa
     source_emitter.output_header_include() catch return error.CompileError;
     buf.print("#include <stdio.h>\n\n", .{}) catch return error.CompileError;
     source_emitter.output_main_function() catch return error.CompileError;
+
+    start_file.writeAll(buf.items) catch unreachable;
 }
 
 fn output_testrunner(modules: std.array_list.Managed(*Module), build_path: []const u8, allocator: std.mem.Allocator) !void {
@@ -192,6 +200,8 @@ fn output_testrunner(modules: std.array_list.Managed(*Module), build_path: []con
         \\    printf("[============]\n");
         \\}}
     , .{num_tests}) catch return error.CompileError;
+
+    testrunner_file.writeAll(buf.items) catch unreachable;
 }
 
 fn open_file(package_name: []const u8, module_name: []const u8, ext: []const u8, build_path: []const u8, allocator: std.mem.Allocator) !std.fs.File {
