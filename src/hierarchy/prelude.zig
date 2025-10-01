@@ -311,9 +311,9 @@ fn create_prelude(compiler: *Compiler_Context) !void {
     var errors = errs_.Errors.init(compiler.allocator());
     defer errors.deinit();
 
-    var prelude_abs_path = String.init_with_contents(compiler.allocator(), "/prelude") catch unreachable;
-    prelude_abs_path.writer().print("{c}prelude.orng", .{std.fs.path.sep}) catch unreachable;
-    const module = module_.Module.init((prelude_abs_path.toOwned() catch unreachable).?, compiler.allocator());
+    var prelude_abs_path = std.array_list.Managed(u8).init(compiler.allocator());
+    prelude_abs_path.print("/prelude{c}prelude.orng", .{std.fs.path.sep}) catch unreachable;
+    const module = module_.Module.init(prelude_abs_path.toOwnedSlice() catch unreachable, compiler.allocator());
     const symbol = Symbol.init(
         compiler.prelude,
         "prelude",
@@ -375,7 +375,7 @@ fn create_type_alias_symbol(name: []const u8, _type: *Type_AST, repr_ident: *Typ
         token,
         ast_.AST.create_pattern_symbol(token, .type, .local, name, allocator),
         _type,
-        std.ArrayList(*ast_.AST).init(allocator),
+        std.array_list.Managed(*ast_.AST).init(allocator),
         allocator,
     );
     var symbol = Symbol.init(
@@ -400,7 +400,7 @@ fn create_c_extern_symbol(name: []const u8, c_name: []const u8, allocator: std.m
         token,
         ast_.AST.create_pattern_symbol(token, .type, storage, name, allocator),
         null,
-        std.ArrayList(*ast_.AST).init(allocator),
+        std.array_list.Managed(*ast_.AST).init(allocator),
         allocator,
     );
     var symbol = Symbol.init(

@@ -83,7 +83,7 @@ index 40940e48..9e2a594f 100644
  
 -        // Go through each comptime arg, evaluate it, and store it in a list along with it's position
 -        // Combines the arg value and the position in the args/params list
--        var const_decls = std.ArrayList(*ast_.AST).init(compiler.allocator());
+-        var const_decls = std.array_list.Managed(*ast_.AST).init(compiler.allocator());
 -        defer const_decls.deinit();
 -        for (template_ast.template.decl.fn_decl._params.items, args.items) |param, arg| {
 -            if (param.decl.pattern.pattern_symbol.kind == .@"const") {
@@ -100,7 +100,7 @@ index 40940e48..9e2a594f 100644
 -        }
 +fn get_stamp_symbol(
 +    template_ast: *ast_.AST,
-+    args: *std.ArrayList(*ast_.AST),
++    args: *std.array_list.Managed(*ast_.AST),
 +    call_span: Span,
 +    scope: *Scope,
 +    compiler: *Compiler_Context,
@@ -141,7 +141,7 @@ index 40940e48..9e2a594f 100644
 -            try walker_.walk_ast(decl, decorate_access_context);
 +    // Go through each comptime arg, evaluate it, and store it in a list along with it's position
 +    // Combines the arg value and the position in the args/params list
-+    var const_decls = std.ArrayList(*ast_.AST).init(compiler.allocator());
++    var const_decls = std.array_list.Managed(*ast_.AST).init(compiler.allocator());
 +    defer const_decls.deinit();
 +    for (template_ast.template.decl.fn_decl._params.items, args.items) |param, arg| {
 +        if (param.decl.pattern.pattern_symbol.kind == .@"const") {

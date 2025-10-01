@@ -21,12 +21,11 @@ const Self = @This();
 
 module: *module_.Module,
 emitter: Emitter,
-writer: Writer,
+writer: *std.array_list.Managed(u8),
 
-pub const CodeGen_Error = std.fs.File.WriteError;
-const Writer = std.fs.File.Writer;
+pub const CodeGen_Error = error{OutOfMemory};
 
-pub fn init(module: *module_.Module, writer: Writer) Self {
+pub fn init(module: *module_.Module, writer: *std.array_list.Managed(u8)) Self {
     const emitter = Emitter.init(module, writer);
     return Self{ .module = module, .emitter = emitter, .writer = writer };
 }
@@ -204,7 +203,7 @@ fn output_typedef(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
 }
 
 /// Outputs the fields of a structure or union type based on the provided list of AST types.
-fn output_field_list(self: *Self, fields: *const std.ArrayList(*Type_AST), spaces: usize) CodeGen_Error!void {
+fn output_field_list(self: *Self, fields: *const std.array_list.Managed(*Type_AST), spaces: usize) CodeGen_Error!void {
     // output each field in the list
     for (fields.items, 0..) |term, i| {
         if (!term.is_c_void_type()) {

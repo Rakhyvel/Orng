@@ -2,7 +2,6 @@ const std = @import("std");
 const Module = @import("../hierarchy/module.zig").Module;
 const CFG = @import("../ir/cfg.zig");
 const Compiler_Context = @import("compiler.zig");
-const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
 const Module_Hash = @import("module_hash.zig");
 
@@ -12,7 +11,7 @@ name: []const u8,
 absolute_path: []const u8,
 output_absolute_path: []const u8,
 root: *Symbol,
-local_modules: std.ArrayList(*Module),
+local_modules: std.array_list.Managed(*Module),
 /// Maps the names of required packages, relative to this package, to the symbol of their root module
 requirements: std.StringArrayHashMap(*Symbol),
 include_directories: std.StringArrayHashMap(void),
@@ -40,7 +39,7 @@ pub const Package_Iterator_Node = struct {
     }
 
     pub fn get_adjacent(self: *Package_Iterator_Node) []Package_Iterator_Node {
-        var list = std.ArrayList(Package_Iterator_Node).init(self.compiler.allocator());
+        var list = std.array_list.Managed(Package_Iterator_Node).init(self.compiler.allocator());
 
         for (self.package.requirements.keys()) |requirement_name| {
             const requirement_root_module_symbol = self.package.requirements.get(requirement_name);
@@ -65,7 +64,7 @@ pub fn new(allocator: std.mem.Allocator, package_absolute_path: []const u8, kind
     package.include_directories = std.StringArrayHashMap(void).init(allocator);
     package.library_directories = std.StringArrayHashMap(void).init(allocator);
     package.libraries = std.StringArrayHashMap(void).init(allocator);
-    package.local_modules = std.ArrayList(*Module).init(allocator);
+    package.local_modules = std.array_list.Managed(*Module).init(allocator);
     package.visited = false;
     package.name = std.fs.path.basename(package_absolute_path);
     package.absolute_path = package_absolute_path;
@@ -106,6 +105,7 @@ fn get_required_package(self: *Package, requirement_name: []const u8, packages: 
     const requirement_root_module_symbol: ?*Symbol = self.requirements.get(requirement_name);
     const requirement_root_module: *Module = requirement_root_module_symbol.?.init_value().?.module.module;
     const requirement_root_abs_path: []const u8 = requirement_root_module.get_package_abs_path();
+    std.debug.print("Package.get_required_package: {s}\n", .{requirement_root_abs_path});
     const required_package: *Package = packages.get(requirement_root_abs_path).?;
     return required_package;
 }
@@ -206,48 +206,48 @@ fn compile_local_modules(self: *Package, obj_files: *std.StringArrayHashMap(void
 }
 
 /// Appends the object files for a module to a set of object files
-fn add_module_obj_files(self: *Package, obj_files: *std.StringArrayHashMap(void), local_module: *Module, allocator: std.mem.Allocator) String {
+fn add_module_obj_files(self: *Package, obj_files: *std.StringArrayHashMap(void), local_module: *Module, allocator: std.mem.Allocator) std.array_list.Managed(u8) {
     // Append the o filename to the obj files list, even if this isn't compiled!
-    var o_file = String.init(allocator);
-    o_file.writer().print("{s}{c}build{c}{s}.o", .{
+    var o_file = std.array_list.Managed(u8).init(allocator);
+    o_file.print("{s}{c}build{c}{s}.o", .{
         self.absolute_path,
         std.fs.path.sep,
         std.fs.path.sep,
         local_module.name(),
     }) catch unreachable;
-    obj_files.put(o_file.str(), void{}) catch unreachable;
-    local_module.modified = !file_exists(o_file.str()) or local_module.modified.?;
+    obj_files.put(o_file.items, void{}) catch unreachable;
+    local_module.modified = !file_exists(o_file.items) or local_module.modified.?;
 
     if (self.kind == .test_executable) {
-        var test_o_file = String.init(allocator);
-        test_o_file.writer().print("{s}{c}build{c}{s}-tests.o", .{
+        var test_o_file = std.array_list.Managed(u8).init(allocator);
+        test_o_file.print("{s}{c}build{c}{s}-tests.o", .{
             self.absolute_path,
             std.fs.path.sep,
             std.fs.path.sep,
             local_module.name(),
         }) catch unreachable;
-        obj_files.put(test_o_file.str(), void{}) catch unreachable;
-        local_module.modified = !file_exists(test_o_file.str()) or local_module.modified.?;
+        obj_files.put(test_o_file.items, void{}) catch unreachable;
+        local_module.modified = !file_exists(test_o_file.items) or local_module.modified.?;
     }
     return o_file;
 }
 
 /// Compiles the sources for a module
-fn compile_module_sources(self: *Package, o_file: String, packages: std.StringArrayHashMap(*Package), local_module: *Module, extra_flags: bool, allocator: std.mem.Allocator) !void {
-    var c_file = String.init(allocator);
+fn compile_module_sources(self: *Package, o_file: std.array_list.Managed(u8), packages: std.StringArrayHashMap(*Package), local_module: *Module, extra_flags: bool, allocator: std.mem.Allocator) !void {
+    var c_file = std.array_list.Managed(u8).init(allocator);
     defer c_file.deinit();
-    c_file.writer().print("{s}{c}build{c}{s}-{s}.c", .{
+    c_file.print("{s}{c}build{c}{s}-{s}.c", .{
         self.absolute_path,
         std.fs.path.sep,
         std.fs.path.sep,
         self.name,
         local_module.name(),
     }) catch unreachable;
-    try self.cc(c_file.str(), o_file.str(), packages, extra_flags, allocator);
+    try self.cc(c_file.items, o_file.items, packages, extra_flags, allocator);
 
     if (self.kind == .test_executable) {
-        var test_c_file = String.init(allocator);
-        test_c_file.writer().print("{s}{c}build{c}{s}-{s}-tests.c", .{
+        var test_c_file = std.array_list.Managed(u8).init(allocator);
+        test_c_file.print("{s}{c}build{c}{s}-{s}-tests.c", .{
             self.absolute_path,
             std.fs.path.sep,
             std.fs.path.sep,
@@ -255,10 +255,10 @@ fn compile_module_sources(self: *Package, o_file: String, packages: std.StringAr
             local_module.name(),
         }) catch unreachable;
 
-        var test_o_file = String.init(allocator);
-        test_o_file.writer().print("{s}-tests.o", .{local_module.name()}) catch unreachable;
+        var test_o_file = std.array_list.Managed(u8).init(allocator);
+        test_o_file.print("{s}-tests.o", .{local_module.name()}) catch unreachable;
 
-        try self.cc(test_c_file.str(), test_o_file.str(), packages, extra_flags, allocator);
+        try self.cc(test_c_file.items, test_o_file.items, packages, extra_flags, allocator);
     }
 }
 
@@ -277,45 +277,45 @@ fn compile_entry_point(self: *Package, obj_files: *std.StringArrayHashMap(void),
 
 /// Compiles the `start` C file to an object file
 fn compile_executable_entry_point(self: *Package, obj_files: *std.StringArrayHashMap(void), packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !void {
-    var start_o_file = String.init(allocator);
-    start_o_file.writer().print("{s}{c}build{c}start.o", .{
+    var start_o_file = std.array_list.Managed(u8).init(allocator);
+    start_o_file.print("{s}{c}build{c}start.o", .{
         self.absolute_path,
         std.fs.path.sep,
         std.fs.path.sep,
     }) catch unreachable;
-    obj_files.put(start_o_file.str(), void{}) catch unreachable;
+    obj_files.put(start_o_file.items, void{}) catch unreachable;
 
-    if (!file_exists(start_o_file.str())) {
-        var c_file = String.init(allocator);
-        c_file.writer().print("{s}{c}build{c}start.c", .{
+    if (!file_exists(start_o_file.items)) {
+        var c_file = std.array_list.Managed(u8).init(allocator);
+        c_file.print("{s}{c}build{c}start.c", .{
             self.absolute_path,
             std.fs.path.sep,
             std.fs.path.sep,
         }) catch unreachable;
 
-        try self.cc(c_file.str(), start_o_file.str(), packages, extra_flags, allocator);
+        try self.cc(c_file.items, start_o_file.items, packages, extra_flags, allocator);
     }
 }
 
 /// Compiles the test-runner C file to an object file
 fn compile_test_runner_entry_point(self: *Package, obj_files: *std.StringArrayHashMap(void), packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !void {
-    var test_runner_o_file = String.init(allocator);
-    test_runner_o_file.writer().print("{s}{c}build{c}test-runner.o", .{
+    var test_runner_o_file = std.array_list.Managed(u8).init(allocator);
+    test_runner_o_file.print("{s}{c}build{c}test-runner.o", .{
         self.absolute_path,
         std.fs.path.sep,
         std.fs.path.sep,
     }) catch unreachable;
-    obj_files.put(test_runner_o_file.str(), void{}) catch unreachable;
+    obj_files.put(test_runner_o_file.items, void{}) catch unreachable;
 
-    if (!file_exists(test_runner_o_file.str())) {
-        var c_file = String.init(allocator);
-        c_file.writer().print("{s}{c}build{c}test-runner.c", .{
+    if (!file_exists(test_runner_o_file.items)) {
+        var c_file = std.array_list.Managed(u8).init(allocator);
+        c_file.print("{s}{c}build{c}test-runner.c", .{
             self.absolute_path,
             std.fs.path.sep,
             std.fs.path.sep,
         }) catch unreachable;
 
-        try self.cc(c_file.str(), test_runner_o_file.str(), packages, extra_flags, allocator);
+        try self.cc(c_file.items, test_runner_o_file.items, packages, extra_flags, allocator);
     }
 }
 
@@ -340,13 +340,13 @@ fn cc(
     const cc_cmd = try self.construct_obj_cc_cmd(c_file, o_file, packages, extra_flags, allocator);
     print_cmd(&cc_cmd);
 
-    var cwd_string = String.init(allocator);
-    cwd_string.writer().print("{s}{c}build", .{ self.absolute_path, std.fs.path.sep }) catch unreachable;
+    var cwd_string = std.array_list.Managed(u8).init(allocator);
+    cwd_string.print("{s}{c}build", .{ self.absolute_path, std.fs.path.sep }) catch unreachable;
 
     const run_res = std.process.Child.run(.{
         .allocator = allocator,
         .argv = cc_cmd.items,
-        .cwd = cwd_string.str(),
+        .cwd = cwd_string.items,
     }) catch |err| switch (err) {
         else => std.debug.panic("compile error: on cc invoke: {}", .{err}),
     };
@@ -377,12 +377,12 @@ fn construct_obj_cc_cmd(
     packages: std.StringArrayHashMap(*Package),
     extra_flags: bool,
     allocator: std.mem.Allocator,
-) !std.ArrayList([]const u8) {
+) !std.array_list.Managed([]const u8) {
     var env_map = std.process.getEnvMap(allocator) catch unreachable;
     defer env_map.deinit();
 
     // Base cc command
-    var cc_cmd = std.ArrayList([]const u8).init(allocator);
+    var cc_cmd = std.array_list.Managed([]const u8).init(allocator);
     cc_cmd.appendSlice(&[_][]const u8{ "zig", "cc" }) catch unreachable;
 
     // Add input/output
@@ -393,15 +393,15 @@ fn construct_obj_cc_cmd(
     cc_cmd.append(o_file) catch unreachable;
 
     const std_path = env_map.get("ORNG_STD_PATH").?;
-    var std_include_path = String.init(allocator);
-    std_include_path.writer().print("-I{s}", .{std_path}) catch unreachable;
+    var std_include_path = std.array_list.Managed(u8).init(allocator);
+    std_include_path.print("-I{s}", .{std_path}) catch unreachable;
 
     // Add basic flags
     cc_cmd.appendSlice(&[_][]const u8{
         "-std=c11",
         "-O3",
         "-g",
-        std_include_path.str(),
+        std_include_path.items,
     }) catch unreachable;
 
     if (extra_flags) {
@@ -440,35 +440,35 @@ fn construct_obj_cc_cmd(
 /// Appends the include directories of the packages that this packages requires to the cc command
 fn append_requirements_includes(
     self: *Package,
-    cc_cmd: *std.ArrayList([]const u8),
+    cc_cmd: *std.array_list.Managed([]const u8),
     packages: std.StringArrayHashMap(*Package),
     allocator: std.mem.Allocator,
 ) void {
     for (self.requirements.keys()) |requirement_name| {
         const required_package = self.get_required_package(requirement_name, packages);
 
-        var requirement_include_path = String.init(allocator);
-        requirement_include_path.writer().print("-I{s}{c}build", .{ required_package.root.init_value().?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
-        cc_cmd.append(requirement_include_path.str()) catch unreachable;
+        var requirement_include_path = std.array_list.Managed(u8).init(allocator);
+        requirement_include_path.print("-I{s}{c}build", .{ required_package.root.init_value().?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
+        cc_cmd.append(requirement_include_path.items) catch unreachable;
     }
 }
 
 /// Appends the include directories that this package specified in `build.orng` to the cc command
 fn append_self_includes(
     self: *Package,
-    cc_cmd: *std.ArrayList([]const u8),
+    cc_cmd: *std.array_list.Managed([]const u8),
     allocator: std.mem.Allocator,
 ) void {
     for (self.include_directories.keys()) |include_dir| {
-        var requirement_include_path = String.init(allocator);
-        requirement_include_path.writer().print("-I{s}", .{include_dir}) catch unreachable;
-        cc_cmd.append(requirement_include_path.str()) catch unreachable;
+        var requirement_include_path = std.array_list.Managed(u8).init(allocator);
+        requirement_include_path.print("-I{s}", .{include_dir}) catch unreachable;
+        cc_cmd.append(requirement_include_path.items) catch unreachable;
     }
 }
 
 fn ar(self: *Package, obj_files: std.StringArrayHashMap(void), allocator: std.mem.Allocator) !void {
     // Base command
-    var cmd = std.ArrayList([]const u8).init(allocator);
+    var cmd = std.array_list.Managed([]const u8).init(allocator);
     cmd.appendSlice(&[_][]const u8{
         "zig",
         "ar",
@@ -482,14 +482,14 @@ fn ar(self: *Package, obj_files: std.StringArrayHashMap(void), allocator: std.me
     cmd.appendSlice(obj_files.keys()) catch unreachable;
 
     // Set cwd
-    var cwd_string = String.init(allocator);
-    cwd_string.writer().print("{s}{c}build", .{ self.absolute_path, std.fs.path.sep }) catch unreachable;
+    var cwd_string = std.array_list.Managed(u8).init(allocator);
+    cwd_string.print("{s}{c}build", .{ self.absolute_path, std.fs.path.sep }) catch unreachable;
 
     print_cmd(&cmd);
     const run_res = std.process.Child.run(.{
         .allocator = allocator,
         .argv = cmd.items,
-        .cwd = cwd_string.str(),
+        .cwd = cwd_string.items,
     }) catch unreachable;
 
     var retcode: u8 = 0;
@@ -511,19 +511,19 @@ fn ar(self: *Package, obj_files: std.StringArrayHashMap(void), allocator: std.me
 }
 
 pub fn set_executable_name(self: *Package, allocator: std.mem.Allocator) !void {
-    var output_absolute_path = String.init(allocator);
-    output_absolute_path.writer().print("{s}{c}build{c}", .{
+    var output_absolute_path = std.array_list.Managed(u8).init(allocator);
+    output_absolute_path.print("{s}{c}build{c}", .{
         self.absolute_path,
         std.fs.path.sep,
         std.fs.path.sep,
     }) catch unreachable;
     switch (self.kind) {
-        .executable => try output_absolute_path.writer().print("{s}", .{self.name}),
-        .test_executable => try output_absolute_path.writer().print("{s}-test", .{self.name}),
-        .static_library => try output_absolute_path.writer().print("lib{s}.a", .{self.name}),
-        .shared_library => try output_absolute_path.writer().print("{s}.so", .{self.name}),
+        .executable => try output_absolute_path.print("{s}", .{self.name}),
+        .test_executable => try output_absolute_path.print("{s}-test", .{self.name}),
+        .static_library => try output_absolute_path.print("lib{s}.a", .{self.name}),
+        .shared_library => try output_absolute_path.print("{s}.so", .{self.name}),
     }
-    self.output_absolute_path = output_absolute_path.str();
+    self.output_absolute_path = output_absolute_path.items;
 }
 
 /// Runs the command to link the object files of a package into an executable
@@ -531,15 +531,15 @@ fn link_executable(self: *Package, obj_files: std.StringArrayHashMap(void), pack
     const cmd = try self.construct_exe_cc_cmd(obj_files, packages, allocator);
 
     // Set cwd
-    var cwd_string = String.init(allocator);
-    cwd_string.writer().print("{s}{c}build", .{ self.absolute_path, std.fs.path.sep }) catch unreachable;
+    var cwd_string = std.array_list.Managed(u8).init(allocator);
+    cwd_string.print("{s}{c}build", .{ self.absolute_path, std.fs.path.sep }) catch unreachable;
 
     if (!file_exists(self.output_absolute_path)) {
         print_cmd(&cmd);
         const run_res = std.process.Child.run(.{
             .allocator = allocator,
             .argv = cmd.items,
-            .cwd = cwd_string.str(),
+            .cwd = cwd_string.items,
         }) catch unreachable;
 
         var retcode: u8 = 0;
@@ -564,12 +564,12 @@ fn construct_exe_cc_cmd(
     obj_files: std.StringArrayHashMap(void),
     packages: std.StringArrayHashMap(*Package),
     allocator: std.mem.Allocator,
-) !std.ArrayList([]const u8) {
+) !std.array_list.Managed([]const u8) {
     var env_map = std.process.getEnvMap(allocator) catch unreachable;
     defer env_map.deinit();
 
     // Base command
-    var cmd = std.ArrayList([]const u8).init(allocator);
+    var cmd = std.array_list.Managed([]const u8).init(allocator);
     cmd.appendSlice(&[_][]const u8{ "zig", "cc" }) catch unreachable;
 
     // Add all the object files
@@ -589,7 +589,7 @@ fn construct_exe_cc_cmd(
 /// Appends the flags to link against a required package
 fn append_requirement_link(
     self: *Package,
-    cmd: *std.ArrayList([]const u8),
+    cmd: *std.array_list.Managed([]const u8),
     packages: std.StringArrayHashMap(*Package),
     requirement_name: []const u8,
     allocator: std.mem.Allocator,
@@ -602,14 +602,14 @@ fn append_requirement_link(
 
 fn append_library_dirs(
     self: *Package,
-    cmd: *std.ArrayList([]const u8),
+    cmd: *std.array_list.Managed([]const u8),
     required_package: *Package,
     allocator: std.mem.Allocator,
 ) !void {
-    var requirement_library_path = String.init(allocator);
-    requirement_library_path.writer().print("{s}{c}build", .{ required_package.root.init_value().?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
+    var requirement_library_path = std.array_list.Managed(u8).init(allocator);
+    requirement_library_path.print("{s}{c}build", .{ required_package.root.init_value().?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
     cmd.append("-L") catch unreachable;
-    cmd.append(requirement_library_path.str()) catch unreachable;
+    cmd.append(requirement_library_path.items) catch unreachable;
 
     for (self.library_directories.keys()) |lib_dir| {
         cmd.append("-L") catch unreachable;
@@ -619,13 +619,13 @@ fn append_library_dirs(
 
 fn append_library_flags(
     self: *Package,
-    cmd: *std.ArrayList([]const u8),
+    cmd: *std.array_list.Managed([]const u8),
     required_package: *Package,
     allocator: std.mem.Allocator,
 ) !void {
-    var requirement_library = String.init(allocator);
-    requirement_library.writer().print("-l{s}", .{required_package.name}) catch unreachable;
-    cmd.append(requirement_library.str()) catch unreachable;
+    var requirement_library = std.array_list.Managed(u8).init(allocator);
+    requirement_library.print("-l{s}", .{required_package.name}) catch unreachable;
+    cmd.append(requirement_library.items) catch unreachable;
 
     for (self.libraries.keys()) |lib| {
         cmd.append("-l") catch unreachable;
@@ -634,7 +634,7 @@ fn append_library_flags(
 }
 
 const debug: bool = false;
-fn print_cmd(cmd: *const std.ArrayList([]const u8)) void {
+fn print_cmd(cmd: *const std.array_list.Managed([]const u8)) void {
     if (debug) {
         for (cmd.items) |item| {
             std.debug.print("{s} ", .{item});

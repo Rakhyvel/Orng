@@ -40,12 +40,12 @@ pub const Validate_Args_Thing = enum {
 // This has to be ok to do twice for the same args, because stamps have to do it internally.
 pub fn default_args(
     thing: Validate_Args_Thing,
-    asts: std.ArrayList(*ast_.AST), // The args for a call, or the terms for a struct
+    asts: std.array_list.Managed(*ast_.AST), // The args for a call, or the terms for a struct
     call_span: Span,
     expected: *Type_AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) Validate_Error_Enum!std.ArrayList(*ast_.AST) {
+) Validate_Error_Enum!std.array_list.Managed(*ast_.AST) {
     if (try args_are_named(asts, errors) and expected.* != .unit_type) {
         return named_args(thing, asts, call_span, expected, errors, allocator) catch |err| switch (err) {
             error.NoDefault => error.CompileError,
@@ -63,7 +63,7 @@ pub fn default_args(
 ///
 /// Throws `error.CompileError` if there is a mix of positional and named arguments.
 fn args_are_named(
-    asts: std.ArrayList(*ast_.AST),
+    asts: std.array_list.Managed(*ast_.AST),
     errors: *errs_.Errors,
 ) Validate_Error_Enum!bool {
     if (asts.items.len == 0) {
@@ -95,14 +95,14 @@ fn args_are_named(
 /// Returns NoDefault when a default value cannot be created
 fn positional_args(
     thing: Validate_Args_Thing,
-    asts: std.ArrayList(*ast_.AST),
+    asts: std.array_list.Managed(*ast_.AST),
     call_span: Span,
     expected: *Type_AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) error{NoDefault}!std.ArrayList(*ast_.AST) {
+) error{NoDefault}!std.array_list.Managed(*ast_.AST) {
     // TODO: Too long
-    var filled_args = std.ArrayList(*ast_.AST).init(allocator);
+    var filled_args = std.array_list.Managed(*ast_.AST).init(allocator);
     errdefer filled_args.deinit();
 
     switch (expected.*) {
@@ -174,12 +174,12 @@ fn positional_args(
 
 fn named_args(
     thing: Validate_Args_Thing,
-    asts: std.ArrayList(*ast_.AST),
+    asts: std.array_list.Managed(*ast_.AST),
     call_span: Span,
     expected: *Type_AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) (Validate_Error_Enum || error{NoDefault})!std.ArrayList(*ast_.AST) {
+) (Validate_Error_Enum || error{NoDefault})!std.array_list.Managed(*ast_.AST) {
     // FIXME: High cyclo
     std.debug.assert(asts.items.len > 0);
     // Maps assign.lhs name to assign.rhs
@@ -195,7 +195,7 @@ fn named_args(
     }
 
     // Construct positional args in the order specified by `expected`
-    var filled_args = std.ArrayList(*ast_.AST).init(allocator);
+    var filled_args = std.array_list.Managed(*ast_.AST).init(allocator);
     errdefer filled_args.deinit();
     switch (expected.*) {
         .annotation => {
@@ -245,7 +245,7 @@ fn named_args(
             }
         },
 
-        else => std.debug.panic("compiler error: unimplemented named_args() for `{}`", .{expected.*}),
+        else => std.debug.panic("compiler error: unimplemented named_args() for `{f}`", .{expected.*}),
     }
     return filled_args;
 }
@@ -280,7 +280,7 @@ pub fn put_ast_map(
 /// Validates that the number of arguments matches the number of parameters
 pub fn validate_args_arity(
     thing: Validate_Args_Thing,
-    args: *std.ArrayList(*ast_.AST),
+    args: *std.array_list.Managed(*ast_.AST),
     expected: *Type_AST,
     variadic: bool,
     span: Span,

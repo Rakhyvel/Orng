@@ -127,14 +127,14 @@ pub const AST = union(enum) {
     lesser_equal: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
     @"catch": struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
     @"orelse": struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
-    call: struct { common: AST_Common, _lhs: *AST, _args: std.ArrayList(*AST) },
-    bit_and: struct { common: AST_Common, _args: std.ArrayList(*AST) },
-    bit_or: struct { common: AST_Common, _args: std.ArrayList(*AST) },
-    bit_xor: struct { common: AST_Common, _args: std.ArrayList(*AST) },
+    call: struct { common: AST_Common, _lhs: *AST, _args: std.array_list.Managed(*AST) },
+    bit_and: struct { common: AST_Common, _args: std.array_list.Managed(*AST) },
+    bit_or: struct { common: AST_Common, _args: std.array_list.Managed(*AST) },
+    bit_xor: struct { common: AST_Common, _args: std.array_list.Managed(*AST) },
     bit_not: struct { common: AST_Common, _expr: *AST },
     left_shift: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
     right_shift: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
-    index: struct { common: AST_Common, _lhs: *AST, _children: std.ArrayList(*AST) },
+    index: struct { common: AST_Common, _lhs: *AST, _children: std.array_list.Managed(*AST) },
     select: struct {
         common: AST_Common,
         _lhs: *AST,
@@ -151,8 +151,8 @@ pub const AST = union(enum) {
     },
     trait: struct {
         common: AST_Common,
-        method_decls: std.ArrayList(*AST),
-        const_decls: std.ArrayList(*AST),
+        method_decls: std.array_list.Managed(*AST),
+        const_decls: std.array_list.Managed(*AST),
         num_virtual_methods: i64 = 0,
         _symbol: ?*Symbol = null, // Filled by symbol-tree pass.
         _scope: ?*Scope = null, // Filled by symbol-tree pass.
@@ -170,9 +170,9 @@ pub const AST = union(enum) {
         common: AST_Common,
         trait: ?*AST, // Identifier-like ast which refers to the trait
         _type: *Type_AST, // The `for` type for this impl
-        method_defs: std.ArrayList(*AST),
-        const_defs: std.ArrayList(*AST),
-        _generic_params: std.ArrayList(*AST), // list of annotations
+        method_defs: std.array_list.Managed(*AST),
+        const_defs: std.array_list.Managed(*AST),
+        _generic_params: std.array_list.Managed(*AST), // list of annotations
         num_virtual_methods: i64 = 0,
         _scope: ?*Scope = null, // Scope used for `impl` methods, rooted in `impl`'s scope.
         impls_anon_trait: bool = false, // true when this impl implements an anonymous trait
@@ -182,7 +182,7 @@ pub const AST = union(enum) {
         common: AST_Common,
         _lhs: *AST,
         _rhs: *AST,
-        _args: std.ArrayList(*AST),
+        _args: std.array_list.Managed(*AST),
         _scope: ?*Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
         method_decl: ?*AST = null,
     },
@@ -209,16 +209,16 @@ pub const AST = union(enum) {
     struct_value: struct {
         common: AST_Common,
         parent: *Type_AST,
-        _terms: std.ArrayList(*AST),
+        _terms: std.array_list.Managed(*AST),
         was_slice: bool,
     },
     tuple_value: struct {
         common: AST_Common,
-        _terms: std.ArrayList(*AST),
+        _terms: std.array_list.Managed(*AST),
     },
     array_value: struct {
         common: AST_Common,
-        _terms: std.ArrayList(*AST),
+        _terms: std.array_list.Managed(*AST),
     },
 
     // Fancy operators
@@ -264,13 +264,13 @@ pub const AST = union(enum) {
         _scope: ?*Scope,
         let: ?*AST,
         _expr: *AST,
-        _mappings: std.ArrayList(*AST),
+        _mappings: std.array_list.Managed(*AST),
     },
     mapping: struct {
         common: AST_Common,
         _lhs: *AST,
         _rhs: *AST,
-        captures: std.ArrayList(*AST),
+        captures: std.array_list.Managed(*AST),
         _scope: ?*Scope, // Scope used for `match` mappings, rooted in `match`'s scope. Captures, rhs live in this scope
     },
     @"while": struct {
@@ -294,9 +294,9 @@ pub const AST = union(enum) {
     block: struct {
         common: AST_Common,
         _scope: ?*Scope,
-        _statements: std.ArrayList(*AST),
-        defers: std.ArrayList(*AST),
-        errdefers: std.ArrayList(*AST),
+        _statements: std.array_list.Managed(*AST),
+        defers: std.array_list.Managed(*AST),
+        errdefers: std.array_list.Managed(*AST),
         final: ?*AST, // either `return`, `continue`, or `break`
     },
 
@@ -324,7 +324,7 @@ pub const AST = union(enum) {
         pattern: *AST, // Pattern of the binding
         type: *Type_AST, // Conceptually, the type for the binding as a whole
         init: ?*AST, // The init value for the binding as a whole. Possible to be null if `undefiend`.
-        decls: std.ArrayList(*AST),
+        decls: std.array_list.Managed(*AST),
     },
     decl: struct {
         common: AST_Common,
@@ -335,8 +335,8 @@ pub const AST = union(enum) {
     fn_decl: struct {
         common: AST_Common,
         name: ?*AST, //
-        _params: std.ArrayList(*AST), // Parameters' decl ASTs
-        _param_symbols: std.ArrayList(*Symbol), // Parameters' symbols
+        _params: std.array_list.Managed(*AST), // Parameters' decl ASTs
+        _param_symbols: std.array_list.Managed(*Symbol), // Parameters' symbols
         ret_type: *Type_AST,
         _decl_type: ?*Type_AST = null,
         refinement: ?*AST,
@@ -371,8 +371,8 @@ pub const AST = union(enum) {
     struct_decl: struct {
         common: AST_Common,
         name: *AST,
-        fields: std.ArrayList(*Type_AST),
-        _generic_params: std.ArrayList(*AST),
+        fields: std.array_list.Managed(*Type_AST),
+        _generic_params: std.array_list.Managed(*AST),
         _type: *Type_AST,
         _symbol: ?*Symbol = null,
         _scope: ?*Scope = null,
@@ -380,8 +380,8 @@ pub const AST = union(enum) {
     enum_decl: struct {
         common: AST_Common,
         name: *AST,
-        fields: std.ArrayList(*Type_AST),
-        _generic_params: std.ArrayList(*AST),
+        fields: std.array_list.Managed(*Type_AST),
+        _generic_params: std.array_list.Managed(*AST),
         _type: *Type_AST,
         _symbol: ?*Symbol = null,
         _scope: ?*Scope = null,
@@ -390,7 +390,7 @@ pub const AST = union(enum) {
         common: AST_Common,
         name: *AST,
         init: ?*Type_AST,
-        _generic_params: std.ArrayList(*AST),
+        _generic_params: std.array_list.Managed(*AST),
         _symbol: ?*Symbol = null,
         _scope: ?*Scope = null,
     },
@@ -399,8 +399,8 @@ pub const AST = union(enum) {
         name: *AST,
         is_virtual: bool,
         receiver: ?*AST,
-        _params: std.ArrayList(*AST), // Parameters' decl ASTs
-        _param_symbols: std.ArrayList(*Symbol), // Parameters' symbols
+        _params: std.array_list.Managed(*AST), // Parameters' decl ASTs
+        _param_symbols: std.array_list.Managed(*Symbol), // Parameters' symbols
         c_type: ?*Type_AST = null,
         domain: ?*Type_AST = null, // Domain type when calling. Filled in at symbol-tree creation for impls and traits.
         ret_type: *Type_AST,
@@ -690,7 +690,7 @@ pub const AST = union(enum) {
         return AST.box(AST{ .@"orelse" = .{ .common = _common, ._lhs = _lhs, ._rhs = _rhs } }, allocator);
     }
 
-    pub fn create_call(_token: Token, _lhs: *AST, args: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
+    pub fn create_call(_token: Token, _lhs: *AST, args: std.array_list.Managed(*AST), allocator: std.mem.Allocator) *AST {
         return AST.box(AST{ .call = .{
             .common = AST_Common{ ._token = _token },
             ._lhs = _lhs,
@@ -698,21 +698,21 @@ pub const AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn create_bit_and(_token: Token, args: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
+    pub fn create_bit_and(_token: Token, args: std.array_list.Managed(*AST), allocator: std.mem.Allocator) *AST {
         return AST.box(AST{ .bit_and = .{
             .common = AST_Common{ ._token = _token },
             ._args = args,
         } }, allocator);
     }
 
-    pub fn create_bit_or(_token: Token, args: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
+    pub fn create_bit_or(_token: Token, args: std.array_list.Managed(*AST), allocator: std.mem.Allocator) *AST {
         return AST.box(AST{ .bit_or = .{
             .common = AST_Common{ ._token = _token },
             ._args = args,
         } }, allocator);
     }
 
-    pub fn create_bit_xor(_token: Token, args: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
+    pub fn create_bit_xor(_token: Token, args: std.array_list.Managed(*AST), allocator: std.mem.Allocator) *AST {
         return AST.box(AST{ .bit_xor = .{
             .common = AST_Common{ ._token = _token },
             ._args = args,
@@ -742,7 +742,7 @@ pub const AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn create_index(_token: Token, _lhs: *AST, _children: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
+    pub fn create_index(_token: Token, _lhs: *AST, _children: std.array_list.Managed(*AST), allocator: std.mem.Allocator) *AST {
         return AST.box(AST{ .index = .{
             .common = AST_Common{ ._token = _token },
             ._lhs = _lhs,
@@ -776,8 +776,8 @@ pub const AST = union(enum) {
 
     pub fn create_trait(
         _token: Token,
-        method_decls: std.ArrayList(*AST),
-        const_decls: std.ArrayList(*AST),
+        method_decls: std.array_list.Managed(*AST),
+        const_decls: std.array_list.Managed(*AST),
         allocator: std.mem.Allocator,
     ) *AST {
         return AST.box(AST{ .trait = .{
@@ -791,9 +791,9 @@ pub const AST = union(enum) {
         _token: Token,
         _trait: ?*AST,
         _type: *Type_AST,
-        method_defs: std.ArrayList(*AST),
-        const_defs: std.ArrayList(*AST),
-        _generic_params: std.ArrayList(*AST),
+        method_defs: std.array_list.Managed(*AST),
+        const_defs: std.array_list.Managed(*AST),
+        _generic_params: std.array_list.Managed(*AST),
         allocator: std.mem.Allocator,
     ) *AST {
         return AST.box(
@@ -814,7 +814,7 @@ pub const AST = union(enum) {
         _token: Token,
         _lhs: *AST,
         _rhs: *AST,
-        args: std.ArrayList(*AST),
+        args: std.array_list.Managed(*AST),
         allocator: std.mem.Allocator,
     ) *AST {
         const _common: AST_Common = .{ ._token = _token };
@@ -844,7 +844,7 @@ pub const AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn create_struct_value(_token: Token, parent: *Type_AST, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
+    pub fn create_struct_value(_token: Token, parent: *Type_AST, terms: std.array_list.Managed(*AST), allocator: std.mem.Allocator) *AST {
         return AST.box(AST{ .struct_value = .{
             .common = AST_Common{ ._token = _token },
             .parent = parent,
@@ -853,14 +853,14 @@ pub const AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn create_tuple_value(_token: Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
+    pub fn create_tuple_value(_token: Token, terms: std.array_list.Managed(*AST), allocator: std.mem.Allocator) *AST {
         return AST.box(AST{ .tuple_value = .{
             .common = AST_Common{ ._token = _token },
             ._terms = terms,
         } }, allocator);
     }
 
-    pub fn create_array_value(_token: Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
+    pub fn create_array_value(_token: Token, terms: std.array_list.Managed(*AST), allocator: std.mem.Allocator) *AST {
         return AST.box(AST{ .array_value = .{
             .common = AST_Common{ ._token = _token },
             ._terms = terms,
@@ -936,7 +936,7 @@ pub const AST = union(enum) {
         _token: Token,
         let: ?*AST,
         _expr: *AST,
-        mappings: std.ArrayList(*AST),
+        mappings: std.array_list.Managed(*AST),
         allocator: std.mem.Allocator,
     ) *AST {
         return AST.box(
@@ -958,7 +958,7 @@ pub const AST = union(enum) {
                 ._lhs = _lhs,
                 ._rhs = _rhs,
                 ._scope = null,
-                .captures = std.ArrayList(*AST).init(allocator),
+                .captures = std.array_list.Managed(*AST).init(allocator),
             } },
             allocator,
         );
@@ -1012,7 +1012,7 @@ pub const AST = union(enum) {
 
     pub fn create_block(
         _token: Token,
-        statements: std.ArrayList(*AST),
+        statements: std.array_list.Managed(*AST),
         final: ?*AST,
         allocator: std.mem.Allocator,
     ) *AST {
@@ -1024,8 +1024,8 @@ pub const AST = union(enum) {
                 .common = AST_Common{ ._token = _token },
                 ._scope = null,
                 ._statements = statements,
-                .defers = std.ArrayList(*AST).init(allocator),
-                .errdefers = std.ArrayList(*AST).init(allocator),
+                .defers = std.array_list.Managed(*AST).init(allocator),
+                .errdefers = std.array_list.Managed(*AST).init(allocator),
                 .final = final,
             } },
             allocator,
@@ -1086,7 +1086,7 @@ pub const AST = union(enum) {
                 .pattern = pattern,
                 .type = _type,
                 .init = init,
-                .decls = std.ArrayList(*AST).init(allocator),
+                .decls = std.array_list.Managed(*AST).init(allocator),
             } },
             allocator,
         );
@@ -1114,7 +1114,7 @@ pub const AST = union(enum) {
     pub fn create_fn_decl(
         _token: Token,
         name: ?*AST,
-        params: std.ArrayList(*AST),
+        params: std.array_list.Managed(*AST),
         ret_type: *Type_AST,
         refinement: ?*AST,
         init: *AST,
@@ -1124,7 +1124,7 @@ pub const AST = union(enum) {
             .common = AST_Common{ ._token = _token },
             .name = name,
             ._params = params,
-            ._param_symbols = std.ArrayList(*Symbol).init(allocator),
+            ._param_symbols = std.array_list.Managed(*Symbol).init(allocator),
             .ret_type = ret_type,
             .refinement = refinement,
             .init = init,
@@ -1144,8 +1144,8 @@ pub const AST = union(enum) {
     pub fn create_struct_decl(
         _token: Token,
         name: *AST,
-        fields: std.ArrayList(*Type_AST),
-        _generic_params: std.ArrayList(*AST),
+        fields: std.array_list.Managed(*Type_AST),
+        _generic_params: std.array_list.Managed(*AST),
         allocator: std.mem.Allocator,
     ) *AST {
         return AST.box(AST{ .struct_decl = .{
@@ -1160,8 +1160,8 @@ pub const AST = union(enum) {
     pub fn create_enum_decl(
         _token: Token,
         name: *AST,
-        fields: std.ArrayList(*Type_AST),
-        _generic_params: std.ArrayList(*AST),
+        fields: std.array_list.Managed(*Type_AST),
+        _generic_params: std.array_list.Managed(*AST),
         allocator: std.mem.Allocator,
     ) *AST {
         return AST.box(AST{ .enum_decl = .{
@@ -1177,7 +1177,7 @@ pub const AST = union(enum) {
         _token: Token,
         name: *AST,
         init: ?*Type_AST,
-        _generic_params: std.ArrayList(*AST),
+        _generic_params: std.array_list.Managed(*AST),
         allocator: std.mem.Allocator,
     ) *AST {
         return AST.box(AST{ .type_alias = .{
@@ -1193,7 +1193,7 @@ pub const AST = union(enum) {
         name: *AST,
         is_virtual: bool,
         receiver: ?*AST,
-        params: std.ArrayList(*AST),
+        params: std.array_list.Managed(*AST),
         ret_type: *Type_AST,
         refinement: ?*AST,
         init: ?*AST,
@@ -1205,7 +1205,7 @@ pub const AST = union(enum) {
             .is_virtual = is_virtual,
             .receiver = receiver,
             ._params = params,
-            ._param_symbols = std.ArrayList(*Symbol).init(allocator),
+            ._param_symbols = std.array_list.Managed(*Symbol).init(allocator),
             .ret_type = ret_type,
             .refinement = refinement,
             .init = init,
@@ -1713,8 +1713,8 @@ pub const AST = union(enum) {
         }
     }
 
-    pub fn clone_children(children_terms: std.ArrayList(*AST), substs: *unification_.Substitutions, allocator: std.mem.Allocator) std.ArrayList(*AST) {
-        var retval = std.ArrayList(*AST).init(allocator);
+    pub fn clone_children(children_terms: std.array_list.Managed(*AST), substs: *unification_.Substitutions, allocator: std.mem.Allocator) std.array_list.Managed(*AST) {
+        var retval = std.array_list.Managed(*AST).init(allocator);
         for (children_terms.items) |child| {
             retval.append(child.clone(substs, allocator)) catch unreachable;
         }
@@ -1784,7 +1784,7 @@ pub const AST = union(enum) {
         set_field(self, "_rhs", val);
     }
 
-    pub fn children(self: *AST) *std.ArrayList(*AST) {
+    pub fn children(self: *AST) *std.array_list.Managed(*AST) {
         return switch (self.*) {
             .call => &self.call._args,
             .index => &self.index._children,
@@ -1800,11 +1800,11 @@ pub const AST = union(enum) {
             .bit_or => &self.bit_or._args,
             .bit_xor => &self.bit_xor._args,
             .binding => &self.binding.decls,
-            else => std.debug.panic("compiler error: cannot call `.children()` on the AST `{}`", .{self.*}),
+            else => std.debug.panic("compiler error: cannot call `.children()` on the AST `{f}`", .{self.*}),
         };
     }
 
-    pub fn set_children(self: *AST, val: std.ArrayList(*AST)) void {
+    pub fn set_children(self: *AST, val: std.array_list.Managed(*AST)) void {
         switch (self.*) {
             .call => self.call._args = val,
             .struct_value => self.struct_value._terms = val,
@@ -1878,7 +1878,7 @@ pub const AST = union(enum) {
         };
     }
 
-    pub fn param_symbols(self: *AST) ?*std.ArrayList(*Symbol) {
+    pub fn param_symbols(self: *AST) ?*std.array_list.Managed(*Symbol) {
         return switch (self.*) {
             .fn_decl => &self.fn_decl._param_symbols,
             .method_decl => &self.method_decl._param_symbols,
@@ -1887,13 +1887,13 @@ pub const AST = union(enum) {
         };
     }
 
-    pub fn generic_params(self: *AST) *std.ArrayList(*AST) {
+    pub fn generic_params(self: *AST) *std.array_list.Managed(*AST) {
         return switch (self.*) {
             .struct_decl => &self.struct_decl._generic_params,
             .enum_decl => &self.enum_decl._generic_params,
             .type_alias => &self.type_alias._generic_params,
             .impl => &self.impl._generic_params,
-            else => std.debug.panic("compiler error: cannot call `.generic_params()` on the AST `{}`", .{self.*}),
+            else => std.debug.panic("compiler error: cannot call `.generic_params()` on the AST `{f}`", .{self.*}),
         };
     }
 
@@ -1992,9 +1992,9 @@ pub const AST = union(enum) {
 
     // Expr must be an array value of length `l`. Slice value is `(&expr[0], l)`.
     pub fn create_slice_value(_expr: *AST, _mut: bool, expr_type: *Type_AST, allocator: std.mem.Allocator) *AST {
-        var new_terms = std.ArrayList(*AST).init(allocator);
+        var new_terms = std.array_list.Managed(*AST).init(allocator);
         const zero = (AST.create_int(_expr.token(), 0, allocator));
-        var index_rhs = std.ArrayList(*AST).init(allocator);
+        var index_rhs = std.array_list.Managed(*AST).init(allocator);
         index_rhs.append(zero) catch unreachable;
         const index = (AST.create_index(
             _expr.token(),
@@ -2085,251 +2085,250 @@ pub const AST = union(enum) {
 
     // TODO: Use Tree Writer, don't call writer print, recursively call pprint
     pub fn pprint(self: AST, allocator: std.mem.Allocator) ![]const u8 {
-        var out = String.init(allocator);
+        var out = std.array_list.Managed(u8).init(allocator);
         defer out.deinit();
 
         switch (self) {
-            .poison => try out.writer().print("poison", .{}),
-            .unit_value => try out.writer().print("unit_value", .{}),
-            .int => try out.writer().print("int({})", .{self.int.data}),
-            .char => try out.writer().print("char()", .{}),
-            .float => try out.writer().print("float()", .{}),
-            .string => try out.writer().print("string()", .{}),
-            .field => try out.writer().print("field(\"{s}\")", .{self.field.common._token.data}),
-            .identifier => try out.writer().print("identifier(\"{s}\")", .{self.identifier.common._token.data}),
-            .@"unreachable" => try out.writer().print("unreachable", .{}),
-            .true => try out.writer().print("true", .{}),
-            .false => try out.writer().print("false", .{}),
+            .poison => try out.print("poison", .{}),
+            .unit_value => try out.print("unit_value", .{}),
+            .int => try out.print("int({})", .{self.int.data}),
+            .char => try out.print("char()", .{}),
+            .float => try out.print("float()", .{}),
+            .string => try out.print("string()", .{}),
+            .field => try out.print("field(\"{s}\")", .{self.field.common._token.data}),
+            .identifier => try out.print("identifier(\"{s}\")", .{self.identifier.common._token.data}),
+            .@"unreachable" => try out.print("unreachable", .{}),
+            .true => try out.print("true", .{}),
+            .false => try out.print("false", .{}),
 
-            .not => try out.writer().print("not()", .{}),
-            .negate => try out.writer().print("negate({})", .{self.expr()}),
-            .dereference => try out.writer().print("dereference()", .{}),
-            .@"try" => try out.writer().print("try()", .{}),
+            .not => try out.print("not()", .{}),
+            .negate => try out.print("negate({f})", .{self.expr()}),
+            .dereference => try out.print("dereference()", .{}),
+            .@"try" => try out.print("try()", .{}),
             .default => {
-                try out.writer().print("default(", .{});
-                try self.default._type.print_type(out.writer());
-                try out.writer().print(")", .{});
+                try out.print("default(", .{});
+                var writer = out.writer().adaptToNewApi(&.{}).new_interface;
+                try self.default._type.print_type(&writer);
+                try out.print(")", .{});
             },
-            .size_of => try out.writer().print("size_of({})", .{self.expr()}),
-            .@"comptime" => try out.writer().print("comptime({})", .{self.expr()}),
+            .size_of => try out.print("size_of({f})", .{self.expr()}),
+            .@"comptime" => try out.print("comptime({f})", .{self.expr()}),
 
             .assign => {
-                try out.writer().print("assign({}, {})", .{ self.lhs(), self.rhs() });
+                try out.print("assign({f}, {f})", .{ self.lhs(), self.rhs() });
             },
-            .@"or" => try out.writer().print("or()", .{}),
-            .@"and" => try out.writer().print("and()", .{}),
-            .add => try out.writer().print("add()", .{}),
-            .sub => try out.writer().print("sub()", .{}),
-            .mult => try out.writer().print("mult()", .{}),
-            .div => try out.writer().print("div()", .{}),
-            .mod => try out.writer().print("mod()", .{}),
-            .equal => try out.writer().print("equal()", .{}),
-            .not_equal => try out.writer().print("not_equal()", .{}),
-            .greater => try out.writer().print("greater()", .{}),
-            .lesser => try out.writer().print("lesser()", .{}),
-            .greater_equal => try out.writer().print("greater_equal()", .{}),
-            .lesser_equal => try out.writer().print("lesser_equal()", .{}),
-            .@"catch" => try out.writer().print("catch()", .{}),
-            .@"orelse" => try out.writer().print("orelse()", .{}),
+            .@"or" => try out.print("or()", .{}),
+            .@"and" => try out.print("and()", .{}),
+            .add => try out.print("add()", .{}),
+            .sub => try out.print("sub()", .{}),
+            .mult => try out.print("mult()", .{}),
+            .div => try out.print("div()", .{}),
+            .mod => try out.print("mod()", .{}),
+            .equal => try out.print("equal()", .{}),
+            .not_equal => try out.print("not_equal()", .{}),
+            .greater => try out.print("greater()", .{}),
+            .lesser => try out.print("lesser()", .{}),
+            .greater_equal => try out.print("greater_equal()", .{}),
+            .lesser_equal => try out.print("lesser_equal()", .{}),
+            .@"catch" => try out.print("catch()", .{}),
+            .@"orelse" => try out.print("orelse()", .{}),
             .call => {
-                try out.writer().print("call(lhs={},args=[", .{self.call._lhs});
+                try out.print("call(lhs={f},args=[", .{self.call._lhs});
                 for (self.call._args.items, 0..) |item, i| {
-                    try out.writer().print("{}", .{item});
+                    try out.print("{f}", .{item});
                     if (i < self.call._args.items.len - 1) {
-                        try out.writer().print(",", .{});
+                        try out.print(",", .{});
                     }
                 }
-                try out.writer().print("])", .{});
+                try out.print("])", .{});
             },
             .bit_and => {
-                try out.writer().print("@bit_and(", .{});
+                try out.print("@bit_and(", .{});
                 for (self.call._args.items, 0..) |item, i| {
-                    try out.writer().print("{}", .{item});
+                    try out.print("{f}", .{item});
                     if (i < self.call._args.items.len - 1) {
-                        try out.writer().print(",", .{});
+                        try out.print(",", .{});
                     }
                 }
-                try out.writer().print(")", .{});
+                try out.print(")", .{});
             },
             .bit_or => {
-                try out.writer().print("@bit_or(", .{});
+                try out.print("@bit_or(", .{});
                 for (self.call._args.items, 0..) |item, i| {
-                    try out.writer().print("{}", .{item});
+                    try out.print("{f}", .{item});
                     if (i < self.call._args.items.len - 1) {
-                        try out.writer().print(",", .{});
+                        try out.print(",", .{});
                     }
                 }
-                try out.writer().print(")", .{});
+                try out.print(")", .{});
             },
             .bit_xor => {
-                try out.writer().print("@bit_xor(", .{});
+                try out.print("@bit_xor(", .{});
                 for (self.call._args.items, 0..) |item, i| {
-                    try out.writer().print("{}", .{item});
+                    try out.print("{f}", .{item});
                     if (i < self.call._args.items.len - 1) {
-                        try out.writer().print(",", .{});
+                        try out.print(",", .{});
                     }
                 }
-                try out.writer().print(")", .{});
+                try out.print(")", .{});
             },
-            .bit_not => try out.writer().print("@bit_not({})", .{self.expr()}),
-            .left_shift => try out.writer().print("@left_shift({}, {})", .{ self.lhs(), self.rhs() }),
-            .right_shift => try out.writer().print("@right_shift({}, {})", .{ self.lhs(), self.rhs() }),
+            .bit_not => try out.print("@bit_not({f})", .{self.expr()}),
+            .left_shift => try out.print("@left_shift({f}, {f})", .{ self.lhs(), self.rhs() }),
+            .right_shift => try out.print("@right_shift({f}, {f})", .{ self.lhs(), self.rhs() }),
             .index => {
-                try out.writer().print("index(lhs={},args=[", .{self.index._lhs});
+                try out.print("index(lhs={f},args=[", .{self.index._lhs});
                 for (self.index._children.items, 0..) |item, i| {
-                    try out.writer().print("{}", .{item});
+                    try out.print("{f}", .{item});
                     if (i < self.index._children.items.len - 1) {
-                        try out.writer().print(",", .{});
+                        try out.print(",", .{});
                     }
                 }
-                try out.writer().print("])", .{});
+                try out.print("])", .{});
             },
             .select => {
-                try out.writer().print("select({},{})", .{ self.lhs(), self.rhs() });
+                try out.print("select({f},{f})", .{ self.lhs(), self.rhs() });
             },
             .access => {
-                try out.writer().print("access({},{})", .{ self.lhs(), self.rhs() });
+                try out.print("access({f},{f})", .{ self.lhs(), self.rhs() });
             },
-            .trait => try out.writer().print("trait({*})", .{if (self.symbol() != null) self.symbol() else null}),
+            .trait => try out.print("trait({*})", .{if (self.symbol() != null) self.symbol() else null}),
             .impl => {
-                try out.writer().print("impl(.trait={?}, .type={}\n", .{ self.impl.trait, self.impl._type });
+                try out.print("impl(.trait={?f}, .type={f}\n", .{ self.impl.trait, self.impl._type });
                 for (self.impl.method_defs.items) |method| {
-                    try out.writer().print("    {}\n", .{method});
+                    try out.print("    {f}\n", .{method});
                 }
-                try out.writer().print(")", .{});
+                try out.print(")", .{});
             },
-            .invoke => try out.writer().print("invoke()", .{}),
-            .dyn_value => try out.writer().print("dyn_value()", .{}),
+            .invoke => try out.print("invoke()", .{}),
+            .dyn_value => try out.print("dyn_value()", .{}),
             .enum_value => {
-                try out.writer().print("enum_value(.name={s}, .init={?}, .tag={?})", .{ self.enum_value.get_name(), self.enum_value.init, self.enum_value._pos });
+                try out.print("enum_value(.name={s}, .init={?f}, .tag={?})", .{ self.enum_value.get_name(), self.enum_value.init, self.enum_value._pos });
             },
-            .type_param_decl => try out.writer().print("type_param_decl({s})", .{self.type_param_decl.common._token.data}),
+            .type_param_decl => try out.print("type_param_decl({s})", .{self.type_param_decl.common._token.data}),
             .struct_decl => {
-                try out.writer().print("struct()", .{});
+                try out.print("struct()", .{});
             },
             .enum_decl => {
-                try out.writer().print("enum()", .{});
+                try out.print("enum()", .{});
             },
             .type_alias => {
-                try out.writer().print("type_alias()", .{});
+                try out.print("type_alias()", .{});
             },
             .struct_value => {
-                try out.writer().print("struct_value(", .{});
+                try out.print("struct_value(", .{});
                 for (self.struct_value._terms.items, 0..) |item, i| {
-                    try out.writer().print("{}", .{item});
+                    try out.print("{f}", .{item});
                     if (i < self.struct_value._terms.items.len - 1) {
-                        try out.writer().print(",", .{});
+                        try out.print(",", .{});
                     }
                 }
-                try out.writer().print(")", .{});
+                try out.print(")", .{});
             },
             .tuple_value => {
-                try out.writer().print("tuple_value(", .{});
+                try out.print("tuple_value(", .{});
                 for (self.tuple_value._terms.items, 0..) |item, i| {
-                    try out.writer().print("{}", .{item});
+                    try out.print("{f}", .{item});
                     if (i < self.tuple_value._terms.items.len - 1) {
-                        try out.writer().print(",", .{});
+                        try out.print(",", .{});
                     }
                 }
-                try out.writer().print(")", .{});
+                try out.print(")", .{});
             },
             .array_value => {
-                try out.writer().print("array_value(", .{});
+                try out.print("array_value(", .{});
                 for (self.array_value._terms.items, 0..) |item, i| {
-                    try out.writer().print("{}", .{item});
+                    try out.print("{f}", .{item});
                     if (i < self.array_value._terms.items.len - 1) {
-                        try out.writer().print(",", .{});
+                        try out.print(",", .{});
                     }
                 }
-                try out.writer().print(")", .{});
+                try out.print(")", .{});
             },
 
-            .addr_of => try out.writer().print("addr_of({})", .{self.expr()}),
-            .slice_of => try out.writer().print("slice_of()", .{}),
-            .sub_slice => try out.writer().print("sub_slice()", .{}),
-            .receiver => try out.writer().print("receiver({?})", .{self.receiver._type}),
+            .addr_of => try out.print("addr_of({f})", .{self.expr()}),
+            .slice_of => try out.print("slice_of()", .{}),
+            .sub_slice => try out.print("sub_slice()", .{}),
+            .receiver => try out.print("receiver({?f})", .{self.receiver._type}),
 
-            .@"if" => try out.writer().print("if()", .{}),
-            .match => try out.writer().print("match()", .{}),
-            .mapping => try out.writer().print("mapping()", .{}),
-            .@"while" => try out.writer().print("while()", .{}),
-            .@"for" => try out.writer().print("for()", .{}),
+            .@"if" => try out.print("if()", .{}),
+            .match => try out.print("match()", .{}),
+            .mapping => try out.print("mapping()", .{}),
+            .@"while" => try out.print("while()", .{}),
+            .@"for" => try out.print("for()", .{}),
             .block => {
-                try out.writer().print("block(", .{});
+                try out.print("block(", .{});
                 for (self.block._statements.items, 0..) |item, i| {
-                    try out.writer().print("{}", .{item});
+                    try out.print("{f}", .{item});
                     if (i < self.block._statements.items.len) {
-                        try out.writer().print(",", .{});
+                        try out.print(",", .{});
                     }
                 }
-                try out.writer().print(".final={?})", .{self.block.final});
+                try out.print(".final={?f})", .{self.block.final});
             },
-            .@"break" => try out.writer().print("break", .{}),
-            .@"continue" => try out.writer().print("continue", .{}),
-            .@"return" => try out.writer().print("return()", .{}),
-            .pattern_symbol => try out.writer().print("pattern_symbol({s}, {s})", .{ @tagName(self.pattern_symbol.kind), self.pattern_symbol.name }),
-            .binding => try out.writer().print("binding()", .{}),
+            .@"break" => try out.print("break", .{}),
+            .@"continue" => try out.print("continue", .{}),
+            .@"return" => try out.print("return()", .{}),
+            .pattern_symbol => try out.print("pattern_symbol({s}, {s})", .{ @tagName(self.pattern_symbol.kind), self.pattern_symbol.name }),
+            .binding => try out.print("binding()", .{}),
             .decl => {
-                try out.writer().print("decl(\n", .{});
-                try out.writer().print("    .pattern = {},\n", .{self.decl.name});
-                try out.writer().print("    .type = {?},\n", .{self.decl.type});
-                try out.writer().print("    .init = {?},\n", .{self.decl.init});
-                try out.writer().print(")", .{});
+                try out.print("decl(\n", .{});
+                try out.print("    .pattern = {f},\n", .{self.decl.name});
+                try out.print("    .type = {f},\n", .{self.decl.type});
+                try out.print("    .init = {?f},\n", .{self.decl.init});
+                try out.print(")", .{});
             },
             .fn_decl => {
-                try out.writer().print("fn_decl(\n", .{});
-                try out.writer().print("    .name = {?},\n", .{self.fn_decl.name});
-                try out.writer().print("    ._params = [", .{});
+                try out.print("fn_decl(\n", .{});
+                try out.print("    .name = {?f},\n", .{self.fn_decl.name});
+                try out.print("    ._params = [", .{});
                 for (self.fn_decl._params.items, 0..) |item, i| {
-                    try out.writer().print("{}", .{item});
+                    try out.print("{f}", .{item});
                     if (i < self.fn_decl._params.items.len) {
-                        try out.writer().print(",", .{});
+                        try out.print(",", .{});
                     }
                 }
-                try out.writer().print("],\n", .{});
-                try out.writer().print("    .param_symbols = [", .{});
+                try out.print("],\n", .{});
+                try out.print("    .param_symbols = [", .{});
                 for (self.fn_decl._param_symbols.items, 0..) |item, i| {
-                    try out.writer().print("{}", .{item});
+                    try out.print("{s}", .{item.name});
                     if (i < self.fn_decl._param_symbols.items.len) {
-                        try out.writer().print(",", .{});
+                        try out.print(",", .{});
                     }
                 }
-                try out.writer().print("],\n", .{});
-                try out.writer().print("    .ret_type = {},\n", .{self.fn_decl.ret_type});
-                try out.writer().print("    .refinement = {?},\n", .{self.fn_decl.refinement});
-                // try out.writer().print("    .init = {},\n", .{self.fn_decl.init});
-                try out.writer().print("    ._symbol = {?},\n", .{self.fn_decl._symbol});
-                try out.writer().print("    .infer_error = {},\n", .{self.fn_decl.infer_error});
-                try out.writer().print(")", .{});
+                try out.print("],\n", .{});
+                try out.print("    .ret_type = {f},\n", .{self.fn_decl.ret_type});
+                try out.print("    .refinement = {?f},\n", .{self.fn_decl.refinement});
+                // try out.print("    .init = {f},\n", .{self.fn_decl.init});
+                try out.print("    ._symbol = {s},\n", .{self.fn_decl._symbol.?.name});
+                try out.print("    .infer_error = {},\n", .{self.fn_decl.infer_error});
+                try out.print(")", .{});
             },
-            .module => try out.writer().print("module()", .{}),
-            .import => try out.writer().print("import({})", .{self.import.pattern}),
-            .cinclude => try out.writer().print("cinclude({})", .{self.cinclude._expr}),
-            .template => try out.writer().print("template()", .{}),
+            .module => try out.print("module()", .{}),
+            .import => try out.print("import({f})", .{self.import.pattern}),
+            .cinclude => try out.print("cinclude({f})", .{self.cinclude._expr}),
+            .template => try out.print("template()", .{}),
             .method_decl => {
-                try out.writer().print("method_decl(.name={s}, .receiver={?}, . .params=[", .{
+                try out.print("method_decl(.name={f}, .receiver={?f}, . .params=[", .{
                     self.method_decl.name,
                     self.method_decl.receiver,
                 });
                 for (self.method_decl._params.items, 0..) |param, i| {
-                    try out.writer().print("{}", .{param});
+                    try out.print("{f}", .{param});
                     if (i < self.method_decl._params.items.len) {
-                        try out.writer().print(",", .{});
+                        try out.print(",", .{});
                     }
                 }
-                try out.writer().print("], .ret_type={})", .{self.method_decl.ret_type});
+                try out.print("], .ret_type={f})", .{self.method_decl.ret_type});
             },
-            .@"test" => try out.writer().print("test(.name={?})", .{self.@"test".name}),
-            .@"defer" => try out.writer().print("defer()", .{}),
-            .@"errdefer" => try out.writer().print("errdefer()", .{}),
+            .@"test" => try out.print("test(.name={?f})", .{self.@"test".name}),
+            .@"defer" => try out.print("defer()", .{}),
+            .@"errdefer" => try out.print("errdefer()", .{}),
         }
 
-        return (try out.toOwned()).?;
+        return try out.toOwnedSlice();
     }
 
-    pub fn format(self: AST, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-        _ = options;
-        _ = fmt;
+    pub fn format(self: AST, writer: *std.io.Writer) !void {
         var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator); // page alloc ok, immediately deinit'd
         defer arena.deinit();
 

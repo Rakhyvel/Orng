@@ -32,22 +32,20 @@ fn pprint(self: ?*Self) void {
     if (self) |symbver| {
         var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
         defer arena.deinit();
-        var out = String.init(arena.allocator());
+        var out = std.array_list.Managed(u8).init(arena.allocator());
         defer out.deinit();
 
-        out.writer().print("{s}", .{symbver.symbol.name}) catch unreachable;
+        out.writer(out.buffer.?).interface.print("{s}", .{symbver.symbol.name}) catch unreachable;
         std.debug.print("{s:<10}", .{out.str()});
     } else {
         std.debug.print("<null>    ", .{});
     }
 }
 
-pub fn format(self: Self, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-    _ = options;
-    _ = fmt;
+pub fn format(self: Self, writer: *std.io.Writer) !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
-    var out = String.init(arena.allocator());
+    var out = std.array_list.Managed(u8).init(arena.allocator());
     defer out.deinit();
 
     writer.print("{s}", .{self.symbol.name}) catch unreachable;
@@ -80,7 +78,7 @@ pub fn increment_usage(self: *Self) void {
 /// Two Symbol Versions are considered equivalent if they refer to the same Symbol.
 pub fn find_symbol_version_set(
     self: *Self,
-    set: *std.ArrayList(*Self),
+    set: *std.array_list.Managed(*Self),
 ) ?*Self {
     // Go through the set's symbvers
     for (set.items) |symbver| {
@@ -93,7 +91,7 @@ pub fn find_symbol_version_set(
     return null;
 }
 
-pub fn put_symbol_version_set(self: *Self, set: *std.ArrayList(*Self)) bool {
+pub fn put_symbol_version_set(self: *Self, set: *std.array_list.Managed(*Self)) bool {
     for (set.items) |v| {
         if (v.symbol == self.symbol) {
             return false;

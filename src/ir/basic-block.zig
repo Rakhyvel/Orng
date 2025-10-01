@@ -17,12 +17,7 @@ const Self = @This();
 /// Static counter for unique basic-block ids.
 var uid_counter: u64 = 0;
 
-/// Unique id for this basic-block. Used by codegen for jump labels.
-uid: u64,
-/// Linked list of the instructions in this basic-block.
-instructions: std.ArrayList(*Instruction),
-/// The end-condition for this basic-block.
-terminator: union(enum) {
+pub const Terminator = union(enum) {
     unconditional: ?*Self,
     conditional: struct {
         true_target: ?*Self,
@@ -30,11 +25,18 @@ terminator: union(enum) {
         condition: *lval_.L_Value,
     },
     panic,
-},
+};
+
+/// Unique id for this basic-block. Used by codegen for jump labels.
+uid: u64,
+/// Linked list of the instructions in this basic-block.
+instructions: std.array_list.Managed(*Instruction),
+/// The end-condition for this basic-block.
+terminator: Terminator,
 /// List of instructions that have been marked to be removed from this block
 marked_instrs: std.AutoArrayHashMap(*Instruction, void),
 /// List of the instructions that have been removed from this block, used for deinitialization.
-removed_instrs: std.ArrayList(*Instruction),
+removed_instrs: std.array_list.Managed(*Instruction),
 /// Whether or not this block has been visited in a traversal.
 visited: bool,
 /// The number of blocks that jump to this block.
@@ -48,11 +50,11 @@ offset: ?Instruction.Index,
 /// Initializes a basic-block
 pub fn init(allocator: std.mem.Allocator) *Self {
     var retval = allocator.create(Self) catch unreachable;
-    retval.instructions = std.ArrayList(*Instruction).init(allocator); // Starts off undefined, set by CFG's basic_block_from_instructions function
+    retval.instructions = std.array_list.Managed(*Instruction).init(allocator); // Starts off undefined, set by CFG's basic_block_from_instructions function
     retval.terminator = .panic;
     retval.offset = null;
     retval.marked_instrs = std.AutoArrayHashMap(*Instruction, void).init(allocator);
-    retval.removed_instrs = std.ArrayList(*Instruction).init(allocator);
+    retval.removed_instrs = std.array_list.Managed(*Instruction).init(allocator);
     retval.uid = uid_counter;
     uid_counter += 1;
     retval.allocator = allocator;
@@ -83,7 +85,7 @@ pub fn pprint(self: *Self) void {
     std.debug.print("BB{}", .{self.uid});
     std.debug.print(":\n", .{});
     for (self.instructions.items) |instr| {
-        std.debug.print("{}", .{instr});
+        std.debug.print("{f}", .{instr});
     }
     switch (self.terminator) {
         .unconditional => {
@@ -95,9 +97,9 @@ pub fn pprint(self: *Self) void {
         },
         .conditional => {
             if (self.terminator.conditional.true_target) |next| {
-                std.debug.print("    if ({}) jump BB{}", .{ self.terminator.conditional.condition, next.uid });
+                std.debug.print("    if ({f}) jump BB{}", .{ self.terminator.conditional.condition, next.uid });
             } else {
-                std.debug.print("    if ({}) return", .{self.terminator.conditional.condition});
+                std.debug.print("    if ({f}) return", .{self.terminator.conditional.condition});
             }
             std.debug.print(" ", .{});
             if (self.terminator.conditional.false_target) |branch| {
@@ -257,7 +259,7 @@ pub fn count_predecessors(self: *Self) void {
     }
 }
 
-pub fn set_offset(self: *Self, instructions_list: *std.ArrayList(*Instruction), work_queue: *std.ArrayList(*Self)) void {
+pub fn set_offset(self: *Self, instructions_list: *std.array_list.Managed(*Instruction), work_queue: *std.array_list.Managed(*Self)) void {
     self.offset = @as(Instruction.Index, @intCast(instructions_list.items.len)) -| 1;
 
     for (self.instructions.items) |instr| {

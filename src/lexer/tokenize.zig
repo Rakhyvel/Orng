@@ -44,7 +44,7 @@ const Lex_State = enum {
     }
 };
 
-tokens: *std.ArrayList(Token),
+tokens: *std.array_list.Managed(Token),
 filename: []const u8,
 errors: *errs_.Errors,
 fuzz_tokens: bool,
@@ -63,7 +63,7 @@ pub fn init(
     allocator: std.mem.Allocator,
 ) Self {
     const retval = Self{
-        .tokens = allocator.create(std.ArrayList(Token)) catch unreachable,
+        .tokens = allocator.create(std.array_list.Managed(Token)) catch unreachable,
         .filename = filename,
         .errors = errors,
         .fuzz_tokens = fuzz_tokens,
@@ -74,11 +74,11 @@ pub fn init(
         .ix = 0,
         .state = .none,
     };
-    retval.tokens.* = std.ArrayList(Token).init(allocator);
+    retval.tokens.* = std.array_list.Managed(Token).init(allocator);
     return retval;
 }
 
-pub fn run(self: *Self, lines: std.ArrayList([]const u8)) Lexer_Errors!*std.ArrayList(Token) {
+pub fn run(self: *Self, lines: std.array_list.Managed([]const u8)) Lexer_Errors!*std.array_list.Managed(Token) {
     for (lines.items) |line| {
         self.slice_start = 0;
         self.ix = 0;

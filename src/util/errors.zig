@@ -21,6 +21,12 @@ pub const Error = union(enum) {
         msg: []const u8,
     },
 
+    // File errors
+    cannot_open: struct {
+        span: Span,
+        filename: []const u8,
+    },
+
     // Lexer errors
     invalid_digit: struct {
         span: Span,
@@ -213,7 +219,7 @@ pub const Error = union(enum) {
     },
     non_exhaustive_sum: struct {
         span: Span,
-        forgotten: std.ArrayList(*Type_AST),
+        forgotten: std.array_list.Managed(*Type_AST),
     },
     mismatch_arity: struct {
         span: Span,
@@ -251,6 +257,8 @@ pub const Error = union(enum) {
     fn get_span(self: *const Error) ?Span {
         switch (self.*) {
             .basic => return self.basic.span,
+
+            .cannot_open => return self.cannot_open.span,
 
             .invalid_digit => return self.invalid_digit.span,
             .invalid_escape => return self.invalid_escape.span,
@@ -303,12 +311,12 @@ pub const Error = union(enum) {
         }
     }
 
-    pub fn fatal_error(self: Error, writer: anytype, conf: Error_Config) noreturn {
+    pub fn fatal_error(self: Error, writer: *std.io.Writer, conf: Error_Config) noreturn {
         self.print_error(writer, conf);
         std.process.exit(1);
     }
 
-    pub fn print_error(self: Error, writer: anytype, conf: Error_Config) void {
+    pub fn print_error(self: Error, writer: *std.io.Writer, conf: Error_Config) void {
         print_color(bold, writer, conf);
         print_label(self.get_span(), "error: ", .red, writer, conf);
         self.print_msg(writer);
@@ -317,10 +325,13 @@ pub const Error = union(enum) {
         self.print_extra_info(writer, conf);
     }
 
-    fn print_msg(err: Error, writer: anytype) void {
+    fn print_msg(err: Error, writer: *std.io.Writer) void {
         switch (err) {
             // General errors
             .basic => writer.print("{s}\n", .{err.basic.msg}) catch unreachable,
+
+            // File errors
+            .cannot_open => writer.print("cannot open file {s}\n", .{err.cannot_open.filename}) catch unreachable,
 
             // Lexer errors
             .invalid_digit => writer.print("'{c}' is not a valid {s} digit\n", .{ err.invalid_digit.digit, err.invalid_digit.base }) catch unreachable,
@@ -457,7 +468,7 @@ pub const Error = union(enum) {
             },
             .unexpected_type_type => {
                 if (err.unexpected_type_type.expected) |expected| {
-                    writer.print("expected a value of type `{}`, got a type\n", .{expected}) catch unreachable;
+                    writer.print("expected a value of type `{f}`, got a type\n", .{expected}) catch unreachable;
                 } else {
                     writer.print("unexpected type\n", .{}) catch unreachable;
                 }
@@ -469,7 +480,7 @@ pub const Error = union(enum) {
             },
             .duplicate => writer.print("duplicate item `{s}`\n", .{err.duplicate.identifier}) catch unreachable,
             .member_not_in_type => {
-                writer.print("member `{s}` not in {s} `{}`\n", .{ err.member_not_in_type.identifier, err.member_not_in_type.name, err.member_not_in_type.type }) catch unreachable;
+                writer.print("member `{s}` not in {s} `{f}`\n", .{ err.member_not_in_type.identifier, err.member_not_in_type.name, err.member_not_in_type.type }) catch unreachable;
             },
             .member_not_in_module => {
                 writer.print("member `{s}` not in {s} `{s}`\n", .{ err.member_not_in_module.identifier, err.member_not_in_module.name, err.member_not_in_module.module_name }) catch unreachable;
@@ -489,7 +500,7 @@ pub const Error = union(enum) {
                 writer.print("` is not indexable\n", .{}) catch unreachable;
             },
             .bad_index => {
-                writer.print("cannot index the type `{}`, which has length {}, with index {}\n", .{ err.bad_index._type, err.bad_index.length, err.bad_index.index }) catch unreachable;
+                writer.print("cannot index the type `{f}`, which has length {}, with index {}\n", .{ err.bad_index._type, err.bad_index.length, err.bad_index.index }) catch unreachable;
             },
             .not_selectable => {
                 writer.print("the type `", .{}) catch unreachable;
@@ -537,7 +548,7 @@ pub const Error = union(enum) {
         }
     }
 
-    fn print_extra_info(self: Error, writer: anytype, conf: Error_Config) void {
+    fn print_extra_info(self: Error, writer: *std.io.Writer, conf: Error_Config) void {
         // FIXME: High Cyclo
         switch (self) {
             .missing_close => {
@@ -620,25 +631,25 @@ pub const Error = union(enum) {
     }
 
     fn peek_error(err: Error) void {
-        err.print_error(std.io.getStdErr().writer(), .{});
+        err.print_error(std.fs.File.stderr().writer(&.{}).interface, .{});
         unreachable;
     }
 };
 
 // This is for compatability with Windows, since stdout for Windows isn't known at compile-time
-pub fn get_std_err() std.fs.File.Writer {
-    return std.io.getStdErr().writer();
+pub fn get_std_err() std.fs.File {
+    return std.fs.File.stderr();
 }
 
 const bold = term_.Attr{ .bold = true };
 const not_bold = term_.Attr{ .bold = false };
 
 pub const Errors = struct {
-    errors_list: std.ArrayList(Error),
+    errors_list: std.array_list.Managed(Error),
 
     pub fn init(allocator: std.mem.Allocator) Errors {
         return .{
-            .errors_list = std.ArrayList(Error).init(allocator),
+            .errors_list = std.array_list.Managed(Error).init(allocator),
         };
     }
 
@@ -652,18 +663,18 @@ pub const Errors = struct {
     }
 
     /// Prints out all errors in the Errors list
-    pub fn print_errors(self: *Errors, writer: anytype, conf: Error_Config) void {
+    pub fn print_errors(self: *Errors, writer: *std.io.Writer, conf: Error_Config) void {
         for (self.errors_list.items) |err| {
             err.print_error(writer, conf);
         }
     }
 };
 
-fn print_note_label(maybe_span: ?Span, writer: anytype, conf: Error_Config) void {
+fn print_note_label(maybe_span: ?Span, writer: *std.io.Writer, conf: Error_Config) void {
     print_label(maybe_span, "note: ", .cyan, writer, conf);
 }
 
-fn print_epilude(maybe_span: ?Span, writer: anytype, conf: Error_Config) void {
+fn print_epilude(maybe_span: ?Span, writer: *std.io.Writer, conf: Error_Config) void {
     if (maybe_span) |old_span| {
         const span = old_span;
         if (span.line_number == 0) {
@@ -685,7 +696,7 @@ fn print_epilude(maybe_span: ?Span, writer: anytype, conf: Error_Config) void {
     }
 }
 
-fn print_label(maybe_span: ?Span, label: []const u8, color: term_.Color, writer: anytype, conf: Error_Config) void {
+fn print_label(maybe_span: ?Span, label: []const u8, color: term_.Color, writer: *std.io.Writer, conf: Error_Config) void {
     if (maybe_span) |span| {
         const filename = if (conf.print_full_path) span.filename else std.fs.path.basename(span.filename);
         if (span.line_number > 0 and span.col > 0) {
@@ -701,7 +712,7 @@ fn print_label(maybe_span: ?Span, label: []const u8, color: term_.Color, writer:
     }
 }
 
-fn print_color(attr: term_.Attr, writer: anytype, conf: Error_Config) void {
+fn print_color(attr: term_.Attr, writer: *std.io.Writer, conf: Error_Config) void {
     if (conf.print_color) {
         attr.dump(writer) catch unreachable;
     }

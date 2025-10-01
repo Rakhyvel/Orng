@@ -38,7 +38,6 @@ const Type_Decorate = @import("../ast/type_decorate.zig");
 
 pub const Module_Errors = error{ LexerError, ParseError, CompileError, FileNotFound };
 pub const Module_UID: type = u32;
-const Writer = std.fs.File.Writer;
 
 var module_uids: Module_UID = 0;
 
@@ -63,17 +62,17 @@ pub const Module = struct {
     local_imported_modules: std.AutoArrayHashMap(*Module, void),
 
     // Set of C headers to include
-    cincludes: std.ArrayList(*ast_.AST),
+    cincludes: std.array_list.Managed(*ast_.AST),
 
     // A graph of type dependencies
     type_set: Type_Set,
 
     /// List of instructions for this module. Used by the interpreter, so that instructions are indexable by a random
     /// access instruction pointer.
-    instructions: std.ArrayList(*Instruction),
+    instructions: std.array_list.Managed(*Instruction),
 
     /// List of CFGs defined in this module. Used by codegen to generate functions and method definitions.
-    cfgs: std.ArrayList(*CFG),
+    cfgs: std.array_list.Managed(*CFG),
 
     /// Main function. Used by codegen to jump to the main function. May be null for modules that don't contain the
     /// entry point of the package.
@@ -81,13 +80,13 @@ pub const Module = struct {
     entry: ?*CFG,
 
     /// List of all traits defined in this module. Used by codegen to output the vtable structs definitions
-    traits: std.ArrayList(*ast_.AST),
+    traits: std.array_list.Managed(*ast_.AST),
 
     /// List of all impls defined in this module. Used by codegen to output the vtable implementations.
-    impls: std.ArrayList(*ast_.AST),
+    impls: std.array_list.Managed(*ast_.AST),
 
     /// List of all tests defined in this module. Used by codegen to output the vtable implementations.
-    tests: std.ArrayList(*CFG),
+    tests: std.array_list.Managed(*CFG),
 
     /// Allocator for the module
     allocator: std.mem.Allocator,
@@ -103,16 +102,17 @@ pub const Module = struct {
         retval.uid_gen = UID_Gen.init();
         module_uids += 1;
         std.debug.assert(std.fs.path.isAbsolute(absolute_path));
+        std.debug.print("Module.init: {s}\n", .{absolute_path});
         retval.absolute_path = absolute_path;
         retval.package_name = std.fs.path.basename(std.fs.path.dirname(absolute_path).?);
         retval.allocator = allocator;
         retval.local_imported_modules = std.AutoArrayHashMap(*Module, void).init(allocator);
-        retval.cincludes = std.ArrayList(*ast_.AST).init(allocator);
-        retval.instructions = std.ArrayList(*Instruction).init(allocator);
-        retval.traits = std.ArrayList(*ast_.AST).init(allocator);
-        retval.impls = std.ArrayList(*ast_.AST).init(allocator);
-        retval.tests = std.ArrayList(*CFG).init(allocator);
-        retval.cfgs = std.ArrayList(*CFG).init(allocator);
+        retval.cincludes = std.array_list.Managed(*ast_.AST).init(allocator);
+        retval.instructions = std.array_list.Managed(*Instruction).init(allocator);
+        retval.traits = std.array_list.Managed(*ast_.AST).init(allocator);
+        retval.impls = std.array_list.Managed(*ast_.AST).init(allocator);
+        retval.tests = std.array_list.Managed(*CFG).init(allocator);
+        retval.cfgs = std.array_list.Managed(*CFG).init(allocator);
         retval.type_set = Type_Set.init(allocator);
         retval.entry = null;
         retval.modified = null;
@@ -313,7 +313,7 @@ pub const Module = struct {
     }
 
     fn collect_tests(self: *Module, compiler: *Compiler_Context) Module_Errors!void {
-        var test_asts = std.ArrayList(*ast_.AST).init(compiler.allocator());
+        var test_asts = std.array_list.Managed(*ast_.AST).init(compiler.allocator());
         compiler.module_scope(self.absolute_path).?.collect_tests(&test_asts);
 
         for (test_asts.items) |test_ast| {
@@ -334,6 +334,7 @@ pub const Module = struct {
     }
 
     pub fn get_package_abs_path(self: *Module) []const u8 {
+        std.debug.print("Module.get_package_abs_path: {s}\n", .{self.absolute_path});
         return std.fs.path.dirname(self.absolute_path).?;
     }
 

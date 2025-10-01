@@ -46,10 +46,10 @@ fn create_core(compiler: *Compiler_Context) !void {
         std.fs.makeDirAbsolute(core_package_name) catch unreachable;
     };
 
-    var core_module_abs_path = String.init_with_contents(compiler.allocator(), core_package_name) catch unreachable;
-    core_module_abs_path.writer().print("{c}core.orng", .{std.fs.path.sep}) catch unreachable;
+    var core_module_abs_path = std.array_list.Managed(u8).init(compiler.allocator());
+    core_module_abs_path.print("{s}{c}core.orng", .{ core_package_name, std.fs.path.sep }) catch unreachable;
 
-    const module = module_.Module.init((core_module_abs_path.toOwned() catch unreachable).?, compiler.allocator());
+    const module = module_.Module.init(core_module_abs_path.toOwnedSlice() catch unreachable, compiler.allocator());
     core = Scope.init(compiler.prelude, &uid_gen, compiler.allocator());
     core_symbol = Symbol.init(
         compiler.prelude,

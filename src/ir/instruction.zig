@@ -125,11 +125,11 @@ pub fn init_branch_addr(
 
 pub fn init_call(dest: *lval_.L_Value, src1: *lval_.L_Value, span: Span, allocator: std.mem.Allocator) *Self {
     var retval = Self.init(.call, dest, src1, null, span, allocator);
-    retval.data = Data{ .lval_list = std.ArrayList(*lval_.L_Value).init(allocator) };
+    retval.data = Data{ .lval_list = std.array_list.Managed(*lval_.L_Value).init(allocator) };
     return retval;
 }
 
-pub fn init_invoke(dest: *lval_.L_Value, method_decl: *ast_.AST, lval_list: std.ArrayList(*lval_.L_Value), dyn_value: ?*lval_.L_Value, span: Span, allocator: std.mem.Allocator) *Self {
+pub fn init_invoke(dest: *lval_.L_Value, method_decl: *ast_.AST, lval_list: std.array_list.Managed(*lval_.L_Value), dyn_value: ?*lval_.L_Value, span: Span, allocator: std.mem.Allocator) *Self {
     var retval = Self.init(.invoke, dest, null, null, span, allocator);
     retval.data = Data{
         .invoke = .{
@@ -150,7 +150,7 @@ pub fn init_dyn(dest: *lval_.L_Value, src1: *lval_.L_Value, mut: bool, impl: *as
 
 pub fn init_load_struct(dest: *lval_.L_Value, span: Span, allocator: std.mem.Allocator) *Self {
     var retval = Self.init(.load_struct, dest, null, null, span, allocator);
-    retval.data = Data{ .lval_list = std.ArrayList(*lval_.L_Value).init(allocator) };
+    retval.data = Data{ .lval_list = std.array_list.Managed(*lval_.L_Value).init(allocator) };
     return retval;
 }
 
@@ -207,173 +207,171 @@ pub fn deinit(self: *Self) void {
 }
 
 pub fn pprint(self: Self, allocator: std.mem.Allocator) ![]const u8 {
-    var out = String.init(allocator);
+    var out = std.array_list.Managed(u8).init(allocator);
     defer out.deinit();
 
     switch (self.kind) {
-        .label => try out.writer().print("{s}{}:\n", .{ self.data.label.name, self.uid }),
+        .label => try out.print("{s}{}:\n", .{ self.data.label.name, self.uid }),
         .load_int => {
-            try out.writer().print("    {} := {}\n", .{ self.dest.?, self.data.int });
+            try out.print("    {f} := {}\n", .{ self.dest.?, self.data.int });
         },
         .load_float => {
-            try out.writer().print("    {} := {}\n", .{ self.dest.?, self.data.float });
+            try out.print("    {f} := {}\n", .{ self.dest.?, self.data.float });
         },
         .load_symbol => {
-            try out.writer().print("    {} := {s}\n", .{ self.dest.?, self.data.symbol.name });
+            try out.print("    {f} := {s}\n", .{ self.dest.?, self.data.symbol.name });
         },
         .load_struct => {
-            try out.writer().print("    {} := {{", .{self.dest.?});
-            try print_lval_list(self.data.lval_list, out.writer());
-            try out.writer().print("}}\n", .{});
+            try out.print("    {f} := {{", .{self.dest.?});
+            try print_lval_list(self.data.lval_list, &out);
+            try out.print("}}\n", .{});
         },
         .load_union => {
             // init may be null, if it is unit
-            try out.writer().print("    {} := {{init={?}, tag={}}}\n", .{ self.dest.?, self.src1, self.data.int });
+            try out.print("    {f} := {{init={?f}, tag={}}}\n", .{ self.dest.?, self.src1, self.data.int });
         },
         .load_string => {
-            try out.writer().print("    {} := <interned string:{}>\n", .{ self.dest.?, self.data.string_id });
+            try out.print("    {f} := <interned string:{}>\n", .{ self.dest.?, self.data.string_id });
         },
         .load_AST => {
-            try out.writer().print("    {} := AST({})\n", .{ self.dest.?, self.data.ast });
+            try out.print("    {f} := AST({f})\n", .{ self.dest.?, self.data.ast });
         },
         .load_unit => {
-            try out.writer().print("    {} := {{}}\n", .{self.dest.?});
+            try out.print("    {f} := {{}}\n", .{self.dest.?});
         },
         .copy => {
-            try out.writer().print("    {} := {?} // {}\n", .{ self.dest.?, self.src1, self.dest.?.get_expanded_type() });
+            try out.print("    {f} := {?f} // {f}\n", .{ self.dest.?, self.src1, self.dest.?.get_expanded_type() });
         },
         .not => {
-            try out.writer().print("    {} := !{}\n", .{ self.dest.?, self.src1.? });
+            try out.print("    {f} := !{f}\n", .{ self.dest.?, self.src1.? });
         },
         .negate_int => {
-            try out.writer().print("    {} := -{}\n", .{ self.dest.?, self.src1.? });
+            try out.print("    {f} := -{f}\n", .{ self.dest.?, self.src1.? });
         },
         .negate_float => {
-            try out.writer().print("    {} := -.{}\n", .{ self.dest.?, self.src1.? });
+            try out.print("    {f} := -.{f}\n", .{ self.dest.?, self.src1.? });
         },
         .size_of => {
-            try out.writer().print("    {} := sizeof({})\n", .{ self.dest.?, self.src1.? });
+            try out.print("    {f} := sizeof({f})\n", .{ self.dest.?, self.src1.? });
         },
         .addr_of => {
-            try out.writer().print("    {} := &{}\n", .{ self.dest.?, self.src1.? });
+            try out.print("    {f} := &{f}\n", .{ self.dest.?, self.src1.? });
         },
         .mut_addr_of => {
-            try out.writer().print("    {} := &mut {}\n", .{ self.dest.?, self.src1.? });
+            try out.print("    {f} := &mut {f}\n", .{ self.dest.?, self.src1.? });
         },
         .equal => {
-            try out.writer().print("    {} := {} == {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            try out.print("    {f} := {f} == {f}\n", .{ self.dest.?, self.src1.?, self.src2.? });
         },
         .not_equal => {
-            try out.writer().print("    {} := {} != {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            try out.print("    {f} := {f} != {f}\n", .{ self.dest.?, self.src1.?, self.src2.? });
         },
         .greater_int => {
-            try out.writer().print("    {} := {} > {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            try out.print("    {f} := {f} > {f}\n", .{ self.dest.?, self.src1.?, self.src2.? });
         },
         .greater_float => {
-            try out.writer().print("    {} := {} >. {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            try out.print("    {f} := {f} >. {f}\n", .{ self.dest.?, self.src1.?, self.src2.? });
         },
         .lesser_int => {
-            try out.writer().print("    {} := {} < {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            try out.print("    {f} := {f} < {f}\n", .{ self.dest.?, self.src1.?, self.src2.? });
         },
         .lesser_float => {
-            try out.writer().print("    {} := {} <. {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            try out.print("    {f} := {f} <. {f}\n", .{ self.dest.?, self.src1.?, self.src2.? });
         },
         .greater_equal_int => {
-            try out.writer().print("    {} := {} >= {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            try out.print("    {f} := {f} >= {f}\n", .{ self.dest.?, self.src1.?, self.src2.? });
         },
         .greater_equal_float => {
-            try out.writer().print("    {} := {} >=. {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            try out.print("    {f} := {f} >=. {f}\n", .{ self.dest.?, self.src1.?, self.src2.? });
         },
         .lesser_equal_int => {
-            try out.writer().print("    {} := {} <= {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            try out.print("    {f} := {f} <= {f}\n", .{ self.dest.?, self.src1.?, self.src2.? });
         },
         .lesser_equal_float => {
-            try out.writer().print("    {} := {} <=. {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            try out.print("    {f} := {f} <=. {f}\n", .{ self.dest.?, self.src1.?, self.src2.? });
         },
         .add_int => {
-            try out.writer().print("    {} := {} + {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            try out.print("    {f} := {f} + {f}\n", .{ self.dest.?, self.src1.?, self.src2.? });
         },
         .add_float => {
-            try out.writer().print("    {} := {} +. {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            try out.print("    {f} := {f} +. {f}\n", .{ self.dest.?, self.src1.?, self.src2.? });
         },
         .sub_int => {
-            try out.writer().print("    {} := {} - {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            try out.print("    {f} := {f} - {f}\n", .{ self.dest.?, self.src1.?, self.src2.? });
         },
         .sub_float => {
-            try out.writer().print("    {} := {} -. {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            try out.print("    {f} := {f} -. {f}\n", .{ self.dest.?, self.src1.?, self.src2.? });
         },
         .mult_int => {
-            try out.writer().print("    {} := {} * {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            try out.print("    {f} := {f} * {f}\n", .{ self.dest.?, self.src1.?, self.src2.? });
         },
         .mult_float => {
-            try out.writer().print("    {} := {} *. {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            try out.print("    {f} := {f} *. {f}\n", .{ self.dest.?, self.src1.?, self.src2.? });
         },
         .div_int => {
-            try out.writer().print("    {} := {} / {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            try out.print("    {f} := {f} / {f}\n", .{ self.dest.?, self.src1.?, self.src2.? });
         },
         .div_float => {
-            try out.writer().print("    {} := {} /. {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            try out.print("    {f} := {f} /. {f}\n", .{ self.dest.?, self.src1.?, self.src2.? });
         },
         .mod => {
-            try out.writer().print("    {} := {} % {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            try out.print("    {f} := {f} % {f}\n", .{ self.dest.?, self.src1.?, self.src2.? });
         },
         .get_tag => {
-            try out.writer().print("    {} := {}.tag\n", .{ self.dest.?, self.src1.? });
+            try out.print("    {f} := {f}.tag\n", .{ self.dest.?, self.src1.? });
         },
         .jump => {
             if (self.data == .jump_bb and self.data.jump_bb.next != null) {
-                try out.writer().print("    jump BB{}\n", .{self.data.jump_bb.next.?.uid});
+                try out.print("    jump BB{}\n", .{self.data.jump_bb.next.?.uid});
             } else if (self.data == .branch and self.data.branch != null) {
-                try out.writer().print("    jump {s}{}\n", .{ self.data.branch.?.data.label.name, self.data.branch.?.uid });
+                try out.print("    jump {s}{}\n", .{ self.data.branch.?.data.label.name, self.data.branch.?.uid });
             } else {
-                try out.writer().print("    ret\n", .{});
+                try out.print("    ret\n", .{});
             }
         },
         .branch_if_false => {
             if (self.data == .branch_bb and self.data.branch_bb.next != null) {
-                try out.writer().print("    if ({}) jump BB{}", .{ self.src1.?, self.data.branch_bb.next.?.uid });
+                try out.print("    if ({f}) jump BB{}", .{ self.src1.?, self.data.branch_bb.next.?.uid });
             } else if (self.data == .branch and self.data.branch != null) {
-                try out.writer().print("    if (!{}) jump {s}{}\n", .{ self.src1.?, self.data.branch.?.data.label.name, self.data.branch.?.uid });
+                try out.print("    if (!{f}) jump {s}{}\n", .{ self.src1.?, self.data.branch.?.data.label.name, self.data.branch.?.uid });
             } else {
-                try out.writer().print("    if ({}) ret", .{self.src1.?});
+                try out.print("    if ({f}) ret", .{self.src1.?});
             }
-            try out.writer().print(" ", .{});
+            try out.print(" ", .{});
             if (self.data == .branch_bb and self.data.branch_bb.branch != null) {
-                try out.writer().print("else jump BB{}\n", .{self.data.branch_bb.branch.?.uid});
+                try out.print("else jump BB{}\n", .{self.data.branch_bb.branch.?.uid});
             } else if (self.data != .branch) {
-                try out.writer().print("else ret\n", .{});
+                try out.print("else ret\n", .{});
             }
         },
         .call => {
-            try out.writer().print("    {} := {}(", .{ self.dest.?, self.src1.? });
-            try print_lval_list(self.data.lval_list, out.writer());
-            try out.writer().print(")\n", .{});
+            try out.print("    {f} := {f}(", .{ self.dest.?, self.src1.? });
+            try print_lval_list(self.data.lval_list, &out);
+            try out.print(")\n", .{});
         },
         .invoke => {
-            try out.writer().print("    {} := ::{s}(", .{ self.dest.?, self.data.invoke.method_decl.method_decl.name.token().data });
-            try print_lval_list(self.data.invoke.lval_list, out.writer());
-            try out.writer().print(")\n", .{});
+            try out.print("    {f} := ::{s}(", .{ self.dest.?, self.data.invoke.method_decl.method_decl.name.token().data });
+            try print_lval_list(self.data.invoke.lval_list, &out);
+            try out.print(")\n", .{});
         },
         .push_stack_trace => {
-            try out.writer().print("    push-stack-trace\n", .{});
+            try out.print("    push-stack-trace\n", .{});
         },
         .pop_stack_trace => {
-            try out.writer().print("    pop-stack-trace\n", .{});
+            try out.print("    pop-stack-trace\n", .{});
         },
         .panic => {
-            try out.writer().print("    panic\n", .{});
+            try out.print("    panic\n", .{});
         },
         else => {
-            try out.writer().print("<TODO: {s}>\n", .{@tagName(self.kind)});
+            try out.print("<TODO: {s}>\n", .{@tagName(self.kind)});
         },
     }
 
-    return (try out.toOwned()).?;
+    return try out.toOwnedSlice();
 }
 
-pub fn format(self: Self, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-    _ = options;
-    _ = fmt;
+pub fn format(self: Self, writer: *std.io.Writer) !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
 
@@ -384,12 +382,9 @@ pub fn format(self: Self, comptime fmt: []const u8, options: std.fmt.FormatOptio
     try writer.print("{s}", .{out});
 }
 
-fn print_lval_list(
-    lval_list: std.ArrayList(*lval_.L_Value),
-    writer: anytype,
-) !void {
+fn print_lval_list(lval_list: std.array_list.Managed(*lval_.L_Value), writer: *std.array_list.Managed(u8)) !void {
     for (lval_list.items, 0..) |lval, i| {
-        try writer.print("{}", .{lval});
+        try writer.print("{f}", .{lval});
         if (i < lval_list.items.len - 1) {
             try writer.print(", ", .{});
         }
@@ -697,11 +692,11 @@ pub const Data = union(enum) {
     },
     string: []const u8,
     symbol: *Symbol,
-    lval_list: std.ArrayList(*lval_.L_Value),
+    lval_list: std.array_list.Managed(*lval_.L_Value),
     invoke: struct {
         method_decl: *ast_.AST, // AST of method decl. Either trait's definition if dyn, or impl's declaration if static
         method_decl_lval: ?*lval_.L_Value, // L-value of the method; non-null when statically known (ie not dyn)
-        lval_list: std.ArrayList(*lval_.L_Value), // List of args. Receiver will always be prepended
+        lval_list: std.array_list.Managed(*lval_.L_Value), // List of args. Receiver will always be prepended
         dyn_value: ?*lval_.L_Value, // L-value of the vtable-data-ptr pair; non-null when the call is through a vtable, regardless of if the method uses the receiver
     },
     dyn: struct { impl: *ast_.AST },
@@ -710,36 +705,34 @@ pub const Data = union(enum) {
     none,
 
     pub fn pprint(self: Data, allocator: std.mem.Allocator) ![]const u8 {
-        var out = String.init(allocator);
+        var out = std.array_list.Managed(u8).init(allocator, "") catch unreachable;
         defer out.deinit();
 
         switch (self) {
             .int => {
-                try out.writer().print("{}", .{self.int});
+                try out.print("{}", .{self.int});
             },
             .float => {
-                try out.writer().print("{d:.6}", .{self.float});
+                try out.print("{d:.6}", .{self.float});
             },
             .none => {
-                try out.writer().print("none", .{});
+                try out.print("none", .{});
             },
             .symbol => {
-                try out.writer().print("{s}", .{self.symbol.name});
+                try out.print("{s}", .{self.symbol.name});
             },
             .string_id => {
-                try out.writer().print("<interned string:{}>", .{self.string_id});
+                try out.print("<interned string:{}>", .{self.string_id});
             },
             else => {
-                try out.writer().print("??? ({s})", .{@tagName(self)});
+                try out.print("??? ({s})", .{@tagName(self)});
             },
         }
 
         return (try out.toOwned()).?;
     }
 
-    pub fn format(self: Data, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-        _ = options;
-        _ = fmt;
+    pub fn format(self: Data, writer: *std.io.Writer) !void {
         var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
         defer arena.deinit();
 

@@ -41,7 +41,7 @@ pub fn init(ctx: *Compiler_Context) Self {
 
 pub fn typeof(self: *const Self, ast: *ast_.AST) *Type_AST {
     if ((ast.common().validation_state != .valid and ast.common().validation_state != .invalid)) {
-        std.debug.panic("type for ast {} has not been constructed", .{ast});
+        std.debug.panic("type for ast {f} has not been constructed", .{ast});
     }
     return self.map.get(ast) orelse poison_.poisoned_type;
 }
@@ -503,9 +503,9 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
         .tuple_value => {
             // TODO: This could construct the type better...
             const expanded_expected: ?*Type_AST = if (expected == null) null else expected.?.expand_identifier();
-            var terms: std.ArrayList(*Type_AST) = undefined;
+            var terms: std.array_list.Managed(*Type_AST) = undefined;
             if (expanded_expected == null) {
-                terms = std.ArrayList(*Type_AST).init(self.ctx.allocator());
+                terms = std.array_list.Managed(*Type_AST).init(self.ctx.allocator());
                 // Not expecting anything
                 for (0..ast.children().items.len) |i| {
                     const term_type = self.typecheck_AST(ast.children().items[i], null) catch return error.CompileError;
@@ -824,13 +824,13 @@ pub fn binary_operator_open(
 /// Validates just that each argument's type matches its corresponding parameter's type. Assumes arity is valid.
 pub fn validate_args_type(
     self: *Self,
-    args: *std.ArrayList(*ast_.AST),
+    args: *std.array_list.Managed(*ast_.AST),
     expected: *Type_AST,
     variadic: bool,
-) Validate_Error_Enum!std.ArrayList(*Type_AST) {
+) Validate_Error_Enum!std.array_list.Managed(*Type_AST) {
     const expected_length = if (expected.* == .unit_type) 0 else if (expected.* == .struct_type or expected.* == .tuple_type) expected.children().items.len else 1;
 
-    var terms = std.ArrayList(*Type_AST).init(self.ctx.allocator());
+    var terms = std.array_list.Managed(*Type_AST).init(self.ctx.allocator());
     errdefer terms.deinit();
     for (0..expected_length) |i| {
         const param_type = if (expected.* == .struct_type or expected.* == .tuple_type) expected.children().items[i] else expected;

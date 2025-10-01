@@ -53,7 +53,7 @@ pub const Type_AST = union(enum) {
     generic_apply: struct {
         common: Type_AST_Common,
         _lhs: *Type_AST,
-        args: std.ArrayList(*Type_AST),
+        args: std.array_list.Managed(*Type_AST),
         mono: ?*Type_AST = null,
         state: enum { unmorphed, morphing, morphed } = .unmorphed,
     },
@@ -71,7 +71,7 @@ pub const Type_AST = union(enum) {
     },
     enum_type: struct {
         common: Type_AST_Common,
-        _terms: std.ArrayList(*Type_AST),
+        _terms: std.array_list.Managed(*Type_AST),
         from: Sum_From = .none,
         all_unit: ?bool = null,
 
@@ -103,7 +103,7 @@ pub const Type_AST = union(enum) {
     },
     struct_type: struct {
         common: Type_AST_Common,
-        _terms: std.ArrayList(*Type_AST),
+        _terms: std.array_list.Managed(*Type_AST),
         was_slice: bool = false,
 
         pub fn get_offset_field(self: *@This(), field_name: []const u8) i64 {
@@ -131,7 +131,7 @@ pub const Type_AST = union(enum) {
     },
     tuple_type: struct {
         common: Type_AST_Common,
-        _terms: std.ArrayList(*Type_AST),
+        _terms: std.array_list.Managed(*Type_AST),
 
         /// Retrieves the offset in bytes given a field's index
         pub fn get_offset(self: *@This(), field: usize) i64 {
@@ -231,7 +231,7 @@ pub const Type_AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn create_generic_apply(_token: Token, _lhs: *Type_AST, args: std.ArrayList(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
+    pub fn create_generic_apply(_token: Token, _lhs: *Type_AST, args: std.array_list.Managed(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
         const _common: Type_AST_Common = .{ ._token = _token };
         return Type_AST.box(Type_AST{ .generic_apply = .{
             .common = _common,
@@ -240,7 +240,7 @@ pub const Type_AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn create_enum_type(_token: Token, terms: std.ArrayList(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
+    pub fn create_enum_type(_token: Token, terms: std.array_list.Managed(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
         return Type_AST.box(Type_AST{ .enum_type = .{
             .common = Type_AST_Common{ ._token = _token },
             ._terms = terms,
@@ -282,14 +282,14 @@ pub const Type_AST = union(enum) {
         );
     }
 
-    pub fn create_struct_type(_token: Token, terms: std.ArrayList(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
+    pub fn create_struct_type(_token: Token, terms: std.array_list.Managed(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
         return Type_AST.box(Type_AST{ .struct_type = .{
             .common = Type_AST_Common{ ._token = _token },
             ._terms = terms,
         } }, allocator);
     }
 
-    pub fn create_tuple_type(_token: Token, terms: std.ArrayList(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
+    pub fn create_tuple_type(_token: Token, terms: std.array_list.Managed(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
         return Type_AST.box(Type_AST{ .tuple_type = .{
             .common = Type_AST_Common{ ._token = _token },
             ._terms = terms,
@@ -364,7 +364,7 @@ pub const Type_AST = union(enum) {
     }
 
     pub fn create_slice_type(of: *Type_AST, _mut: bool, allocator: std.mem.Allocator) *Type_AST {
-        var term_types = std.ArrayList(*Type_AST).init(allocator);
+        var term_types = std.array_list.Managed(*Type_AST).init(allocator);
         const data_type = create_addr_of(
             of.token(),
             of,
@@ -393,7 +393,7 @@ pub const Type_AST = union(enum) {
     }
 
     pub fn create_optional_type(of_type: *Type_AST, allocator: std.mem.Allocator) *Type_AST {
-        var term_types = std.ArrayList(*Type_AST).init(allocator);
+        var term_types = std.array_list.Managed(*Type_AST).init(allocator);
 
         const some_type = create_annotation(
             of_type.token(),
@@ -421,7 +421,7 @@ pub const Type_AST = union(enum) {
     // Err!Ok => (ok:Ok | err:Err)
     // This is done so that `ok` has an invariant tag of `0`, and errors have a non-zero tag.
     pub fn create_error_type(err_type: *Type_AST, ok_type: *Type_AST, allocator: std.mem.Allocator) *Type_AST {
-        var retval_sum_terms = std.ArrayList(*Type_AST).init(allocator);
+        var retval_sum_terms = std.array_list.Managed(*Type_AST).init(allocator);
 
         const ok_annot = create_annotation(
             ok_type.token(),
@@ -456,7 +456,7 @@ pub const Type_AST = union(enum) {
             },
             .index => blk: {
                 const base = from_ast(ast.lhs(), allocator);
-                var args = std.ArrayList(*Type_AST).init(allocator);
+                var args = std.array_list.Managed(*Type_AST).init(allocator);
                 for (ast.children().items) |arg| {
                     args.append(from_ast(arg, allocator)) catch unreachable;
                 }
@@ -579,18 +579,18 @@ pub const Type_AST = union(enum) {
         set_field(self, "_rhs", val);
     }
 
-    pub fn children(self: *const Type_AST) *const std.ArrayList(*Type_AST) {
+    pub fn children(self: *const Type_AST) *const std.array_list.Managed(*Type_AST) {
         return switch (self.*) {
             .generic_apply => &self.generic_apply.args,
             .enum_type => &self.enum_type._terms,
             .untagged_sum_type => self.child().expand_identifier().children(),
             .struct_type => &self.struct_type._terms,
             .tuple_type => &self.tuple_type._terms,
-            else => std.debug.panic("compiler error: cannot call `.children()` on the Type_AST `{}`", .{self}),
+            else => std.debug.panic("compiler error: cannot call `.children()` on the Type_AST `{f}`", .{self}),
         };
     }
 
-    pub fn set_children(self: *Type_AST, val: std.ArrayList(*Type_AST)) void {
+    pub fn set_children(self: *Type_AST, val: std.array_list.Managed(*Type_AST)) void {
         switch (self.*) {
             .enum_type => self.enum_type._terms = val,
             .untagged_sum_type => self.untagged_sum_type._child.enum_type._terms = val,
@@ -660,7 +660,7 @@ pub const Type_AST = union(enum) {
         }
     }
 
-    pub fn print_type(self: *const Type_AST, out: anytype) !void {
+    pub fn print_type(self: *const Type_AST, out: *std.Io.Writer) !void {
         if (self.common()._unexpanded_type) |unexpanded| {
             if (unexpanded != self) {
                 return try unexpanded.print_type(out);
@@ -704,7 +704,7 @@ pub const Type_AST = union(enum) {
             //     try self.child().print_type(out);
             // },
             .array_of => {
-                try out.print("[{}]", .{self.array_of.len});
+                try out.print("[{f}]", .{self.array_of.len});
                 try self.child().print_type(out);
             },
             .function => {
@@ -737,12 +737,12 @@ pub const Type_AST = union(enum) {
                 try out.print(")", .{});
             },
             .access => {
-                try out.print("{}", .{self.access.inner_access});
+                try out.print("{f}", .{self.access.inner_access});
             },
             .generic_apply => {
-                try out.print("{}[{}", .{ self.generic_apply._lhs, self.generic_apply.args.items[0] });
+                try out.print("{f}[{f}", .{ self.generic_apply._lhs, self.generic_apply.args.items[0] });
                 for (self.generic_apply.args.items[1..]) |arg| {
-                    try out.print(", {}", .{arg});
+                    try out.print(", {f}", .{arg});
                 }
                 try out.print("]", .{});
             },
@@ -751,32 +751,18 @@ pub const Type_AST = union(enum) {
                 try self.child().print_type(out);
             },
             .type_of => {
-                try out.print("@typeof({})", .{self.type_of._expr});
+                try out.print("@typeof({f})", .{self.type_of._expr});
             },
             .domain_of => {
-                try out.print("@domainof({}.{s})", .{ self.domain_of._child, self.domain_of.ctor_name });
+                try out.print("@domainof({f}.{s})", .{ self.domain_of._child, self.domain_of.ctor_name });
             },
-            .index => try out.print("{}[{}]", .{ self.child(), self.index.idx }),
+            .index => try out.print("{f}[{f}]", .{ self.child(), self.index.idx }),
             else => try out.print("{s}", .{@tagName(self.*)}),
         }
     }
 
-    pub fn format(self: *const Type_AST, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-        _ = options;
-        _ = fmt;
-        var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator); // page alloc ok, immediately deinit'd
-        defer arena.deinit();
-
-        // TODO: Generic pprinter that makes the arena and string and passes the writer to a pprint method
-
-        var out = String.init(arena.allocator());
-        defer out.deinit();
-
-        self.print_type(out.writer()) catch unreachable;
-
-        const res = (try out.toOwned()).?;
-
-        try writer.print("{s}", .{res});
+    pub fn format(self: *const Type_AST, writer: *std.io.Writer) !void {
+        self.print_type(writer) catch unreachable;
     }
 
     /// Retrieves the size in bytes of an AST node.
@@ -834,7 +820,7 @@ pub const Type_AST = union(enum) {
 
             .annotation => return self.child().sizeof(),
 
-            else => std.debug.panic("compiler error: unimplemented sizeof() for {}", .{self}),
+            else => std.debug.panic("compiler error: unimplemented sizeof() for {f}", .{self}),
         }
     }
 
@@ -915,7 +901,7 @@ pub const Type_AST = union(enum) {
     /// Assumes ASTs structurally can refer to compile-time constant types.
     pub fn types_match(A: *Type_AST, B: *Type_AST) bool {
         // FIXME: High Cyclo
-        // std.debug.print("{} == {}\n", .{ A, B });
+        // std.debug.print("{f} == {f}\n", .{ A, B });
         if (A.* == .annotation) {
             return types_match(A.child(), B);
         } else if (B.* == .annotation) {
@@ -936,10 +922,10 @@ pub const Type_AST = union(enum) {
         }
         if (A.* == .identifier and A.symbol().?.is_alias() and A != A.expand_identifier()) {
             // If A is a type alias, expand
-            // std.debug.print("{} => {}\n", .{ A, A.expand_identifier() });
+            // std.debug.print("{f} => {f}\n", .{ A, A.expand_identifier() });
             return types_match(A.expand_identifier(), B);
         } else if (B.* == .identifier and B.symbol().?.is_alias() and B != B.expand_identifier()) {
-            // std.debug.print("{} => {}\n", .{ B, B.expand_identifier() });
+            // std.debug.print("{f} => {f}\n", .{ B, B.expand_identifier() });
             // If B is a type alias, expand
             return types_match(A, B.expand_identifier());
         }
@@ -1043,7 +1029,7 @@ pub const Type_AST = union(enum) {
                 return create_function(self.token(), _lhs, _rhs, allocator);
             },
             .enum_type => {
-                var new_children = std.ArrayList(*Type_AST).init(allocator);
+                var new_children = std.array_list.Managed(*Type_AST).init(allocator);
                 for (self.children().items) |item| {
                     const new_type = item.clone(substs, allocator);
                     new_children.append(new_type) catch unreachable;
@@ -1054,7 +1040,7 @@ pub const Type_AST = union(enum) {
                 return retval;
             },
             .struct_type => {
-                var new_children = std.ArrayList(*Type_AST).init(allocator);
+                var new_children = std.array_list.Managed(*Type_AST).init(allocator);
                 for (self.children().items) |item| {
                     const new_type = item.clone(substs, allocator);
                     new_children.append(new_type) catch unreachable;
@@ -1064,7 +1050,7 @@ pub const Type_AST = union(enum) {
                 return retval;
             },
             .tuple_type => {
-                var new_children = std.ArrayList(*Type_AST).init(allocator);
+                var new_children = std.array_list.Managed(*Type_AST).init(allocator);
                 for (self.children().items) |item| {
                     const new_type = item.clone(substs, allocator);
                     new_children.append(new_type) catch unreachable;
@@ -1084,8 +1070,8 @@ pub const Type_AST = union(enum) {
         }
     }
 
-    pub fn clone_types(children_terms: std.ArrayList(*Type_AST), substs: *unification_.Substitutions, allocator: std.mem.Allocator) std.ArrayList(*Type_AST) {
-        var retval = std.ArrayList(*Type_AST).init(allocator);
+    pub fn clone_types(children_terms: std.array_list.Managed(*Type_AST), substs: *unification_.Substitutions, allocator: std.mem.Allocator) std.array_list.Managed(*Type_AST) {
+        var retval = std.array_list.Managed(*Type_AST).init(allocator);
         for (children_terms.items) |_child| {
             retval.append(_child.clone(substs, allocator)) catch unreachable;
         }

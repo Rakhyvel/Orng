@@ -15,7 +15,7 @@ pub fn Apply_Ast_Walk(Context_Type: type) type {
             return Self{ .context = context };
         }
 
-        pub fn run(self: *Self, asts: *std.ArrayList(*ast_.AST)) Error!*std.ArrayList(*ast_.AST) {
+        pub fn run(self: *Self, asts: *std.array_list.Managed(*ast_.AST)) Error!*std.array_list.Managed(*ast_.AST) {
             try walk_asts(asts, self.context);
             return asts;
         }
@@ -31,20 +31,20 @@ pub fn Apply_Flat_Ast_Walk(Context_Type: type) type {
             return Self{ .context = context };
         }
 
-        pub fn run(self: *Self, asts: *std.ArrayList(*ast_.AST)) Error!*std.ArrayList(*ast_.AST) {
+        pub fn run(self: *Self, asts: *std.array_list.Managed(*ast_.AST)) Error!*std.array_list.Managed(*ast_.AST) {
             try walk_asts_flat(asts, self.context);
             return asts;
         }
     };
 }
 
-pub fn walk_asts(asts: *const std.ArrayList(*ast_.AST), context: anytype) Error!void {
+pub fn walk_asts(asts: *const std.array_list.Managed(*ast_.AST), context: anytype) Error!void {
     for (asts.items) |ast| {
         try walk_ast(ast, context);
     }
 }
 
-pub fn walk_asts_flat(asts: *std.ArrayList(*ast_.AST), context: anytype) Error!void {
+pub fn walk_asts_flat(asts: *std.array_list.Managed(*ast_.AST), context: anytype) Error!void {
     var i: usize = 0;
     while (i < asts.items.len) : (i += 1) {
         const ast = asts.items[i];
@@ -248,13 +248,13 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
     }
 }
 
-pub fn walk_types(types: *const std.ArrayList(*Type_AST), context: anytype) Error!void {
+pub fn walk_types(types: *const std.array_list.Managed(*Type_AST), context: anytype) Error!void {
     for (types.items) |_type| {
         try walk_type(_type, context);
     }
 }
 
-pub fn walk_types_flat(types: *std.ArrayList(*Type_AST), context: anytype) Error!void {
+pub fn walk_types_flat(types: *std.array_list.Managed(*Type_AST), context: anytype) Error!void {
     var i: usize = 0;
     while (i < types.items.len) : (i += 1) {
         const _type = types.items[i];

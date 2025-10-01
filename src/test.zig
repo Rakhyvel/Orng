@@ -20,8 +20,8 @@ const Debug_Allocator = std.heap.DebugAllocator(.{ .never_unmap = true, .safety 
 const Test_File_Fn = fn ([]const u8, Test_Mode, *Debug_Allocator) bool;
 
 // This is for compatability with Windows, since stdout for Windows isn't known at compile-time
-fn get_std_out() std.fs.File.Writer {
-    return std.io.getStdOut().writer();
+fn get_std_out() std.fs.File {
+    return std.fs.File.stdout();
 }
 
 pub fn main() !void {
@@ -65,7 +65,7 @@ fn parse_args(old_args: std.process.ArgIterator, mode: Test_Mode, comptime test_
         try term_.outputColor(succeed_color, "[==============]\n", get_std_out());
     }
 
-    var failed_tests = std.ArrayList([]const u8).init(std.heap.page_allocator);
+    var failed_tests = std.array_list.Managed([]const u8).init(std.heap.page_allocator);
     defer failed_tests.deinit();
 
     var results = Results{ .passed = 0, .failed = 0 };
@@ -170,8 +170,9 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
     compiler.compile(package_abs_path, false) catch unreachable;
 
     // execute (make sure no signals)
-    var output_name = String.init(allocator);
-    output_name.writer().print("{s}/build/{s}", .{ package_abs_path, module.package_name }) catch unreachable;
+    var output_name = String.init_with_contents(allocator, "") catch unreachable;
+    var writer = output_name.writer(output_name.buffer.?).interface;
+    writer.print("{s}/build/{s}", .{ package_abs_path, module.package_name }) catch unreachable;
     const res = exec(&[_][]const u8{output_name.str()}) catch |e| {
         get_std_out().print("{?}\n", .{e}) catch unreachable;
         get_std_out().print("Execution interrupted!\n", .{}) catch unreachable;
@@ -202,12 +203,13 @@ fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug
     defer flat_head.deinit();
     const body = test_body(contents);
 
-    var error_string = String.init(debug_alloc.allocator());
+    var error_string = String.init_with_contents(debug_alloc.allocator(), "") catch unreachable;
     defer error_string.deinit();
 
     // Try to compile Orng (make sure YES errors)
     _ = module_.Module.compile(absolute_filename, "main", false, compiler) catch |err| {
-        compiler.errors.print_errors(error_string.writer(), .{ .print_full_path = false, .print_color = false });
+        const writer = error_string.writer(error_string.buffer.?).interface;
+        compiler.errors.print_errors(writer, .{ .print_full_path = false, .print_color = false });
         if (mode == .bless) {
             bless_file(filename, error_string.str(), body) catch unreachable;
             return true;
@@ -252,19 +254,21 @@ fn bless_file(filename: []const u8, error_msg: []const u8, body: []const u8) !vo
     var file = try std.fs.cwd().createFile(filename, .{});
     defer file.close();
 
-    var file_contents = String.init(std.heap.page_allocator);
+    var file_contents = String.init_with_contents(std.heap.page_allocator, "") catch unreachable;
     defer file_contents.deinit();
 
-    _ = try file_contents.writer().write("// ");
+    var writer = file_contents.writer(file_contents.buffer.?).interface;
+
+    _ = try writer.write("// ");
     for (error_msg) |c| {
-        _ = try file_contents.writer().write(&[1]u8{c});
+        _ = try writer.write(&[1]u8{c});
         if (c == '\n') {
-            _ = try file_contents.writer().write("// ");
+            _ = try writer.write("// ");
         }
     }
 
-    _ = try file_contents.writer().write(&[1]u8{'\n'});
-    _ = try file_contents.writer().write(body);
+    _ = try writer.write(&[1]u8{'\n'});
+    _ = try writer.write(body);
 
     _ = file.write(file_contents.str()) catch unreachable;
 }
@@ -277,12 +281,8 @@ fn fuzz_tests() !void { // TODO: Uninfer error
     defer file.close();
 
     // Read in the contents of the file
-    var buf_reader = std.io.bufferedReader(file.reader());
-    var in_stream = buf_reader.reader();
-    var contents_arraylist = std.ArrayList(u8).init(allocator);
-    defer contents_arraylist.deinit();
-    try in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF);
-    var contents = try contents_arraylist.toOwnedSlice();
+    const stat = file.stat() catch return error.CompileError;
+    const contents = try file.readToEndAlloc(allocator, stat.size);
 
     var passed: usize = 0;
     var failed: usize = 0;
@@ -315,7 +315,7 @@ fn fuzz_tests() !void { // TODO: Uninfer error
             defer prelude_.deinit();
             defer compiler.deinit();
             defer core_.deinit();
-            var lines = std.ArrayList([]const u8).init(allocator);
+            var lines = std.array_list.Managed([]const u8).init(allocator);
             defer lines.deinit();
             i += 1;
             const module = module_.Module.compile("fuzz", "main", false, compiler) catch |err| {
@@ -345,9 +345,6 @@ fn fuzz_tests() !void { // TODO: Uninfer error
                 else => return error.IoError,
             };
             defer output_file.close();
-            // var _local_modules = std.ArrayList(*module_.Module).init(allocator);
-            // defer _local_modules.deinit();
-            // module.output(&_local_modules, output_file.writer())
             Codegen_Context.output_modules(compiler) catch {
                 failed += 1;
                 try term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out());
@@ -422,7 +419,7 @@ fn get_test_name(filename: []const u8) ?[]const u8 {
 
 /// Given the contents string, returns a slice of strings representing the content of the header comment of a file. User is responsible for deallocating the slice.
 fn header_comment(contents: []const u8, alloc: std.mem.Allocator) ![][]const u8 {
-    var lines = std.ArrayList([]const u8).init(alloc);
+    var lines = std.array_list.Managed([]const u8).init(alloc);
     var cursor: usize = 0;
     var next_newline = until_newline(contents);
     var line: []const u8 = contents[cursor..next_newline];
@@ -438,12 +435,13 @@ fn header_comment(contents: []const u8, alloc: std.mem.Allocator) ![][]const u8 
 }
 
 fn flatten_header_comment(lines: [][]const u8, alloc: std.mem.Allocator) !String {
-    var line = String.init(alloc);
+    var line = String.init_with_contents(alloc, "") catch unreachable;
+    var writer = line.writer(line.buffer.?).interface;
     var i: usize = 0;
     for (lines) |l| {
-        try line.writer().print("{s}", .{l});
+        try writer.print("{s}", .{l});
         if (i < lines.len -| 1) {
-            try line.writer().print("\n", .{});
+            try writer.print("\n", .{});
         }
         i += 1;
     }

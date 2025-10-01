@@ -13,7 +13,7 @@ pub fn git_clone(repo_url: []const u8, allocator: std.mem.Allocator) Error!void 
     const cwd = get_packages_dir(allocator);
     std.debug.print("cloning package `{s}`\n", .{repo_url});
 
-    var cmd = std.ArrayList([]const u8).init(allocator);
+    var cmd = std.array_list.Managed([]const u8).init(allocator);
     cmd.appendSlice(&[_][]const u8{
         "git",
         "clone",
@@ -78,7 +78,7 @@ pub fn get_packages_dir(allocator: std.mem.Allocator) []const u8 {
 
 pub fn get_repo_dir(repo_url: []const u8, allocator: std.mem.Allocator) []const u8 {
     const repo_dir = get_packages_dir(allocator);
-    var dirs = std.ArrayList([]const u8).init(allocator);
+    var dirs = std.array_list.Managed([]const u8).init(allocator);
     defer dirs.deinit();
     dirs.append(repo_dir) catch unreachable;
     dirs.append(std.fs.path.basename(repo_url)) catch unreachable;

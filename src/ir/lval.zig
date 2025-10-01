@@ -155,33 +155,31 @@ pub const L_Value = union(enum) {
     }
 
     pub fn pprint(self: L_Value, allocator: std.mem.Allocator) ![]const u8 {
-        var out = String.init(allocator);
+        var out = std.array_list.Managed(u8).init(allocator);
         defer out.deinit();
 
         switch (self) {
             .symbver => {
-                try out.writer().print("{}", .{self.symbver});
+                try out.print("{f}", .{self.symbver});
             },
             .dereference => {
-                try out.writer().print("{}^", .{self.dereference.expr});
+                try out.print("{f}^", .{self.dereference.expr});
             },
             .index => {
-                try out.writer().print("{}[{}]", .{ self.index.lhs, self.index.rhs });
+                try out.print("{f}[{f}]", .{ self.index.lhs, self.index.rhs });
             },
             .select => {
-                try out.writer().print("{}._{}", .{ self.select.lhs, self.select.field });
+                try out.print("{f}._{}", .{ self.select.lhs, self.select.field });
             },
             .raw_address => {
-                try out.writer().print("0x{X}", .{self.raw_address.adrs});
+                try out.print("0x{X}", .{self.raw_address.adrs});
             },
         }
 
-        return (try out.toOwned()).?;
+        return try out.toOwnedSlice();
     }
 
-    pub fn format(self: L_Value, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-        _ = options;
-        _ = fmt;
+    pub fn format(self: L_Value, writer: *std.io.Writer) !void {
         var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
         defer arena.deinit();
 

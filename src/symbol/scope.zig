@@ -17,11 +17,11 @@ const Self = @This();
 const Lookup_Result = union(enum) { found_but_rt, found_but_fn, not_found, found: *Symbol };
 
 parent: ?*Self,
-children: std.ArrayList(*Self),
+children: std.array_list.Managed(*Self),
 symbols: std.StringArrayHashMap(*Symbol),
-traits: std.ArrayList(*ast_.AST), // List of all `trait`s in this scope. Added to in the `decorate` phase.
-impls: std.ArrayList(*ast_.AST), // List of all `impl`s in this scope Added to in the `decorate` phase.
-tests: std.ArrayList(*ast_.AST), // List of all `test`s in this scope Added to in the `decorate` phase.
+traits: std.array_list.Managed(*ast_.AST), // List of all `trait`s in this scope. Added to in the `decorate` phase.
+impls: std.array_list.Managed(*ast_.AST), // List of all `impl`s in this scope Added to in the `decorate` phase.
+tests: std.array_list.Managed(*ast_.AST), // List of all `test`s in this scope Added to in the `decorate` phase.
 module: ?*module_.Module, // Enclosing module
 uid: usize,
 uid_gen: *UID_Gen,
@@ -32,11 +32,11 @@ inner_function: ?*Symbol = null,
 pub fn init(parent: ?*Self, uid_gen: *UID_Gen, allocator: std.mem.Allocator) *Self {
     var retval = allocator.create(Self) catch unreachable;
     retval.parent = parent;
-    retval.children = std.ArrayList(*Self).init(allocator);
+    retval.children = std.array_list.Managed(*Self).init(allocator);
     retval.symbols = std.StringArrayHashMap(*Symbol).init(allocator);
-    retval.traits = std.ArrayList(*ast_.AST).init(allocator);
-    retval.impls = std.ArrayList(*ast_.AST).init(allocator);
-    retval.tests = std.ArrayList(*ast_.AST).init(allocator);
+    retval.traits = std.array_list.Managed(*ast_.AST).init(allocator);
+    retval.impls = std.array_list.Managed(*ast_.AST).init(allocator);
+    retval.tests = std.array_list.Managed(*ast_.AST).init(allocator);
     retval.uid = uid_gen.uid();
     retval.uid_gen = uid_gen;
     if (parent) |_parent| {
@@ -148,14 +148,14 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
                 new_impl.set_scope(new_scope);
 
                 // Define each parameter in the new scope
-                // var const_decls = std.ArrayList(*ast_.AST).init(compiler.allocator());
+                // var const_decls = std.array_list.Managed(*ast_.AST).init(compiler.allocator());
                 // for (impl.impl._generic_params.items) |type_param| {
                 //     const decl_init = subst.get(type_param.token().data);
                 //     const decl = ast_.AST.create_type_alias(
                 //         type_param.token(),
                 //         ast_.AST.create_pattern_symbol(type_param.token(), .type, .local, name, compiler.allocator()),
                 //         decl_init,
-                //         std.ArrayList(*ast_.AST).init(compiler.allocator()),
+                //         std.array_list.Managed(*ast_.AST).init(compiler.allocator()),
                 //         compiler.allocator(),
                 //     );
                 //     const_decls.append(decl) catch unreachable;
@@ -263,7 +263,7 @@ pub fn put_symbol(scope: *Self, symbol: *Symbol, errors: *errs_.Errors) error{Co
     }
 }
 
-pub fn put_all_symbols(scope: *Self, symbols: *std.ArrayList(*Symbol), errors: *errs_.Errors) error{CompileError}!void {
+pub fn put_all_symbols(scope: *Self, symbols: *std.array_list.Managed(*Symbol), errors: *errs_.Errors) error{CompileError}!void {
     for (symbols.items) |symbol| {
         try scope.put_symbol(symbol, errors);
     }
@@ -271,8 +271,8 @@ pub fn put_all_symbols(scope: *Self, symbols: *std.ArrayList(*Symbol), errors: *
 
 pub fn collect_traits_and_impls(
     self: *Self,
-    traits: *std.ArrayList(*ast_.AST),
-    impls: *std.ArrayList(*ast_.AST),
+    traits: *std.array_list.Managed(*ast_.AST),
+    impls: *std.array_list.Managed(*ast_.AST),
 ) void {
     traits.appendSlice(self.traits.items) catch unreachable;
     impls.appendSlice(self.impls.items) catch unreachable;
@@ -284,7 +284,7 @@ pub fn collect_traits_and_impls(
 
 pub fn collect_tests(
     self: *Self,
-    tests: *std.ArrayList(*ast_.AST),
+    tests: *std.array_list.Managed(*ast_.AST),
 ) void {
     tests.appendSlice(self.tests.items) catch unreachable;
 

@@ -851,7 +851,7 @@ fn validate_AST_internal(
                     if (ast.else_block().?.* == .block) {
                         ast.else_block().?.children().insert(0, ast.@"if".let.?) catch unreachable;
                     } else if (ast.else_block().?.* == .unit_value) {
-                        var statements = std.ArrayList(*ast_.AST).init(compiler.allocator());
+                        var statements = std.array_list.Managed(*ast_.AST).init(compiler.allocator());
                         statements.append(ast.@"if".let.?) catch unreachable;
                         const block = ast_.AST.create_block(ast.else_block().?.token(), statements, null, compiler.allocator());
                         block.set_scope(ast.scope());
@@ -860,7 +860,7 @@ fn validate_AST_internal(
                 }
                 return ast.else_block().?;
             } else if (ast.@"if".condition.* == .false and ast.else_block() == null) {
-                var statements = std.ArrayList(*ast_.AST).init(compiler.allocator());
+                var statements = std.array_list.Managed(*ast_.AST).init(compiler.allocator());
                 if (ast.@"if".let != null) {
                     statements.append(ast.@"if".let.?) catch unreachable;
                 }
@@ -1031,7 +1031,7 @@ fn inset_let_into_if(ast: *ast_.AST, allocator: std.mem.Allocator) void {
         if (ast.body_block().* == .block) {
             ast.body_block().children().insert(0, ast.@"if".let.?) catch unreachable;
         } else if (ast.body_block().* == .unit_value) {
-            var statements = std.ArrayList(*ast_.AST).init(allocator);
+            var statements = std.array_list.Managed(*ast_.AST).init(allocator);
             statements.append(ast.@"if".let.?) catch unreachable;
             const block = ast_.AST.create_block(ast.body_block().token(), statements, null, allocator);
             block.set_scope(ast.scope());
@@ -1041,8 +1041,8 @@ fn inset_let_into_if(ast: *ast_.AST, allocator: std.mem.Allocator) void {
 }
 
 fn remove_const_args(
-    params: std.ArrayList(*ast_.AST),
-    args: *std.ArrayList(*ast_.AST),
+    params: std.array_list.Managed(*ast_.AST),
+    args: *std.array_list.Managed(*ast_.AST),
 ) void {
     var param_idx: usize = 0;
     var arg_idx: usize = 0;

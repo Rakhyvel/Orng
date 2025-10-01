@@ -11,7 +11,7 @@ const String = @import("zig-string/zig-string.zig").String;
 const Symbol = @import("symbol/symbol.zig");
 
 const version_year: usize = 25;
-const version_month: usize = 3;
+const version_month: usize = 10;
 const version_minor: ?usize = null;
 
 pub const Command_Error: type = error{ LexerError, ParseError, CompileError, FileError, FileNotFound };
@@ -98,16 +98,17 @@ fn run_build_orng(compiler: *Compiler_Context, interpreter: *Interpreter_Context
 fn run(compiler: *Compiler_Context, package_abs_path: []const u8, allocator: std.mem.Allocator) !void {
     const curr_package = compiler.lookup_package(package_abs_path).?;
     if (curr_package.kind == .static_library) {
+        var stderr_writer = errs_.get_std_err().writer(&.{}).interface;
         (errs_.Error{ .basic = .{
             .msg = "cannot run a non-executable package",
             .span = Span.phony,
-        } }).fatal_error(errs_.get_std_err(), .{});
+        } }).fatal_error(&stderr_writer, .{});
         return error.CompileError;
     }
 
-    var output_name = String.init(allocator);
-    output_name.writer().print("{s}", .{curr_package.output_absolute_path}) catch unreachable;
-    const argv = &[_][]const u8{output_name.str()};
+    var output_name = std.array_list.Managed(u8).init(allocator);
+    output_name.print("{s}", .{curr_package.output_absolute_path}) catch unreachable;
+    const argv = &[_][]const u8{output_name.items};
     var child = std.process.Child.init(argv, allocator);
     child.stdin_behavior = .Inherit;
     child.stdout_behavior = .Inherit;
@@ -272,33 +273,35 @@ fn print_version(name: []const u8, args: *std.process.ArgIterator, allocator: st
     _ = name;
     _ = allocator;
     _ = args;
-    const out = std.io.getStdOut().writer();
-    out.print("Orng {}.{:0>2}", .{ version_year, version_month }) catch unreachable;
+    const out = std.fs.File.stdout();
+    var writer = out.writer(&.{}).interface;
+    writer.print("Orng {}.{:0>2}", .{ version_year, version_month }) catch unreachable;
     if (version_minor != null) {
-        out.print(".{}", .{version_minor.?}) catch unreachable;
+        writer.print(".{}", .{version_minor.?}) catch unreachable;
     }
-    out.print("\n", .{}) catch unreachable;
+    writer.print("\n", .{}) catch unreachable;
 }
 
 fn help(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {
     _ = name;
     _ = allocator;
     _ = args;
-    const out = std.io.getStdOut().writer();
-    out.print("Usage: orng [command] [options]\n\nCommands:\n", .{}) catch unreachable;
+    var out = std.fs.File.stdout();
+    var writer = out.writer(&.{}).interface;
+    writer.print("Usage: orng [command] [options]\n\nCommands:\n", .{}) catch unreachable;
     for (command_table) |command_entry| {
         if (command_entry.name[0] == '_') {
             // Skip internal commands
             continue;
         }
-        out.print("  {s}", .{command_entry.name}) catch unreachable;
+        writer.print("  {s}", .{command_entry.name}) catch unreachable;
         const num_spaces = 12 - command_entry.name.len;
         for (0..num_spaces) |_| {
-            out.print(" ", .{}) catch unreachable;
+            writer.print(" ", .{}) catch unreachable;
         }
-        out.print("{s}\n", .{command_entry.help}) catch unreachable;
+        writer.print("{s}\n", .{command_entry.help}) catch unreachable;
     }
-    out.print("\n", .{}) catch unreachable;
+    writer.print("\n", .{}) catch unreachable;
 }
 
 pub fn init_project(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {
@@ -306,12 +309,14 @@ pub fn init_project(name: []const u8, args: *std.process.ArgIterator, allocator:
     _ = name;
     _ = allocator; // defining these as _ to silence the compiler
 
+    var stderr_writer = errs_.get_std_err().writer(&.{}).interface;
+
     const main_path = "main.orng";
     if (std.fs.cwd().openFile(main_path, .{})) |_| {
         (errs_.Error{ .basic = .{
             .msg = "an Orng package already exists here",
             .span = Span.phony,
-        } }).fatal_error(errs_.get_std_err(), .{});
+        } }).fatal_error(&stderr_writer, .{});
     } else |err| switch (err) {
         error.FileNotFound => {},
         else => return error.FileError,
@@ -322,7 +327,7 @@ pub fn init_project(name: []const u8, args: *std.process.ArgIterator, allocator:
         (errs_.Error{ .basic = .{
             .msg = "an Orng package already exists here",
             .span = Span.phony,
-        } }).fatal_error(errs_.get_std_err(), .{});
+        } }).fatal_error(&stderr_writer, .{});
     } else |err| switch (err) {
         error.FileNotFound => {},
         else => return error.FileError,
@@ -337,7 +342,8 @@ pub fn init_project(name: []const u8, args: *std.process.ArgIterator, allocator:
         \\    debug::println("Hello, World!")
         \\}
     ;
-    main_orng.writer().writeAll(main_content) catch return error.FileError;
+    var main_orng_writer = main_orng.writer(&.{}).interface;
+    main_orng_writer.writeAll(main_content) catch return error.FileError;
 
     var build_orng = std.fs.cwd().createFile(build_path, .{}) catch return error.FileError;
     defer build_orng.close();
@@ -349,7 +355,8 @@ pub fn init_project(name: []const u8, args: *std.process.ArgIterator, allocator:
         \\    retval
         \\}
     ;
-    build_orng.writer().writeAll(build_content) catch return error.FileError;
+    var build_orng_writer = build_orng.writer(&.{}).interface;
+    build_orng_writer.writeAll(build_content) catch return error.FileError;
 }
 
 fn clean(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {
@@ -367,12 +374,13 @@ fn construct_package_dag(compiler: *Compiler_Context) Command_Error![]const u8 {
     // try validate_env_vars(allocator);
     const build_path_buffer = std.heap.page_allocator.alloc(u8, std.fs.max_path_bytes) catch unreachable;
 
+    var stderr_writer = errs_.get_std_err().writer(&.{}).interface;
     const build_path: []const u8 = std.fs.cwd().realpath("build.orng", build_path_buffer) catch |err| switch (err) {
         error.FileNotFound => {
             (errs_.Error{ .basic = .{
                 .msg = "no `build.orng` file found in current working directory",
                 .span = Span.phony,
-            } }).fatal_error(errs_.get_std_err(), .{});
+            } }).fatal_error(&stderr_writer, .{});
         },
         else => return error.CompileError,
     };

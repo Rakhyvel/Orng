@@ -25,12 +25,11 @@ module: *module_.Module,
 /// Interned strings for this module. Referenced when emitting a load_string instruction to retrieve the string information.
 module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set),
 emitter: Emitter,
-writer: Writer,
+writer: *std.array_list.Managed(u8),
 
-pub const CodeGen_Error = std.fs.File.WriteError;
-const Writer = std.fs.File.Writer;
+pub const CodeGen_Error = error{OutOfMemory};
 
-pub fn init(module: *module_.Module, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set), writer: Writer) Self {
+pub fn init(module: *module_.Module, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set), writer: *std.array_list.Managed(u8)) Self {
     const emitter = Emitter.init(module, writer);
     return Self{
         .module = module,
@@ -193,7 +192,7 @@ fn output_basic_block(
     return_symbol: *Symbol,
 ) CodeGen_Error!void {
     // FIXME: High Cyclo
-    var bb_queue = std.ArrayList(*Basic_Block).init(std.heap.page_allocator); // page alloc ok, immediately deinit'd
+    var bb_queue = std.array_list.Managed(*Basic_Block).init(std.heap.page_allocator); // page alloc ok, immediately deinit'd
     defer bb_queue.deinit();
     bb_queue.append(start_bb) catch unreachable;
     start_bb.visited = true;
@@ -464,12 +463,13 @@ fn output_instruction_post_check(self: *Self, instr: *Instruction) CodeGen_Error
         .branch_if_false,
         => {},
         .push_stack_trace => {
-            var spaces = String.init(std.heap.page_allocator); // page alloc ok, immediately deinit'd
+            var spaces = std.array_list.Managed(u8).init(std.heap.page_allocator); // page alloc ok, immediately deinit'd
             defer spaces.deinit();
             for (1..instr.span.col - 1) |_| {
-                spaces.insert(" ", spaces.size) catch unreachable;
+                spaces.print(" ", .{}) catch unreachable;
             }
             try self.writer.print("    $lines[$line_idx++] = ", .{});
+
             try instr.span.print_debug_line(self.writer, Span.c_format);
             try self.writer.print(";\n", .{});
         },

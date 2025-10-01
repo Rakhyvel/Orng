@@ -77,11 +77,11 @@ pub fn assert_pattern_matches(
 pub fn exhaustive_check(
     self: *Self,
     _type: *Type_AST,
-    mappings: *std.ArrayList(*ast_.AST),
+    mappings: *std.array_list.Managed(*ast_.AST),
     match_span: Span,
 ) Validate_Error_Enum!void {
     if (_type.* == .enum_type) {
-        var total_sum_ids = std.ArrayList(usize).init(self.ctx.allocator());
+        var total_sum_ids = std.array_list.Managed(usize).init(self.ctx.allocator());
         defer total_sum_ids.deinit();
 
         // Append all sum IDs to the ids list
@@ -95,7 +95,7 @@ pub fn exhaustive_check(
         }
         // If there were any IDs that weren't removed, they weren't covered with a pattern match
         if (total_sum_ids.items.len > 0) {
-            var forgotten_sum_variants = std.ArrayList(*Type_AST).init(self.ctx.allocator()); // Not deallocated, lives until error emission
+            var forgotten_sum_variants = std.array_list.Managed(*Type_AST).init(self.ctx.allocator()); // Not deallocated, lives until error emission
             for (total_sum_ids.items) |id| {
                 forgotten_sum_variants.append(_type.children().items[id]) catch unreachable;
             }
@@ -105,7 +105,7 @@ pub fn exhaustive_check(
     }
 }
 
-fn exhaustive_check_sub(ast: *ast_.AST, ids: *std.ArrayList(usize)) void {
+fn exhaustive_check_sub(ast: *ast_.AST, ids: *std.array_list.Managed(usize)) void {
     switch (ast.*) {
         .select, .enum_value => {
             for (ids.items, 0..) |item, i| {

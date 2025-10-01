@@ -38,7 +38,7 @@ arena: std.heap.ArenaAllocator,
 
 /// List of errors found during compilation
 errors: errs_.Errors,
-stderr: ?std.fs.File.Writer,
+stderr: ?std.fs.File,
 
 prelude: *Scope,
 
@@ -63,7 +63,7 @@ module_interned_strings: std.AutoArrayHashMap(u32, *Interned_String_Set),
 packages: std.StringArrayHashMap(*Package),
 
 /// Throws an error if the prelude could not be compiled
-pub fn init(stderr: ?std.fs.File.Writer, alloc: std.mem.Allocator) Error!*Self {
+pub fn init(stderr: ?std.fs.File, alloc: std.mem.Allocator) Error!*Self {
     var retval: *Self = alloc.create(Self) catch unreachable;
     retval.arena = std.heap.ArenaAllocator.init(alloc);
 
@@ -86,7 +86,9 @@ pub fn init(stderr: ?std.fs.File.Writer, alloc: std.mem.Allocator) Error!*Self {
 
     retval.prelude = try prelude_.get_scope(retval);
     retval.core = core_.get_scope(retval) catch |e| {
-        retval.errors.print_errors(stderr orelse return e, .{});
+        if (stderr == null) return e;
+        var writer = stderr.?.writer(&.{}).interface;
+        retval.errors.print_errors(&writer, .{});
         return e;
     };
 
@@ -99,7 +101,8 @@ pub fn init(stderr: ?std.fs.File.Writer, alloc: std.mem.Allocator) Error!*Self {
 
 pub fn deinit(self: *Self) void {
     if (self.stderr) |stderr| {
-        self.errors.print_errors(stderr, .{});
+        var writer = stderr.writer(&.{}).interface;
+        self.errors.print_errors(&writer, .{});
     }
     self.arena.deinit();
     self.arena.child_allocator.destroy(self);

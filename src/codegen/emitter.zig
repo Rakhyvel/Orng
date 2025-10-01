@@ -7,15 +7,14 @@ const Dependency_Node = @import("../ast/dependency_node.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 const Symbol = @import("../symbol/symbol.zig");
 
-const Writer = std.fs.File.Writer;
-pub const CodeGen_Error = std.fs.File.WriteError;
+pub const CodeGen_Error = error{OutOfMemory};
 
 const Self: type = @This();
 
 module: *Module,
-writer: Writer,
+writer: *std.array_list.Managed(u8),
 
-pub fn init(module: *Module, writer: Writer) Self {
+pub fn init(module: *Module, writer: *std.array_list.Managed(u8)) Self {
     return Self{ .module = module, .writer = writer };
 }
 
@@ -38,7 +37,7 @@ pub fn output_type(self: *Self, old_type: *Type_AST) CodeGen_Error!void {
             if (info != null) {
                 try self.writer.print("{s}", .{info.?.c_name});
             } else {
-                try self.writer.print("{s} /*{?}*/", .{ _type.token().data, _type.symbol().?.init_typedef() });
+                try self.writer.print("{s} /*{?f}*/", .{ _type.token().data, _type.symbol().?.init_typedef() });
             }
         },
         .addr_of => {
@@ -68,7 +67,7 @@ pub fn output_type(self: *Self, old_type: *Type_AST) CodeGen_Error!void {
         },
         .unit_type => try self.writer.print("void", .{}),
         .annotation => try self.output_type(_type.child()),
-        else => std.debug.panic("compiler error: unimplemented output_type() for {?}", .{_type.*}),
+        else => std.debug.panic("compiler error: unimplemented output_type() for {f}", .{_type.*}),
     }
 }
 

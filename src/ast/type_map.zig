@@ -3,7 +3,7 @@ const prelude_ = @import("../hierarchy/prelude.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 
 pub fn Type_Map(comptime Value: type) type {
-    const Key = std.ArrayList(*Type_AST);
+    const Key = std.array_list.Managed(*Type_AST);
     const Pair = struct {
         key: Key,
         value: Value,
@@ -11,11 +11,11 @@ pub fn Type_Map(comptime Value: type) type {
 
     return struct {
         const Self = @This();
-        pairs: std.ArrayList(Pair),
+        pairs: std.array_list.Managed(Pair),
 
         pub fn init(alloc: std.mem.Allocator) Self {
             return .{
-                .pairs = std.ArrayList(Pair).init(alloc),
+                .pairs = std.array_list.Managed(Pair).init(alloc),
             };
         }
 
