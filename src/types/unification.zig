@@ -5,7 +5,7 @@ const Type_AST = @import("../types/type.zig").Type_AST;
 pub const Substitutions = std.StringArrayHashMap(*Type_AST);
 
 // Attempt to match the rhs with the lhs
-pub fn unify(lhs: *Type_AST, rhs: *Type_AST, withs: std.ArrayList(*ast_.AST), subst: *Substitutions) !void {
+pub fn unify(lhs: *Type_AST, rhs: *Type_AST, withs: std.array_list.Managed(*ast_.AST), subst: *Substitutions) !void {
     if (lhs.* == .identifier and lhs.symbol().?.decl.?.* == .type_alias and lhs.symbol().?.init_typedef() != null) {
         return try unify(lhs.symbol().?.init_typedef().?, rhs, withs, subst);
     } else if (rhs.* == .identifier and rhs.symbol().?.decl.?.* == .type_alias and rhs.symbol().?.init_typedef() != null) {
@@ -72,8 +72,8 @@ pub fn unify(lhs: *Type_AST, rhs: *Type_AST, withs: std.ArrayList(*ast_.AST), su
     }
 }
 
-pub fn type_param_list_from_subst_map(subst: *Substitutions, generic_params: std.ArrayList(*ast_.AST), alloc: std.mem.Allocator) std.ArrayList(*Type_AST) {
-    var retval = std.ArrayList(*Type_AST).init(alloc);
+pub fn type_param_list_from_subst_map(subst: *Substitutions, generic_params: std.array_list.Managed(*ast_.AST), alloc: std.mem.Allocator) std.array_list.Managed(*Type_AST) {
+    var retval = std.array_list.Managed(*Type_AST).init(alloc);
     for (generic_params.items) |type_param| {
         const with_value = subst.get(type_param.token().data).?;
         retval.append(with_value) catch unreachable;
@@ -81,7 +81,7 @@ pub fn type_param_list_from_subst_map(subst: *Substitutions, generic_params: std
     return retval;
 }
 
-fn identifier_is_type_param(ident: *Type_AST, generic_params: std.ArrayList(*ast_.AST)) ?*ast_.AST {
+fn identifier_is_type_param(ident: *Type_AST, generic_params: std.array_list.Managed(*ast_.AST)) ?*ast_.AST {
     for (generic_params.items) |type_param| {
         if (std.mem.eql(u8, type_param.token().data, ident.token().data)) {
             return type_param;

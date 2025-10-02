@@ -226,7 +226,7 @@ pub fn represents_method(self: *Self, impl_for_type: *Type_AST, method_name: []c
 
 pub fn monomorphize(
     self: *Self,
-    key: std.ArrayList(*Type_AST),
+    key: std.array_list.Managed(*Type_AST),
     allocator: std.mem.Allocator,
 ) *Type_AST {
     if (self.monomorphs.get(key)) |retval| {

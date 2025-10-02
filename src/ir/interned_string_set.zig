@@ -11,12 +11,12 @@ pub const String_Idx: type = struct {
 };
 
 uid: u32,
-interned_strings: std.ArrayList([]const u8),
+interned_strings: std.array_list.Managed([]const u8),
 
 pub fn init(uid: u32, allocator: std.mem.Allocator) Self {
     return Self{
         .uid = uid,
-        .interned_strings = std.ArrayList([]const u8).init(allocator),
+        .interned_strings = std.array_list.Managed([]const u8).init(allocator),
     };
 }
 

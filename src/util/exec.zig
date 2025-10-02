@@ -3,7 +3,6 @@ const std = @import("std");
 pub fn exec(argv: []const []const u8) !struct { stdout: []u8, retcode: i64 } { // TODO: Uninfer error
     const allocator = std.heap.page_allocator;
 
-    const max_output_size = 100 * 1024 * 1024;
     var child_process = std.process.Child.init(argv, allocator);
     defer _ = child_process.kill() catch unreachable;
 
@@ -12,10 +11,19 @@ pub fn exec(argv: []const []const u8) !struct { stdout: []u8, retcode: i64 } { /
         return err;
     };
 
-    const child_stdout_reader = child_process.stdout.?.reader();
-    const child_stdout = try child_stdout_reader.readAllAlloc(allocator, max_output_size);
+    // _SEVEN_ lines for something that should be 2 at most
+    var buffer: [100 * 1024]u8 = undefined;
+    var child_stdout_reader = child_process.stdout.?.reader(&buffer);
+    const reader_intfc: *std.Io.Reader = &child_stdout_reader.interface;
+    var writer_alloc = std.Io.Writer.Allocating.init(allocator);
+    errdefer writer_alloc.deinit();
+    const writer = &writer_alloc.writer;
+    _ = reader_intfc.stream(writer, .unlimited) catch |e| switch (e) {
+        error.EndOfStream => {}, // this isn't a fucking error you retard
+        else => return e,
+    };
+
     var retcode: i64 = 0;
-    errdefer allocator.free(child_stdout);
 
     const child = try child_process.wait();
     switch (child) {
@@ -29,5 +37,5 @@ pub fn exec(argv: []const []const u8) !struct { stdout: []u8, retcode: i64 } { /
         else => return error.CommandFailed,
     }
 
-    return .{ .stdout = child_stdout, .retcode = retcode };
+    return .{ .stdout = writer_alloc.written(), .retcode = retcode };
 }

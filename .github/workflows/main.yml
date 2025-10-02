@@ -18,14 +18,13 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: 'JakubSzark/zig-string'
-        ref: 'f6f9e5dc7c5c45a72473de245a0e6958ef2bf913'
         path: src/zig-string
         submodules: recursive
     
     - name: Set up Zig
       uses: korandoru/setup-zig@v1
       with:
-        zig-version: 0.14.0
+        zig-version: 0.15.1
     
     - name: Check formatting
       run: zig fmt --check src/*.zig

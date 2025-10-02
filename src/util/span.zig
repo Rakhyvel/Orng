@@ -3,7 +3,7 @@ const String = @import("../zig-string/zig-string.zig").String;
 
 const Self = @This();
 
-pub const Span_Print_Error = std.fs.File.WriteError;
+pub const Span_Print_Error = error{OutOfMemory};
 
 const Span_Format = struct {
     fmt_str: []const u8,
@@ -28,8 +28,8 @@ line_number: usize,
 col: usize,
 
 /// Prints out a line string, with quotes and arrow.
-pub fn print_debug_line(self: *const Self, writer: anytype, comptime span_format: Span_Format) Span_Print_Error!void {
-    var spaces = String.init(std.heap.page_allocator);
+pub fn print_debug_line(self: *const Self, writer: *std.array_list.Managed(u8), comptime span_format: Span_Format) Span_Print_Error!void {
+    var spaces = String.init_with_contents(std.heap.page_allocator, "") catch unreachable;
     defer spaces.deinit();
 
     if (self.col > 0) {
@@ -58,19 +58,16 @@ pub fn print_debug_line(self: *const Self, writer: anytype, comptime span_format
 }
 
 pub fn pprint(self: Self, allocator: std.mem.Allocator) ![]const u8 {
-    var out = String.init(allocator);
+    var out = std.array_list.Managed(u8).init(allocator);
     defer out.deinit();
-    const writer = out.writer();
 
     // TODO: Generic pprinter that makes the arena and string and passes the writer to a pprint method
-    try writer.print("{s}:{}:{}", .{ self.filename, self.line_number, self.col });
+    try out.print("{s}:{}:{}", .{ self.filename, self.line_number, self.col });
 
     return (try out.toOwned()).?;
 }
 
-pub fn format(self: Self, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-    _ = options;
-    _ = fmt;
+pub fn format(self: Self, writer: *std.io.Writer) !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
 
@@ -81,7 +78,7 @@ pub fn format(self: Self, comptime fmt: []const u8, options: std.fmt.FormatOptio
 
 /// Sanitizes a string, escaping proper characters.
 ///
-/// This is needed so that string escapes in Orng do not escape in the generate C source.
+/// This is needed so that string escapes in Orange do not escape in the generate C source.
 ///
 /// For example:
 ///     let str = some_function("You better \n sanitize me!")
@@ -89,7 +86,7 @@ pub fn format(self: Self, comptime fmt: []const u8, options: std.fmt.FormatOptio
 /// Would produce an error diagnostic in debug mode, which needs to escape the `\` correctly so
 /// that the error shown to the user is identical to the text in the file.
 fn sanitize_string(str: []const u8, allocator: std.mem.Allocator) []const u8 {
-    var builder = String.init(allocator);
+    var builder = String.init_with_contents(allocator, "") catch unreachable;
     for (str) |byte| {
         if (byte == '\\' or byte == '"') {
             builder.insert("\\", builder.len()) catch unreachable;

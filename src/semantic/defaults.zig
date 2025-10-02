@@ -51,7 +51,7 @@ pub fn generate_default(_type: *Type_AST, span: Span, errors: *errs_.Errors, all
             return try generate_default(_type.child(), span, errors, allocator);
         },
         .struct_type => {
-            var value_terms = std.ArrayList(*ast_.AST).init(allocator);
+            var value_terms = std.array_list.Managed(*ast_.AST).init(allocator);
             errdefer value_terms.deinit();
             for (_type.children().items) |term| {
                 const default_term = try generate_default(term, span, errors, allocator);
@@ -60,7 +60,7 @@ pub fn generate_default(_type: *Type_AST, span: Span, errors: *errs_.Errors, all
             return ast_.AST.create_struct_value(_type.token(), _type, value_terms, allocator);
         },
         .tuple_type => {
-            var value_terms = std.ArrayList(*ast_.AST).init(allocator);
+            var value_terms = std.array_list.Managed(*ast_.AST).init(allocator);
             errdefer value_terms.deinit();
             for (_type.children().items) |term| {
                 const default_term = try generate_default(term, span, errors, allocator);
@@ -74,13 +74,13 @@ pub fn generate_default(_type: *Type_AST, span: Span, errors: *errs_.Errors, all
             return generate_default(_type.child(), span, errors, allocator);
         },
         // .slice_of => {
-        //     var value_terms = std.ArrayList(*ast_.AST).init(allocator);
+        //     var value_terms = std.array_list.Managed(*ast_.AST).init(allocator);
         //     value_terms.append(ast_.AST.create_int(_type.token(), 0, allocator)) catch unreachable;
         //     value_terms.append(ast_.AST.create_int(_type.token(), 0, allocator)) catch unreachable;
         //     return ast_.AST.create_product(_type.token(), value_terms, allocator);
         // },
         .array_of => {
-            var value_terms = std.ArrayList(*ast_.AST).init(allocator);
+            var value_terms = std.array_list.Managed(*ast_.AST).init(allocator);
             const child = try generate_default(_type.child(), span, errors, allocator);
             for (0..@intCast(_type.array_of.len.int.data)) |_| {
                 value_terms.append(child) catch unreachable;

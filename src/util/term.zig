@@ -1,3 +1,5 @@
+const std = @import("std");
+
 pub const Color = enum {
     none,
     black,
@@ -94,7 +96,7 @@ pub const Attr = struct {
     }
 };
 
-pub fn outputColor(attr: Attr, contents: []const u8, writer: anytype) !void {
+pub fn outputColor(attr: Attr, contents: []const u8, writer: *std.io.Writer) !void {
     try attr.dump(writer);
     try writer.print("{s}", .{contents});
     try (Attr{}).dump(writer);

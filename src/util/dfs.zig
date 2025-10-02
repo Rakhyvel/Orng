@@ -5,13 +5,13 @@ pub fn Dfs_Iterator(comptime T: type) type {
         const Self = @This();
         current: ?T,
 
-        stack: std.ArrayList(T),
+        stack: std.array_list.Managed(T),
         visited: std.AutoHashMap(T, void),
 
         pub fn init(start: T, allocator: std.mem.Allocator) Self {
             return Self{
                 .current = start,
-                .stack = std.ArrayList(T).init(allocator),
+                .stack = std.array_list.Managed(T).init(allocator),
                 .visited = std.AutoHashMap(T, void).init(allocator),
             };
         }

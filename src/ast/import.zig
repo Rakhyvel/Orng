@@ -33,15 +33,14 @@ pub fn new(
 var num_anons: usize = 0;
 fn next_anon_name(class: []const u8, allocator: std.mem.Allocator) []const u8 {
     defer num_anons += 1;
-    var out = String.init(allocator);
+    var out = std.array_list.Managed(u8).init(allocator);
     defer out.deinit();
-    const writer = out.writer();
-    writer.print("${s}{}", .{ class, num_anons }) catch unreachable;
-    return (out.toOwned() catch unreachable).?;
+    out.print("${s}{}", .{ class, num_anons }) catch unreachable;
+    return out.toOwnedSlice() catch unreachable;
 }
 
 /// Converts imports to constant declarations
-pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: usize) walker_.Error!usize {
+pub fn flat(self: Self, ast: *ast_.AST, asts: *std.array_list.Managed(*ast_.AST), idx: usize) walker_.Error!usize {
     if (ast.* != .import) {
         return 0;
     }
@@ -54,7 +53,7 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
             .pattern = ast.import.pattern,
             .type = prelude_.unit_type,
             .init = null,
-            .decls = std.ArrayList(*ast_.AST).init(self.compiler.allocator()),
+            .decls = std.array_list.Managed(*ast_.AST).init(self.compiler.allocator()),
         } };
         _ = try self.resolve_import(ast.binding.pattern);
         return 0;
@@ -71,7 +70,7 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
 ///   import aaa as anon0
 ///   const anon1 = aaa::bbb
 ///   const ccc = anon1::ccc
-fn unwrap_access_imports(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: usize) !usize {
+fn unwrap_access_imports(self: Self, ast: *ast_.AST, asts: *std.array_list.Managed(*ast_.AST), idx: usize) !usize {
     var terms = self.create_terms(ast);
     defer terms.deinit();
 
@@ -116,7 +115,7 @@ fn unwrap_access_imports(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.
                 ),
                 .type = prelude_.unit_type,
                 .init = null,
-                .decls = std.ArrayList(*ast_.AST).init(self.compiler.allocator()),
+                .decls = std.array_list.Managed(*ast_.AST).init(self.compiler.allocator()),
             } };
             const symb = try self.resolve_import(ast.binding.pattern);
             symb.defined = true;
@@ -131,9 +130,9 @@ fn unwrap_access_imports(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.
 ///   aaa::bbb::ccc
 /// int:
 ///   [ccc, bbb, aaa]
-fn create_terms(self: Self, ast: *ast_.AST) std.ArrayList(*ast_.AST) {
+fn create_terms(self: Self, ast: *ast_.AST) std.array_list.Managed(*ast_.AST) {
     var curr = ast.import.pattern;
-    var terms = std.ArrayList(*ast_.AST).init(self.compiler.allocator());
+    var terms = std.array_list.Managed(*ast_.AST).init(self.compiler.allocator());
 
     while (curr.* == .access) : (curr = curr.lhs()) {
         terms.append(curr.rhs()) catch unreachable;
@@ -148,8 +147,8 @@ fn create_terms(self: Self, ast: *ast_.AST) std.ArrayList(*ast_.AST) {
 ///    aaa::bbb::ccc
 /// into:
 ///    [ccc, anon0, anon1]
-fn create_anon_names(self: Self, terms: *std.ArrayList(*ast_.AST)) std.ArrayList([]const u8) {
-    var anon_names = std.ArrayList([]const u8).init(self.compiler.allocator());
+fn create_anon_names(self: Self, terms: *std.array_list.Managed(*ast_.AST)) std.array_list.Managed([]const u8) {
+    var anon_names = std.array_list.Managed([]const u8).init(self.compiler.allocator());
     for (0.., terms.items) |i, term| {
         anon_names.append(
             if (i == 0) term.token().data else next_anon_name("anon_import", self.compiler.allocator()),
@@ -173,10 +172,10 @@ fn resolve_import(self: Self, pattern_ast: *ast_.AST) walker_.Error!*Symbol {
 
 /// Constructs the absolute path of a hypothetical imported local module from the absolute path of this package and the import name
 fn build_import_path(self: Self, import_name: []const u8) []const u8 {
-    var import_filename = String.init(self.compiler.allocator());
+    var import_filename = std.array_list.Managed(u8).init(self.compiler.allocator());
     defer import_filename.deinit();
-    import_filename.writer().print("{s}.orng", .{import_name}) catch unreachable;
-    const import_file_paths = [_][]const u8{ self.package_absolute_path, import_filename.str() };
+    import_filename.print("{s}.orng", .{import_name}) catch unreachable;
+    const import_file_paths = [_][]const u8{ self.package_absolute_path, import_filename.items };
     return std.fs.path.join(self.compiler.allocator(), &import_file_paths) catch unreachable;
 }
 

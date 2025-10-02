@@ -9,14 +9,14 @@ const Self = @This();
 
 base: *Type_AST,
 uid: usize,
-dependencies: std.ArrayList(*Self),
+dependencies: std.array_list.Managed(*Self),
 visited: bool,
 
 pub fn init(base: *Type_AST, uid: usize, allocator: std.mem.Allocator) *Self {
     var retval = allocator.create(Self) catch unreachable;
     retval.base = base;
     retval.uid = uid;
-    retval.dependencies = std.ArrayList(*Self).init(allocator);
+    retval.dependencies = std.array_list.Managed(*Self).init(allocator);
     retval.visited = false;
     return retval;
 }

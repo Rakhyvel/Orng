@@ -26,7 +26,7 @@ pub fn init_structures(allocator: std.mem.Allocator) void {
 pub fn assert_none_poisoned(value: anytype) error{CompileError}!void {
     // This entire function is cursed...
     const T = @TypeOf(value);
-    if (T == *std.ArrayList(*AST)) {
+    if (T == *std.array_list.Managed(*AST)) {
         for (value.items) |ast| {
             if (ast.* == .poison) {
                 return error.CompileError;

@@ -1,12 +1,12 @@
 # tests/
 
-Here you will find integration and negative tests. The `integration/` directory contains example Orng code, and is a good place to get a feel for the language. 
+Here you will find integration and negative tests. The `integration/` directory contains example Orange code, and is a good place to get a feel for the language. 
 
 ## Testing Ideology
 
 > What you don't test, breaks.
 
-Orng development has three testing strategies:
+Orange development has three testing strategies:
 - __Integration tests__: ensure that valid programs compile, and produce expected behavior and output.
 - __Negative tests__: ensure that invalid programs do not compile and are apropriately rejected.
 - __Fuzz tests__: ensure that the compiler never crashes under strange input.

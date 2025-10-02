@@ -12,12 +12,11 @@ module: *module_.Module,
 source_emitter: Source_Emitter,
 header_emitter: Header_Emitter,
 
-header_writer: Writer,
+header_writer: *std.array_list.Managed(u8),
 
-pub const CodeGen_Error = std.fs.File.WriteError;
-const Writer = std.fs.File.Writer;
+pub const CodeGen_Error = error{OutOfMemory};
 
-pub fn init(module: *module_.Module, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set), source_writer: Writer, header_writer: Writer) Self {
+pub fn init(module: *module_.Module, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set), source_writer: *std.array_list.Managed(u8), header_writer: *std.array_list.Managed(u8)) Self {
     const source_emitter = Source_Emitter.init(module, module_interned_strings, source_writer);
     const header_emitter = Header_Emitter.init(module, header_writer);
     return Self{
@@ -44,7 +43,7 @@ pub fn generate(self: *Self) CodeGen_Error!void {
 
 pub fn output_test_include_guard_begin(self: *Self) CodeGen_Error!void {
     try self.header_writer.print(
-        \\/* Code generated using the Orng compiler http://ornglang.org */
+        \\/* Code generated using the Orange compiler http://ornglang.org */
         \\
         \\#ifndef _{0s}_{1s}_TESTS_h
         \\#define _{0s}_{1s}_TESTS_h

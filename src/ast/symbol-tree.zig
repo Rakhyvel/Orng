@@ -16,8 +16,8 @@ const walk_ = @import("../ast/walker.zig");
 scope: *Scope,
 in_loop: bool,
 is_param_scope: bool,
-defers: ?*std.ArrayList(*ast_.AST),
-errdefers: ?*std.ArrayList(*ast_.AST),
+defers: ?*std.array_list.Managed(*ast_.AST),
+errdefers: ?*std.array_list.Managed(*ast_.AST),
 errors: *errs_.Errors,
 allocator: std.mem.Allocator,
 
@@ -84,7 +84,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
 
         // Create symbols (potentially >1) from pattern, put inside scope
         .binding => {
-            var symbols = std.ArrayList(*Symbol).init(self.allocator);
+            var symbols = std.array_list.Managed(*Symbol).init(self.allocator);
             try create_symbol(
                 &symbols,
                 ast.binding.pattern,
@@ -176,7 +176,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                     self.allocator,
                 ),
                 null,
-                std.ArrayList(*ast_.AST).init(self.allocator),
+                std.array_list.Managed(*ast_.AST).init(self.allocator),
                 self.allocator,
             );
             try walk_.walk_ast(self_type_decl, new_self);
@@ -201,7 +201,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                     self.allocator,
                 ),
                 ast.impl._type,
-                std.ArrayList(*ast_.AST).init(self.allocator),
+                std.array_list.Managed(*ast_.AST).init(self.allocator),
                 self.allocator,
             );
             try walk_.walk_ast(self_type_decl, new_self);
@@ -307,7 +307,7 @@ fn in_function_check(ast: *ast_.AST, scope: *Scope, errors: *errs_.Errors) Error
 
 /// Creates symbols from a given pattern, declaration, type, and initializer within the given scope.
 fn create_symbol(
-    symbols: *std.ArrayList(*Symbol), // Mutable list that accumulates all the created symbols for a given scope, to be put() later.
+    symbols: *std.array_list.Managed(*Symbol), // Mutable list that accumulates all the created symbols for a given scope, to be put() later.
     pattern: *ast_.AST, // Represents the pattern being matched; processed recursively to create symbols.
     decl: ?*ast_.AST, // Potential decl AST to be given to symbols.
     _type: *Type_AST, // Type of the current pattern.
@@ -348,7 +348,7 @@ fn create_symbol(
             for (pattern.children().items, 0..) |term, i| {
                 const index = ast_.AST.create_int(pattern.token(), i, allocator);
                 const new_type: *Type_AST = Type_AST.create_index(_type.token(), _type, index, allocator);
-                var index_rhs = std.ArrayList(*ast_.AST).init(allocator);
+                var index_rhs = std.array_list.Managed(*ast_.AST).init(allocator);
                 index_rhs.append(index) catch unreachable;
                 const new_init: *ast_.AST = ast_.AST.create_index(init.?.token(), init.?, index_rhs, allocator);
                 try create_symbol(symbols, term, decl, new_type, new_init, scope, errors, allocator);
@@ -375,7 +375,7 @@ fn create_match_pattern_symbol(match: *ast_.AST, scope: *Scope, errors: *errs_.E
     for (match.children().items) |mapping| {
         const new_scope = Scope.init(scope, scope.uid_gen, allocator);
         mapping.set_scope(new_scope);
-        var symbols = std.ArrayList(*Symbol).init(allocator);
+        var symbols = std.array_list.Managed(*Symbol).init(allocator);
         defer symbols.deinit();
         const match_expr = match.expr();
         const match_expr_token = match_expr.token();
@@ -484,14 +484,13 @@ pub fn create_test_symbol(
 var num_anons: usize = 0;
 pub fn next_anon_name(class: []const u8, allocator: std.mem.Allocator) []const u8 {
     defer num_anons += 1;
-    var out = String.init(allocator);
+    var out = std.array_list.Managed(u8).init(allocator);
     defer out.deinit();
-    const writer = out.writer();
-    writer.print("{s}${}", .{ class, num_anons }) catch unreachable;
-    return (out.toOwned() catch unreachable).?;
+    out.print("{s}${}", .{ class, num_anons }) catch unreachable;
+    return out.toOwnedSlice() catch unreachable;
 }
 
-pub fn extract_domain(params: std.ArrayList(*ast_.AST), allocator: std.mem.Allocator) *Type_AST {
+pub fn extract_domain(params: std.array_list.Managed(*ast_.AST), allocator: std.mem.Allocator) *Type_AST {
     if (params.items.len == 0) {
         return prelude_.unit_type;
     } else if (params.items.len <= 1) {
@@ -504,25 +503,25 @@ pub fn extract_domain(params: std.ArrayList(*ast_.AST), allocator: std.mem.Alloc
         );
     } else {
         std.debug.assert(params.items.len >= 2);
-        var param_types = std.ArrayList(*Type_AST).init(allocator);
+        var param_types = std.array_list.Managed(*Type_AST).init(allocator);
         return build_paramlist(params, &param_types, allocator);
     }
 }
 
-fn extract_domain_with_receiver(impl_type: *Type_AST, receiver: *ast_.AST, params: std.ArrayList(*ast_.AST), allocator: std.mem.Allocator) *Type_AST {
+fn extract_domain_with_receiver(impl_type: *Type_AST, receiver: *ast_.AST, params: std.array_list.Managed(*ast_.AST), allocator: std.mem.Allocator) *Type_AST {
     const receiver_addr_type = create_receiver_addr(impl_type, receiver, allocator);
     receiver.receiver._type = receiver_addr_type;
     const _receiver_type = create_receiver_annot(receiver_addr_type, receiver, allocator);
     if (params.items.len == 0) {
         return _receiver_type;
     } else {
-        var param_types = std.ArrayList(*Type_AST).init(allocator);
+        var param_types = std.array_list.Managed(*Type_AST).init(allocator);
         param_types.append(_receiver_type) catch unreachable;
         return build_paramlist(params, &param_types, allocator);
     }
 }
 
-fn build_paramlist(params: std.ArrayList(*ast_.AST), param_types: *std.ArrayList(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
+fn build_paramlist(params: std.array_list.Managed(*ast_.AST), param_types: *std.array_list.Managed(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
     for (0..params.items.len) |i| {
         param_types.append(Type_AST.create_annotation(
             params.items[i].token(),
@@ -704,7 +703,7 @@ fn create_method_symbol(
                 method_block_statements.insert(0, self_decl) catch unreachable;
             } else {
                 // Technically, init COULD be `{ }`, and it would cause a not-used error later on, but we need to handle this properly here before then
-                var statements = std.ArrayList(*ast_.AST).init(allocator);
+                var statements = std.array_list.Managed(*ast_.AST).init(allocator);
                 statements.append(self_decl) catch unreachable;
                 ast.method_decl.init = ast_.AST.create_block(ast.method_decl.init.?.token(), statements, null, allocator);
             }

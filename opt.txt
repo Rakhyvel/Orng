@@ -1,3 +1,0 @@
-[0;1;32m[==============]
-[0;37m[0;1;32m[ RUN      ... ] [0;37moptional/optional_optional.orng
-coverage not done due to failed tests

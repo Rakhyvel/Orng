@@ -23,7 +23,7 @@ pub const Lower_Errors = error{CompileError};
 const Self = @This();
 
 ctx: *Compiler_Context,
-instructions: std.ArrayList(*Instruction),
+instructions: std.array_list.Managed(*Instruction),
 interned_strings: *Interned_String_Set,
 cfg: *CFG,
 number_temps: usize = 0,
@@ -39,7 +39,7 @@ const Labels = struct {
 
 pub fn init(ctx: *Compiler_Context, cfg: *CFG, interned_strings: *Interned_String_Set) Self {
     return Self{
-        .instructions = std.ArrayList(*Instruction).init(ctx.allocator()),
+        .instructions = std.array_list.Managed(*Instruction).init(ctx.allocator()),
         .interned_strings = interned_strings,
         .ctx = ctx,
         .cfg = cfg,
@@ -67,7 +67,7 @@ pub fn lower_AST_into_cfg(self: *Self) Lower_Errors!void {
         // Print symbol Instruction after lowering, before breaking up into basic blocks
         std.debug.print("CFG {s}:\n", .{self.cfg.symbol.name});
         for (self.instructions.items) |instr| {
-            std.debug.print("{}", .{instr});
+            std.debug.print("{f}", .{instr});
         }
         std.debug.print("\n", .{});
     }
@@ -259,7 +259,7 @@ fn lower_AST_inner(
 
             // dyn_value is the method receiver that will be passed in
             var dyn_value: ?*lval_.L_Value = null;
-            var lval_list = std.ArrayList(*lval_.L_Value).init(self.ctx.allocator());
+            var lval_list = std.array_list.Managed(*lval_.L_Value).init(self.ctx.allocator());
             if (ast.children().items.len == 0) {
                 // dyn_value should be the receiver
                 if (self.ctx.typecheck.typeof(ast.lhs()).expand_identifier().* == .dyn_type) {
@@ -388,7 +388,7 @@ fn lower_AST_inner(
             else if (ast_type.* == .annotation)
                 ast_type
             else
-                std.debug.panic("expected either sum type or annot got {}", .{ast_type});
+                std.debug.panic("expected either sum type or annot got {f}", .{ast_type});
             if (ast.enum_value.init != null) {
                 const sum_init = try self.lower_AST(ast.enum_value.init.?, labels);
                 if (proper_term.child().* != .unit_type) { // still output the Instruction, but do not refer to it unless the type isn't unit
@@ -499,13 +499,13 @@ fn lower_AST_inner(
                 return self.lval_from_unit_value(ast);
             }
 
-            var continue_labels = std.ArrayList(*Instruction).init(self.ctx.allocator());
+            var continue_labels = std.array_list.Managed(*Instruction).init(self.ctx.allocator());
             defer continue_labels.deinit();
-            var break_labels = std.ArrayList(*Instruction).init(self.ctx.allocator());
+            var break_labels = std.array_list.Managed(*Instruction).init(self.ctx.allocator());
             defer break_labels.deinit();
-            var return_labels = std.ArrayList(*Instruction).init(self.ctx.allocator());
+            var return_labels = std.array_list.Managed(*Instruction).init(self.ctx.allocator());
             defer return_labels.deinit();
-            var error_labels = std.ArrayList(*Instruction).init(self.ctx.allocator());
+            var error_labels = std.array_list.Managed(*Instruction).init(self.ctx.allocator());
             defer error_labels.deinit();
             for (ast.block.defers.items) |_| {
                 continue_labels.append(Instruction.init_label("block.continue", ast.token().span, self.ctx.allocator())) catch unreachable;
@@ -1024,13 +1024,13 @@ fn generate_control_flow_else(
 fn generate_match_pattern_checks(
     self: *Self,
     expr: *lval_.L_Value,
-    mappings: std.ArrayList(*ast_.AST),
+    mappings: std.array_list.Managed(*ast_.AST),
     none_label: *Instruction,
     labels: Labels,
-) Lower_Errors!std.ArrayList(*Instruction) {
-    var lhs_label_list = std.ArrayList(*Instruction).init(self.ctx.allocator()); // labels to branch on an unsuccessful test ("next pattern")
+) Lower_Errors!std.array_list.Managed(*Instruction) {
+    var lhs_label_list = std.array_list.Managed(*Instruction).init(self.ctx.allocator()); // labels to branch on an unsuccessful test ("next pattern")
     defer lhs_label_list.deinit();
-    var rhs_label_list = std.ArrayList(*Instruction).init(self.ctx.allocator()); // labels to branch on a successful test ("code for the mapping")
+    var rhs_label_list = std.array_list.Managed(*Instruction).init(self.ctx.allocator()); // labels to branch on a successful test ("code for the mapping")
     errdefer rhs_label_list.deinit();
     for (mappings.items) |mapping| {
         lhs_label_list.append(Instruction.init_label("match.lhs", mapping.token().span, self.ctx.allocator())) catch unreachable;
@@ -1103,8 +1103,8 @@ fn generate_match_pattern_check(
 fn generate_match_bodies(
     self: *Self,
     expr: *lval_.L_Value,
-    mappings: std.ArrayList(*ast_.AST),
-    rhs_label_list: std.ArrayList(*Instruction),
+    mappings: std.array_list.Managed(*ast_.AST),
+    rhs_label_list: std.array_list.Managed(*Instruction),
     symbol: *Symbol,
     end_label: *Instruction,
     span: Span,
@@ -1148,10 +1148,10 @@ fn create_temp_lvalue(self: *Self, _type: *Type_AST) *lval_.L_Value {
 }
 
 fn create_temp_symbol(self: *Self, _type: *Type_AST) *Symbol {
-    var buf = String.init_with_contents(self.ctx.allocator(), "t") catch unreachable;
-    buf.writer().print("{}", .{self.number_temps}) catch unreachable;
+    var buf = std.array_list.Managed(u8).init(self.ctx.allocator());
+    buf.print("t{}", .{self.number_temps}) catch unreachable;
     self.number_temps += 1;
-    const name = (buf.toOwned() catch unreachable).?;
+    const name = buf.toOwnedSlice() catch unreachable;
     const token = Token.init_simple(name);
     const decl = ast_.AST.create_decl(
         token,
@@ -1175,8 +1175,8 @@ fn create_temp_symbol(self: *Self, _type: *Type_AST) *Symbol {
 
 fn generate_defers(
     self: *Self,
-    defers: *std.ArrayList(*ast_.AST),
-    defer_labels: *std.ArrayList(*Instruction),
+    defers: *std.array_list.Managed(*ast_.AST),
+    defer_labels: *std.array_list.Managed(*Instruction),
 ) Lower_Errors!void {
     var i: usize = defers.items.len;
     while (i > 0) : (i -= 1) {

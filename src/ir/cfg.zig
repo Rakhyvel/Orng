@@ -22,18 +22,18 @@ pub const locals_starting_offset = 8;
 block_graph_head: ?*Basic_Block,
 
 /// Flat list of all basic blocks
-basic_blocks: std.ArrayList(*Basic_Block),
+basic_blocks: std.array_list.Managed(*Basic_Block),
 
 /// All other functions called by this function
 children: std.AutoArrayHashMap(*Self, void),
 
 /// All symbol versions that are parameters to the function this Self defines
 /// TODO: Make this it's own type, in it's own file, with `put` and `get` methods
-parameters: std.ArrayList(*Symbol_Version),
+parameters: std.array_list.Managed(*Symbol_Version),
 
 /// All symbol versions that are used. Should be filled in after optimizations.
 /// TODO: Make this it's own type, in it's own file, with `put` and `get` methods
-symbvers: std.ArrayList(*Symbol_Version),
+symbvers: std.array_list.Managed(*Symbol_Version),
 
 /// The function that this Self represents
 symbol: *Symbol,
@@ -64,10 +64,10 @@ pub fn init(symbol: *Symbol, allocator: std.mem.Allocator) *Self {
     }
     var retval = allocator.create(Self) catch unreachable;
     retval.block_graph_head = null;
-    retval.basic_blocks = std.ArrayList(*Basic_Block).init(allocator);
+    retval.basic_blocks = std.array_list.Managed(*Basic_Block).init(allocator);
     retval.children = std.AutoArrayHashMap(*Self, void).init(allocator);
-    retval.symbvers = std.ArrayList(*Symbol_Version).init(allocator);
-    retval.parameters = std.ArrayList(*Symbol_Version).init(allocator);
+    retval.symbvers = std.array_list.Managed(*Symbol_Version).init(allocator);
+    retval.parameters = std.array_list.Managed(*Symbol_Version).init(allocator);
     retval.symbol = symbol;
     retval.return_symbol = Symbol.init(
         symbol.scope,
@@ -169,7 +169,7 @@ pub fn collect_types(self: *Self, type_set: *Type_Set, allocator: std.mem.Alloca
 /// - `instructions`: The list of instructions to convert to basic blocks
 /// - `start_index`: The index into the instructions list to start the basic block at
 /// - `allocator`: The allocator to use for the basic blocks
-pub fn basic_block_from_instructions(self: *Self, instructions: std.ArrayList(*Instruction), start_index: ?usize) ?*Basic_Block {
+pub fn basic_block_from_instructions(self: *Self, instructions: std.array_list.Managed(*Instruction), start_index: ?usize) ?*Basic_Block {
     if (instructions.items.len == 0 or start_index == null) {
         return null;
     } else if (instructions.items[start_index.?].in_block) |in_block| {
@@ -380,7 +380,7 @@ fn index_of_basic_block(self: *Self, bb: *Basic_Block) usize {
 /// instructions for the CFG start.
 ///
 /// Returns the index in the cfg in the cfgs list.
-pub fn emplace_cfg(self: *Self, cfgs: *std.ArrayList(*Self), instructions_list: *std.ArrayList(*Instruction)) i64 {
+pub fn emplace_cfg(self: *Self, cfgs: *std.array_list.Managed(*Self), instructions_list: *std.array_list.Managed(*Instruction)) i64 {
     const len = @as(i64, @intCast(cfgs.items.len));
     if (self.offset != null) {
         // Already visited, do nothing
@@ -404,8 +404,8 @@ pub fn emplace_cfg(self: *Self, cfgs: *std.ArrayList(*Self), instructions_list: 
 
 /// Appends the instructions in a BasicBlock to the module's instructions.
 /// Returns the offset of the basic block
-fn append_basic_block(self: *Self, first_bb: *Basic_Block, instructions_list: *std.ArrayList(*Instruction)) Instruction.Index {
-    var work_queue = std.ArrayList(*Basic_Block).init(self.allocator);
+fn append_basic_block(self: *Self, first_bb: *Basic_Block, instructions_list: *std.array_list.Managed(*Instruction)) Instruction.Index {
+    var work_queue = std.array_list.Managed(*Basic_Block).init(self.allocator);
     defer work_queue.deinit();
     work_queue.append(first_bb) catch unreachable;
 
@@ -428,7 +428,7 @@ fn append_basic_block(self: *Self, first_bb: *Basic_Block, instructions_list: *s
 /// This function inserts a label and a return instruction. It is needed for functions which do not have
 /// instructions. The label is needed so that codegen_ can know there is a new function, and the return
 /// instruction is for interpreting so that jumping to the function won't jump to some random function.
-fn append_phony_block(self: *Self, instructions_list: *std.ArrayList(*Instruction)) Instruction.Index {
+fn append_phony_block(self: *Self, instructions_list: *std.array_list.Managed(*Instruction)) Instruction.Index {
     const offset = @as(Instruction.Index, @intCast(instructions_list.items.len));
     // Append a label which has a back-reference to the CFG
     instructions_list.append(Instruction.init_label(
@@ -451,7 +451,7 @@ pub fn get_adjacent(self: *Self) []*Self {
 
 /// Fills in a CFG's local offsets
 ///
-/// ## The Orng interpreter calling convention
+/// ## The Orange interpreter calling convention
 /// (stack grows up btw, lmao)
 /// ```
 ///       |         |

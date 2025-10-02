@@ -1,5 +1,5 @@
-# The Orng Programming Language
-Orng is a general purpose, medium-level programming language with a minimal runtime that enables the programmer to write efficient, 
+# The Orange Programming Language
+Orange is a general purpose, medium-level programming language with a minimal runtime that enables the programmer to write efficient, 
 readable, and maintainable code.
 
 <!-- 

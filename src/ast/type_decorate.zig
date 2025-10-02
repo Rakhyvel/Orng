@@ -37,7 +37,7 @@ pub fn postfix_type(self: Self, _type: *Type_AST) walk_.Error!void {
             .domain_of => {
                 var child = _type.domain_of._child;
                 try self.postfix_type(child);
-                const domain_ptr = child.expand_identifier().enum_type.get_ctor(_type.domain_of.ctor_name) orelse std.debug.panic("{s} not in {}\n", .{ _type.domain_of.ctor_name, child });
+                const domain_ptr = child.expand_identifier().enum_type.get_ctor(_type.domain_of.ctor_name) orelse std.debug.panic("{s} not in {f}\n", .{ _type.domain_of.ctor_name, child });
                 _type.* = domain_ptr.*;
             },
             .index => {

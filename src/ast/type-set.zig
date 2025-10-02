@@ -7,10 +7,10 @@ const Type_AST = @import("../types/type.zig").Type_AST;
 
 const Self = @This();
 
-types: std.ArrayList(*Dependency_Node),
+types: std.array_list.Managed(*Dependency_Node),
 
 pub fn init(allocator: std.mem.Allocator) Self {
-    return Self{ .types = std.ArrayList(*Dependency_Node).init(allocator) };
+    return Self{ .types = std.array_list.Managed(*Dependency_Node).init(allocator) };
 }
 
 pub fn deinit(self: *Self) void {
@@ -40,7 +40,7 @@ pub fn add(self: *Self, oldast_: *Type_AST, allocator: std.mem.Allocator) ?*Depe
         },
         .array_of => return self.add_array(ast, allocator),
         .identifier, .unit_type, .anyptr_type => return null, // Do not add to Dependency_Node
-        else => std.debug.panic("unknown: {}", .{ast}),
+        else => std.debug.panic("unknown: {f}", .{ast}),
     }
 }
 

@@ -1,5 +1,6 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
+const Basic_Block = @import("basic-block.zig");
 const CFG = @import("../ir/cfg.zig");
 const errs_ = @import("../util/errors.zig");
 const Instruction = @import("../ir/instruction.zig");
@@ -79,7 +80,7 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
         .copy => {
             const src1_def_is_ast = src1_def != null and src1_def.?.kind == .load_AST;
             if (instr.src1 == null or (instr.src1.?.expanded_type_sizeof() == 0 and !src1_def_is_ast)) {
-                logfln("unit-copy elimination {?} {}", .{ instr.src1, instr.src1.?.get_expanded_type() });
+                logfln("unit-copy elimination {?f} {f}", .{ instr.src1, instr.src1.?.get_expanded_type() });
                 instr.in_block.?.mark_for_removal(instr); // Mark for deletion in a later pass
             } else if (instr.dest.?.* == .symbver and
                 instr.src1.?.* == .symbver and
@@ -90,7 +91,7 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
                 instr.in_block.?.mark_for_removal(instr); // Mark for deletion in a later pass
                 retval = true;
             } else {
-                logfln("copy-propagation {?}", .{instr});
+                logfln("copy-propagation {f}", .{instr});
                 retval = try instr.copy_prop(src1_def, .load_int, errors) or // TODO: Check if data fits int type bounds!
                     try instr.copy_prop(src1_def, .load_float, errors) or
                     try instr.copy_prop(src1_def, .load_string, errors) or
@@ -478,7 +479,7 @@ fn remove_unused_defs(cfg: *CFG) bool {
                 instr.dest.?.symbver.symbol.uses == 0 and
                 instr.dest.?.symbver.symbol != cfg.return_symbol)
             {
-                logfln("removing: {}", .{instr});
+                logfln("removing: {f}", .{instr});
                 if (instr.kind != .call and instr.kind != .invoke) { // Calls and invokes may have side-effects, do not remove them!
                     instr.in_block.?.mark_for_removal(instr);
                     retval = true;
@@ -513,10 +514,10 @@ fn bb_optimizations(cfg: *CFG, allocator: std.mem.Allocator) bool {
         // TODO: Too long
         // Adopt basic blocks with only one incoming block
         if (bb.terminator == .unconditional and !bb.empty() and bb.terminator.unconditional != null and bb.terminator.unconditional.?.number_predecessors == 1) {
-            var log_msg = String.init(allocator);
+            var log_msg = std.array_list.Managed(u8).init(allocator);
             defer log_msg.deinit();
-            log_msg.writer().print("adopt BB{} into BB{}", .{ bb.terminator.unconditional.?.uid, bb.uid }) catch unreachable;
-            defer log_optimization_pass(log_msg.str(), cfg);
+            log_msg.print("adopt BB{} into BB{}", .{ bb.terminator.unconditional.?.uid, bb.uid }) catch unreachable;
+            defer log_optimization_pass(log_msg.items, cfg);
             cfg.remove_basic_block(bb.terminator.unconditional.?);
             bb.merge_with(bb.terminator.unconditional.?);
             retval = true;
@@ -529,9 +530,11 @@ fn bb_optimizations(cfg: *CFG, allocator: std.mem.Allocator) bool {
             if (latest_condition != null and latest_condition.?.kind == .load_int) {
                 defer log_optimization_pass("convert constant true/false to jumps", cfg);
                 if (bb.terminator.conditional.condition.symbver.def.?.data.int == 0) {
-                    bb.terminator = .{ .unconditional = bb.terminator.conditional.false_target };
+                    const new_terminator: Basic_Block.Terminator = .{ .unconditional = bb.terminator.conditional.false_target };
+                    bb.terminator = new_terminator;
                 } else {
-                    bb.terminator = .{ .unconditional = bb.terminator.conditional.true_target };
+                    const new_terminator: Basic_Block.Terminator = .{ .unconditional = bb.terminator.conditional.true_target };
+                    bb.terminator = new_terminator;
                 }
                 retval = true;
             }
@@ -566,10 +569,10 @@ fn bb_optimizations(cfg: *CFG, allocator: std.mem.Allocator) bool {
                 next_bb.terminator.unconditional != bb and
                 (next_bb.terminator.unconditional == null or (next_bb.terminator.unconditional.?.terminator == .unconditional and next_bb.terminator.unconditional.?.terminator.unconditional != next_bb)))
             {
-                var s = String.init(allocator);
-                s.writer().print("remove jump chain BB{}", .{next_bb.uid}) catch unreachable;
+                var s = std.array_list.Managed(u8).init(allocator);
+                s.print("remove jump chain BB{}", .{next_bb.uid}) catch unreachable;
                 defer s.deinit();
-                defer log_optimization_pass(s.str(), cfg);
+                defer log_optimization_pass(s.items, cfg);
                 bb.terminator.unconditional = next_bb.terminator.unconditional;
                 retval = true;
             }
@@ -652,7 +655,7 @@ fn log_optimization_pass(msg: []const u8, cfg: *CFG) void {
         }
 
         var in_buffer: [256]u8 = undefined;
-        _ = std.io.getStdIn().read(&in_buffer) catch unreachable;
+        _ = std.fs.File.stdin().read(&in_buffer) catch unreachable;
     }
 }
 

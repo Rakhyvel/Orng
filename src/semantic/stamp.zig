@@ -14,8 +14,8 @@ const Token = @import("../lexer/token.zig");
 const walker_ = @import("../ast/walker.zig");
 
 const Evaluated_Const_Args = struct {
-    args: std.ArrayList(*ast_.AST),
-    decls: std.ArrayList(*ast_.AST),
+    args: std.array_list.Managed(*ast_.AST),
+    decls: std.array_list.Managed(*ast_.AST),
 };
 
 // Stamps out a new function declaration along with a fully built and validated symbol tree, and decorated identifiers.
@@ -24,7 +24,7 @@ const Evaluated_Const_Args = struct {
 // An identifier AST, decorated with the stamped out anonymous function.
 // pub fn stamp(
 //     template_ast: *ast_.AST,
-//     args: *std.ArrayList(*ast_.AST),
+//     args: *std.array_list.Managed(*ast_.AST),
 //     call_span: Span,
 //     scope: *Scope,
 //     compiler: *Compiler_Context,
@@ -44,15 +44,15 @@ const Evaluated_Const_Args = struct {
 // /// TODO: For the next feature, closed world hypo, we will validate templates as if they were normal functions. This will allow us to evaluate constant args, and use those for the type map
 // fn evaluate_const_args(
 //     template_ast: *ast_.AST,
-//     args: *std.ArrayList(*ast_.AST),
+//     args: *std.array_list.Managed(*ast_.AST),
 //     call_span: Span,
 //     scope: *Scope,
 //     compiler: *Compiler_Context,
-// ) !std.ArrayList(*ast_.AST) {
+// ) !std.array_list.Managed(*ast_.AST) {
 //     _ = scope;
 //     // Go through each comptime arg, evaluate it, and store it in a list along with it's position
 //     // Combines the arg value and the position in the args/params list
-//     var const_decls = std.ArrayList(*ast_.AST).init(compiler.allocator());
+//     var const_decls = std.array_list.Managed(*ast_.AST).init(compiler.allocator());
 
 //     const domain = Symbol_Tree.extract_domain(template_ast.template.decl.children().*, compiler.allocator());
 //     args.* = try args_.default_args(.function, args.*, call_span, domain, &compiler.errors, compiler.allocator());
@@ -76,8 +76,8 @@ const Evaluated_Const_Args = struct {
 
 // fn get_stamp_symbol(
 //     template_ast: *ast_.AST,
-//     const_decls: *std.ArrayList(*ast_.AST),
-//     args: *std.ArrayList(*ast_.AST),
+//     const_decls: *std.array_list.Managed(*ast_.AST),
+//     args: *std.array_list.Managed(*ast_.AST),
 //     scope: *Scope,
 //     compiler: *Compiler_Context,
 // ) !*Symbol {

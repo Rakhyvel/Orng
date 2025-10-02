@@ -151,8 +151,8 @@ pub fn coalesce_operator(lhs_expanded_type: *Type_AST, ast: *ast_.AST, span: Spa
 }
 
 fn put_many_annot_map(
-    asts: *std.ArrayList(*Type_AST),
-    new_terms: *std.ArrayList(*Type_AST),
+    asts: *std.array_list.Managed(*Type_AST),
+    new_terms: *std.array_list.Managed(*Type_AST),
     map: *std.StringArrayHashMap(*Type_AST),
     errors: *errs_.Errors,
 ) Validate_Error_Enum!void {

@@ -51,7 +51,7 @@ fn resolve_symbol_from_ast(self: Self, ast: *ast_.AST) walk_.Error!*Symbol {
     switch (ast.*) {
         .access => return self.resolve_symbol_from_access(ast),
         .identifier, .pattern_symbol => return self.resolve_symbol_from_identlike(ast),
-        else => std.debug.panic("compiler error: fell through {}", .{ast}),
+        else => std.debug.panic("compiler error: fell through {f}", .{ast}),
     }
 }
 
@@ -76,10 +76,10 @@ fn resolve_symbol_from_identlike(self: Self, identlike_ast: *ast_.AST) *Symbol {
 fn resolve_symbol_from_import_identlike(self: Self, identlike_ast: *ast_.AST) *Symbol {
     const this_module = identlike_ast.symbol().?.scope.module.?;
     const curr_package_path = this_module.get_package_abs_path();
-    var module_path_name = String.init(self.compiler.allocator());
+    var module_path_name = std.array_list.Managed(u8).init(self.compiler.allocator());
     defer module_path_name.deinit();
-    module_path_name.writer().print("{s}.orng", .{identlike_ast.token().data}) catch unreachable;
-    const package_build_paths = [_][]const u8{ curr_package_path, module_path_name.str() };
+    module_path_name.print("{s}.orng", .{identlike_ast.token().data}) catch unreachable;
+    const package_build_paths = [_][]const u8{ curr_package_path, module_path_name.items };
     const other_module_dir = std.fs.path.join(self.compiler.allocator(), &package_build_paths) catch unreachable;
 
     if (std.mem.eql(u8, identlike_ast.symbol().?.kind.import.real_name, "core")) {

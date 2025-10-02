@@ -59,7 +59,7 @@ instruction_pointer: Instruction_Pointer,
 
 memory: Memory,
 modules: std.AutoArrayHashMap(module_.Module_UID, *module_.Module),
-debug_call_stack: std.ArrayList(Span),
+debug_call_stack: std.array_list.Managed(Span),
 start_time: i64,
 
 call_depth: i64,
@@ -76,7 +76,7 @@ pub fn init(ctx: *Compiler_Context) Self {
 
         .modules = std.AutoArrayHashMap(module_.Module_UID, *module_.Module).init(ctx.allocator()),
         .instruction_pointer = .{ .module_uid = 0, .inst_idx = 0 },
-        .debug_call_stack = std.ArrayList(Span).init(ctx.allocator()),
+        .debug_call_stack = std.array_list.Managed(Span).init(ctx.allocator()),
 
         .start_time = std.time.milliTimestamp(),
 
@@ -389,7 +389,7 @@ pub fn load_module(self: *Self, module: *module_.Module) void {
 
 /// Sets up the caller's stack frame, pushes function arguments in reverse order, stores the return value location,
 /// and then jumps to the function's code.
-pub fn call(self: *Self, function_symbol: *Symbol, retval_place: *lval_.L_Value, args_list: std.ArrayList(*lval_.L_Value)) error{CompileError}!void {
+pub fn call(self: *Self, function_symbol: *Symbol, retval_place: *lval_.L_Value, args_list: std.array_list.Managed(*lval_.L_Value)) error{CompileError}!void {
     self.call_depth += 1;
     // Save old stack pointer
     const old_sp = self.stack_pointer;
@@ -574,7 +574,7 @@ fn extract_struct_type(self: *Self, address: i64, struct_type: *Type_AST, span: 
         const string = interned_strings.?.items()[idx.string_idx];
         return ast_.AST.create_string(Token.init_simple("\""), string, self.ctx.allocator());
     }
-    var value_terms = std.ArrayList(*ast_.AST).init(self.ctx.allocator());
+    var value_terms = std.array_list.Managed(*ast_.AST).init(self.ctx.allocator());
     errdefer value_terms.deinit();
     for (0.., struct_type.children().items) |i, term| {
         // std.debug.print("term:{}\n", .{i});
@@ -588,7 +588,7 @@ fn extract_struct_type(self: *Self, address: i64, struct_type: *Type_AST, span: 
 }
 
 fn extract_tuple_type(self: *Self, address: i64, tuple_type: *Type_AST, span: Span) Error!*ast_.AST {
-    var value_terms = std.ArrayList(*ast_.AST).init(self.ctx.allocator());
+    var value_terms = std.array_list.Managed(*ast_.AST).init(self.ctx.allocator());
     errdefer value_terms.deinit();
     for (0.., tuple_type.children().items) |i, term| {
         // std.debug.print("term:{}\n", .{i});
@@ -602,7 +602,7 @@ fn extract_tuple_type(self: *Self, address: i64, tuple_type: *Type_AST, span: Sp
 }
 
 fn extract_array_type(self: *Self, address: i64, array_type: *Type_AST, span: Span) Error!*ast_.AST {
-    var value_terms = std.ArrayList(*ast_.AST).init(self.ctx.allocator());
+    var value_terms = std.array_list.Managed(*ast_.AST).init(self.ctx.allocator());
     errdefer value_terms.deinit();
     const length: usize = @intCast(array_type.array_of.len.int.data);
     const elem_type = array_type.child();
@@ -675,7 +675,7 @@ fn binop_load_float(self: *Self, src1: *lval_.L_Value, src2: *lval_.L_Value) !st
 fn move_lval_list(
     self: *Self,
     dest: i64,
-    list: *std.ArrayList(*lval_.L_Value),
+    list: *std.array_list.Managed(*lval_.L_Value),
 ) !void {
     std.debug.assert(dest >= 0);
     var cursor = dest;
@@ -784,12 +784,17 @@ fn memory_check(self: *Self, space_needed: i64) error{CompileError}!void {
 
 /// Signals an interpreter panic, printing an error message and call stack information.
 fn interpreter_panic(self: *Self, comptime msg: []const u8, args: anytype) error{CompileError} {
-    std.io.getStdOut().writer().print(msg, args) catch return error.CompileError;
+    var stdout = std.fs.File.stdout();
+
+    var buf = std.array_list.Managed(u8).init(std.heap.page_allocator);
+    defer buf.deinit();
+
+    buf.print(msg, args) catch return error.CompileError;
 
     var i = self.debug_call_stack.items.len - 1;
     while (true) {
         const stack_span = self.debug_call_stack.items[i];
-        stack_span.print_debug_line(std.io.getStdOut().writer(), Span.interpreter_format) catch return error.CompileError;
+        stack_span.print_debug_line(&buf, Span.interpreter_format) catch return error.CompileError;
 
         if (i == 0) {
             break;
@@ -797,5 +802,8 @@ fn interpreter_panic(self: *Self, comptime msg: []const u8, args: anytype) error
             i -= 1;
         }
     }
+
+    stdout.writeAll(buf.items) catch unreachable;
+
     return error.CompileError;
 }

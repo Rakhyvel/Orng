@@ -9,7 +9,7 @@ pub fn init() Self {
     return Self{};
 }
 
-pub fn run(self: Self, tokens: *std.ArrayList(Token)) error{}!*std.ArrayList(Token) {
+pub fn run(self: Self, tokens: *std.array_list.Managed(Token)) error{}!*std.array_list.Managed(Token) {
     _ = self;
     strip_comments(tokens);
     combine_multilines(tokens);
@@ -19,7 +19,7 @@ pub fn run(self: Self, tokens: *std.ArrayList(Token)) error{}!*std.ArrayList(Tok
 }
 
 /// Removes comment tokens from token stream. This should be disabled for documentation generation.
-fn strip_comments(tokens: *std.ArrayList(Token)) void {
+fn strip_comments(tokens: *std.array_list.Managed(Token)) void {
     var i: usize = 0;
     while (i < tokens.items.len - 1) : (i += 1) {
         const token = tokens.items[i];
@@ -40,14 +40,14 @@ fn strip_comments(tokens: *std.ArrayList(Token)) void {
     }
 }
 
-fn combine_multilines(tokens: *std.ArrayList(Token)) void {
+fn combine_multilines(tokens: *std.array_list.Managed(Token)) void {
     var i: usize = 0;
     while (i < tokens.items.len) : (i += 1) {
         var out: ?String = null;
         var span: ?Span = null;
         while (i < tokens.items.len and tokens.items[i].kind == .multi_line_string) : (i += 1) {
             if (out == null) {
-                out = String.init(std.heap.page_allocator);
+                out = String.init_with_contents(std.heap.page_allocator, "") catch unreachable;
                 span = tokens.items[i].span;
             } else {
                 // out was not null => there must have been a multiline before this one => insert newline
@@ -88,7 +88,7 @@ fn combine_multilines(tokens: *std.ArrayList(Token)) void {
 ///     6. jump keyword ('unreachable', 'break', 'continue', or 'return')
 ///     7. closing delimeters (`)`, `]`, or `}`)
 ///     8. postfix operators (`^`)
-fn trailing_comma_rules(tokens: *std.ArrayList(Token)) void {
+fn trailing_comma_rules(tokens: *std.array_list.Managed(Token)) void {
     if (tokens.items.len < 4) {
         return;
     }
@@ -118,8 +118,8 @@ fn trailing_comma_rules(tokens: *std.ArrayList(Token)) void {
 ///     7. closing delimiters (`)`, `]`, or `}`)
 ///     8. postfix operators (`^`)
 /// Otherwise, the newline token is removed.
-fn newline_rules(tokens: *std.ArrayList(Token)) void {
-    var stack = std.ArrayList(Token.Kind).init(tokens.allocator);
+fn newline_rules(tokens: *std.array_list.Managed(Token)) void {
+    var stack = std.array_list.Managed(Token.Kind).init(tokens.allocator);
     defer stack.deinit();
 
     var i: usize = 0;

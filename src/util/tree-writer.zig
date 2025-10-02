@@ -17,7 +17,7 @@ tab_size: i16,
 /// Initializes a new Tree Writer
 pub fn init(tab_size: i16, alloc: std.mem.Allocator) Tree_Writer {
     return .{
-        .out = String.init(alloc),
+        .out = String.init_with_contents(alloc, "") catch unreachable,
         .indentation = 0,
         .tab_size = tab_size,
     };

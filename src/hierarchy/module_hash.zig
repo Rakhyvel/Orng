@@ -41,17 +41,7 @@ fn read_contents(absolute_path: []const u8, allocator: std.mem.Allocator) ![]con
     defer file.close();
 
     const stat = file.stat() catch return error.CompileError;
-    const uid = stat.mtime;
-    _ = uid;
-
-    // Read in the contents of the file
-    var buf_reader = std.io.bufferedReader(file.reader());
-    var in_stream = buf_reader.reader();
-    var contents_arraylist = std.ArrayList(u8).init(allocator);
-    defer contents_arraylist.deinit();
-    in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF) catch unreachable;
-    const contents = contents_arraylist.toOwnedSlice() catch unreachable;
-
+    const contents = try file.readToEndAlloc(allocator, stat.size);
     return contents;
 }
 
@@ -77,6 +67,7 @@ pub fn output_new_json(self: *Self, allocator: std.mem.Allocator) void {
     }
     var json_file_handle = std.fs.createFileAbsolute(self.json_absolute_path, .{}) catch unreachable;
     defer json_file_handle.close();
-    const writer = json_file_handle.writer();
-    std.json.stringify(self.json_parsed.?.value, .{}, writer) catch unreachable;
+    var out: std.io.Writer.Allocating = .init(allocator);
+    std.json.Stringify.value(self.json_parsed.?.value, .{}, &out.writer) catch unreachable;
+    json_file_handle.writeAll(out.written()) catch unreachable;
 }

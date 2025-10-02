@@ -1,4 +1,4 @@
-// This file contains the implementation of the Orng compiler's C code generator.
+// This file contains the implementation of the Orange compiler's C code generator.
 // TODO: Make this a context struct (to fix cheat_module)
 
 const std = @import("std");
@@ -25,12 +25,11 @@ module: *module_.Module,
 /// Interned strings for this module. Referenced when emitting a load_string instruction to retrieve the string information.
 module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set),
 emitter: Emitter,
-writer: Writer,
+writer: *std.array_list.Managed(u8),
 
-pub const CodeGen_Error = std.fs.File.WriteError;
-const Writer = std.fs.File.Writer;
+pub const CodeGen_Error = error{OutOfMemory};
 
-pub fn init(module: *module_.Module, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set), writer: Writer) Self {
+pub fn init(module: *module_.Module, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set), writer: *std.array_list.Managed(u8)) Self {
     const emitter = Emitter.init(module, writer);
     return Self{
         .module = module,
@@ -40,7 +39,7 @@ pub fn init(module: *module_.Module, module_interned_strings: *const std.AutoArr
     };
 }
 
-/// Generates C code for the provided Orng module and writes it to the given writer.
+/// Generates C code for the provided Orange module and writes it to the given writer.
 pub fn generate(self: *Self) CodeGen_Error!void {
     try self.output_header_include();
     try self.output_impls();
@@ -49,7 +48,7 @@ pub fn generate(self: *Self) CodeGen_Error!void {
 
 pub fn output_header_include(self: *Self) CodeGen_Error!void {
     try self.writer.print(
-        \\/* Code generated using the Orng compiler http://ornglang.org */
+        \\/* Code generated using the Orange compiler http://ornglang.org */
         \\
         \\#include "{s}-{s}.h"
         \\
@@ -193,7 +192,7 @@ fn output_basic_block(
     return_symbol: *Symbol,
 ) CodeGen_Error!void {
     // FIXME: High Cyclo
-    var bb_queue = std.ArrayList(*Basic_Block).init(std.heap.page_allocator); // page alloc ok, immediately deinit'd
+    var bb_queue = std.array_list.Managed(*Basic_Block).init(std.heap.page_allocator); // page alloc ok, immediately deinit'd
     defer bb_queue.deinit();
     bb_queue.append(start_bb) catch unreachable;
     start_bb.visited = true;
@@ -464,12 +463,13 @@ fn output_instruction_post_check(self: *Self, instr: *Instruction) CodeGen_Error
         .branch_if_false,
         => {},
         .push_stack_trace => {
-            var spaces = String.init(std.heap.page_allocator); // page alloc ok, immediately deinit'd
+            var spaces = std.array_list.Managed(u8).init(std.heap.page_allocator); // page alloc ok, immediately deinit'd
             defer spaces.deinit();
             for (1..instr.span.col - 1) |_| {
-                spaces.insert(" ", spaces.size) catch unreachable;
+                spaces.print(" ", .{}) catch unreachable;
             }
             try self.writer.print("    $lines[$line_idx++] = ", .{});
+
             try instr.span.print_debug_line(self.writer, Span.c_format);
             try self.writer.print(";\n", .{});
         },
@@ -569,7 +569,7 @@ fn output_rvalue(self: *Self, lvalue: *lval_.L_Value, outer_precedence: i128) Co
                 const field_name = lvalue.select.lhs.get_expanded_type().children().items[@intCast(lvalue.select.field)].annotation.pattern.token().data;
                 try self.writer.print(".{s}", .{field_name});
             } else {
-                // Select the structural Orng name
+                // Select the structural Orange name
                 try self.writer.print("._{}", .{lvalue.select.field});
             }
         },
