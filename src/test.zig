@@ -62,7 +62,7 @@ fn parse_args(old_args: std.process.ArgIterator, mode: Test_Mode, comptime test_
     const writer = &writer_struct.interface;
     var args = old_args;
     if (mode == .regular) {
-        try term_.outputColor(succeed_color, "[==============]\n", &writer);
+        try term_.outputColor(succeed_color, "[==============]\n", writer);
     }
 
     var failed_tests = std.array_list.Managed([]const u8).init(std.heap.page_allocator);
@@ -77,7 +77,7 @@ fn parse_args(old_args: std.process.ArgIterator, mode: Test_Mode, comptime test_
         var debug_alloc = std.heap.DebugAllocator(.{ .never_unmap = true, .safety = true }){};
         const test_name = get_test_name(next) orelse continue;
         if (mode == .regular) {
-            term_.outputColor(succeed_color, "[ RUN      ... ] ", &writer) catch unreachable;
+            term_.outputColor(succeed_color, "[ RUN      ... ] ", writer) catch unreachable;
             writer.print("{s}\n", .{test_name}) catch unreachable;
         }
 
@@ -95,28 +95,28 @@ fn parse_args(old_args: std.process.ArgIterator, mode: Test_Mode, comptime test_
         if (res and !memory_leak_detected) {
             results.passed += 1;
             if (mode == .regular) {
-                term_.outputColor(succeed_color, "[  ... PASSED  ]\n", &writer) catch unreachable;
+                term_.outputColor(succeed_color, "[  ... PASSED  ]\n", writer) catch unreachable;
             }
         } else {
             results.failed += 1;
             failed_tests.append(test_name) catch unreachable;
             if (mode == .regular) {
-                term_.outputColor(fail_color, "[  ... FAILED  ]\n", &writer) catch unreachable;
+                term_.outputColor(fail_color, "[  ... FAILED  ]\n", writer) catch unreachable;
             }
         }
     }
 
     if (mode == .regular) {
-        try term_.outputColor(succeed_color, "[==============]\n", &writer);
+        try term_.outputColor(succeed_color, "[==============]\n", writer);
         try writer.print("Passed tests: {}\n", .{results.passed});
         try writer.print("Failed tests: {}\n", .{results.failed});
 
         if (results.failed > 0) {
-            try term_.outputColor(fail_color, "[ FAILED TESTS ]\n", &writer);
+            try term_.outputColor(fail_color, "[ FAILED TESTS ]\n", writer);
             for (failed_tests.items) |failed_test| {
                 try writer.print("{s} ", .{failed_test});
             }
-            try term_.outputColor(fail_color, "\n[==============]\n", &writer);
+            try term_.outputColor(fail_color, "\n[==============]\n", writer);
             return error.TestsFailed;
         }
     }
@@ -125,7 +125,8 @@ fn parse_args(old_args: std.process.ArgIterator, mode: Test_Mode, comptime test_
 fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug_Allocator) bool {
     // FIXME: High Cyclo
     const absolute_filename = std.fs.cwd().realpathAlloc(allocator, filename) catch unreachable;
-    var writer = get_std_out().writer(&.{}).interface;
+    var writer_struct = get_std_out().writer(&.{});
+    const writer = &writer_struct.interface;
 
     // Try to compile Orange (make sure no errors)
     var compiler = Compiler_Context.init(if (mode != .coverage) get_std_out() else null, debug_alloc.allocator()) catch unreachable;
@@ -191,7 +192,8 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
 
 fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug_Allocator) bool {
     // FIXME: High Cyclo
-    var writer = get_std_out().writer(&.{}).interface;
+    var writer_struct = get_std_out().writer(&.{});
+    const writer = &writer_struct.interface;
 
     const absolute_filename = std.fs.cwd().realpathAlloc(allocator, filename) catch unreachable;
     // Try to compile Orange (make sure no errors)
@@ -260,7 +262,8 @@ fn bless_file(filename: []const u8, error_msg: []const u8, body: []const u8) !vo
     var file_contents = String.init_with_contents(std.heap.page_allocator, "") catch unreachable;
     defer file_contents.deinit();
 
-    var writer = file_contents.writer(file_contents.buffer.?).interface;
+    var writer_struct = file_contents.writer(file_contents.buffer.?);
+    const writer = &writer_struct.interface;
 
     _ = try writer.write("// ");
     for (error_msg) |c| {
