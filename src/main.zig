@@ -36,7 +36,7 @@ const command_table = [_]Command_Entry{
     Command_Entry{ .name = "version", .help = "Prints the version of Orange", .func = print_version },
 };
 
-// Accepts a file as an argument. That file should contain orng constant/type/function declarations, and an entry-point
+// Accepts a file as an argument. That file should contain Orange constant/type/function declarations, and an entry-point
 // Files may also call some built-in compiletime functions which may import other Orange files, C headers, etc...
 // Afterwards, the program is collated to a CFG and written to a .c file. A C compiler may be called, and a
 pub fn main() !void {

@@ -12,8 +12,8 @@
 Orange is a versatile systems programming language I've been developing that gives developers control without sacrificing expressiveness. It is designed to be both lightweight and simple, making it a great choice for enthusiasts and professionals alike.
 
 * Visit [the website (coming soon)](http://ornglang.org) to learn more about Orange.
-* Tutorials can be found [here (coming soon)](http://ornglang.orng/tutorials).
-* Documentation can be found [here (coming soon)](http://ornglang.orng/docs).
+* Tutorials can be found [here (coming soon)](http://ornglang.org/tutorials).
+* Documentation can be found [here (coming soon)](http://ornglang.org/docs).
 
 ## Quick Start
 ```sh
