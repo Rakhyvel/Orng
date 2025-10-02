@@ -451,7 +451,7 @@ pub fn get_adjacent(self: *Self) []*Self {
 
 /// Fills in a CFG's local offsets
 ///
-/// ## The Orng interpreter calling convention
+/// ## The Orange interpreter calling convention
 /// (stack grows up btw, lmao)
 /// ```
 ///       |         |

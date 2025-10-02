@@ -1,4 +1,4 @@
-// This file contains the implementation of the Orng compiler's C code generator.
+// This file contains the implementation of the Orange compiler's C code generator.
 // TODO: Make this a context struct (to fix self.module)
 
 const std = @import("std");
@@ -44,7 +44,7 @@ pub fn generate(self: *Self) CodeGen_Error!void {
 
 pub fn output_include_guard_begin(self: *Self) CodeGen_Error!void {
     try self.writer.print(
-        \\/* Code generated using the Orng compiler http://ornglang.org */
+        \\/* Code generated using the Orange compiler http://ornglang.org */
         \\
         \\#ifndef _{0s}_{1s}_h
         \\#define _{0s}_{1s}_h

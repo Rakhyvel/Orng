@@ -126,7 +126,7 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
     const absolute_filename = std.fs.cwd().realpathAlloc(allocator, filename) catch unreachable;
     var writer = get_std_out().writer(&.{}).interface;
 
-    // Try to compile Orng (make sure no errors)
+    // Try to compile Orange (make sure no errors)
     var compiler = Compiler_Context.init(if (mode != .coverage) get_std_out() else null, debug_alloc.allocator()) catch unreachable;
     defer compiler.deinit();
     defer prelude_.deinit();
@@ -134,7 +134,7 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
 
     const module = module_.Module.compile(absolute_filename, "main", false, compiler) catch {
         if (mode == .regular) {
-            writer.print("Orng -> C.\n", .{}) catch unreachable;
+            writer.print("Orange -> C.\n", .{}) catch unreachable;
         }
         return false;
     };
@@ -193,7 +193,7 @@ fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug
     var writer = get_std_out().writer(&.{}).interface;
 
     const absolute_filename = std.fs.cwd().realpathAlloc(allocator, filename) catch unreachable;
-    // Try to compile Orng (make sure no errors)
+    // Try to compile Orange (make sure no errors)
     var compiler = Compiler_Context.init(if (mode != .coverage) get_std_out() else null, debug_alloc.allocator()) catch unreachable;
     defer compiler.deinit();
     defer prelude_.deinit();
@@ -208,7 +208,7 @@ fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug
     var error_string = String.init_with_contents(debug_alloc.allocator(), "") catch unreachable;
     defer error_string.deinit();
 
-    // Try to compile Orng (make sure YES errors)
+    // Try to compile Orange (make sure YES errors)
     _ = module_.Module.compile(absolute_filename, "main", false, compiler) catch |err| {
         var error_string_writer = error_string.writer(error_string.buffer.?);
         compiler.errors.print_errors(&error_string_writer.interface, .{ .print_full_path = false, .print_color = false });

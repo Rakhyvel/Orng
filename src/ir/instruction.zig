@@ -489,7 +489,7 @@ pub const Kind = enum {
     negate_int,
     negate_float,
     bit_not,
-    size_of, //< For extern types that Orng can't do automatically
+    size_of, //< For extern types that Orange can't do automatically
     addr_of,
     mut_addr_of, // Separate kind to allow for aliasing analysis
     dyn_value,

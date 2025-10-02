@@ -43,7 +43,7 @@ pub fn generate(self: *Self) CodeGen_Error!void {
 
 pub fn output_test_include_guard_begin(self: *Self) CodeGen_Error!void {
     try self.header_writer.print(
-        \\/* Code generated using the Orng compiler http://ornglang.org */
+        \\/* Code generated using the Orange compiler http://ornglang.org */
         \\
         \\#ifndef _{0s}_{1s}_TESTS_h
         \\#define _{0s}_{1s}_TESTS_h

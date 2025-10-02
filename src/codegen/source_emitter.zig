@@ -1,4 +1,4 @@
-// This file contains the implementation of the Orng compiler's C code generator.
+// This file contains the implementation of the Orange compiler's C code generator.
 // TODO: Make this a context struct (to fix cheat_module)
 
 const std = @import("std");
@@ -39,7 +39,7 @@ pub fn init(module: *module_.Module, module_interned_strings: *const std.AutoArr
     };
 }
 
-/// Generates C code for the provided Orng module and writes it to the given writer.
+/// Generates C code for the provided Orange module and writes it to the given writer.
 pub fn generate(self: *Self) CodeGen_Error!void {
     try self.output_header_include();
     try self.output_impls();
@@ -48,7 +48,7 @@ pub fn generate(self: *Self) CodeGen_Error!void {
 
 pub fn output_header_include(self: *Self) CodeGen_Error!void {
     try self.writer.print(
-        \\/* Code generated using the Orng compiler http://ornglang.org */
+        \\/* Code generated using the Orange compiler http://ornglang.org */
         \\
         \\#include "{s}-{s}.h"
         \\
@@ -569,7 +569,7 @@ fn output_rvalue(self: *Self, lvalue: *lval_.L_Value, outer_precedence: i128) Co
                 const field_name = lvalue.select.lhs.get_expanded_type().children().items[@intCast(lvalue.select.field)].annotation.pattern.token().data;
                 try self.writer.print(".{s}", .{field_name});
             } else {
-                // Select the structural Orng name
+                // Select the structural Orange name
                 try self.writer.print("._{}", .{lvalue.select.field});
             }
         },

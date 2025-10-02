@@ -46,7 +46,7 @@ var module_uids: Module_UID = 0;
 ///
 /// Each module has a list of instructions, and a table of symbols/cfgs that refer to their corresponding instructions.
 pub const Module = struct {
-    // A unique identifier for this Orng module
+    // A unique identifier for this Orange module
     uid: Module_UID,
 
     /// Unique Identifier generator for symbols in this module, so that symbols are given predictable, stable UIDs

@@ -35,7 +35,7 @@
     - compile-time string literal concat (implement btw)
 - Sum types
     - Injections
-    - how to do enums (how Orng is better than Go)
+    - how to do enums (how Orange is better than Go)
     - inferred members
 - Functions
     - `return`
@@ -64,9 +64,9 @@
     - Using traits as an interface for code
     - Implementing compile-tile traits (`as` trait)
 - How to use the build system
-    - How to import other Orng modules
+    - How to import other Orange modules
         - How to encapsulate with `pub`
-    - How to use other Orng packages
+    - How to use other Orange packages
     - How to use C libraries
         - Using externs
         - Marking volatiles

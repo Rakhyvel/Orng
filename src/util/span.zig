@@ -78,7 +78,7 @@ pub fn format(self: Self, writer: *std.io.Writer) !void {
 
 /// Sanitizes a string, escaping proper characters.
 ///
-/// This is needed so that string escapes in Orng do not escape in the generate C source.
+/// This is needed so that string escapes in Orange do not escape in the generate C source.
 ///
 /// For example:
 ///     let str = some_function("You better \n sanitize me!")

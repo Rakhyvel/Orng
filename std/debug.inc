@@ -1,4 +1,4 @@
-// debug utilities made use by the Orng compiler when in debug mode
+// debug utilities made use by the Orange compiler when in debug mode
 // Copyright (c) 2023-2025, Joseph Shimel and contributors.
 
 #ifndef _STD_DEBUG_INC

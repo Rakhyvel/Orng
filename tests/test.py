@@ -10,14 +10,14 @@ commands:
         --test (-t)         - List of either files or directories to run tests on. Duplicates are allowed, and
                               only tested once.
         --no-coverage (-n)  - Do not run coverage after testing, even if all tests pass.
-        --count (-c)        - Recursively count the number of Orng integration test files in the directories
+        --count (-c)        - Recursively count the number of Orange integration test files in the directories
                               given.
 
     negative    - Runs negative tests, runs kcov on integration tests if test pass.
         --test (-t)         - List of either files or directories to run tests on. Duplicates are allowed, and
                               only tested once.
         --no-coverage (-n)  - Do not run coverage after testing, even if all tests pass.
-        --count (-c)        - Recursively count the number of Orng integration test files in the directories
+        --count (-c)        - Recursively count the number of Orange integration test files in the directories
                               given.
 
     fuzz        - Runs fuzz tests.

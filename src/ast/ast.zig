@@ -2057,7 +2057,7 @@ pub const AST = union(enum) {
         // AST kinds like `and` and `or` are technically control-flow, but conceptually, they terminate and
         // are pure.
         // `try` breaks normal control-flow. `block` allows for unpure statements like `continue`, `break`,
-        // `return`, and `try`. `call` is non-comptime because functions are not pure in Orng.
+        // `return`, and `try`. `call` is non-comptime because functions are not pure in Orange.
         // Kinds like `and`, `or`, `orelse`, `catch`, `if`, `match`, and `while` are in a way "purer", and it
         // would be annoying to have to wrap these in comptime.
     }

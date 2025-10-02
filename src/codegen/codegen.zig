@@ -123,7 +123,7 @@ fn output_testrunner(modules: std.array_list.Managed(*Module), build_path: []con
     defer buf.deinit();
 
     buf.print(
-        \\/* Code generated using the Orng compiler http://ornglang.org */
+        \\/* Code generated using the Orange compiler http://ornglang.org */
         \\
         \\#include <stdio.h>
         \\#include <stdlib.h>

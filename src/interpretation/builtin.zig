@@ -17,7 +17,7 @@ const Error: type = error{
 const Package_Find_Result = struct { package_adrs: i64, package_dirname: []const u8 };
 
 /// Implements the Package::find method at build-time. Takes in a string representing the name of
-/// the package in the Orng cache, and returns an AST representing the package.
+/// the package in the Orange cache, and returns an AST representing the package.
 pub fn package_find(compiler: *Compiler_Context, interpreter: *Interpreter_Context, current_module_path: []const u8, package_src: *AST) Error!Package_Find_Result {
     // Construct the path to the package's `build.orng` file
     const package_absolute_path = switch (package_src.pos().?) {

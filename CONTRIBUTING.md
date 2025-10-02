@@ -1,8 +1,8 @@
-# Contributing to Orng
-Thank you for your intetest in contributing to the Orng Programming Language! This document outlines the process for reporting issues and submitting pull requests to ensure everything goes smoothly.
+# Contributing to Orange
+Thank you for your intetest in contributing to the Orange Programming Language! This document outlines the process for reporting issues and submitting pull requests to ensure everything goes smoothly.
 
 ## Reporting Bugs
-Help us improve Orng by reporting bugs effectively:
+Help us improve Orange by reporting bugs effectively:
 
 ### Bug Report Checklist
 * A clear title summarizing the issue
@@ -14,7 +14,7 @@ Help us improve Orng by reporting bugs effectively:
 
 ### Bug Reporting Process
 1. Check existing issues to avoid duplicates
-2. Use the [bug reporting template](https://github.com/Rakhyvel/Orng/blob/main/docs/bug-reporting-template.md)
+2. Use the [bug reporting template](https://github.com/Rakhyvel/Orange/blob/main/docs/bug-reporting-template.md)
 3. Provide minimal reproducible examples when possible
 
 

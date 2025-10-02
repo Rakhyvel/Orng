@@ -26,18 +26,18 @@ const Command_Entry: type = struct {
 
 // Keep these in alphabetical order
 const command_table = [_]Command_Entry{
-    Command_Entry{ .name = "build", .help = "Builds an Orng package", .func = build },
-    Command_Entry{ .name = "clean", .help = "Clears the build cache, and forces a complete rebuild of the Orng package", .func = clean },
-    Command_Entry{ .name = "_fuzz_tokens", .help = "Builds an Orng package with fuzz tokens", .func = build },
+    Command_Entry{ .name = "build", .help = "Builds an Orange package", .func = build },
+    Command_Entry{ .name = "clean", .help = "Clears the build cache, and forces a complete rebuild of the Orange package", .func = clean },
+    Command_Entry{ .name = "_fuzz_tokens", .help = "Builds an Orange package with fuzz tokens", .func = build },
     Command_Entry{ .name = "help", .help = "Prints this help menu", .func = help },
     Command_Entry{ .name = "init", .help = "Creates two files, one containing a sample Hello World program and a file to allow for it to be built", .func = init_project },
-    Command_Entry{ .name = "run", .help = "Builds and runs an Orng package", .func = build },
-    Command_Entry{ .name = "test", .help = "Builds and runs any tests in the current Orng package", .func = @"test" },
-    Command_Entry{ .name = "version", .help = "Prints the version of Orng", .func = print_version },
+    Command_Entry{ .name = "run", .help = "Builds and runs an Orange package", .func = build },
+    Command_Entry{ .name = "test", .help = "Builds and runs any tests in the current Orange package", .func = @"test" },
+    Command_Entry{ .name = "version", .help = "Prints the version of Orange", .func = print_version },
 };
 
 // Accepts a file as an argument. That file should contain orng constant/type/function declarations, and an entry-point
-// Files may also call some built-in compiletime functions which may import other Orng files, C headers, etc...
+// Files may also call some built-in compiletime functions which may import other Orange files, C headers, etc...
 // Afterwards, the program is collated to a CFG and written to a .c file. A C compiler may be called, and a
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
@@ -275,7 +275,7 @@ fn print_version(name: []const u8, args: *std.process.ArgIterator, allocator: st
     _ = args;
     const out = std.fs.File.stdout();
     var writer = out.writer(&.{}).interface;
-    writer.print("Orng {}.{:0>2}", .{ version_year, version_month }) catch unreachable;
+    writer.print("Orange {}.{:0>2}", .{ version_year, version_month }) catch unreachable;
     if (version_minor != null) {
         writer.print(".{}", .{version_minor.?}) catch unreachable;
     }
@@ -314,7 +314,7 @@ pub fn init_project(name: []const u8, args: *std.process.ArgIterator, allocator:
     const main_path = "main.orng";
     if (std.fs.cwd().openFile(main_path, .{})) |_| {
         (errs_.Error{ .basic = .{
-            .msg = "an Orng package already exists here",
+            .msg = "an Orange package already exists here",
             .span = Span.phony,
         } }).fatal_error(&stderr_writer, .{});
     } else |err| switch (err) {
@@ -325,7 +325,7 @@ pub fn init_project(name: []const u8, args: *std.process.ArgIterator, allocator:
     const build_path = "build.orng";
     if (std.fs.cwd().openFile(build_path, .{})) |_| {
         (errs_.Error{ .basic = .{
-            .msg = "an Orng package already exists here",
+            .msg = "an Orange package already exists here",
             .span = Span.phony,
         } }).fatal_error(&stderr_writer, .{});
     } else |err| switch (err) {
