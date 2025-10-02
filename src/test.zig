@@ -58,7 +58,8 @@ pub fn main() !void {
 /// When `coverage` is true, no child processes are spawned, and no output is given.
 const Results = struct { passed: usize, failed: usize };
 fn parse_args(old_args: std.process.ArgIterator, mode: Test_Mode, comptime test_file: Test_File_Fn) !void { // TODO: Uninfer error
-    var writer = get_std_out().writer(&.{}).interface;
+    var writer_struct = get_std_out().writer(&.{});
+    const writer = &writer_struct.interface;
     var args = old_args;
     if (mode == .regular) {
         try term_.outputColor(succeed_color, "[==============]\n", &writer);
