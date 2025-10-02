@@ -47,7 +47,14 @@ def main():
     if res != 0:
         exit(1)
     res = subprocess.run(
-        ["zig", "build", "orng-test", "--release=safe", "-Doptimize=Debug"]
+        [
+            "zig",
+            "build",
+            "orng-test",
+            "--release=safe",
+            "-Doptimize=Debug",
+            "-freference-trace=3",
+        ]
     ).returncode
     if res != 0:
         exit(1)

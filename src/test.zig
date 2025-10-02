@@ -46,8 +46,6 @@ pub fn main() !void {
             try parse_args(args, .coverage, negative_test_file);
         } else if (std.mem.eql(u8, "bless", arg)) {
             try parse_args(args, .bless, negative_test_file);
-        } else if (std.mem.eql(u8, "fuzz", arg)) {
-            try fuzz_tests();
         } else {
             std.debug.print("invalid command-line argument: {s}\nusage: orng-test (integration | coverage | fuzz)\n", .{arg});
             return error.InvalidCliArgument;
@@ -60,9 +58,10 @@ pub fn main() !void {
 /// When `coverage` is true, no child processes are spawned, and no output is given.
 const Results = struct { passed: usize, failed: usize };
 fn parse_args(old_args: std.process.ArgIterator, mode: Test_Mode, comptime test_file: Test_File_Fn) !void { // TODO: Uninfer error
+    var writer = get_std_out().writer(&.{}).interface;
     var args = old_args;
     if (mode == .regular) {
-        try term_.outputColor(succeed_color, "[==============]\n", get_std_out());
+        try term_.outputColor(succeed_color, "[==============]\n", &writer);
     }
 
     var failed_tests = std.array_list.Managed([]const u8).init(std.heap.page_allocator);
@@ -77,8 +76,8 @@ fn parse_args(old_args: std.process.ArgIterator, mode: Test_Mode, comptime test_
         var debug_alloc = std.heap.DebugAllocator(.{ .never_unmap = true, .safety = true }){};
         const test_name = get_test_name(next) orelse continue;
         if (mode == .regular) {
-            term_.outputColor(succeed_color, "[ RUN      ... ] ", get_std_out()) catch unreachable;
-            get_std_out().print("{s}\n", .{test_name}) catch unreachable;
+            term_.outputColor(succeed_color, "[ RUN      ... ] ", &writer) catch unreachable;
+            writer.print("{s}\n", .{test_name}) catch unreachable;
         }
 
         const res = test_file(next, mode, &debug_alloc);
@@ -86,7 +85,7 @@ fn parse_args(old_args: std.process.ArgIterator, mode: Test_Mode, comptime test_
         const debug_result = debug_alloc.deinit();
         var memory_leak_detected: bool = undefined;
         if (debug_result == .leak) {
-            get_std_out().print("compiler error: memory leak!\n", .{}) catch unreachable;
+            writer.print("compiler error: memory leak!\n", .{}) catch unreachable;
             memory_leak_detected = true;
         } else {
             memory_leak_detected = false;
@@ -95,28 +94,28 @@ fn parse_args(old_args: std.process.ArgIterator, mode: Test_Mode, comptime test_
         if (res and !memory_leak_detected) {
             results.passed += 1;
             if (mode == .regular) {
-                term_.outputColor(succeed_color, "[  ... PASSED  ]\n", get_std_out()) catch unreachable;
+                term_.outputColor(succeed_color, "[  ... PASSED  ]\n", &writer) catch unreachable;
             }
         } else {
             results.failed += 1;
             failed_tests.append(test_name) catch unreachable;
             if (mode == .regular) {
-                term_.outputColor(fail_color, "[  ... FAILED  ]\n", get_std_out()) catch unreachable;
+                term_.outputColor(fail_color, "[  ... FAILED  ]\n", &writer) catch unreachable;
             }
         }
     }
 
     if (mode == .regular) {
-        try term_.outputColor(succeed_color, "[==============]\n", get_std_out());
-        try get_std_out().print("Passed tests: {}\n", .{results.passed});
-        try get_std_out().print("Failed tests: {}\n", .{results.failed});
+        try term_.outputColor(succeed_color, "[==============]\n", &writer);
+        try writer.print("Passed tests: {}\n", .{results.passed});
+        try writer.print("Failed tests: {}\n", .{results.failed});
 
         if (results.failed > 0) {
-            try term_.outputColor(fail_color, "[ FAILED TESTS ]\n", get_std_out());
+            try term_.outputColor(fail_color, "[ FAILED TESTS ]\n", &writer);
             for (failed_tests.items) |failed_test| {
-                try get_std_out().print("{s} ", .{failed_test});
+                try writer.print("{s} ", .{failed_test});
             }
-            try term_.outputColor(fail_color, "\n[==============]\n", get_std_out());
+            try term_.outputColor(fail_color, "\n[==============]\n", &writer);
             return error.TestsFailed;
         }
     }
@@ -125,6 +124,7 @@ fn parse_args(old_args: std.process.ArgIterator, mode: Test_Mode, comptime test_
 fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug_Allocator) bool {
     // FIXME: High Cyclo
     const absolute_filename = std.fs.cwd().realpathAlloc(allocator, filename) catch unreachable;
+    var writer = get_std_out().writer(&.{}).interface;
 
     // Try to compile Orng (make sure no errors)
     var compiler = Compiler_Context.init(if (mode != .coverage) get_std_out() else null, debug_alloc.allocator()) catch unreachable;
@@ -134,7 +134,7 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
 
     const module = module_.Module.compile(absolute_filename, "main", false, compiler) catch {
         if (mode == .regular) {
-            get_std_out().print("Orng -> C.\n", .{}) catch unreachable;
+            writer.print("Orng -> C.\n", .{}) catch unreachable;
         }
         return false;
     };
@@ -171,15 +171,16 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
 
     // execute (make sure no signals)
     var output_name = String.init_with_contents(allocator, "") catch unreachable;
-    var writer = output_name.writer(output_name.buffer.?).interface;
-    writer.print("{s}/build/{s}", .{ package_abs_path, module.package_name }) catch unreachable;
+    var output_name_writer = output_name.writer(output_name.buffer.?);
+    const out_name_writer_intfc = &output_name_writer.interface;
+    out_name_writer_intfc.print("{s}/build/{s}", .{ package_abs_path, module.package_name }) catch unreachable;
     const res = exec(&[_][]const u8{output_name.str()}) catch |e| {
-        get_std_out().print("{?}\n", .{e}) catch unreachable;
-        get_std_out().print("Execution interrupted!\n", .{}) catch unreachable;
+        writer.print("{}\n", .{e}) catch unreachable;
+        writer.print("Execution interrupted!\n", .{}) catch unreachable;
         return false;
     };
     if (!std.mem.eql(u8, res.stdout, expected_out.str())) {
-        get_std_out().print("Expected \"{s}\" retcode, got \"{s}\"\n", .{ expected_out.str(), res.stdout }) catch unreachable;
+        writer.print("Expected \"{s}\" retcode, got \"{s}\"\n", .{ expected_out.str(), res.stdout }) catch unreachable;
         return false;
     }
 
@@ -189,6 +190,7 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
 
 fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug_Allocator) bool {
     // FIXME: High Cyclo
+    var writer = get_std_out().writer(&.{}).interface;
 
     const absolute_filename = std.fs.cwd().realpathAlloc(allocator, filename) catch unreachable;
     // Try to compile Orng (make sure no errors)
@@ -208,8 +210,8 @@ fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug
 
     // Try to compile Orng (make sure YES errors)
     _ = module_.Module.compile(absolute_filename, "main", false, compiler) catch |err| {
-        const writer = error_string.writer(error_string.buffer.?).interface;
-        compiler.errors.print_errors(writer, .{ .print_full_path = false, .print_color = false });
+        var error_string_writer = error_string.writer(error_string.buffer.?);
+        compiler.errors.print_errors(&error_string_writer.interface, .{ .print_full_path = false, .print_color = false });
         if (mode == .bless) {
             bless_file(filename, error_string.str(), body) catch unreachable;
             return true;
@@ -232,7 +234,7 @@ fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug
                     if (str.find("parser") != null) {
                         return errors_match;
                     } else {
-                        get_std_out().print("Non-parser negative tests should parse!\n", .{}) catch unreachable;
+                        writer.print("Non-parser negative tests should parse!\n", .{}) catch unreachable;
                         return false;
                     }
                 },
@@ -246,7 +248,7 @@ fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug
         return false;
     }
 
-    get_std_out().print("Negative test compiled without error.\n", .{}) catch unreachable;
+    writer.print("Negative test compiled without error.\n", .{}) catch unreachable;
     return false;
 }
 
@@ -271,107 +273,6 @@ fn bless_file(filename: []const u8, error_msg: []const u8, body: []const u8) !vo
     _ = try writer.write(body);
 
     _ = file.write(file_contents.str()) catch unreachable;
-}
-
-/// Uses Dr. Proebsting's rdgen to create random Orng programs, feeds them to the compiler
-fn fuzz_tests() !void { // TODO: Uninfer error
-    // FIXME: High Cyclo
-    // Open and read tests/fuzz/fuzz.txt
-    var file = try std.fs.cwd().openFile("tests/fuzz/fuzz.txt", .{});
-    defer file.close();
-
-    // Read in the contents of the file
-    const stat = file.stat() catch return error.CompileError;
-    const contents = try file.readToEndAlloc(allocator, stat.size);
-
-    var passed: usize = 0;
-    var failed: usize = 0;
-    var i: usize = 0;
-
-    // Add lines to arraylist
-    var start: usize = index_of(contents, '"').? + 1;
-    var end: usize = start + 1;
-    var broken: bool = false;
-    while (end < contents.len and !broken) : (end += 1) { // TODO: Too long!
-        if (contents[end] == '"') {
-            defer {
-                if (end < contents.len - 4) {
-                    start = index_of(contents[end + 1 ..], '"').? + end + 2;
-                    end = start;
-                } else {
-                    broken = true;
-                }
-            }
-
-            // Found end of string
-            const program_text: []const u8 = contents[start..end];
-
-            std.debug.print("{}: {s}\n", .{ i, program_text });
-            // Feed to Orng compiler (specifying fuzz tokens) to compile to fuzz-get_std_out().c
-            var debug_alloc = std.heap.GeneralPurposeAllocator(.{ .never_unmap = false, .safety = true }){};
-            var arena_alloc = std.heap.ArenaAllocator.init(debug_alloc.allocator());
-            errdefer arena_alloc.deinit();
-            var compiler = Compiler_Context.init(get_std_out(), arena_alloc.allocator()) catch unreachable;
-            defer prelude_.deinit();
-            defer compiler.deinit();
-            defer core_.deinit();
-            var lines = std.array_list.Managed([]const u8).init(allocator);
-            defer lines.deinit();
-            i += 1;
-            const module = module_.Module.compile("fuzz", "main", false, compiler) catch |err| {
-                switch (err) {
-                    error.LexerError,
-                    error.CompileError,
-                    => continue,
-
-                    error.ParseError, error.FileNotFound => {
-                        failed += 1;
-                        try term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out());
-                        try get_std_out().print("Parsing mismatch! (Remember: you want the parser to be consistent with the EBNF!)\n", .{});
-                        return;
-                    },
-                }
-            };
-            _ = module; // autofix
-            // Open the output file
-            var output_file = std.fs.cwd().createFile(
-                "tests/fuzz/fuzz-out.c",
-                .{ .read = false },
-            ) catch |e| switch (e) {
-                error.FileNotFound => {
-                    std.debug.print("Cannot create file: {s}\n", .{"tests/fuzz/fuzz-out.c"});
-                    return error.IoError;
-                },
-                else => return error.IoError,
-            };
-            defer output_file.close();
-            Codegen_Context.output_modules(compiler) catch {
-                failed += 1;
-                try term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out());
-                try get_std_out().print("Orng Compiler crashed with input above!\n", .{});
-                return;
-            };
-
-            var should_continue: bool = false;
-            for (compiler.errors.errors_list.items) |err| {
-                if (err == .expected2token or err == .expected_basic_token or err == .missing_close) {
-                    try term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out());
-                    try get_std_out().print("Orng failed to parse the above correctly!\n", .{});
-                    failed += 1;
-                    should_continue = true;
-                    break;
-                }
-            }
-            if (should_continue) {
-                continue;
-            }
-
-            try term_.outputColor(succeed_color, "[ ... PASSED ]\n", get_std_out());
-            passed += 1;
-            // return;
-        }
-    }
-    std.debug.print("Fuzz test percentage: {d}% ({} / {})\n", .{ 100.0 * std.math.lossyCast(f64, passed) / std.math.lossyCast(f64, passed + failed), passed, failed });
 }
 
 // Great std lib function candidate! Holy hell...

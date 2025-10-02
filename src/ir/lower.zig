@@ -67,7 +67,7 @@ pub fn lower_AST_into_cfg(self: *Self) Lower_Errors!void {
         // Print symbol Instruction after lowering, before breaking up into basic blocks
         std.debug.print("CFG {s}:\n", .{self.cfg.symbol.name});
         for (self.instructions.items) |instr| {
-            std.debug.print("{}", .{instr});
+            std.debug.print("{f}", .{instr});
         }
         std.debug.print("\n", .{});
     }

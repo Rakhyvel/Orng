@@ -533,7 +533,7 @@ fn bb_optimizations(cfg: *CFG, allocator: std.mem.Allocator) bool {
                     const new_terminator: Basic_Block.Terminator = .{ .unconditional = bb.terminator.conditional.false_target };
                     bb.terminator = new_terminator;
                 } else {
-                    const new_terminator: Basic_Block.Terminator = .{ .unconditional = bb.terminator.conditional.false_target };
+                    const new_terminator: Basic_Block.Terminator = .{ .unconditional = bb.terminator.conditional.true_target };
                     bb.terminator = new_terminator;
                 }
                 retval = true;
