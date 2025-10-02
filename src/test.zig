@@ -337,7 +337,8 @@ fn header_comment(contents: []const u8, alloc: std.mem.Allocator) ![][]const u8 
 
 fn flatten_header_comment(lines: [][]const u8, alloc: std.mem.Allocator) !String {
     var line = String.init_with_contents(alloc, "") catch unreachable;
-    var writer = line.writer(line.buffer.?).interface;
+    var line_writer = line.writer(line.buffer.?);
+    const writer = &line_writer.interface;
     var i: usize = 0;
     for (lines) |l| {
         try writer.print("{s}", .{l});

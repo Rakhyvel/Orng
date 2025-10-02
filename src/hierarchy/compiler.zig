@@ -101,8 +101,9 @@ pub fn init(stderr: ?std.fs.File, alloc: std.mem.Allocator) Error!*Self {
 
 pub fn deinit(self: *Self) void {
     if (self.stderr) |stderr| {
-        var writer = stderr.writer(&.{}).interface;
-        self.errors.print_errors(&writer, .{});
+        var writer = stderr.writer(&.{});
+        const writer_intfc = &writer.interface;
+        self.errors.print_errors(writer_intfc, .{});
     }
     self.arena.deinit();
     self.arena.child_allocator.destroy(self);
