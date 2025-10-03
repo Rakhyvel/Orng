@@ -114,6 +114,11 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .cinclude,
         => try walk_ast(ast.expr(), new_context),
 
+        .as => {
+            try walk_ast(ast.expr(), new_context);
+            try walk_type(ast.type(), new_context);
+        },
+
         .assign,
         .@"or",
         .@"and",

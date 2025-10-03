@@ -18,6 +18,7 @@ pub const Kind = enum(u32) {
     multi_line_string,
 
     // Keywords
+    as,
     @"and",
     @"break",
     @"catch",
@@ -141,6 +142,7 @@ pub const Kind = enum(u32) {
             .comment => "<a comment>",
             .newline => "<a newline>",
 
+            .as => "as",
             .@"and" => "and",
             .@"break" => "break",
             .@"catch" => "catch",
