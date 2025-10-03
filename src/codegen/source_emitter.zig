@@ -408,6 +408,14 @@ fn output_instruction_post_check(self: *Self, instr: *Instruction) CodeGen_Error
             try self.output_rvalue(instr.src1.?, instr.kind.precedence());
             try self.writer.print(".tag;\n", .{});
         },
+        .cast => {
+            try self.output_var_assign(instr.dest.?);
+            try self.writer.print("(", .{});
+            try self.emitter.output_type(instr.dest.?.get_expanded_type());
+            try self.writer.print(")", .{});
+            try self.output_rvalue(instr.src1.?, instr.kind.precedence());
+            try self.writer.print(";\n", .{});
+        },
         .call => {
             // TODO: De-duplicate 2
             try self.output_call_prefix(instr);

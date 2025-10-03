@@ -737,17 +737,26 @@ fn int_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
 }
 
 fn term_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
-    var exp = try self.prefix_expr();
+    var exp = try self.as_expr();
     while (true) {
         if (self.accept(.star)) |token| {
-            exp = ast_.AST.create_mult(token, exp, try self.prefix_expr(), self.allocator);
+            exp = ast_.AST.create_mult(token, exp, try self.as_expr(), self.allocator);
         } else if (self.accept(.slash)) |token| {
-            exp = ast_.AST.create_div(token, exp, try self.prefix_expr(), self.allocator);
+            exp = ast_.AST.create_div(token, exp, try self.as_expr(), self.allocator);
         } else if (self.accept(.percent)) |token| {
-            exp = ast_.AST.create_mod(token, exp, try self.prefix_expr(), self.allocator);
+            exp = ast_.AST.create_mod(token, exp, try self.as_expr(), self.allocator);
         } else {
             return exp;
         }
+    }
+}
+
+fn as_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
+    const exp = try self.prefix_expr();
+    if (self.accept(.as)) |token| {
+        return ast_.AST.create_as(token, exp, try self.type_expr(), self.allocator);
+    } else {
+        return exp;
     }
 }
 
