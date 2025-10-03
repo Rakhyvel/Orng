@@ -17,6 +17,7 @@ fn executable(b: *std.Build, optimize: std.builtin.OptimizeMode, target: std.Bui
             .target = target,
             .optimize = optimize,
         }),
+        .use_llvm = true,
     });
     exe.want_lto = false;
     const install_cmd = b.addInstallArtifact(exe, .{});
