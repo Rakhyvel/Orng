@@ -1,0 +1,8 @@
+// non_convertible.orng:7:9: error: cannot cast type `String` to type `Int`
+//     x as Int
+//        ^
+// 
+fn main() -> Int {
+    let x: String = "5"
+    x as Int
+}

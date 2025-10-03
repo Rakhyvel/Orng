@@ -537,6 +537,14 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             }
             return Type_AST.create_array_of(ast.token(), first_type, ast_.AST.create_int(ast.token(), ast.children().items.len, self.ctx.allocator()), self.ctx.allocator());
         },
+        .as => {
+            const child_type = self.typecheck_AST(ast.expr(), null) catch return error.CompileError;
+            if (!child_type.convertible_to(ast.type())) {
+                self.ctx.errors.add_error(errs_.Error{ .non_convertible = .{ .span = ast.token().span, .from = child_type, .to = ast.type() } });
+                return error.CompileError;
+            }
+            return ast.type();
+        },
         .addr_of => {
             // FIXME: High cyclo
             if (expected == null) {

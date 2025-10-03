@@ -222,6 +222,11 @@ pub const AST = union(enum) {
     },
 
     // Fancy operators
+    as: struct {
+        common: AST_Common,
+        _expr: *AST,
+        _type: *Type_AST,
+    },
     addr_of: struct {
         common: AST_Common,
         _expr: *AST,
@@ -864,6 +869,15 @@ pub const AST = union(enum) {
         return AST.box(AST{ .array_value = .{
             .common = AST_Common{ ._token = _token },
             ._terms = terms,
+        } }, allocator);
+    }
+
+    pub fn create_as(_token: Token, _expr: *AST, _type: *Type_AST, allocator: std.mem.Allocator) *AST {
+        const _common: AST_Common = .{ ._token = _token };
+        return AST.box(AST{ .as = .{
+            .common = _common,
+            ._expr = _expr,
+            ._type = _type,
         } }, allocator);
     }
 
@@ -1553,6 +1567,12 @@ pub const AST = union(enum) {
                 retval.set_symbol(self.symbol());
                 return retval;
             },
+            .as => return create_as(
+                self.token(),
+                self.expr().clone(substs, allocator),
+                self.type().clone(substs, allocator),
+                allocator,
+            ),
             .addr_of => return create_addr_of(
                 self.token(),
                 self.expr().clone(substs, allocator),
@@ -1744,11 +1764,12 @@ pub const AST = union(enum) {
         set_field(self, "_expr", val);
     }
 
-    pub fn @"type"(self: *AST) *Type_AST {
-        return switch (self.*) {
+    pub fn @"type"(self: AST) *Type_AST {
+        return switch (self) {
+            .as => self.as._type,
             .size_of => self.size_of._type,
             .default => self.default._type,
-            else => std.debug.panic("can't call type on {s}\n", .{@tagName(self.*)}),
+            else => std.debug.panic("can't call type on {s}\n", .{@tagName(self)}),
         };
     }
 
@@ -2245,6 +2266,7 @@ pub const AST = union(enum) {
                 try out.print(")", .{});
             },
 
+            .as => try out.print("as({f}, {f})", .{ self.expr(), self.type() }),
             .addr_of => try out.print("addr_of({f})", .{self.expr()}),
             .slice_of => try out.print("slice_of()", .{}),
             .sub_slice => try out.print("sub_slice()", .{}),

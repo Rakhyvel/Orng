@@ -1008,6 +1008,77 @@ pub const Type_AST = union(enum) {
         }
     }
 
+    /// Returns whether the term A is convertible to B
+    pub fn convertible_to(A: *Type_AST, B: *Type_AST) bool {
+        const A_expanded = A.expand_identifier();
+        const B_expanded = B.expand_identifier();
+
+        if (@intFromEnum(A_expanded.*) != @intFromEnum(B_expanded.*)) {
+            return false;
+        }
+
+        return switch (A_expanded.*) {
+            .addr_of => A_expanded.addr_of.multiptr and B_expanded.addr_of.multiptr,
+            else => false,
+        };
+    }
+
+    /// Checks whether two AST types would generate to the same C type.
+    pub fn c_types_match(self: *Type_AST, other: *Type_AST) bool {
+        // FIXME: High Cyclo
+        if (self.* == .annotation) {
+            return c_types_match(self.child(), other);
+        } else if (other.* == .annotation) {
+            return c_types_match(self, other.child());
+        }
+        if (self.* == .access) {
+            return c_types_match(self.symbol().?.init_typedef().?, other);
+        } else if (other.* == .access) {
+            return c_types_match(self, other.symbol().?.init_typedef().?);
+        }
+        if (other.* == .anyptr_type and self.* == .addr_of) {
+            return true;
+        }
+        // std.debug.assert(self.common().validation_state == .valid);
+        // std.debug.assert(other.common().validation_state == .valid);
+
+        if (@intFromEnum(self.*) != @intFromEnum(other.*)) {
+            return false;
+        }
+
+        switch (self.*) {
+            .identifier => return std.mem.eql(u8, self.token().data, other.token().data),
+            .addr_of => return c_types_match(self.child(), other.child()),
+            .unit_type => return other.* == .unit_type,
+            .anyptr_type => return other.* == .anyptr_type,
+            .dyn_type => return self.child().symbol() == other.child().symbol(),
+            .struct_type, .tuple_type, .enum_type, .untagged_sum_type => {
+                if (other.children().items.len != self.children().items.len) {
+                    return false;
+                }
+                var retval = true;
+                for (self.children().items, other.children().items) |term, other_term| {
+                    retval = retval and term.c_types_match(other_term);
+                }
+                return retval;
+            },
+            .generic_apply => {
+                if (other.children().items.len != self.children().items.len) {
+                    return false;
+                }
+                var retval = self.lhs().symbol() == other.lhs().symbol();
+                for (self.children().items, other.children().items) |term, B_term| {
+                    retval = retval and term.c_types_match(B_term);
+                }
+                return retval;
+            },
+            .function => return self.lhs().c_types_match(other.lhs()) and self.rhs().c_types_match(other.rhs()),
+            .array_of => return self.child().c_types_match(other.child()),
+            // .slice_of => return self.child().c_types_match(other.child()),
+            else => std.debug.panic("compiler error: c_types_match(): unimplemented for {s}", .{@tagName(self.*)}),
+        }
+    }
+
     pub fn clone(self: *Type_AST, substs: *unification_.Substitutions, allocator: std.mem.Allocator) *Type_AST {
         switch (self.*) {
             .anyptr_type, .dyn_type, .unit_type => return self,
@@ -1191,62 +1262,6 @@ pub const Type_AST = union(enum) {
             return false;
         }
         return prelude_.info_from_ast(expanded).?.is_bits();
-    }
-
-    /// Checks whether two AST types would generate to the same C type.
-    pub fn c_types_match(self: *Type_AST, other: *Type_AST) bool {
-        // FIXME: High Cyclo
-        if (self.* == .annotation) {
-            return c_types_match(self.child(), other);
-        } else if (other.* == .annotation) {
-            return c_types_match(self, other.child());
-        }
-        if (self.* == .access) {
-            return c_types_match(self.symbol().?.init_typedef().?, other);
-        } else if (other.* == .access) {
-            return c_types_match(self, other.symbol().?.init_typedef().?);
-        }
-        if (other.* == .anyptr_type and self.* == .addr_of) {
-            return true;
-        }
-        // std.debug.assert(self.common().validation_state == .valid);
-        // std.debug.assert(other.common().validation_state == .valid);
-
-        if (@intFromEnum(self.*) != @intFromEnum(other.*)) {
-            return false;
-        }
-
-        switch (self.*) {
-            .identifier => return std.mem.eql(u8, self.token().data, other.token().data),
-            .addr_of => return c_types_match(self.child(), other.child()),
-            .unit_type => return other.* == .unit_type,
-            .anyptr_type => return other.* == .anyptr_type,
-            .dyn_type => return self.child().symbol() == other.child().symbol(),
-            .struct_type, .tuple_type, .enum_type, .untagged_sum_type => {
-                if (other.children().items.len != self.children().items.len) {
-                    return false;
-                }
-                var retval = true;
-                for (self.children().items, other.children().items) |term, other_term| {
-                    retval = retval and term.c_types_match(other_term);
-                }
-                return retval;
-            },
-            .generic_apply => {
-                if (other.children().items.len != self.children().items.len) {
-                    return false;
-                }
-                var retval = self.lhs().symbol() == other.lhs().symbol();
-                for (self.children().items, other.children().items) |term, B_term| {
-                    retval = retval and term.c_types_match(B_term);
-                }
-                return retval;
-            },
-            .function => return self.lhs().c_types_match(other.lhs()) and self.rhs().c_types_match(other.rhs()),
-            .array_of => return self.child().c_types_match(other.child()),
-            // .slice_of => return self.child().c_types_match(other.child()),
-            else => std.debug.panic("compiler error: c_types_match(): unimplemented for {s}", .{@tagName(self.*)}),
-        }
     }
 
     pub fn is_c_void_type(self: *Type_AST) bool {
