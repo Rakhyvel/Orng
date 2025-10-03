@@ -124,7 +124,7 @@ pub fn impl_trait_lookup(self: *Self, for_type: *Type_AST, trait: *Symbol) Impl_
 /// Looks up the impl's decl/method_decl ast for a given type, with a given name
 pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, compiler: *Compiler_Context) !?*ast_.AST {
     if (false) {
-        std.debug.print("searching for {}::{s}\n", .{ for_type, name });
+        std.debug.print("searching for {f}::{s}\n", .{ for_type, name });
     }
     // Go through the list of implementations, check to see if the types and traits match
     for (self.impls.items) |impl| {

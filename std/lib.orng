@@ -1,5 +1,6 @@
 import debug
 import ffi
+import mem
 import testing
 
 const println = debug::println

@@ -34,6 +34,30 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
     }
 }
 
+pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
+    switch (ast.*) {
+        else => {},
+
+        .call => {
+            if (ast.lhs().* == .enum_value) {
+                // Enum value
+                ast.lhs().enum_value.init = ast.children().items[0];
+                ast.* = ast.lhs().*;
+            } else if (ast.lhs().refers_to_type()) {
+                // Struct value construction
+                const struct_type = Type_AST.from_ast(ast.lhs(), self.compiler.allocator());
+                const struct_value = ast_.AST.create_struct_value(
+                    ast.lhs().token(),
+                    struct_type,
+                    ast.children().*,
+                    self.compiler.allocator(),
+                );
+                ast.* = struct_value.*;
+            }
+        },
+    }
+}
+
 pub fn prefix_type(self: Self, _type: *Type_AST) walk_.Error!?Self {
     switch (_type.*) {
         else => return self,

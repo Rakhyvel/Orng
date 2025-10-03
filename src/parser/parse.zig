@@ -253,7 +253,8 @@ fn extern_const_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
         );
         return retval;
     } else {
-        std.debug.panic("some other day...", .{});
+        self.errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "`const`, `type`, or `struct` here", .got = self.peek() } });
+        return error.ParseError;
     }
 }
 

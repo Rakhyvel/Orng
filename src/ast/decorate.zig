@@ -136,23 +136,5 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
                 ast.* = enum_value.*;
             }
         },
-
-        .call => {
-            if (ast.lhs().* == .enum_value) {
-                // Enum value
-                ast.lhs().enum_value.init = ast.children().items[0];
-                ast.* = ast.lhs().*;
-            } else if (ast.lhs().refers_to_type()) {
-                // Struct value construction
-                const struct_type = Type_AST.from_ast(ast.lhs(), self.allocator);
-                const struct_value = ast_.AST.create_struct_value(
-                    ast.lhs().token(),
-                    struct_type,
-                    ast.children().*,
-                    self.allocator,
-                );
-                ast.* = struct_value.*;
-            }
-        },
     }
 }
