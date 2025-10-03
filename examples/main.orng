@@ -1,11 +1,16 @@
 import std::debug
 import std::ffi
 import std::testing
+import std::mem
 import externs
 
 fn main() -> () {
     debug::println("Hello, World!")
     externs::println("Hello, World f!")
+
+    let mut alloc = mem::Heap_Allocator()
+    let res = alloc.>alloc(1024) orelse unreachable
+    alloc.>free(res)
 }
 
 test "test of tests" {
