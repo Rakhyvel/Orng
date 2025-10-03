@@ -59,13 +59,13 @@ jobs:
     - name: Build project (Linux)
       run: |
         export ORNG_STD_PATH="$GITHUB_WORKSPACE/std"
-        export ORNG_BUILTIN_PATH="$GITHUB_WORKSPACE/src/hierarchy/builtin.orng"
         python tests/test.py all
         zig build orng
         cd examples
-        kcov --include-path "$GITHUB_WORKSPACE/src" "$GITHUB_WORKSPACE/kcov-out" ../zig-out/bin/orng build
-        kcov --include-path "$GITHUB_WORKSPACE/src" "$GITHUB_WORKSPACE/kcov-out" ../zig-out/bin/orng clean
-        kcov --include-path "$GITHUB_WORKSPACE/src" "$GITHUB_WORKSPACE/kcov-out" ../zig-out/bin/orng test
+        kcov --include-path "$GITHUB_WORKSPACE/src" "$GITHUB_WORKSPACE/kcov-out-tmp1" ../zig-out/bin/orng build
+        kcov --include-path "$GITHUB_WORKSPACE/src" "$GITHUB_WORKSPACE/kcov-out-tmp2" ../zig-out/bin/orng clean
+        kcov --include-path "$GITHUB_WORKSPACE/src" "$GITHUB_WORKSPACE/kcov-out-tmp3" ../zig-out/bin/orng test
+        kcov --merge "$GITHUB_WORKSPACE/kcov-out" "$GITHUB_WORKSPACE/kcov-out-tmp1" "$GITHUB_WORKSPACE/kcov-out-tmp2" "$GITHUB_WORKSPACE/kcov-out-tmp3"
         cd ..
 
     - name: Ensure Modified Lines in src/ Are Covered
