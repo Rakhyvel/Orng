@@ -161,6 +161,11 @@ pub const Error = union(enum) {
         expected: *Type_AST,
         got: *Type_AST,
     },
+    non_convertible: struct {
+        span: Span,
+        from: *Type_AST,
+        to: *Type_AST,
+    },
     unexpected_type_type: struct {
         span: Span,
         expected: ?*Type_AST,
@@ -288,6 +293,7 @@ pub const Error = union(enum) {
             .trait_virtual_refers_to_self => return self.trait_virtual_refers_to_self.span,
 
             .unexpected_type => return self.unexpected_type.span,
+            .non_convertible => return self.non_convertible.span,
             .unexpected_type_type => return self.unexpected_type_type.span,
             .expected_builtin_typeclass => return self.expected_builtin_typeclass.span,
             .duplicate => return self.duplicate.span,
@@ -465,6 +471,9 @@ pub const Error = union(enum) {
                     err.unexpected_type.got.print_type(writer) catch unreachable;
                 }
                 writer.print("`\n", .{}) catch unreachable;
+            },
+            .non_convertible => {
+                writer.print("cannot cast type `{f}` to type `{f}`\n", .{ err.non_convertible.from, err.non_convertible.to }) catch unreachable;
             },
             .unexpected_type_type => {
                 if (err.unexpected_type_type.expected) |expected| {

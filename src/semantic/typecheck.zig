@@ -538,7 +538,10 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
         },
         .as => {
             const child_type = self.typecheck_AST(ast.expr(), null) catch return error.CompileError;
-            _ = child_type; // TODO check convertible
+            if (!child_type.convertible_to(ast.type())) {
+                self.ctx.errors.add_error(errs_.Error{ .non_convertible = .{ .span = ast.token().span, .from = child_type, .to = ast.type() } });
+                return error.CompileError;
+            }
             return ast.type();
         },
         .addr_of => {
