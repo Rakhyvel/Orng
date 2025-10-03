@@ -3,6 +3,7 @@
 const std = @import("std");
 const Source_Emitter = @import("source_emitter.zig");
 const Header_Emitter = @import("header_emitter.zig");
+const Type_Set = @import("../ast/type-set.zig");
 const module_ = @import("../hierarchy/module.zig");
 const Interned_String_Set = @import("../ir/interned_string_set.zig");
 
@@ -16,9 +17,15 @@ header_writer: *std.array_list.Managed(u8),
 
 pub const CodeGen_Error = error{OutOfMemory};
 
-pub fn init(module: *module_.Module, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set), source_writer: *std.array_list.Managed(u8), header_writer: *std.array_list.Managed(u8)) Self {
-    const source_emitter = Source_Emitter.init(module, module_interned_strings, source_writer);
-    const header_emitter = Header_Emitter.init(module, header_writer);
+pub fn init(
+    module: *module_.Module,
+    module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set),
+    type_set: *const Type_Set,
+    source_writer: *std.array_list.Managed(u8),
+    header_writer: *std.array_list.Managed(u8),
+) Self {
+    const source_emitter = Source_Emitter.init(module, module_interned_strings, type_set, source_writer);
+    const header_emitter = Header_Emitter.init(module, type_set, header_writer);
     return Self{
         .module = module,
         .source_emitter = source_emitter,

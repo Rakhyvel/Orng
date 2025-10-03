@@ -455,7 +455,7 @@ pub const Type_AST = union(enum) {
                 break :blk id;
             },
             .access => blk: {
-                const id = Type_AST.create_access(ast.token(), ast.lhs(), allocator);
+                const id = Type_AST.create_access(ast.token(), ast, allocator);
                 id.set_symbol(ast.symbol().?);
                 break :blk id;
             },

@@ -25,8 +25,8 @@ writer: *std.array_list.Managed(u8),
 
 pub const CodeGen_Error = error{OutOfMemory};
 
-pub fn init(module: *module_.Module, writer: *std.array_list.Managed(u8)) Self {
-    const emitter = Emitter.init(module, writer);
+pub fn init(module: *module_.Module, type_set: *const Type_Set, writer: *std.array_list.Managed(u8)) Self {
+    const emitter = Emitter.init(module, type_set, writer);
     return Self{ .module = module, .emitter = emitter, .writer = writer };
 }
 
@@ -35,8 +35,6 @@ pub fn generate(self: *Self) CodeGen_Error!void {
     try self.output_include_guard_begin();
     try self.output_common_includes();
     try self.output_includes();
-    try self.output_forward_typedefs();
-    try self.output_typedefs();
     try self.output_traits();
     try self.emitter.forall_functions(self, "/* Function forward definitions */", output_forward_function);
     try self.output_include_guard_end();
@@ -89,37 +87,37 @@ pub fn output_includes(self: *Self) CodeGen_Error!void {
     }
 }
 
-/// Outputs forward declarations for typedefs based on the provided `Type_Set`.
-fn output_forward_typedefs(self: *Self) CodeGen_Error!void {
-    if (self.module.type_set.types.items.len > 0) {
-        // Don't generate typedefs header comment if there are no typedefs!
-        try self.writer.print("/* Forward struct, union, and function declarations */\n", .{});
-    }
+// /// Outputs forward declarations for typedefs based on the provided `Type_Set`.
+// fn output_forward_typedefs(self: *Self) CodeGen_Error!void {
+//     if (self.module.type_set.types.items.len > 0) {
+//         // Don't generate typedefs header comment if there are no typedefs!
+//         try self.writer.print("/* Forward struct, union, and function declarations */\n", .{});
+//     }
 
-    // Forward declare all structs/unions
-    for (self.module.type_set.types.items) |dep| {
-        if (dep.base.* == .struct_type or dep.base.* == .tuple_type or dep.base.* == .enum_type) {
-            try self.emitter.output_struct_name(dep);
-            try self.writer.print(";\n", .{});
-        } else if (dep.base.* == .dyn_type) {
-            try self.emitter.output_dyn_name(dep);
-            try self.writer.print(";\n", .{});
-        }
-    }
-}
+//     // Forward declare all structs/unions
+//     for (self.module.type_set.types.items) |dep| {
+//         if (dep.base.* == .struct_type or dep.base.* == .tuple_type or dep.base.* == .enum_type) {
+//             try self.emitter.output_struct_name(dep);
+//             try self.writer.print(";\n", .{});
+//         } else if (dep.base.* == .dyn_type) {
+//             try self.emitter.output_dyn_name(dep);
+//             try self.writer.print(";\n", .{});
+//         }
+//     }
+// }
 
-/// Outputs typedefs based on the provided `Type_Set`.
-fn output_typedefs(self: *Self) CodeGen_Error!void {
-    if (self.module.type_set.types.items.len > 0) {
-        // Don't generate typedefs header comment if there are no typedefs!
-        try self.writer.print("\n/* Struct, union, and function definitions */\n", .{});
-    }
+// /// Outputs typedefs based on the provided `Type_Set`.
+// fn output_typedefs(self: *Self) CodeGen_Error!void {
+//     if (self.module.type_set.types.items.len > 0) {
+//         // Don't generate typedefs header comment if there are no typedefs!
+//         try self.writer.print("\n/* Struct, union, and function definitions */\n", .{});
+//     }
 
-    // Output all typedefs
-    for (self.module.type_set.types.items) |dag| {
-        try self.output_typedef(dag);
-    }
-}
+//     // Output all typedefs
+//     for (self.module.type_set.types.items) |dag| {
+//         try self.output_typedef(dag);
+//     }
+// }
 
 /// Outputs a typedef declaration based on the provided `DAG`.
 fn output_typedef(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
@@ -169,17 +167,7 @@ fn output_typedef(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
         try self.emitter.output_type(dep.base.child());
         try self.writer.print(" _0[{}];\n", .{dep.base.array_of.len.int.data});
         try self.writer.print("}};\n\n", .{});
-    }
-    // else if (dep.base.* == .slice_of) {
-    //     try self.emitter.output_struct_name(dep);
-    //     try self.writer.print(" {{\n    ", .{});
-    //     try self.emitter.output_type(dep.base.child());
-    //     try self.writer.print(" _0;\n    ", .{});
-    //     try self.emitter.output_type(prelude_.int_type);
-    //     try self.writer.print(" _1;\n", .{});
-    //     try self.writer.print("}};\n\n", .{});
-    // }
-    else if (dep.base.* == .enum_type) {
+    } else if (dep.base.* == .enum_type) {
         try self.emitter.output_struct_name(dep);
         try self.writer.print(" {{\n    uint64_t tag;\n", .{});
         if (!dep.base.enum_type.is_all_unit()) {

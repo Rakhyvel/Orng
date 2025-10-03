@@ -64,9 +64,6 @@ pub const Module = struct {
     // Set of C headers to include
     cincludes: std.array_list.Managed(*ast_.AST),
 
-    // A graph of type dependencies
-    type_set: Type_Set,
-
     /// List of instructions for this module. Used by the interpreter, so that instructions are indexable by a random
     /// access instruction pointer.
     instructions: std.array_list.Managed(*Instruction),
@@ -112,7 +109,6 @@ pub const Module = struct {
         retval.impls = std.array_list.Managed(*ast_.AST).init(allocator);
         retval.tests = std.array_list.Managed(*CFG).init(allocator);
         retval.cfgs = std.array_list.Managed(*CFG).init(allocator);
-        retval.type_set = Type_Set.init(allocator);
         retval.entry = null;
         retval.modified = null;
 
@@ -237,8 +233,6 @@ pub const Module = struct {
         }
         try module.collect_impls_cfgs(compiler);
         try module.collect_tests(compiler);
-        module.collect_trait_types(compiler.allocator());
-        module.collect_types(compiler.allocator());
     }
 
     fn add_all_cfgs(self: *Module, entry_name: ?[]const u8, compiler: *Compiler_Context) Module_Errors!void {
@@ -279,13 +273,18 @@ pub const Module = struct {
         }
     }
 
-    fn collect_trait_types(self: *Module, allocator: std.mem.Allocator) void {
+    /// Puts all the types used in this module into the given type set
+    pub fn collect_types(self: *Module, type_set: *Type_Set) void {
         for (self.traits.items) |trait| {
             for (trait.trait.method_decls.items) |decl| {
                 const @"type" = decl.method_decl.c_type.?.expand_identifier();
                 if (@"type".refers_to_self()) continue;
-                _ = self.type_set.add(decl.method_decl.c_type.?.expand_identifier(), allocator);
+                _ = type_set.add(decl.method_decl.c_type.?.expand_identifier());
+                _ = type_set.add(decl.method_decl.ret_type.expand_identifier());
             }
+        }
+        for (self.cfgs.items) |cfg| {
+            cfg.collect_types(type_set);
         }
     }
 
@@ -322,13 +321,6 @@ pub const Module = struct {
             self.tests.append(cfg) catch unreachable;
             cfg.assert_needed_at_runtime();
             self.collect_cfgs(cfg);
-        }
-    }
-
-    fn collect_types(self: *Module, allocator: std.mem.Allocator) void {
-        // For all cfgs in the module...
-        for (self.cfgs.items) |cfg| {
-            cfg.collect_types(&self.type_set, allocator);
         }
     }
 

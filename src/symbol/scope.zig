@@ -202,16 +202,23 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
     for (self.symbols.keys()) |symbol_name| {
         const symbol = self.symbols.get(symbol_name).?;
         if (symbol.kind == .import) {
-            const res = self.parent.?.lookup(symbol.kind.import.real_name, .{ .allow_modules = true });
-            switch (res) {
-                .found => {
-                    const module_scope = res.found.init_value().?.scope().?;
-                    const module_scope_lookup = try module_scope.lookup_impl_member(for_type, name, compiler);
-                    if (module_scope_lookup != null) {
-                        return module_scope_lookup;
-                    }
-                },
-                else => std.debug.panic("compiler error: import didn't resolve to a module: {s}", .{symbol.kind.import.real_name}),
+            var res_symbol: *Symbol = undefined;
+            if (symbol.kind.import.real_symbol != null) {
+                res_symbol = symbol.kind.import.real_symbol.?;
+            } else {
+                const res = self.parent.?.lookup(symbol.kind.import.real_name, .{ .allow_modules = true });
+                switch (res) {
+                    .found => {
+                        res_symbol = res.found;
+                    },
+                    else => std.debug.panic("compiler error: import didn't resolve to a module: {s}", .{symbol.kind.import.real_name}),
+                }
+            }
+
+            const module_scope = res_symbol.init_value().?.scope().?;
+            const module_scope_lookup = try module_scope.lookup_impl_member(for_type, name, compiler);
+            if (module_scope_lookup != null) {
+                return module_scope_lookup;
             }
         }
     }

@@ -29,8 +29,13 @@ writer: *std.array_list.Managed(u8),
 
 pub const CodeGen_Error = error{OutOfMemory};
 
-pub fn init(module: *module_.Module, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set), writer: *std.array_list.Managed(u8)) Self {
-    const emitter = Emitter.init(module, writer);
+pub fn init(
+    module: *module_.Module,
+    module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set),
+    type_set: *const Type_Set,
+    writer: *std.array_list.Managed(u8),
+) Self {
+    const emitter = Emitter.init(module, type_set, writer);
     return Self{
         .module = module,
         .module_interned_strings = module_interned_strings,

@@ -6,11 +6,16 @@ pub const Substitutions = std.StringArrayHashMap(*Type_AST);
 
 // Attempt to match the rhs with the lhs
 pub fn unify(lhs: *Type_AST, rhs: *Type_AST, withs: std.array_list.Managed(*ast_.AST), subst: *Substitutions) !void {
-    if (lhs.* == .identifier and lhs.symbol().?.decl.?.* == .type_alias and lhs.symbol().?.init_typedef() != null) {
+    if (lhs.* == .identifier and lhs.symbol().?.init_typedef() != null) {
         return try unify(lhs.symbol().?.init_typedef().?, rhs, withs, subst);
-    } else if (rhs.* == .identifier and rhs.symbol().?.decl.?.* == .type_alias and rhs.symbol().?.init_typedef() != null) {
+    } else if (rhs.* == .identifier and rhs.symbol().?.init_typedef() != null) {
         return try unify(lhs, rhs.symbol().?.init_typedef().?, withs, subst);
     }
+
+    if (rhs.* == .access and rhs.symbol().?.init_typedef() != null) {
+        return try unify(lhs, rhs.symbol().?.init_typedef().?, withs, subst);
+    }
+
     switch (lhs.*) {
         .identifier => {
             if (identifier_is_type_param(lhs, withs)) |_| {

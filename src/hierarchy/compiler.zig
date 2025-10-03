@@ -253,11 +253,24 @@ pub fn collect_package_local_modules(self: *Self) void {
             std.fs.makeDirAbsolute(build_path) catch unreachable;
         };
 
+        const types_paths = [_][]const u8{ package_path, "build", "types" };
+        const types_path = std.fs.path.join(self.allocator(), &types_paths) catch unreachable;
+        _ = std.fs.openDirAbsolute(types_path, .{}) catch {
+            std.fs.makeDirAbsolute(types_path) catch unreachable;
+        };
+
         var dfs_iter: Module_Iterator = Module_Iterator.init(module, self.allocator());
         defer dfs_iter.deinit();
         while (dfs_iter.next()) |next_module| {
             package.local_modules.append(next_module) catch unreachable;
         }
+    }
+}
+
+pub fn collect_types(self: *Self) void {
+    for (self.packages.keys()) |package_name| {
+        const package = self.lookup_package(package_name).?;
+        package.collect_types();
     }
 }
 

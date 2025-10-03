@@ -25,6 +25,7 @@ pub const Kind = union(enum) {
     import: struct { // Refers indirectly to modules, or to refinements on modules.
         // Real name of the module, as oposed to the `as` name
         real_name: []const u8,
+        real_symbol: ?*Self = null,
     },
     import_inner, // Created from the inner expressions of qualified import statements, similar to consts
     module, // Refers to modules. The init is the `module` AST, which refers to the module and to the scope. `Module`s have their symbol

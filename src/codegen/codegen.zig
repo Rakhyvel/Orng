@@ -9,6 +9,7 @@ const Header_Emitter = @import("header_emitter.zig");
 const Source_Emitter = @import("source_emitter.zig");
 const Emitter = @import("emitter.zig");
 const Test_Emitter = @import("test_emitter.zig");
+const Type_Set = @import("../ast/type-set.zig");
 
 /// Goes through each package and outputs a C/H file header pair for each module in each package
 pub fn output_modules(compiler: *Compiler_Context) !void {
@@ -16,6 +17,8 @@ pub fn output_modules(compiler: *Compiler_Context) !void {
     for (compiler.packages.keys()) |package_name| {
         const package = compiler.lookup_package(package_name).?;
         const package_root_module = package.root.init_value().?.module.module;
+
+        std.debug.print("working {s}: {}\n", .{ package.name, package.type_set.len() });
 
         const build_path = package.get_build_path(compiler.allocator());
         _ = std.fs.openDirAbsolute(build_path, .{}) catch {
@@ -28,18 +31,18 @@ pub fn output_modules(compiler: *Compiler_Context) !void {
         defer dfs_iter.deinit();
         while (dfs_iter.next()) |module| {
             if (std.mem.eql(u8, module.get_package_abs_path(), package.absolute_path)) {
-                try output(module, &compiler.module_interned_strings, build_path, compiler.allocator());
+                try output(module, &compiler.module_interned_strings, &package.type_set, build_path, compiler.allocator());
                 modules.append(module) catch unreachable;
 
                 if (package.kind == .test_executable) {
-                    try output_tests(module, &compiler.module_interned_strings, build_path, compiler.allocator());
+                    try output_tests(module, &compiler.module_interned_strings, &package.type_set, build_path, compiler.allocator());
                 }
             }
         }
 
         switch (package.kind) {
-            .test_executable => try output_testrunner(modules, build_path, compiler.allocator()),
-            .executable => try output_start(package_root_module, &compiler.module_interned_strings, build_path, compiler.allocator()),
+            .test_executable => try output_testrunner(modules, &package.type_set, build_path, compiler.allocator()),
+            .executable => try output_start(package_root_module, &compiler.module_interned_strings, &package.type_set, build_path, compiler.allocator()),
             else => {},
         }
     }
@@ -49,6 +52,7 @@ pub fn output_modules(compiler: *Compiler_Context) !void {
 fn output(
     module: *Module,
     module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set),
+    type_set: *const Type_Set,
     build_path: []const u8,
     allocator: std.mem.Allocator,
 ) !void {
@@ -56,14 +60,14 @@ fn output(
     defer output_h_file.close();
     var h_buffer = std.array_list.Managed(u8).init(allocator);
     defer h_buffer.deinit();
-    var header_emitter = Header_Emitter.init(module, &h_buffer);
+    var header_emitter = Header_Emitter.init(module, type_set, &h_buffer);
     header_emitter.generate() catch return error.CompileError;
 
     var output_c_file = try open_file(module.package_name, module.name(), ".c", build_path, allocator);
     defer output_c_file.close();
     var c_buffer = std.array_list.Managed(u8).init(allocator);
     defer c_buffer.deinit();
-    var source_emitter = Source_Emitter.init(module, module_interned_strings, &c_buffer);
+    var source_emitter = Source_Emitter.init(module, module_interned_strings, type_set, &c_buffer);
     source_emitter.generate() catch return error.CompileError;
 
     output_c_file.writeAll(c_buffer.items) catch unreachable;
@@ -74,6 +78,7 @@ fn output(
 fn output_tests(
     module: *Module,
     module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set),
+    type_set: *const Type_Set,
     build_path: []const u8,
     allocator: std.mem.Allocator,
 ) !void {
@@ -87,14 +92,20 @@ fn output_tests(
     var c_buffer = std.array_list.Managed(u8).init(allocator);
     defer c_buffer.deinit();
 
-    var test_emitter = Test_Emitter.init(module, module_interned_strings, &c_buffer, &h_buffer);
+    var test_emitter = Test_Emitter.init(module, module_interned_strings, type_set, &c_buffer, &h_buffer);
     test_emitter.generate() catch return error.CompileError;
 
     output_c_file.writeAll(c_buffer.items) catch unreachable;
     output_h_file.writeAll(h_buffer.items) catch unreachable;
 }
 
-fn output_start(module: *Module, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set), build_path: []const u8, allocator: std.mem.Allocator) !void {
+fn output_start(
+    module: *Module,
+    module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set),
+    type_set: *const Type_Set,
+    build_path: []const u8,
+    allocator: std.mem.Allocator,
+) !void {
     const paths = [_][]const u8{ build_path, "start.c" };
     const path = std.fs.path.join(allocator, &paths) catch unreachable;
 
@@ -104,7 +115,12 @@ fn output_start(module: *Module, module_interned_strings: *const std.AutoArrayHa
     var buf = std.array_list.Managed(u8).init(allocator);
     defer buf.deinit();
 
-    var source_emitter = Source_Emitter.init(module, module_interned_strings, &buf);
+    var source_emitter = Source_Emitter.init(
+        module,
+        module_interned_strings,
+        type_set,
+        &buf,
+    );
     source_emitter.output_header_include() catch return error.CompileError;
     buf.print("#include <stdio.h>\n\n", .{}) catch return error.CompileError;
     source_emitter.output_main_function() catch return error.CompileError;
@@ -112,7 +128,12 @@ fn output_start(module: *Module, module_interned_strings: *const std.AutoArrayHa
     start_file.writeAll(buf.items) catch unreachable;
 }
 
-fn output_testrunner(modules: std.array_list.Managed(*Module), build_path: []const u8, allocator: std.mem.Allocator) !void {
+fn output_testrunner(
+    modules: std.array_list.Managed(*Module),
+    type_set: *const Type_Set,
+    build_path: []const u8,
+    allocator: std.mem.Allocator,
+) !void {
     const paths = [_][]const u8{ build_path, "test-runner.c" };
     const path = std.fs.path.join(allocator, &paths) catch unreachable;
 
@@ -140,7 +161,7 @@ fn output_testrunner(modules: std.array_list.Managed(*Module), build_path: []con
         \\
         \\typedef 
     , .{}) catch return error.CompileError;
-    var mod_0_emitter = Emitter.init(modules.items[0], &buf);
+    var mod_0_emitter = Emitter.init(modules.items[0], type_set, &buf);
     mod_0_emitter.output_type(core_.test_result_type) catch return error.CompileError;
     buf.print(
         \\ test_result;
@@ -159,7 +180,7 @@ fn output_testrunner(modules: std.array_list.Managed(*Module), build_path: []con
 
     var num_tests: usize = 0;
     for (modules.items) |module| {
-        var emitter = Emitter.init(module, &buf);
+        var emitter = Emitter.init(module, type_set, &buf);
         for (module.tests.items) |@"test"| {
             buf.print("    {{\"{s}\", \"{s}\", (test_fn)", .{ @"test".symbol.scope.module.?.name(), @"test".symbol.decl.?.@"test".name.?.string.data }) catch return error.CompileError;
             emitter.output_symbol(@"test".symbol) catch return error.CompileError;

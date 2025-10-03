@@ -145,20 +145,20 @@ pub fn collect_generated_symbvers(self: *Self) void {
     }
 }
 
-pub fn collect_types(self: *Self, type_set: *Type_Set, allocator: std.mem.Allocator) void {
+pub fn collect_types(self: *Self, type_set: *Type_Set) void {
     // Add parameter types to type set
     const decl = self.symbol.decl.?;
     const param_symbols = decl.param_symbols();
     if (param_symbols != null) {
         for (param_symbols.?.items) |param| {
-            _ = type_set.add(param.expanded_type(), allocator);
+            _ = type_set.add(param.expanded_type());
         }
     }
-    _ = type_set.add(self.return_symbol.expanded_type(), allocator);
+    _ = type_set.add(self.return_symbol.expanded_type());
 
     // For all basic blocks in the cfg...
     for (self.basic_blocks.items) |bb| {
-        bb.collect_types(type_set, allocator);
+        bb.collect_types(type_set);
     }
 }
 

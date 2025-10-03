@@ -417,7 +417,6 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 // The receiver is a regular type. STRIP AWAY ADDRs!
                 const lhs_type = if (true_lhs_type.* == .addr_of) true_lhs_type.child() else true_lhs_type;
                 try self.ctx.validate_type.validate(lhs_type);
-                std.debug.print("{f}\n", .{lhs_type});
                 method_decl = try ast.scope().?.lookup_impl_member(lhs_type, ast.rhs().token().data, self.ctx);
             }
             if (method_decl == null) {

@@ -5,6 +5,7 @@ const Module = @import("../hierarchy/module.zig").Module;
 const prelude_ = @import("../hierarchy/prelude.zig");
 const Dependency_Node = @import("../ast/dependency_node.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
+const Type_Set = @import("../ast/type-set.zig");
 const Symbol = @import("../symbol/symbol.zig");
 
 pub const CodeGen_Error = error{OutOfMemory};
@@ -12,10 +13,15 @@ pub const CodeGen_Error = error{OutOfMemory};
 const Self: type = @This();
 
 module: *Module,
+type_set: *const Type_Set,
 writer: *std.array_list.Managed(u8),
 
-pub fn init(module: *Module, writer: *std.array_list.Managed(u8)) Self {
-    return Self{ .module = module, .writer = writer };
+pub fn init(module: *Module, type_set: *const Type_Set, writer: *std.array_list.Managed(u8)) Self {
+    return Self{
+        .module = module,
+        .type_set = type_set,
+        .writer = writer,
+    };
 }
 
 /// Outputs the C type which corresponds to an AST type.
@@ -37,7 +43,10 @@ pub fn output_type(self: *Self, old_type: *Type_AST) CodeGen_Error!void {
             if (info != null) {
                 try self.writer.print("{s}", .{info.?.c_name});
             } else {
-                try self.writer.print("{s} /*{?f}*/", .{ _type.token().data, _type.symbol().?.init_typedef() });
+                try self.writer.print(
+                    "{s} /*{?f}*/",
+                    .{ _type.token().data, _type.symbol().?.init_typedef() },
+                );
             }
         },
         .addr_of => {
@@ -46,7 +55,7 @@ pub fn output_type(self: *Self, old_type: *Type_AST) CodeGen_Error!void {
         },
         .anyptr_type => try self.writer.print("void", .{}),
         .function => {
-            const dep = self.module.type_set.get(_type).?;
+            const dep = self.type_set.get(_type).?;
             try self.output_function_name(dep);
         },
         .enum_type,
@@ -54,15 +63,15 @@ pub fn output_type(self: *Self, old_type: *Type_AST) CodeGen_Error!void {
         .struct_type,
         .array_of,
         => {
-            const dep = self.module.type_set.get(_type).?;
+            const dep = self.type_set.get(_type).?;
             try self.output_struct_name(dep);
         },
         .untagged_sum_type => {
-            const dep = self.module.type_set.get(_type).?;
+            const dep = self.type_set.get(_type).?;
             try self.output_untagged_sum_name(dep);
         },
         .dyn_type => {
-            const dep = self.module.type_set.get(_type).?;
+            const dep = self.type_set.get(_type).?;
             try self.output_dyn_name(dep);
         },
         .unit_type => try self.writer.print("void", .{}),
@@ -73,22 +82,34 @@ pub fn output_type(self: *Self, old_type: *Type_AST) CodeGen_Error!void {
 
 pub fn output_function_name(self: *Self, dep: *const Dependency_Node) CodeGen_Error!void {
     const type_uid = dep.uid;
-    try self.writer.print("{s}_{s}_function{}", .{ self.module.package_name, self.module.name(), type_uid });
+    try self.writer.print(
+        "{s}_{s}_function{}",
+        .{ self.module.package_name, self.module.name(), type_uid },
+    );
 }
 
 pub fn output_struct_name(self: *Self, dep: *const Dependency_Node) CodeGen_Error!void {
     const type_uid = dep.uid;
-    try self.writer.print("struct {s}_{s}_struct{}", .{ self.module.package_name, self.module.name(), type_uid });
+    try self.writer.print(
+        "struct {s}_{s}_struct{}",
+        .{ self.module.package_name, self.module.name(), type_uid },
+    );
 }
 
 pub fn output_dyn_name(self: *Self, dep: *const Dependency_Node) CodeGen_Error!void {
     const type_uid = dep.uid;
-    try self.writer.print("struct {s}_{s}_dyn{}", .{ self.module.package_name, self.module.name(), type_uid });
+    try self.writer.print(
+        "struct {s}_{s}_dyn{}",
+        .{ self.module.package_name, self.module.name(), type_uid },
+    );
 }
 
 pub fn output_untagged_sum_name(self: *Self, dep: *const Dependency_Node) CodeGen_Error!void {
     const type_uid = dep.uid;
-    try self.writer.print("union {s}_{s}_union{}", .{ self.module.package_name, self.module.name(), type_uid });
+    try self.writer.print(
+        "union {s}_{s}_union{}",
+        .{ self.module.package_name, self.module.name(), type_uid },
+    );
 }
 
 /// Applies a function to all CFGs in a list of CFGs.

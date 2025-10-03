@@ -151,6 +151,7 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
     compiler.propagate_include_directories(package_abs_path);
     compiler.collect_package_local_modules();
     compiler.determine_if_modified(package_abs_path);
+    compiler.collect_types();
 
     const package = compiler.lookup_package(package_abs_path).?;
     package.modified = true;

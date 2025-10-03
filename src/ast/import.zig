@@ -79,7 +79,7 @@ fn unwrap_access_imports(self: Self, ast: *ast_.AST, asts: *std.array_list.Manag
 
     for (0.., terms.items) |i, term| {
         if (i < terms.items.len - 1) {
-            // Not the last term
+            // Not the last term, these are just accesses on the i+1th term
             // Insert `const rhs = lhs::rhs`
             const init = ast_.AST.create_access(
                 ast.token(),
@@ -102,7 +102,7 @@ fn unwrap_access_imports(self: Self, ast: *ast_.AST, asts: *std.array_list.Manag
             );
             asts.insert(idx, const_decl) catch unreachable;
         } else {
-            // The last term
+            // The last term, this is the actual root module/package
             const common = ast_.AST_Common{ ._token = ast.token() };
             ast.* = ast_.AST{ .binding = .{
                 .common = common,
@@ -119,6 +119,7 @@ fn unwrap_access_imports(self: Self, ast: *ast_.AST, asts: *std.array_list.Manag
             } };
             const symb = try self.resolve_import(ast.binding.pattern);
             symb.defined = true;
+            ast.binding.pattern.pattern_symbol.kind.import.real_symbol = symb;
         }
     }
 
@@ -126,10 +127,15 @@ fn unwrap_access_imports(self: Self, ast: *ast_.AST, asts: *std.array_list.Manag
 }
 
 /// Creates a list of terms from an access-sequence in reverse order.
+///
 /// Turns:
+/// ```
 ///   aaa::bbb::ccc
-/// int:
+/// ```
+/// into:
+/// ```
 ///   [ccc, bbb, aaa]
+/// ```
 fn create_terms(self: Self, ast: *ast_.AST) std.array_list.Managed(*ast_.AST) {
     var curr = ast.import.pattern;
     var terms = std.array_list.Managed(*ast_.AST).init(self.compiler.allocator());
@@ -143,10 +149,15 @@ fn create_terms(self: Self, ast: *ast_.AST) std.array_list.Managed(*ast_.AST) {
 
 /// Creates a list of anonymous names to use when unwrapping an access-sequence import, where the first is the actual
 /// name, and every other is an anonymous name.
+///
 /// Turns:
-///    aaa::bbb::ccc
+/// ```
+///    [ccc, bbb, aaa]
+/// ```
 /// into:
+/// ```
 ///    [ccc, anon0, anon1]
+/// ```
 fn create_anon_names(self: Self, terms: *std.array_list.Managed(*ast_.AST)) std.array_list.Managed([]const u8) {
     var anon_names = std.array_list.Managed([]const u8).init(self.compiler.allocator());
     for (0.., terms.items) |i, term| {

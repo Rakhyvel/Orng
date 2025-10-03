@@ -121,7 +121,9 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
 
         .binding => {
             for (ast.binding.decls.items) |decl| {
-                decl.decl.name.symbol().?.defined = true;
+                if (decl.* == .decl) {
+                    decl.decl.name.symbol().?.defined = true;
+                }
             }
         },
         .trait => self.scope.traits.append(ast) catch unreachable,

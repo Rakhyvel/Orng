@@ -4,6 +4,7 @@ const CFG = @import("../ir/cfg.zig");
 const Compiler_Context = @import("compiler.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Module_Hash = @import("module_hash.zig");
+const Type_Set = @import("../ast/type-set.zig");
 
 const Package = @This();
 
@@ -20,6 +21,8 @@ libraries: std.StringArrayHashMap(void),
 kind: Package_Kind,
 visited: bool,
 module_hash: Module_Hash,
+/// The C-equivalence type-closure for this package, built from the types used in all the package's modules
+type_set: Type_Set,
 modified: ?bool,
 
 pub const Package_Kind = enum {
@@ -70,6 +73,7 @@ pub fn new(allocator: std.mem.Allocator, package_absolute_path: []const u8, kind
     package.absolute_path = package_absolute_path;
     package.kind = kind;
     package.module_hash = Module_Hash.init(package_absolute_path, allocator) catch unreachable;
+    package.type_set = Type_Set.init(allocator);
     package.modified = null;
 
     package.set_executable_name(allocator) catch unreachable;
@@ -141,6 +145,12 @@ pub fn determine_if_modified(self: *Package, packages: std.StringArrayHashMap(*P
 
     // Check if the output exists - if it doesn't, package is modified
     self.modified = !file_exists(self.output_absolute_path) or self.modified.?;
+}
+
+pub fn collect_types(self: *Package) void {
+    for (self.local_modules.items) |module| {
+        module.collect_types(&self.type_set);
+    }
 }
 
 fn file_exists(abs_path: []const u8) bool {
