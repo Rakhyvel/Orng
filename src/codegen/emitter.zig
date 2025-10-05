@@ -7,19 +7,16 @@ const Dependency_Node = @import("../ast/dependency_node.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 const Type_Set = @import("../ast/type-set.zig");
 const Symbol = @import("../symbol/symbol.zig");
+const Canonical_Type_Fmt = @import("canonical_type_fmt.zig");
 
-pub const CodeGen_Error = error{OutOfMemory};
+pub const CodeGen_Error = error{ OutOfMemory, WriteFailed };
 
 const Self: type = @This();
 
-module: *Module,
-type_set: *const Type_Set,
 writer: *std.array_list.Managed(u8),
 
-pub fn init(module: *Module, type_set: *const Type_Set, writer: *std.array_list.Managed(u8)) Self {
+pub fn init(writer: *std.array_list.Managed(u8)) Self {
     return Self{
-        .module = module,
-        .type_set = type_set,
         .writer = writer,
     };
 }
@@ -53,76 +50,33 @@ pub fn output_type(self: *Self, old_type: *Type_AST) CodeGen_Error!void {
             try self.output_type(_type.child());
             try self.writer.print("*", .{});
         },
-        .anyptr_type => try self.writer.print("void", .{}),
-        .function => {
-            const dep = self.type_set.get(_type).?;
-            try self.output_function_name(dep);
-        },
+        .anyptr_type, .unit_type => try self.writer.print("void", .{}),
+        .annotation => try self.output_type(_type.child()),
+
+        .function => try self.writer.print("{f}", .{Canonical_Type_Fmt{ .type = _type }}),
         .enum_type,
         .tuple_type,
         .struct_type,
         .array_of,
-        => {
-            const dep = self.type_set.get(_type).?;
-            try self.output_struct_name(dep);
-        },
-        .untagged_sum_type => {
-            const dep = self.type_set.get(_type).?;
-            try self.output_untagged_sum_name(dep);
-        },
-        .dyn_type => {
-            const dep = self.type_set.get(_type).?;
-            try self.output_dyn_name(dep);
-        },
-        .unit_type => try self.writer.print("void", .{}),
-        .annotation => try self.output_type(_type.child()),
+        .untagged_sum_type,
+        .dyn_type,
+        => try self.writer.print("struct {f}", .{Canonical_Type_Fmt{ .type = _type }}),
         else => std.debug.panic("compiler error: unimplemented output_type() for {f}", .{_type.*}),
     }
-}
-
-pub fn output_function_name(self: *Self, dep: *const Dependency_Node) CodeGen_Error!void {
-    const type_uid = dep.uid;
-    try self.writer.print(
-        "{s}_{s}_function{}",
-        .{ self.module.package_name, self.module.name(), type_uid },
-    );
-}
-
-pub fn output_struct_name(self: *Self, dep: *const Dependency_Node) CodeGen_Error!void {
-    const type_uid = dep.uid;
-    try self.writer.print(
-        "struct {s}_{s}_struct{}",
-        .{ self.module.package_name, self.module.name(), type_uid },
-    );
-}
-
-pub fn output_dyn_name(self: *Self, dep: *const Dependency_Node) CodeGen_Error!void {
-    const type_uid = dep.uid;
-    try self.writer.print(
-        "struct {s}_{s}_dyn{}",
-        .{ self.module.package_name, self.module.name(), type_uid },
-    );
-}
-
-pub fn output_untagged_sum_name(self: *Self, dep: *const Dependency_Node) CodeGen_Error!void {
-    const type_uid = dep.uid;
-    try self.writer.print(
-        "union {s}_{s}_union{}",
-        .{ self.module.package_name, self.module.name(), type_uid },
-    );
 }
 
 /// Applies a function to all CFGs in a list of CFGs.
 pub fn forall_functions(
     self: *Self,
     sub: anytype,
+    cfgs: []const *CFG,
     header_comment: []const u8,
     comptime f: fn (@TypeOf(sub), *CFG) CodeGen_Error!void,
 ) CodeGen_Error!void {
     try self.writer.print("{s}\n", .{header_comment});
 
     // apply the function `f` to all CFGs in the `cfgs` list
-    for (self.module.cfgs.items) |cfg| {
+    for (cfgs) |cfg| {
         if (!cfg.needed_at_runtime) {
             continue;
         }

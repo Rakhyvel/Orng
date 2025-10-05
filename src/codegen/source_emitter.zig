@@ -27,15 +27,14 @@ module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set),
 emitter: Emitter,
 writer: *std.array_list.Managed(u8),
 
-pub const CodeGen_Error = error{OutOfMemory};
+pub const CodeGen_Error = error{ WriteFailed, OutOfMemory };
 
 pub fn init(
     module: *module_.Module,
     module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set),
-    type_set: *const Type_Set,
     writer: *std.array_list.Managed(u8),
 ) Self {
-    const emitter = Emitter.init(module, type_set, writer);
+    const emitter = Emitter.init(writer);
     return Self{
         .module = module,
         .module_interned_strings = module_interned_strings,
@@ -48,7 +47,7 @@ pub fn init(
 pub fn generate(self: *Self) CodeGen_Error!void {
     try self.output_header_include();
     try self.output_impls();
-    try self.emitter.forall_functions(self, "\n/* Function definitions */", output_function_definition);
+    try self.emitter.forall_functions(self, self.module.cfgs.items, "\n/* Function definitions */", output_function_definition);
 }
 
 pub fn output_header_include(self: *Self) CodeGen_Error!void {

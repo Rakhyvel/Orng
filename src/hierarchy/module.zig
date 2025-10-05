@@ -85,6 +85,9 @@ pub const Module = struct {
     /// List of all tests defined in this module. Used by codegen to output the vtable implementations.
     tests: std.array_list.Managed(*CFG),
 
+    /// The types used by this module alone
+    type_set: Type_Set,
+
     /// Allocator for the module
     allocator: std.mem.Allocator,
 
@@ -109,6 +112,7 @@ pub const Module = struct {
         retval.impls = std.array_list.Managed(*ast_.AST).init(allocator);
         retval.tests = std.array_list.Managed(*CFG).init(allocator);
         retval.cfgs = std.array_list.Managed(*CFG).init(allocator);
+        retval.type_set = Type_Set.init(allocator);
         retval.entry = null;
         retval.modified = null;
 
@@ -233,6 +237,7 @@ pub const Module = struct {
         }
         try module.collect_impls_cfgs(compiler);
         try module.collect_tests(compiler);
+        module.collect_local_types();
     }
 
     fn add_all_cfgs(self: *Module, entry_name: ?[]const u8, compiler: *Compiler_Context) Module_Errors!void {
@@ -273,19 +278,23 @@ pub const Module = struct {
         }
     }
 
-    /// Puts all the types used in this module into the given type set
-    pub fn collect_types(self: *Module, type_set: *Type_Set) void {
+    fn collect_local_types(self: *Module) void {
         for (self.traits.items) |trait| {
             for (trait.trait.method_decls.items) |decl| {
                 const @"type" = decl.method_decl.c_type.?.expand_identifier();
                 if (@"type".refers_to_self()) continue;
-                _ = type_set.add(decl.method_decl.c_type.?.expand_identifier());
-                _ = type_set.add(decl.method_decl.ret_type.expand_identifier());
+                _ = self.type_set.add(decl.method_decl.c_type.?.expand_identifier());
+                _ = self.type_set.add(decl.method_decl.ret_type.expand_identifier());
             }
         }
         for (self.cfgs.items) |cfg| {
-            cfg.collect_types(type_set);
+            cfg.collect_types(&self.type_set);
         }
+    }
+
+    /// Puts all the types used in this module into the given type set
+    pub fn collect_types(self: *Module, type_set: *Type_Set) void {
+        type_set.union_from(&self.type_set);
     }
 
     fn collect_impls_cfgs(self: *Module, compiler: *Compiler_Context) Module_Errors!void {

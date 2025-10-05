@@ -2,8 +2,8 @@ struct Heap_Allocator {}
 impl core::Allocator for Heap_Allocator {
     virtual fn alloc(&mut self, nbytes: Int) -> ?[*mut]Byte {
         _ = self
-        extern const malloc: Int -> ?[*mut]Byte
-        malloc(nbytes)
+        extern const malloc: Int -> [*mut]Byte
+        .some(malloc(nbytes))
     }
 
     virtual fn free(&mut self, allocation: [*]Byte) -> () {

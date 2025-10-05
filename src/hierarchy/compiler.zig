@@ -246,19 +246,6 @@ pub fn collect_package_local_modules(self: *Self) void {
         const package = self.lookup_package(package_name).?;
         const module = package.root.init_value().?.module.module;
 
-        const package_path = module.get_package_abs_path();
-        const build_paths = [_][]const u8{ package_path, "build" };
-        const build_path = std.fs.path.join(self.allocator(), &build_paths) catch unreachable;
-        _ = std.fs.openDirAbsolute(build_path, .{}) catch {
-            std.fs.makeDirAbsolute(build_path) catch unreachable;
-        };
-
-        const types_paths = [_][]const u8{ package_path, "build", "types" };
-        const types_path = std.fs.path.join(self.allocator(), &types_paths) catch unreachable;
-        _ = std.fs.openDirAbsolute(types_path, .{}) catch {
-            std.fs.makeDirAbsolute(types_path) catch unreachable;
-        };
-
         var dfs_iter: Module_Iterator = Module_Iterator.init(module, self.allocator());
         defer dfs_iter.deinit();
         while (dfs_iter.next()) |next_module| {

@@ -88,6 +88,13 @@ pub fn get_build_path(self: *const Package, allocator: std.mem.Allocator) []cons
     return std.fs.path.join(allocator, &build_paths) catch unreachable;
 }
 
+pub fn get_types_path(self: *const Package, allocator: std.mem.Allocator) []const u8 {
+    const package_root_module = self.root.init_value().?.module.module;
+    const package_path = package_root_module.get_package_abs_path();
+    const types_paths = [_][]const u8{ package_path, "build", "types" };
+    return std.fs.path.join(allocator, &types_paths) catch unreachable;
+}
+
 pub fn get_build_module_absolute_path(self: *const Package, allocator: std.mem.Allocator) []const u8 {
     const package_root_module = self.root.init_value().?.module.module;
     const package_path = package_root_module.get_package_abs_path();

@@ -1,6 +1,7 @@
 const std = @import("std");
 const core_ = @import("../hierarchy/core.zig");
 const Module_Iterator = @import("../util/dfs.zig").Dfs_Iterator(*Module);
+const Dependency_Node = @import("../ast/dependency_node.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const Interned_String_Set = @import("../ir/interned_string_set.zig");
@@ -9,7 +10,9 @@ const Header_Emitter = @import("header_emitter.zig");
 const Source_Emitter = @import("source_emitter.zig");
 const Emitter = @import("emitter.zig");
 const Test_Emitter = @import("test_emitter.zig");
+const Typedef_Emitter = @import("typedef_emitter.zig");
 const Type_Set = @import("../ast/type-set.zig");
+const Canonical_Type_Fmt = @import("canonical_type_fmt.zig");
 
 /// Goes through each package and outputs a C/H file header pair for each module in each package
 pub fn output_modules(compiler: *Compiler_Context) !void {
@@ -25,34 +28,40 @@ pub fn output_modules(compiler: *Compiler_Context) !void {
             std.fs.makeDirAbsolute(build_path) catch unreachable;
         };
 
+        const types_path = package.get_types_path(compiler.allocator());
+        _ = std.fs.openDirAbsolute(types_path, .{}) catch {
+            std.fs.makeDirAbsolute(types_path) catch unreachable;
+        };
+
+        try output_types(&package.type_set, types_path, compiler.allocator());
+
         var modules = std.array_list.Managed(*Module).init(compiler.allocator());
         defer modules.deinit();
         var dfs_iter: Module_Iterator = Module_Iterator.init(package_root_module, compiler.allocator());
         defer dfs_iter.deinit();
         while (dfs_iter.next()) |module| {
             if (std.mem.eql(u8, module.get_package_abs_path(), package.absolute_path)) {
-                try output(module, &compiler.module_interned_strings, &package.type_set, build_path, compiler.allocator());
+                try output_module(module, &compiler.module_interned_strings, build_path, compiler.allocator());
                 modules.append(module) catch unreachable;
 
                 if (package.kind == .test_executable) {
-                    try output_tests(module, &compiler.module_interned_strings, &package.type_set, build_path, compiler.allocator());
+                    try output_tests(module, &compiler.module_interned_strings, build_path, compiler.allocator());
                 }
             }
         }
 
         switch (package.kind) {
-            .test_executable => try output_testrunner(modules, &package.type_set, build_path, compiler.allocator()),
-            .executable => try output_start(package_root_module, &compiler.module_interned_strings, &package.type_set, build_path, compiler.allocator()),
+            .test_executable => try output_testrunner(modules, build_path, compiler.allocator()),
+            .executable => try output_start(package_root_module, &compiler.module_interned_strings, build_path, compiler.allocator()),
             else => {},
         }
     }
 }
 
 /// Takes in a statically correct module, writes it out to C source and header files
-fn output(
+fn output_module(
     module: *Module,
     module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set),
-    type_set: *const Type_Set,
     build_path: []const u8,
     allocator: std.mem.Allocator,
 ) !void {
@@ -60,25 +69,68 @@ fn output(
     defer output_h_file.close();
     var h_buffer = std.array_list.Managed(u8).init(allocator);
     defer h_buffer.deinit();
-    var header_emitter = Header_Emitter.init(module, type_set, &h_buffer);
+    var header_emitter = Header_Emitter.init(module, &h_buffer);
     header_emitter.generate() catch return error.CompileError;
 
     var output_c_file = try open_file(module.package_name, module.name(), ".c", build_path, allocator);
     defer output_c_file.close();
     var c_buffer = std.array_list.Managed(u8).init(allocator);
     defer c_buffer.deinit();
-    var source_emitter = Source_Emitter.init(module, module_interned_strings, type_set, &c_buffer);
+    var source_emitter = Source_Emitter.init(module, module_interned_strings, &c_buffer);
     source_emitter.generate() catch return error.CompileError;
 
     output_c_file.writeAll(c_buffer.items) catch unreachable;
     output_h_file.writeAll(h_buffer.items) catch unreachable;
 }
 
+fn output_types(
+    type_set: *const Type_Set,
+    types_path: []const u8,
+    allocator: std.mem.Allocator,
+) !void {
+    // Output all typedefs
+    for (type_set.types.items) |dag| {
+        try output_type(dag, types_path, allocator);
+    }
+}
+
+fn output_type(
+    dep: *Dependency_Node,
+    types_path: []const u8,
+    allocator: std.mem.Allocator,
+) !void {
+    if (dep.visited) {
+        // only visit a DAG node once
+        return;
+    }
+    dep.mark_visited();
+
+    // output any types that this type depends on
+    for (dep.dependencies.items) |depen| {
+        try output_type(depen, types_path, allocator);
+    }
+
+    var output_filename = std.array_list.Managed(u8).init(allocator);
+    defer output_filename.deinit();
+    output_filename.print("{f}.h", .{Canonical_Type_Fmt{ .type = dep.base }}) catch unreachable;
+
+    const out_paths = [_][]const u8{ types_path, output_filename.items };
+    const out_path = std.fs.path.join(allocator, &out_paths) catch unreachable;
+
+    const output_type_h_file = std.fs.createFileAbsolute(out_path, .{}) catch unreachable;
+    var type_h_buffer = std.array_list.Managed(u8).init(allocator);
+    defer type_h_buffer.deinit();
+
+    var test_emitter = Typedef_Emitter.init(dep.base, &type_h_buffer);
+    test_emitter.generate() catch return error.CompileError;
+
+    output_type_h_file.writeAll(type_h_buffer.items) catch unreachable;
+}
+
 /// Takes in a statically correct module, writes the tests out to C source and header files
 fn output_tests(
     module: *Module,
     module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set),
-    type_set: *const Type_Set,
     build_path: []const u8,
     allocator: std.mem.Allocator,
 ) !void {
@@ -92,7 +144,7 @@ fn output_tests(
     var c_buffer = std.array_list.Managed(u8).init(allocator);
     defer c_buffer.deinit();
 
-    var test_emitter = Test_Emitter.init(module, module_interned_strings, type_set, &c_buffer, &h_buffer);
+    var test_emitter = Test_Emitter.init(module, module_interned_strings, &c_buffer, &h_buffer);
     test_emitter.generate() catch return error.CompileError;
 
     output_c_file.writeAll(c_buffer.items) catch unreachable;
@@ -102,7 +154,6 @@ fn output_tests(
 fn output_start(
     module: *Module,
     module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set),
-    type_set: *const Type_Set,
     build_path: []const u8,
     allocator: std.mem.Allocator,
 ) !void {
@@ -118,7 +169,6 @@ fn output_start(
     var source_emitter = Source_Emitter.init(
         module,
         module_interned_strings,
-        type_set,
         &buf,
     );
     source_emitter.output_header_include() catch return error.CompileError;
@@ -130,7 +180,6 @@ fn output_start(
 
 fn output_testrunner(
     modules: std.array_list.Managed(*Module),
-    type_set: *const Type_Set,
     build_path: []const u8,
     allocator: std.mem.Allocator,
 ) !void {
@@ -161,7 +210,7 @@ fn output_testrunner(
         \\
         \\typedef 
     , .{}) catch return error.CompileError;
-    var mod_0_emitter = Emitter.init(modules.items[0], type_set, &buf);
+    var mod_0_emitter = Emitter.init(&buf);
     mod_0_emitter.output_type(core_.test_result_type) catch return error.CompileError;
     buf.print(
         \\ test_result;
@@ -180,7 +229,7 @@ fn output_testrunner(
 
     var num_tests: usize = 0;
     for (modules.items) |module| {
-        var emitter = Emitter.init(module, type_set, &buf);
+        var emitter = Emitter.init(&buf);
         for (module.tests.items) |@"test"| {
             buf.print("    {{\"{s}\", \"{s}\", (test_fn)", .{ @"test".symbol.scope.module.?.name(), @"test".symbol.decl.?.@"test".name.?.string.data }) catch return error.CompileError;
             emitter.output_symbol(@"test".symbol) catch return error.CompileError;

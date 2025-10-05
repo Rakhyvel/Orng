@@ -78,17 +78,21 @@ fn add_array(self: *Self, array_type_ast: *Type_AST) ?*Dependency_Node {
     return dag;
 }
 
+/// Performs A = A U B
+pub fn union_from(self: *Self, other: *const Self) void {
+    for (other.types.items) |_type| {
+        _ = self.add(_type.base);
+    }
+}
+
 /// Retrieves the dependency node from the type set given a type
 pub fn get(self: *const Self, oldast_: *Type_AST) ?*Dependency_Node {
-    std.debug.print("find {f} ... ", .{oldast_});
     const ast = oldast_.expand_identifier();
     for (self.types.items) |dag| {
         if (dag.base.c_types_match(ast)) {
-            std.debug.print("FOUND!\n", .{});
             return dag;
         }
     }
-    std.debug.print("NOT FOUND!\n", .{});
     return null;
 }
 

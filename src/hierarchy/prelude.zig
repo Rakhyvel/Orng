@@ -42,6 +42,7 @@ pub var blackhole: *Symbol = undefined;
 
 pub const Primitive_Info = struct {
     c_name: []const u8,
+    canon_name: []const u8,
     bounds: ?Bounds,
     type_class: Type_Class,
     type_kind: Type_Kind,
@@ -163,6 +164,7 @@ fn create_prelude(compiler: *Compiler_Context) !void {
         "Bool",
         null,
         "uint8_t",
+        "u8",
         bool_type,
         .eq,
         .boolean,
@@ -174,6 +176,7 @@ fn create_prelude(compiler: *Compiler_Context) !void {
         "Char",
         null,
         "uint32_t",
+        "u32",
         char_type,
         .ord,
         .unsigned_integer,
@@ -185,6 +188,7 @@ fn create_prelude(compiler: *Compiler_Context) !void {
         "Float32",
         null,
         "float",
+        "f32",
         float32_type,
         .num,
         .floating_point,
@@ -196,6 +200,7 @@ fn create_prelude(compiler: *Compiler_Context) !void {
         "Float64",
         null,
         "double",
+        "f64",
         float64_type,
         .num,
         .floating_point,
@@ -207,6 +212,7 @@ fn create_prelude(compiler: *Compiler_Context) !void {
         "Int8",
         Bounds{ .lower = -0x80, .upper = 0x7F },
         "int8_t",
+        "i8",
         int8_type,
         .int,
         .signed_integer,
@@ -218,6 +224,7 @@ fn create_prelude(compiler: *Compiler_Context) !void {
         "Int16",
         Bounds{ .lower = -0x8000, .upper = 0x7FFF },
         "int16_t",
+        "i16",
         int16_type,
         .int,
         .signed_integer,
@@ -229,6 +236,7 @@ fn create_prelude(compiler: *Compiler_Context) !void {
         "Int32",
         Bounds{ .lower = -0x8000_000, .upper = 0x7FFF_FFFF },
         "int32_t",
+        "i32",
         int32_type,
         .int,
         .signed_integer,
@@ -240,6 +248,7 @@ fn create_prelude(compiler: *Compiler_Context) !void {
         "Int64",
         Bounds{ .lower = -0x8000_0000_0000_0000, .upper = 0x7FFF_FFFF_FFFF_FFFF },
         "int64_t",
+        "i64",
         int64_type,
         .int,
         .signed_integer,
@@ -250,6 +259,7 @@ fn create_prelude(compiler: *Compiler_Context) !void {
     create_info(
         "Void",
         null,
+        "NO C EQUIVALENT!",
         "NO C EQUIVALENT!",
         void_type,
         .none,
@@ -262,6 +272,7 @@ fn create_prelude(compiler: *Compiler_Context) !void {
         "Word8",
         Bounds{ .lower = 0, .upper = 0xFFFF },
         "uint8_t",
+        "u8",
         word8_type,
         .int,
         .unsigned_integer,
@@ -273,6 +284,7 @@ fn create_prelude(compiler: *Compiler_Context) !void {
         "Word16",
         Bounds{ .lower = 0, .upper = 0xFFFF },
         "uint16_t",
+        "u16",
         word16_type,
         .int,
         .unsigned_integer,
@@ -284,6 +296,7 @@ fn create_prelude(compiler: *Compiler_Context) !void {
         "Word32",
         Bounds{ .lower = 0, .upper = 0xFFFF_FFFF },
         "uint32_t",
+        "u32",
         word32_type,
         .int,
         .unsigned_integer,
@@ -295,6 +308,7 @@ fn create_prelude(compiler: *Compiler_Context) !void {
         "Word64",
         Bounds{ .lower = 0, .upper = 0xFFFF_FFFF_FFFF_FFFF },
         "uint64_t",
+        "u64",
         word64_type,
         .int,
         .unsigned_integer,
@@ -420,6 +434,7 @@ fn create_info(
     name: []const u8, // Name of the primitive type identifier
     bounds: ?Bounds, // Optional bounds info for integral types
     c_name: []const u8, // Name to use when generating the primitive to C
+    canon_name: []const u8, // Name to use when generating the canonical representation
     _ast: *Type_AST, // The AST representation of the type
     type_class: Type_Class, // Typeclass this primitive belongs to
     type_kind: Type_Kind, // What kind of type this type is
@@ -432,6 +447,7 @@ fn create_info(
     primitives.put(name, Primitive_Info{
         .bounds = bounds,
         .c_name = c_name,
+        .canon_name = canon_name,
         .type_class = type_class,
         .type_kind = type_kind,
         .default_value = default_value,
