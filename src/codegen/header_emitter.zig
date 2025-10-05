@@ -38,6 +38,7 @@ pub fn generate(self: *Self) CodeGen_Error!void {
     try self.output_includes();
     try self.output_typedefs();
     try self.output_traits();
+    try self.output_impls();
     try self.emitter.forall_functions(self, self.module.cfgs.items, "/* Function forward definitions */", output_forward_function);
     try self.output_include_guard_end();
 }
@@ -202,6 +203,22 @@ fn output_traits(self: *Self) CodeGen_Error!void {
             try self.writer.print(");\n", .{});
         }
         try self.writer.print("}};\n\n", .{});
+    }
+}
+
+fn output_impls(self: *Self) CodeGen_Error!void {
+    if (self.module.impls.items.len > 0) {
+        // TODO: Count impls that have virtual methods
+        // Do not output header comment if there are no impls!
+        try self.writer.print("/* Trait vtable implementation declarations */\n", .{});
+    }
+
+    for (self.module.impls.items) |impl| {
+        if (impl.impl.num_virtual_methods == 0) {
+            continue;
+        }
+        const trait = impl.impl.trait.?;
+        try self.writer.print("extern const struct vtable_{s} _{s}_{s}_{}_$vtable;\n", .{ trait.symbol().?.name, self.module.package_name, self.module.name(), impl.scope().?.uid });
     }
 }
 

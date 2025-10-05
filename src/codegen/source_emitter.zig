@@ -74,7 +74,7 @@ fn output_impls(
             continue;
         }
         const trait = impl.impl.trait.?;
-        try self.writer.print("struct vtable_{s} _{}_$vtable = {{\n", .{ trait.symbol().?.name, impl.scope().?.uid });
+        try self.writer.print("const struct vtable_{s} _{s}_{s}_{}_$vtable = {{\n", .{ trait.symbol().?.name, self.module.package_name, self.module.name(), impl.scope().?.uid });
         for (impl.impl.method_defs.items) |decl| {
             if (!decl.method_decl.is_virtual) {
                 continue;
@@ -704,5 +704,6 @@ fn output_operator(self: *Self, instr: *Instruction) CodeGen_Error!void {
 
 /// Prints out the vtable name given an impl AST
 fn output_vtable_impl(self: *Self, impl: *ast_.AST) CodeGen_Error!void {
-    try self.writer.print("_{}_$vtable", .{impl.scope().?.uid});
+    const impl_module = impl.scope().?.module.?; // what makes you think the impl is in the same module??
+    try self.writer.print("_{s}_{s}_{}_$vtable", .{ impl_module.package_name, impl_module.name(), impl.scope().?.uid });
 }
