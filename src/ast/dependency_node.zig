@@ -4,6 +4,7 @@
 
 const std = @import("std");
 const Type_AST = @import("../types/type.zig").Type_AST;
+const Canonical_Type_Fmt = @import("../codegen/canonical_type_fmt.zig");
 
 const Self = @This();
 
@@ -35,4 +36,11 @@ fn print(self: *Self) void {
         std.debug.print("{} ", .{dep.uid});
     }
     std.debug.print("\n", .{});
+}
+
+/// Prints out a graphviz representation of the dependency node
+pub fn graphviz(self: *Self) void {
+    for (self.dependencies.items) |dep| {
+        std.debug.print("\"{f}\" {f} -> \"{f}\" {f};\n", .{ self.base, dep.base, Canonical_Type_Fmt{ .type = self.base }, Canonical_Type_Fmt{ .type = dep.base } });
+    }
 }

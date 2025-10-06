@@ -191,7 +191,7 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
                 try walker_.walk_ast(new_impl, decorate_access_context);
                 try compiler.validate_scope.validate(new_scope);
 
-                impl.impl.instantiations.put(with_list, new_impl);
+                impl.impl.instantiations.put(with_list, new_impl) catch unreachable;
             }
             the_impl = impl.impl.instantiations.get(with_list).?; // TODO: substitutions need to be in the same order as withs
         }

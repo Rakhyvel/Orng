@@ -4,6 +4,7 @@ const std = @import("std");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Type_AST = @import("../types/type.zig").Type_AST;
+const C_Type_Map = @import("../ast/type_map.zig").C_Type_Map;
 
 const Self = @This();
 
@@ -18,8 +19,9 @@ pub fn format(self: *const Self, writer: *std.io.Writer) !void {
     }
 }
 
+/// Returns the hash for a given type
 pub fn hash_type(_type: *Type_AST) !usize {
-    var seen_map = std.array_hash_map.AutoArrayHashMap(*Type_AST, usize).init(std.heap.page_allocator);
+    var seen_map = C_Type_Map(usize).init(std.heap.page_allocator);
     defer seen_map.deinit();
 
     var next_id: usize = 0;
@@ -34,16 +36,32 @@ pub fn hash_type(_type: *Type_AST) !usize {
     return std.hash.Fnv1a_64.hash(str.str());
 }
 
+/// Returns a String object representing the canonical representation of the type
+pub fn canonical_rep(_type: *Type_AST) !String {
+    var seen_map = C_Type_Map(usize).init(std.heap.page_allocator);
+    defer seen_map.deinit();
+
+    var next_id: usize = 0;
+
+    var str = String.init(std.heap.page_allocator);
+    var writer = str.writer(&.{});
+    const writer_intfc = &writer.interface;
+
+    try hash_type_internal(_type, &seen_map, &next_id, writer_intfc);
+
+    return str;
+}
+
 /// Hashes a type to its C canonical representation.
 ///
 /// ### Params
 /// * `_type`: The type to hash
-/// * `seen_map`: A map of types that have been seen to their ID. Used for back edges in cycles.
+/// * `seen_map`: A C-equivalence linear map of types that have been seen to their ID. Used for back edges in cycles.
 /// * `next_id`: Pointer to a usize to monotonically increase, for assigning IDs to types.
 /// * `writer`: Writer to write the repr to.
 fn hash_type_internal(
     _type: *Type_AST,
-    seen_map: *std.array_hash_map.AutoArrayHashMap(*Type_AST, usize),
+    seen_map: *C_Type_Map(usize),
     next_id: *usize,
     writer: *std.io.Writer,
 ) error{WriteFailed}!void {
@@ -91,10 +109,10 @@ fn hash_type_internal(
         },
         .untagged_sum_type => {
             try writer.print("union", .{});
-            try append_fields(real_type.child(), seen_map, next_id, writer);
+            try append_fields(real_type.child().expand_identifier(), seen_map, next_id, writer);
         },
         .dyn_type => {
-            try writer.print("dyn", .{});
+            try writer.print("dyn_{s}", .{real_type.child().symbol().?.name});
         },
         .function => {
             try writer.print("function_", .{});
@@ -117,7 +135,7 @@ fn non_unit_len(real_type: *Type_AST) usize {
 
 fn append_fields(
     _type: *Type_AST,
-    seen_map: *std.array_hash_map.AutoArrayHashMap(*Type_AST, usize),
+    seen_map: *C_Type_Map(usize),
     next_id: *usize,
     writer: *std.io.Writer,
 ) !void {

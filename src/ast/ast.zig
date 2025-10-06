@@ -17,7 +17,7 @@ const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
-const Type_Map = @import("../ast/type_map.zig").Type_Map;
+const Monomorph_Map = @import("../ast/type_map.zig").Monomorph_Map;
 const validation_state_ = @import("../util/validation_state.zig");
 const unification_ = @import("../types/unification.zig");
 
@@ -176,7 +176,7 @@ pub const AST = union(enum) {
         num_virtual_methods: i64 = 0,
         _scope: ?*Scope = null, // Scope used for `impl` methods, rooted in `impl`'s scope.
         impls_anon_trait: bool = false, // true when this impl implements an anonymous trait
-        instantiations: Type_Map(*AST),
+        instantiations: Monomorph_Map(*AST),
     },
     invoke: struct {
         common: AST_Common,
@@ -437,7 +437,7 @@ pub const AST = union(enum) {
     template: struct {
         common: AST_Common,
         decl: *AST, // The decl of the symbol(s) that is being templated
-        memo: Type_Map(*Symbol),
+        memo: Monomorph_Map(*Symbol),
         _symbol: ?*Symbol = null, // The symbol for this template
     },
     @"defer": struct { common: AST_Common, _statement: *AST },
@@ -809,7 +809,7 @@ pub const AST = union(enum) {
                 .method_defs = method_defs,
                 .const_defs = const_defs,
                 ._generic_params = _generic_params,
-                .instantiations = Type_Map(*AST).init(allocator),
+                .instantiations = Monomorph_Map(*AST).init(allocator),
             } },
             allocator,
         );

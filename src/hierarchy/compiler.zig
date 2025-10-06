@@ -249,6 +249,9 @@ pub fn collect_package_local_modules(self: *Self) void {
         var dfs_iter: Module_Iterator = Module_Iterator.init(module, self.allocator());
         defer dfs_iter.deinit();
         while (dfs_iter.next()) |next_module| {
+            if (std.mem.eql(u8, next_module.name(), "core") and !std.mem.eql(u8, package.name, "core")) {
+                continue;
+            }
             package.local_modules.append(next_module) catch unreachable;
         }
     }
@@ -266,6 +269,7 @@ pub fn determine_if_modified(self: *Self, root_package_absolute_path: []const u8
     package.determine_if_modified(self.packages, self);
 }
 
-pub fn compile(self: *Self, root_package_absolute_path: []const u8, extra_flags: bool) !void {
-    try self.lookup_package(root_package_absolute_path).?.compile(self.packages, extra_flags, self.allocator());
+pub fn compile(self: *Self, root_package_absolute_path: []const u8) !void {
+    const package = self.lookup_package(root_package_absolute_path).?;
+    try package.compile(self.packages, self.allocator());
 }

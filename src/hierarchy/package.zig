@@ -129,7 +129,7 @@ pub fn determine_if_modified(self: *Package, packages: std.StringArrayHashMap(*P
     }
     self.modified = false;
 
-    // Check if any packages are modified
+    // Check if any requirements are modified
     for (self.requirements.keys()) |requirement_name| {
         const required_package = self.get_required_package(requirement_name, packages);
         required_package.determine_if_modified(packages, compiler);
@@ -170,7 +170,7 @@ fn file_exists(abs_path: []const u8) bool {
 }
 
 /// Compiles a package. Assumes C files have already been emitted.
-pub fn compile(self: *Package, packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !void {
+pub fn compile(self: *Package, packages: std.StringArrayHashMap(*Package), allocator: std.mem.Allocator) !void {
     if (self.visited) {
         return;
     }
@@ -178,10 +178,10 @@ pub fn compile(self: *Package, packages: std.StringArrayHashMap(*Package), extra
 
     for (self.requirements.keys()) |requirement_name| {
         const required_package = self.get_required_package(requirement_name, packages);
-        try required_package.compile(packages, extra_flags, allocator);
+        try required_package.compile(packages, allocator);
     }
 
-    const obj_files = try self.compile_obj_files(packages, extra_flags, allocator);
+    const obj_files = try self.compile_obj_files(packages, allocator);
     self.module_hash.output_new_json(allocator);
 
     if (self.modified.?) {
@@ -194,17 +194,17 @@ pub fn compile(self: *Package, packages: std.StringArrayHashMap(*Package), extra
 }
 
 /// Compiles the C files to object files for this package's local modules and entry point
-fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !std.StringArrayHashMap(void) {
+fn compile_obj_files(self: *Package, packages: std.StringArrayHashMap(*Package), allocator: std.mem.Allocator) !std.StringArrayHashMap(void) {
     var obj_files = std.StringArrayHashMap(void).init(allocator);
 
-    try self.compile_local_modules(&obj_files, packages, extra_flags, allocator);
-    try self.compile_entry_point(&obj_files, packages, extra_flags, allocator);
+    try self.compile_local_modules(&obj_files, packages, allocator);
+    try self.compile_entry_point(&obj_files, packages, allocator);
 
     return obj_files;
 }
 
 /// Compiles the C files to object files for this package's local modules
-fn compile_local_modules(self: *Package, obj_files: *std.StringArrayHashMap(void), packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !void {
+fn compile_local_modules(self: *Package, obj_files: *std.StringArrayHashMap(void), packages: std.StringArrayHashMap(*Package), allocator: std.mem.Allocator) !void {
     for (self.local_modules.items) |local_module| {
         if (!std.mem.eql(u8, local_module.get_package_abs_path(), self.absolute_path)) {
             continue;
@@ -217,7 +217,7 @@ fn compile_local_modules(self: *Package, obj_files: *std.StringArrayHashMap(void
             continue;
         }
 
-        try self.compile_module_sources(o_file, packages, local_module, extra_flags, allocator);
+        try self.compile_module_sources(o_file, packages, local_module, allocator);
     }
 }
 
@@ -249,7 +249,7 @@ fn add_module_obj_files(self: *Package, obj_files: *std.StringArrayHashMap(void)
 }
 
 /// Compiles the sources for a module
-fn compile_module_sources(self: *Package, o_file: std.array_list.Managed(u8), packages: std.StringArrayHashMap(*Package), local_module: *Module, extra_flags: bool, allocator: std.mem.Allocator) !void {
+fn compile_module_sources(self: *Package, o_file: std.array_list.Managed(u8), packages: std.StringArrayHashMap(*Package), local_module: *Module, allocator: std.mem.Allocator) !void {
     var c_file = std.array_list.Managed(u8).init(allocator);
     defer c_file.deinit();
     c_file.print("{s}{c}build{c}{s}-{s}.c", .{
@@ -259,7 +259,7 @@ fn compile_module_sources(self: *Package, o_file: std.array_list.Managed(u8), pa
         self.name,
         local_module.name(),
     }) catch unreachable;
-    try self.cc(c_file.items, o_file.items, packages, extra_flags, allocator);
+    try self.cc(c_file.items, o_file.items, packages, allocator);
 
     if (self.kind == .test_executable) {
         var test_c_file = std.array_list.Managed(u8).init(allocator);
@@ -274,25 +274,25 @@ fn compile_module_sources(self: *Package, o_file: std.array_list.Managed(u8), pa
         var test_o_file = std.array_list.Managed(u8).init(allocator);
         test_o_file.print("{s}-tests.o", .{local_module.name()}) catch unreachable;
 
-        try self.cc(test_c_file.items, test_o_file.items, packages, extra_flags, allocator);
+        try self.cc(test_c_file.items, test_o_file.items, packages, allocator);
     }
 }
 
 /// Compiles the C file for this package's entry point
-fn compile_entry_point(self: *Package, obj_files: *std.StringArrayHashMap(void), packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !void {
+fn compile_entry_point(self: *Package, obj_files: *std.StringArrayHashMap(void), packages: std.StringArrayHashMap(*Package), allocator: std.mem.Allocator) !void {
     if (!self.modified.?) {
         return;
     }
 
     switch (self.kind) {
-        .executable => try self.compile_executable_entry_point(obj_files, packages, extra_flags, allocator),
-        .test_executable => try self.compile_test_runner_entry_point(obj_files, packages, extra_flags, allocator),
+        .executable => try self.compile_executable_entry_point(obj_files, packages, allocator),
+        .test_executable => try self.compile_test_runner_entry_point(obj_files, packages, allocator),
         else => {},
     }
 }
 
 /// Compiles the `start` C file to an object file
-fn compile_executable_entry_point(self: *Package, obj_files: *std.StringArrayHashMap(void), packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !void {
+fn compile_executable_entry_point(self: *Package, obj_files: *std.StringArrayHashMap(void), packages: std.StringArrayHashMap(*Package), allocator: std.mem.Allocator) !void {
     var start_o_file = std.array_list.Managed(u8).init(allocator);
     start_o_file.print("{s}{c}build{c}start.o", .{
         self.absolute_path,
@@ -309,12 +309,12 @@ fn compile_executable_entry_point(self: *Package, obj_files: *std.StringArrayHas
             std.fs.path.sep,
         }) catch unreachable;
 
-        try self.cc(c_file.items, start_o_file.items, packages, extra_flags, allocator);
+        try self.cc(c_file.items, start_o_file.items, packages, allocator);
     }
 }
 
 /// Compiles the test-runner C file to an object file
-fn compile_test_runner_entry_point(self: *Package, obj_files: *std.StringArrayHashMap(void), packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !void {
+fn compile_test_runner_entry_point(self: *Package, obj_files: *std.StringArrayHashMap(void), packages: std.StringArrayHashMap(*Package), allocator: std.mem.Allocator) !void {
     var test_runner_o_file = std.array_list.Managed(u8).init(allocator);
     test_runner_o_file.print("{s}{c}build{c}test-runner.o", .{
         self.absolute_path,
@@ -331,7 +331,7 @@ fn compile_test_runner_entry_point(self: *Package, obj_files: *std.StringArrayHa
             std.fs.path.sep,
         }) catch unreachable;
 
-        try self.cc(c_file.items, test_runner_o_file.items, packages, extra_flags, allocator);
+        try self.cc(c_file.items, test_runner_o_file.items, packages, allocator);
     }
 }
 
@@ -350,10 +350,9 @@ fn cc(
     c_file: []const u8,
     o_file: []const u8,
     packages: std.StringArrayHashMap(*Package),
-    extra_flags: bool,
     allocator: std.mem.Allocator,
 ) !void {
-    const cc_cmd = try self.construct_obj_cc_cmd(c_file, o_file, packages, extra_flags, allocator);
+    const cc_cmd = try self.construct_obj_cc_cmd(c_file, o_file, packages, allocator);
     print_cmd(&cc_cmd);
 
     var cwd_string = std.array_list.Managed(u8).init(allocator);
@@ -391,7 +390,6 @@ fn construct_obj_cc_cmd(
     c_file: []const u8,
     o_file: []const u8,
     packages: std.StringArrayHashMap(*Package),
-    extra_flags: bool,
     allocator: std.mem.Allocator,
 ) !std.array_list.Managed([]const u8) {
     var env_map = std.process.getEnvMap(allocator) catch unreachable;
@@ -420,7 +418,7 @@ fn construct_obj_cc_cmd(
         std_include_path.items,
     }) catch unreachable;
 
-    if (extra_flags) {
+    if (true) {
         cc_cmd.appendSlice(&[_][]const u8{
             // "-Werror", // TODO: Requires us to know when interned strings are unused
             "-Wall",
@@ -431,17 +429,17 @@ fn construct_obj_cc_cmd(
             "-Wsign-conversion",
             "-Wfloat-conversion",
             "-Wcast-qual",
-            "-Wlogical-op",
+            // "-Wlogical-op", // only GCC
             "-Wshadow",
             "-Wformat=2",
             "-Wmisleading-indentation",
             "-Wstrict-prototypes",
             "-Wmissing-prototypes",
             "-Winit-self",
-            "-Wjump-misses-init",
+            // "-Wjump-misses-init", // only GCC
             "-Wdeclaration-after-statement",
             "-Wbad-function-cast",
-            "-Wc11-c2x-compat",
+            // "-Wc11-c2x-compat", // For C11
             "-Wcast-align",
             // "-fsanitize=undefined,address", // TODO: Needs some kind of linking
         }) catch unreachable;

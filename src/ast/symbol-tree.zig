@@ -486,7 +486,7 @@ pub fn next_anon_name(class: []const u8, allocator: std.mem.Allocator) []const u
     defer num_anons += 1;
     var out = std.array_list.Managed(u8).init(allocator);
     defer out.deinit();
-    out.print("{s}${}", .{ class, num_anons }) catch unreachable;
+    out.print("{s}__{}", .{ class, num_anons }) catch unreachable;
     return out.toOwnedSlice() catch unreachable;
 }
 
@@ -678,7 +678,7 @@ fn create_method_symbol(
         // value receiver, prepend a void* self_ptr parameter
         const receiver_symbol = Symbol.init(
             fn_scope,
-            if (ast.method_decl.receiver.?.receiver.kind == .value) "$self_ptr" else "self",
+            if (ast.method_decl.receiver.?.receiver.kind == .value) "self__ptr" else "self",
             ast.method_decl.receiver,
             .let,
             .local,
@@ -689,7 +689,7 @@ fn create_method_symbol(
 
         if (ast.method_decl.receiver.?.receiver.kind == .value) {
             const self_type = recv_type.child();
-            const self_init = ast_.AST.create_dereference(ast.token(), ast_.AST.create_identifier(Token.init_simple("$self_ptr"), allocator), allocator);
+            const self_init = ast_.AST.create_dereference(ast.token(), ast_.AST.create_identifier(Token.init_simple("self__ptr"), allocator), allocator);
             const receiver_span = ast.method_decl.receiver.?.token().span;
             const self_decl = ast_.AST.create_binding(
                 ast.token(),

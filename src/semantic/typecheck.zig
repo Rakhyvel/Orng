@@ -121,7 +121,7 @@ pub fn typecheck_AST(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Validate
 
 fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Validate_Error_Enum!*Type_AST {
     // TODO: Ugh this function is too long
-    // std.debug.print("{}: {?}\n", .{ ast, expected });
+    // std.debug.print("{f}: {?f}\n", .{ ast, expected });
     switch (ast.*) {
         // Nop, always "valid"
         .poison => return poison_.poisoned_type,

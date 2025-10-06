@@ -48,7 +48,7 @@ pub fn output_type(self: *Self, old_type: *Type_AST) CodeGen_Error!void {
         },
         .addr_of => {
             try self.output_type(_type.child());
-            try self.writer.print("*", .{});
+            try self.writer.print(" *", .{});
         },
         .anyptr_type, .unit_type => try self.writer.print("void", .{}),
         .annotation => try self.output_type(_type.child()),
@@ -66,6 +66,13 @@ pub fn output_type(self: *Self, old_type: *Type_AST) CodeGen_Error!void {
 }
 
 /// Applies a function to all CFGs in a list of CFGs.
+///
+/// ### Params:
+/// - `self`: The Emitter object
+/// - `sub`: Reference back to the sub-emitter (ie source, header, type, etc)
+/// - `cfgs`: Slice of CFGs
+/// - `header_comment`: Header comment to output, if `cfgs` is non-empy
+/// - `f`: Function to apply to each CFG in `cfgs`
 pub fn forall_functions(
     self: *Self,
     sub: anytype,
@@ -73,7 +80,9 @@ pub fn forall_functions(
     header_comment: []const u8,
     comptime f: fn (@TypeOf(sub), *CFG) CodeGen_Error!void,
 ) CodeGen_Error!void {
-    try self.writer.print("{s}\n", .{header_comment});
+    if (cfgs.len > 0) {
+        try self.writer.print("\n/* {s} */\n", .{header_comment});
+    }
 
     // apply the function `f` to all CFGs in the `cfgs` list
     for (cfgs) |cfg| {
@@ -84,7 +93,6 @@ pub fn forall_functions(
             try f(sub, cfg);
         }
     }
-    try self.writer.print("\n", .{});
 }
 
 /// Outputs the prototype of a function
@@ -107,7 +115,7 @@ pub fn output_function_prototype(
             if (!term.expanded_type().is_c_void_type()) {
                 if (decl.* == .method_decl and decl.method_decl.receiver != null and i == 0) {
                     // Print out method receiver
-                    try self.writer.print("void* ", .{});
+                    try self.writer.print("void *", .{});
                     try self.output_symbol(term);
                 } else {
                     // Print out parameter declarations
@@ -139,7 +147,7 @@ pub fn output_var_decl(
         try self.writer.print("    ", .{});
     }
     try self.output_type(symbol.type());
-    try self.writer.print(" ", .{});
+    try self.writer.print(" /*{f}*/ ", .{symbol.type()});
     try self.output_symbol(symbol);
     if (!is_parameter) {
         try self.writer.print(";\n", .{});
@@ -151,8 +159,13 @@ pub fn output_symbol(self: *Self, symbol: *Symbol) CodeGen_Error!void {
     if (symbol.storage == .@"extern") {
         try self.writer.print("{s}", .{symbol.storage.@"extern".c_name.?.string.data});
     } else if (symbol.decl != null and symbol.decl.?.* != .receiver and symbol.decl.?.top_level()) {
-        try self.writer.print("p{s}_m{s}_{}_{s}", .{ symbol.scope.module.?.package_name, symbol.scope.module.?.name(), symbol.scope.uid, symbol.name });
+        if (symbol.decl.?.* == .method_decl or !symbol.decl.?.top_level()) {
+            try self.writer.print("{s}__{s}__{}_{s}", .{ symbol.scope.module.?.package_name, symbol.scope.module.?.name(), symbol.scope.uid, symbol.name });
+        } else {
+            try self.writer.print("{s}__{s}__{s}", .{ symbol.scope.module.?.package_name, symbol.scope.module.?.name(), symbol.name });
+        }
     } else {
+        // The leading underscore here should be OK, C spec allows leading underscores for auto storage variables
         try self.writer.print("_{}_{s}", .{ symbol.scope.uid, symbol.name });
     }
 }

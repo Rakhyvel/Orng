@@ -112,3 +112,10 @@ fn add_dependency_node(self: *Self, ast: *Type_AST) *Dependency_Node {
 pub fn len(self: *const Self) usize {
     return self.types.items.len;
 }
+
+/// Prints out the graphviz representation for the type set
+pub fn graphviz(self: *const Self) void {
+    for (self.types.items) |dep| {
+        dep.graphviz();
+    }
+}

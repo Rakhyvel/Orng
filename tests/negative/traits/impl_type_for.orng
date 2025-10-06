@@ -1,4 +1,6 @@
-// error: cannot implement for this, not a trait
+// impl_type_for.orng:5:9: error: cannot implement for this, not a trait
+// impl Int for () {
+//        ^
 // 
 impl Int for () {
     

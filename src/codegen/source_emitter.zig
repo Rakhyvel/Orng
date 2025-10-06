@@ -47,7 +47,7 @@ pub fn init(
 pub fn generate(self: *Self) CodeGen_Error!void {
     try self.output_header_include();
     try self.output_impls();
-    try self.emitter.forall_functions(self, self.module.cfgs.items, "\n/* Function definitions */", output_function_definition);
+    try self.emitter.forall_functions(self, self.module.cfgs.items, "Function definitions", output_function_definition);
 }
 
 pub fn output_header_include(self: *Self) CodeGen_Error!void {
@@ -56,17 +56,23 @@ pub fn output_header_include(self: *Self) CodeGen_Error!void {
         \\
         \\#include "{s}-{s}.h"
         \\
-        \\
     , .{ self.module.package_name, self.module.name() });
 }
 
 fn output_impls(
     self: *Self,
 ) CodeGen_Error!void {
-    if (self.module.impls.items.len > 0) {
+    var vtable_count: usize = 0;
+    for (self.module.impls.items) |impl| {
+        if (impl.impl.num_virtual_methods != 0) {
+            vtable_count += 1;
+        }
+    }
+
+    if (vtable_count > 0) {
         // TODO: Count impls that have virtual methods
         // Do not output header comment if there are no impls!
-        try self.writer.print("/* Trait vtable implementations */\n", .{});
+        try self.writer.print("\n/* Trait vtable implementations */\n", .{});
     }
 
     for (self.module.impls.items) |impl| {
@@ -74,7 +80,17 @@ fn output_impls(
             continue;
         }
         const trait = impl.impl.trait.?;
-        try self.writer.print("const struct vtable_{s} _{s}_{s}_{}_$vtable = {{\n", .{ trait.symbol().?.name, self.module.package_name, self.module.name(), impl.scope().?.uid });
+        const trait_module = trait.symbol().?.scope.module.?;
+        try self.writer.print("const struct vtable_{s}__{s}__{}_{s} {s}__{s}_{}__vtable = {{\n", .{
+            trait_module.package_name,
+            trait_module.name(),
+            trait.symbol().?.scope.uid,
+            trait.symbol().?.name,
+            //
+            self.module.package_name,
+            self.module.name(),
+            impl.scope().?.uid,
+        });
         for (impl.impl.method_defs.items) |decl| {
             if (!decl.method_decl.is_virtual) {
                 continue;
@@ -83,19 +99,20 @@ fn output_impls(
             try self.emitter.output_symbol(decl.symbol().?);
             try self.writer.print(",\n", .{});
         }
-        try self.writer.print("}};\n\n", .{});
+        try self.writer.print("}};\n", .{});
     }
 }
 
 /// Output the definition of a function.
 pub fn output_function_definition(self: *Self, cfg: *CFG) CodeGen_Error!void {
+    if (cfg != self.module.cfgs.items[0]) try self.writer.print("\n", .{});
     try self.emitter.output_function_prototype(cfg);
-    try self.writer.print("{{\n", .{});
+    try self.writer.print("\n{{\n", .{});
 
     // Declare local variables
     for (cfg.symbvers.items) |symbver| {
         if (symbver.symbol.expanded_type().sizeof() == 0 or // symbol's C type is `void`
-            (symbver.symbol.uses == 0 and symbver.symbol.name[0] != '$') // non-bookkeeping symbol is not used
+            (symbver.symbol.uses == 0 and symbver.symbol.name[0] != '_') // non-bookkeeping symbol is not used
         ) {
             continue; // Do not output unit variables
         }
@@ -124,7 +141,7 @@ pub fn output_function_definition(self: *Self, cfg: *CFG) CodeGen_Error!void {
         cfg.clear_visited_BBs();
     }
 
-    try self.writer.print("}}\n\n", .{});
+    try self.writer.print("}}\n", .{});
 }
 
 pub fn output_main_function(self: *Self) CodeGen_Error!void {
@@ -235,7 +252,7 @@ fn output_basic_block(
                 // Generate the if
                 try self.writer.print("    if (", .{});
                 try self.output_rvalue(bb.terminator.conditional.condition, HIGHEST_PRECEDENCE);
-                try self.writer.print(") {{\n", .{});
+                try self.writer.print(")\n    {{\n", .{});
 
                 // Generate the `next` BB
                 if (bb.terminator.conditional.true_target) |next| {
@@ -256,9 +273,9 @@ fn output_basic_block(
                         bb_queue.append(branch) catch unreachable;
                         branch.visited = true;
                     }
-                    try self.writer.print(" else {{\n        goto BB{};\n    }}\n", .{branch.uid});
+                    try self.writer.print("\n    else\n    {{\n        goto BB{};\n    }}\n", .{branch.uid});
                 } else {
-                    try self.writer.print(" else {{\n    ", .{});
+                    try self.writer.print("\n    else\n    {{\n    ", .{});
                     try self.output_return(return_symbol);
                     try self.writer.print("    }}\n", .{});
                 }
@@ -318,7 +335,7 @@ fn output_instruction_post_check(self: *Self, instr: *Instruction) CodeGen_Error
         .load_string => {
             try self.output_var_assign_cast(instr.dest.?, instr.dest.?.get_expanded_type());
             const interned_strings = self.module_interned_strings.get(instr.data.string_id.module_uid).?;
-            try self.writer.print("{{(uint8_t*)\"", .{});
+            try self.writer.print("{{(uint8_t *)\"", .{});
             const str = interned_strings.items()[instr.data.string_id.string_idx];
             for (str) |byte| {
                 try self.writer.print("\\x{X:0>2}", .{byte});
@@ -353,9 +370,9 @@ fn output_instruction_post_check(self: *Self, instr: *Instruction) CodeGen_Error
         },
         .load_union => {
             try self.output_var_assign_cast(instr.dest.?, instr.dest.?.get_expanded_type());
-            try self.writer.print("{{.tag={}", .{instr.data.int});
+            try self.writer.print("{{.tag = {}", .{instr.data.int});
             if (instr.src1 != null and !instr.src1.?.get_expanded_type().is_c_void_type()) {
-                try self.writer.print(", ._{}=", .{instr.data.int});
+                try self.writer.print(", ._{} = ", .{instr.data.int});
                 try self.output_rvalue(instr.src1.?, instr.kind.precedence());
             }
             try self.writer.print("}};\n", .{});
@@ -480,20 +497,20 @@ fn output_instruction_post_check(self: *Self, instr: *Instruction) CodeGen_Error
             for (1..instr.span.col - 1) |_| {
                 spaces.print(" ", .{}) catch unreachable;
             }
-            try self.writer.print("    $lines[$line_idx++] = ", .{});
+            try self.writer.print("    orange_debug__lines[orange_debug__line_idx++] = ", .{});
 
             try instr.span.print_debug_line(self.writer, Span.c_format);
             try self.writer.print(";\n", .{});
         },
         .pop_stack_trace => {
             try self.writer.print(
-                \\    $line_idx--;
+                \\    orange_debug__line_idx--;
                 \\
             , .{});
         },
         .panic => {
             try self.writer.print(
-                \\    $panic("{s}\n");
+                \\    orange_debug__panic("{s}\n");
                 \\
             ,
                 .{instr.data.string},
@@ -508,7 +525,7 @@ fn output_call_prefix(self: *Self, instr: *Instruction) !void {
     const void_fn = instr.dest.?.get_expanded_type().is_c_void_type();
     const symbol_used = if (instr.dest.?.* == .symbver) instr.dest.?.symbver.symbol.uses > 0 else false;
     if (!symbol_used) {
-        try self.writer.print("    (void) ", .{});
+        try self.writer.print("    (void)", .{});
     } else if (!void_fn) {
         try self.output_var_assign(instr.dest.?);
     } else {
@@ -528,7 +545,7 @@ fn output_lvalue_check(self: *Self, span: Span, lvalue: *lval_.L_Value) CodeGen_
             try self.output_lvalue_check(span, lvalue.index.rhs);
 
             if (lvalue.index.length != null) {
-                try self.writer.print("    $bounds_check(", .{});
+                try self.writer.print("    orange_debug__bounds_check(", .{});
                 try self.output_rvalue(lvalue.index.rhs, HIGHEST_PRECEDENCE); // idx
                 try self.writer.print(", ", .{});
                 try self.output_rvalue(lvalue.index.length.?, HIGHEST_PRECEDENCE); // length
@@ -541,7 +558,7 @@ fn output_lvalue_check(self: *Self, span: Span, lvalue: *lval_.L_Value) CodeGen_
             try self.output_lvalue_check(span, lvalue.select.lhs);
 
             if (lvalue.select.tag != null) {
-                try self.writer.print("    $tag_check(", .{});
+                try self.writer.print("    orange_debug__tag_check(", .{});
                 try self.output_rvalue(lvalue.select.tag.?, HIGHEST_PRECEDENCE); // tag
                 try self.writer.print(", {}, ", .{lvalue.select.field});
                 try span.print_debug_line(self.writer, Span.c_format);
@@ -565,7 +582,7 @@ fn output_rvalue(self: *Self, lvalue: *lval_.L_Value, outer_precedence: i128) Co
                 // Cast from `void*` to true pointer before dereferencing
                 try self.writer.print("(", .{});
                 try self.emitter.output_type(lvalue.get_expanded_type());
-                try self.writer.print("*)", .{});
+                try self.writer.print(" *)", .{});
             }
             try self.output_rvalue(lvalue.dereference.expr, lvalue.lval_precedence());
         },
@@ -604,7 +621,7 @@ fn output_rvalue(self: *Self, lvalue: *lval_.L_Value, outer_precedence: i128) Co
 /// Outputs the C code for an lvalue expression.
 fn output_lvalue(self: *Self, lvalue: *lval_.L_Value, outer_precedence: i128) CodeGen_Error!void {
     if (lvalue.expanded_type_sizeof() == 0) {
-        try self.writer.print("(void*) 0xAAAAAAAA", .{});
+        try self.writer.print("(void *)0xAAAAAAAA", .{});
         return;
     }
     switch (lvalue.*) {
@@ -618,7 +635,7 @@ fn output_lvalue(self: *Self, lvalue: *lval_.L_Value, outer_precedence: i128) Co
             // Generate reinterpret cast to pointer of elements
             try self.writer.print("(", .{});
             try self.emitter.output_type(lvalue.get_expanded_type());
-            try self.writer.print("*)", .{});
+            try self.writer.print(" *)", .{});
             if (lvalue.index.lhs.get_expanded_type().* == .addr_of) {
                 // Index of a multiptr addr, lvalue is simply the rvalue
                 std.debug.assert(lvalue.index.lhs.get_expanded_type().addr_of.multiptr);
@@ -673,14 +690,14 @@ fn output_var_assign_cast(self: *Self, lval: *lval_.L_Value, _type: *Type_AST) C
     try self.output_var_assign(lval);
     try self.writer.print("(", .{});
     try self.emitter.output_type(_type);
-    try self.writer.print(") ", .{});
+    try self.writer.print(")", .{});
 }
 
 /// Outputs the C code for an operator from an Instruction.
 fn output_operator(self: *Self, instr: *Instruction) CodeGen_Error!void {
     try self.output_var_assign(instr.dest.?);
     if (instr.kind.is_checked() and instr.dest.?.get_expanded_type().can_expanded_represent_int()) { // TODO: Check if checked operations are enabled, too
-        try self.writer.print("${s}_{s}(", .{ instr.kind.checked_name(), prelude_.info_from_ast(instr.dest.?.get_expanded_type()).?.c_name });
+        try self.writer.print("orange_debug__{s}_{s}(", .{ instr.kind.checked_name(), prelude_.info_from_ast(instr.dest.?.get_expanded_type()).?.c_name });
         try self.output_rvalue(instr.src1.?, instr.kind.precedence());
         try self.writer.print(", ", .{});
         if (instr.kind.arity() == .binop) {
@@ -696,7 +713,7 @@ fn output_operator(self: *Self, instr: *Instruction) CodeGen_Error!void {
     } else {
         // Binop, no-check
         try self.output_rvalue(instr.src1.?, instr.kind.precedence());
-        try self.writer.print("{s}", .{instr.kind.c_token()});
+        try self.writer.print(" {s} ", .{instr.kind.c_token()});
         try self.output_rvalue(instr.src2.?, instr.kind.precedence());
     }
     try self.writer.print(";\n", .{});
@@ -705,5 +722,5 @@ fn output_operator(self: *Self, instr: *Instruction) CodeGen_Error!void {
 /// Prints out the vtable name given an impl AST
 fn output_vtable_impl(self: *Self, impl: *ast_.AST) CodeGen_Error!void {
     const impl_module = impl.scope().?.module.?; // what makes you think the impl is in the same module??
-    try self.writer.print("_{s}_{s}_{}_$vtable", .{ impl_module.package_name, impl_module.name(), impl.scope().?.uid });
+    try self.writer.print("{s}__{s}_{}__vtable", .{ impl_module.package_name, impl_module.name(), impl.scope().?.uid });
 }

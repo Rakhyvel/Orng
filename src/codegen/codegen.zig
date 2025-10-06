@@ -14,14 +14,18 @@ const Typedef_Emitter = @import("typedef_emitter.zig");
 const Type_Set = @import("../ast/type-set.zig");
 const Canonical_Type_Fmt = @import("canonical_type_fmt.zig");
 
-/// Goes through each package and outputs a C/H file header pair for each module in each package
+/// Goes through each package and outputs a C/H file header pair for each module in each package.
+///
+/// Does not output packages that are not modified.
 pub fn output_modules(compiler: *Compiler_Context) !void {
     // Start from root module, of each package, DFS through imports and generate
     for (compiler.packages.keys()) |package_name| {
         const package = compiler.lookup_package(package_name).?;
         const package_root_module = package.root.init_value().?.module.module;
 
-        std.debug.print("working {s}: {}\n", .{ package.name, package.type_set.len() });
+        if (!package.modified.?) {
+            continue;
+        }
 
         const build_path = package.get_build_path(compiler.allocator());
         _ = std.fs.openDirAbsolute(build_path, .{}) catch {
@@ -269,6 +273,7 @@ fn output_testrunner(
         \\    }}
         \\    printf("[============]\n");
         \\}}
+        \\
     , .{num_tests}) catch return error.CompileError;
 
     testrunner_file.writeAll(buf.items) catch unreachable;

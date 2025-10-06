@@ -41,8 +41,8 @@ pub fn output_include_guard_begin(self: *Self) CodeGen_Error!void {
     try self.writer.print(
         \\/* Code generated using the Orange compiler http://ornglang.org */
         \\
-        \\#ifndef _{0f}_H
-        \\#define _{0f}_H
+        \\#ifndef {0f}_H
+        \\#define {0f}_H
         \\
         \\
     , .{Canonical_Type_Fmt{ .type = self._type, .case = .upper }});
@@ -102,8 +102,14 @@ fn output_typedef(self: *Self) CodeGen_Error!void {
         }
         try self.writer.print("}};\n\n", .{});
     } else if (self._type.* == .dyn_type) {
-        try self.writer.print("struct {f} {{\n    void* data_ptr;\n    struct vtable_{s}", .{ Canonical_Type_Fmt{ .type = self._type }, self._type.child().symbol().?.name });
-        try self.writer.print("* vtable;\n}};\n\n", .{});
+        const trait_symbol = self._type.child().symbol().?;
+        try self.writer.print("struct {f} {{\n    void* data_ptr;\n    struct vtable_{s}__{s}__{}_{s}* vtable;\n}};\n\n", .{
+            Canonical_Type_Fmt{ .type = self._type },
+            trait_symbol.scope.module.?.package_name,
+            trait_symbol.scope.module.?.name(),
+            trait_symbol.scope.uid,
+            trait_symbol.name,
+        });
     }
 }
 
