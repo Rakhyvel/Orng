@@ -1,6 +1,6 @@
 //! This file defines the type depenency node struct, which is used to represent a type in a type set. The
-//! Dependency_Node is used to store the dependencies between types, and is used to generate a topological sort of the
-//! types. This is used to generate types in C in a way that doesn't require forward declarations.
+//! Dependency_Node is used to store the dependencies between types, and is used to generate a topological
+//! sort of the types.
 
 const std = @import("std");
 const Type_AST = @import("../types/type.zig").Type_AST;

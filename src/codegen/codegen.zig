@@ -125,7 +125,7 @@ fn output_type(
     var type_h_buffer = std.array_list.Managed(u8).init(allocator);
     defer type_h_buffer.deinit();
 
-    var test_emitter = Typedef_Emitter.init(dep.base, &type_h_buffer);
+    var test_emitter = Typedef_Emitter.init(dep, &type_h_buffer);
     test_emitter.generate() catch return error.CompileError;
 
     output_type_h_file.writeAll(type_h_buffer.items) catch unreachable;

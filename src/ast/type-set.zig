@@ -1,5 +1,5 @@
-//! This file defines type sets and directed acyclic graphs (Dependency_Nodes) for types. The type set is used to store types based
-//! on their C-equivalence.
+//! This file defines type sets and directed acyclic graphs (Dependency_Nodes) for types. The type set is used
+//! to store types based on their C-equivalence.
 
 const std = @import("std");
 const Dependency_Node = @import("dependency_node.zig");
@@ -20,10 +20,13 @@ pub fn deinit(self: *Self) void {
 
 /// Adds a type to the type set. Returns the dependency node for the corresponding type
 pub fn add(self: *Self, oldast_: *Type_AST) ?*Dependency_Node {
+    return self.add_internal(oldast_, false);
+}
+
+fn add_internal(self: *Self, oldast_: *Type_AST, from_function: bool) ?*Dependency_Node {
     const ast = oldast_.expand_identifier();
-    if (ast.* == .identifier and ast.symbol().?.decl.?.* == .type_param_decl) {
-        unreachable;
-    }
+    std.debug.assert(ast.* != .identifier or ast.symbol().?.decl.?.* != .type_param_decl);
+
     if (self.get(ast)) |dag| {
         // Type is already in the set, return Dependency_Node entry for it
         return dag;
@@ -36,8 +39,12 @@ pub fn add(self: *Self, oldast_: *Type_AST) ?*Dependency_Node {
         .dyn_type => return self.add_dependency_node(ast),
         .annotation => return self.add(ast.child()),
         .addr_of => {
-            _ = self.add(ast.child()); // Add child to set, but do not create a node for addrs
-            return null;
+            const retval = self.add(ast.child());
+            if (from_function) {
+                return retval;
+            } else {
+                return null;
+            }
         },
         .array_of => return self.add_array(ast),
         .identifier, .unit_type, .anyptr_type => return null, // Do not add to Dependency_Node
@@ -48,7 +55,7 @@ pub fn add(self: *Self, oldast_: *Type_AST) ?*Dependency_Node {
 /// Adds a function type to the type set
 fn add_function(self: *Self, function_type_ast: *Type_AST) ?*Dependency_Node {
     var dag = self.add_dependency_node(function_type_ast);
-    if (self.add(function_type_ast.lhs())) |domain| {
+    if (self.add_internal(function_type_ast.lhs(), true)) |domain| {
         dag.add_dependency(domain);
     }
     if (self.add(function_type_ast.rhs())) |codomain| {
