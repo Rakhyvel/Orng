@@ -5,17 +5,20 @@ const Module = @import("../hierarchy/module.zig").Module;
 const prelude_ = @import("../hierarchy/prelude.zig");
 const Dependency_Node = @import("../ast/dependency_node.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
+const Type_Set = @import("../ast/type-set.zig");
 const Symbol = @import("../symbol/symbol.zig");
+const Canonical_Type_Fmt = @import("canonical_type_fmt.zig");
 
-pub const CodeGen_Error = error{OutOfMemory};
+pub const CodeGen_Error = error{ OutOfMemory, WriteFailed };
 
 const Self: type = @This();
 
-module: *Module,
 writer: *std.array_list.Managed(u8),
 
-pub fn init(module: *Module, writer: *std.array_list.Managed(u8)) Self {
-    return Self{ .module = module, .writer = writer };
+pub fn init(writer: *std.array_list.Managed(u8)) Self {
+    return Self{
+        .writer = writer,
+    };
 }
 
 /// Outputs the C type which corresponds to an AST type.
@@ -37,71 +40,52 @@ pub fn output_type(self: *Self, old_type: *Type_AST) CodeGen_Error!void {
             if (info != null) {
                 try self.writer.print("{s}", .{info.?.c_name});
             } else {
-                try self.writer.print("{s} /*{?f}*/", .{ _type.token().data, _type.symbol().?.init_typedef() });
+                try self.writer.print(
+                    "{s} /*{?f}*/",
+                    .{ _type.token().data, _type.symbol().?.init_typedef() },
+                );
             }
         },
         .addr_of => {
             try self.output_type(_type.child());
-            try self.writer.print("*", .{});
+            try self.writer.print(" *", .{});
         },
-        .anyptr_type => try self.writer.print("void", .{}),
-        .function => {
-            const dep = self.module.type_set.get(_type).?;
-            try self.output_function_name(dep);
-        },
+        .anyptr_type, .unit_type => try self.writer.print("void", .{}),
+        .annotation => try self.output_type(_type.child()),
+
+        .function => try self.writer.print("{f}", .{Canonical_Type_Fmt{ .type = _type }}),
         .enum_type,
         .tuple_type,
         .struct_type,
         .array_of,
-        => {
-            const dep = self.module.type_set.get(_type).?;
-            try self.output_struct_name(dep);
-        },
-        .untagged_sum_type => {
-            const dep = self.module.type_set.get(_type).?;
-            try self.output_untagged_sum_name(dep);
-        },
-        .dyn_type => {
-            const dep = self.module.type_set.get(_type).?;
-            try self.output_dyn_name(dep);
-        },
-        .unit_type => try self.writer.print("void", .{}),
-        .annotation => try self.output_type(_type.child()),
+        .untagged_sum_type,
+        .dyn_type,
+        => try self.writer.print("struct {f}", .{Canonical_Type_Fmt{ .type = _type }}),
         else => std.debug.panic("compiler error: unimplemented output_type() for {f}", .{_type.*}),
     }
 }
 
-pub fn output_function_name(self: *Self, dep: *const Dependency_Node) CodeGen_Error!void {
-    const type_uid = dep.uid;
-    try self.writer.print("{s}_{s}_function{}", .{ self.module.package_name, self.module.name(), type_uid });
-}
-
-pub fn output_struct_name(self: *Self, dep: *const Dependency_Node) CodeGen_Error!void {
-    const type_uid = dep.uid;
-    try self.writer.print("struct {s}_{s}_struct{}", .{ self.module.package_name, self.module.name(), type_uid });
-}
-
-pub fn output_dyn_name(self: *Self, dep: *const Dependency_Node) CodeGen_Error!void {
-    const type_uid = dep.uid;
-    try self.writer.print("struct {s}_{s}_dyn{}", .{ self.module.package_name, self.module.name(), type_uid });
-}
-
-pub fn output_untagged_sum_name(self: *Self, dep: *const Dependency_Node) CodeGen_Error!void {
-    const type_uid = dep.uid;
-    try self.writer.print("union {s}_{s}_union{}", .{ self.module.package_name, self.module.name(), type_uid });
-}
-
 /// Applies a function to all CFGs in a list of CFGs.
+///
+/// ### Params:
+/// - `self`: The Emitter object
+/// - `sub`: Reference back to the sub-emitter (ie source, header, type, etc)
+/// - `cfgs`: Slice of CFGs
+/// - `header_comment`: Header comment to output, if `cfgs` is non-empy
+/// - `f`: Function to apply to each CFG in `cfgs`
 pub fn forall_functions(
     self: *Self,
     sub: anytype,
+    cfgs: []const *CFG,
     header_comment: []const u8,
     comptime f: fn (@TypeOf(sub), *CFG) CodeGen_Error!void,
 ) CodeGen_Error!void {
-    try self.writer.print("{s}\n", .{header_comment});
+    if (cfgs.len > 0) {
+        try self.writer.print("\n/* {s} */\n", .{header_comment});
+    }
 
     // apply the function `f` to all CFGs in the `cfgs` list
-    for (self.module.cfgs.items) |cfg| {
+    for (cfgs) |cfg| {
         if (!cfg.needed_at_runtime) {
             continue;
         }
@@ -109,7 +93,6 @@ pub fn forall_functions(
             try f(sub, cfg);
         }
     }
-    try self.writer.print("\n", .{});
 }
 
 /// Outputs the prototype of a function
@@ -132,7 +115,7 @@ pub fn output_function_prototype(
             if (!term.expanded_type().is_c_void_type()) {
                 if (decl.* == .method_decl and decl.method_decl.receiver != null and i == 0) {
                     // Print out method receiver
-                    try self.writer.print("void* ", .{});
+                    try self.writer.print("void *", .{});
                     try self.output_symbol(term);
                 } else {
                     // Print out parameter declarations
@@ -164,7 +147,7 @@ pub fn output_var_decl(
         try self.writer.print("    ", .{});
     }
     try self.output_type(symbol.type());
-    try self.writer.print(" ", .{});
+    try self.writer.print(" /*{f}*/ ", .{symbol.type()});
     try self.output_symbol(symbol);
     if (!is_parameter) {
         try self.writer.print(";\n", .{});
@@ -176,8 +159,13 @@ pub fn output_symbol(self: *Self, symbol: *Symbol) CodeGen_Error!void {
     if (symbol.storage == .@"extern") {
         try self.writer.print("{s}", .{symbol.storage.@"extern".c_name.?.string.data});
     } else if (symbol.decl != null and symbol.decl.?.* != .receiver and symbol.decl.?.top_level()) {
-        try self.writer.print("p{s}_m{s}_{}_{s}", .{ symbol.scope.module.?.package_name, symbol.scope.module.?.name(), symbol.scope.uid, symbol.name });
+        if (symbol.decl.?.* == .method_decl or !symbol.decl.?.top_level()) {
+            try self.writer.print("{s}__{s}__{}_{s}", .{ symbol.scope.module.?.package_name, symbol.scope.module.?.name(), symbol.scope.uid, symbol.name });
+        } else {
+            try self.writer.print("{s}__{s}__{s}", .{ symbol.scope.module.?.package_name, symbol.scope.module.?.name(), symbol.name });
+        }
     } else {
+        // The leading underscore here should be OK, C spec allows leading underscores for auto storage variables
         try self.writer.print("_{}_{s}", .{ symbol.scope.uid, symbol.name });
     }
 }

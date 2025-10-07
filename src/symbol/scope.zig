@@ -124,7 +124,7 @@ pub fn impl_trait_lookup(self: *Self, for_type: *Type_AST, trait: *Symbol) Impl_
 /// Looks up the impl's decl/method_decl ast for a given type, with a given name
 pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, compiler: *Compiler_Context) !?*ast_.AST {
     if (false) {
-        std.debug.print("searching for {}::{s}\n", .{ for_type, name });
+        std.debug.print("searching for {f}::{s}\n", .{ for_type, name });
     }
     // Go through the list of implementations, check to see if the types and traits match
     for (self.impls.items) |impl| {
@@ -191,7 +191,7 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
                 try walker_.walk_ast(new_impl, decorate_access_context);
                 try compiler.validate_scope.validate(new_scope);
 
-                impl.impl.instantiations.put(with_list, new_impl);
+                impl.impl.instantiations.put(with_list, new_impl) catch unreachable;
             }
             the_impl = impl.impl.instantiations.get(with_list).?; // TODO: substitutions need to be in the same order as withs
         }
@@ -202,16 +202,23 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
     for (self.symbols.keys()) |symbol_name| {
         const symbol = self.symbols.get(symbol_name).?;
         if (symbol.kind == .import) {
-            const res = self.parent.?.lookup(symbol.kind.import.real_name, .{ .allow_modules = true });
-            switch (res) {
-                .found => {
-                    const module_scope = res.found.init_value().?.scope().?;
-                    const module_scope_lookup = try module_scope.lookup_impl_member(for_type, name, compiler);
-                    if (module_scope_lookup != null) {
-                        return module_scope_lookup;
-                    }
-                },
-                else => std.debug.panic("compiler error: import didn't resolve to a module: {s}", .{symbol.kind.import.real_name}),
+            var res_symbol: *Symbol = undefined;
+            if (symbol.kind.import.real_symbol != null) {
+                res_symbol = symbol.kind.import.real_symbol.?;
+            } else {
+                const res = self.parent.?.lookup(symbol.kind.import.real_name, .{ .allow_modules = true });
+                switch (res) {
+                    .found => {
+                        res_symbol = res.found;
+                    },
+                    else => std.debug.panic("compiler error: import didn't resolve to a module: {s}", .{symbol.kind.import.real_name}),
+                }
+            }
+
+            const module_scope = res_symbol.init_value().?.scope().?;
+            const module_scope_lookup = try module_scope.lookup_impl_member(for_type, name, compiler);
+            if (module_scope_lookup != null) {
+                return module_scope_lookup;
             }
         }
     }

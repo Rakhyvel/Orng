@@ -3,6 +3,8 @@
 const std = @import("std");
 const Source_Emitter = @import("source_emitter.zig");
 const Header_Emitter = @import("header_emitter.zig");
+const Type_Set = @import("../ast/type-set.zig");
+const String = @import("../zig-string/zig-string.zig").String;
 const module_ = @import("../hierarchy/module.zig");
 const Interned_String_Set = @import("../ir/interned_string_set.zig");
 
@@ -14,9 +16,14 @@ header_emitter: Header_Emitter,
 
 header_writer: *std.array_list.Managed(u8),
 
-pub const CodeGen_Error = error{OutOfMemory};
+pub const CodeGen_Error = error{ WriteFailed, OutOfMemory };
 
-pub fn init(module: *module_.Module, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set), source_writer: *std.array_list.Managed(u8), header_writer: *std.array_list.Managed(u8)) Self {
+pub fn init(
+    module: *module_.Module,
+    module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set),
+    source_writer: *std.array_list.Managed(u8),
+    header_writer: *std.array_list.Managed(u8),
+) Self {
     const source_emitter = Source_Emitter.init(module, module_interned_strings, source_writer);
     const header_emitter = Header_Emitter.init(module, header_writer);
     return Self{
@@ -42,14 +49,23 @@ pub fn generate(self: *Self) CodeGen_Error!void {
 }
 
 pub fn output_test_include_guard_begin(self: *Self) CodeGen_Error!void {
+    var guard_macro = String.init(std.heap.page_allocator);
+    defer guard_macro.deinit();
+
+    var guard_macro_writer = guard_macro.writer(&.{});
+    const guard_macro_writer_intfc = &guard_macro_writer.interface;
+    try guard_macro_writer_intfc.print("{s}__{s}__TESTS_H", .{ self.module.package_name, self.module.name() });
+
+    guard_macro.toUppercase();
+
     try self.header_writer.print(
         \\/* Code generated using the Orange compiler http://ornglang.org */
         \\
-        \\#ifndef _{0s}_{1s}_TESTS_h
-        \\#define _{0s}_{1s}_TESTS_h
+        \\#ifndef {0s}
+        \\#define {0s}
         \\
-        \\#include "{0s}-{1s}.h"
+        \\#include "{1s}-{2s}.h"
         \\
         \\
-    , .{ self.module.package_name, self.module.name() });
+    , .{ guard_macro.str(), self.module.package_name, self.module.name() });
 }

@@ -296,12 +296,12 @@ pub fn set_offset(self: *Self, instructions_list: *std.array_list.Managed(*Instr
     }
 }
 
-pub fn collect_types(self: *Self, type_set: *Type_Set, allocator: std.mem.Allocator) void {
+pub fn collect_types(self: *Self, type_set: *Type_Set) void {
     // For all instructions in the basic block...
     for (self.instructions.items) |instr| {
         if (instr.dest != null) {
-            _ = type_set.add(instr.dest.?.get_expanded_type(), allocator);
-            _ = type_set.add(instr.dest.?.extract_symbver().symbol.expanded_type(), allocator);
+            _ = type_set.add(instr.dest.?.get_expanded_type());
+            _ = type_set.add(instr.dest.?.extract_symbver().symbol.expanded_type());
         }
     }
 }

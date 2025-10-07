@@ -7,7 +7,7 @@ const Scope = @import("../symbol/scope.zig");
 const Span = @import("../util/span.zig");
 const Token = @import("../lexer/token.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
-const Type_Map = @import("../ast/type_map.zig").Type_Map;
+const Monomorph_Map = @import("../ast/type_map.zig").Monomorph_Map;
 const unification_ = @import("../types/unification.zig");
 const validation_state_ = @import("../util/validation_state.zig");
 
@@ -25,6 +25,7 @@ pub const Kind = union(enum) {
     import: struct { // Refers indirectly to modules, or to refinements on modules.
         // Real name of the module, as oposed to the `as` name
         real_name: []const u8,
+        real_symbol: ?*Self = null,
     },
     import_inner, // Created from the inner expressions of qualified import statements, similar to consts
     module, // Refers to modules. The init is the `module` AST, which refers to the module and to the scope. `Module`s have their symbol
@@ -52,7 +53,7 @@ cfg: ?*CFG,
 decl: ?*ast_.AST,
 storage: Storage,
 
-monomorphs: Type_Map(*Type_AST),
+monomorphs: Monomorph_Map(*Type_AST),
 
 // Use-def
 aliases: u64 = 0, // How many times the symbol is taken as a mutable address
@@ -87,7 +88,7 @@ pub fn init(
     retval.offset = null;
     retval.kind = kind;
     retval.storage = storage;
-    retval.monomorphs = Type_Map(*Type_AST).init(allocator);
+    retval.monomorphs = Monomorph_Map(*Type_AST).init(allocator);
     retval.cfg = null;
     if (kind == .@"fn" or kind == .@"const") {
         retval.defined = true;
@@ -240,7 +241,7 @@ pub fn monomorphize(
         }
 
         const clone = self.init_typedef().?.clone(&subst, allocator);
-        self.monomorphs.put(key, clone);
+        self.monomorphs.put(key, clone) catch unreachable;
 
         // Here, need to attempt to
 

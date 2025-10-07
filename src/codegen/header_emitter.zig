@@ -16,6 +16,7 @@ const Type_Set = @import("../ast/type-set.zig");
 const Dependency_Node = @import("../ast/dependency_node.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
+const Canonical_Type_Fmt = @import("canonical_type_fmt.zig");
 
 const Self = @This();
 
@@ -23,10 +24,10 @@ module: *module_.Module,
 emitter: Emitter,
 writer: *std.array_list.Managed(u8),
 
-pub const CodeGen_Error = error{OutOfMemory};
+pub const CodeGen_Error = error{ WriteFailed, OutOfMemory };
 
 pub fn init(module: *module_.Module, writer: *std.array_list.Managed(u8)) Self {
-    const emitter = Emitter.init(module, writer);
+    const emitter = Emitter.init(writer);
     return Self{ .module = module, .emitter = emitter, .writer = writer };
 }
 
@@ -35,32 +36,40 @@ pub fn generate(self: *Self) CodeGen_Error!void {
     try self.output_include_guard_begin();
     try self.output_common_includes();
     try self.output_includes();
-    try self.output_forward_typedefs();
     try self.output_typedefs();
     try self.output_traits();
-    try self.emitter.forall_functions(self, "/* Function forward definitions */", output_forward_function);
+    try self.output_impls();
+    try self.emitter.forall_functions(self, self.module.cfgs.items, "Function declarations", output_forward_function);
     try self.output_include_guard_end();
 }
 
 pub fn output_include_guard_begin(self: *Self) CodeGen_Error!void {
+    var guard_macro = String.init(std.heap.page_allocator);
+    defer guard_macro.deinit();
+
+    var guard_macro_writer = guard_macro.writer(&.{});
+    const guard_macro_writer_intfc = &guard_macro_writer.interface;
+    try guard_macro_writer_intfc.print("{s}__{s}_H", .{ self.module.package_name, self.module.name() });
+
+    guard_macro.toUppercase();
+
     try self.writer.print(
         \\/* Code generated using the Orange compiler http://ornglang.org */
         \\
-        \\#ifndef _{0s}_{1s}_h
-        \\#define _{0s}_{1s}_h
-        \\
-        \\
-    , .{ self.module.package_name, self.module.name() });
+        \\#ifndef {0s}
+        \\#define {0s}
+    , .{guard_macro.str()});
 }
 
 pub fn output_common_includes(self: *Self) CodeGen_Error!void {
     try self.writer.print(
+        \\
+        \\
         \\#include <stdio.h>
         \\#include <stdint.h>
         \\#include <stdlib.h>
         \\
         \\#include "debug.inc"
-        \\
         \\
     , .{});
 }
@@ -75,35 +84,16 @@ pub fn output_include_guard_end(self: *Self) CodeGen_Error!void {
 
 pub fn output_includes(self: *Self) CodeGen_Error!void {
     if (self.module.cincludes.items.len != 0) {
+        try self.writer.print("\n/* Special module includes */\n", .{});
         for (self.module.cincludes.items) |cinclude| {
             try self.writer.print("#include \"{s}\"\n", .{cinclude.string.data});
         }
-        try self.writer.print("\n", .{});
     }
 
     if (self.module.local_imported_modules.keys().len != 0) {
+        try self.writer.print("\n/* Module imports */\n", .{});
         for (self.module.local_imported_modules.keys()) |module| {
             try self.writer.print("#include \"{s}-{s}.h\"\n", .{ module.package_name, module.name() });
-        }
-        try self.writer.print("\n", .{});
-    }
-}
-
-/// Outputs forward declarations for typedefs based on the provided `Type_Set`.
-fn output_forward_typedefs(self: *Self) CodeGen_Error!void {
-    if (self.module.type_set.types.items.len > 0) {
-        // Don't generate typedefs header comment if there are no typedefs!
-        try self.writer.print("/* Forward struct, union, and function declarations */\n", .{});
-    }
-
-    // Forward declare all structs/unions
-    for (self.module.type_set.types.items) |dep| {
-        if (dep.base.* == .struct_type or dep.base.* == .tuple_type or dep.base.* == .enum_type) {
-            try self.emitter.output_struct_name(dep);
-            try self.writer.print(";\n", .{});
-        } else if (dep.base.* == .dyn_type) {
-            try self.emitter.output_dyn_name(dep);
-            try self.writer.print(";\n", .{});
         }
     }
 }
@@ -112,7 +102,7 @@ fn output_forward_typedefs(self: *Self) CodeGen_Error!void {
 fn output_typedefs(self: *Self) CodeGen_Error!void {
     if (self.module.type_set.types.items.len > 0) {
         // Don't generate typedefs header comment if there are no typedefs!
-        try self.writer.print("\n/* Struct, union, and function definitions */\n", .{});
+        try self.writer.print("\n/* Type definitions */\n", .{});
     }
 
     // Output all typedefs
@@ -135,71 +125,9 @@ fn output_typedef(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
         try self.output_typedef(depen);
     }
 
-    if (dep.base.* == .function) {
-        try self.writer.print("typedef ", .{});
-        try self.emitter.output_type(dep.base.rhs());
-        try self.writer.print("(*", .{});
-        try self.emitter.output_function_name(dep);
-        try self.writer.print(")(", .{});
-        if (dep.base.lhs().* == .tuple_type) {
-            // Function pointer takes more than one argument
-            const product = dep.base.lhs();
-            for (product.children().items, 0..) |term, i| {
-                if (!term.is_c_void_type()) {
-                    // Do not output `void` parameters
-                    try self.emitter.output_type(term);
-                    if (i + 1 < product.children().items.len and !product.children().items[i + 1].is_c_void_type()) {
-                        try self.writer.print(", ", .{});
-                    }
-                }
-            }
-        } else {
-            // Function pointer takes one argument
-            try self.emitter.output_type(dep.base.lhs());
-        }
-        try self.writer.print(");\n\n", .{});
-    } else if (dep.base.* == .struct_type or dep.base.* == .tuple_type) {
-        try self.emitter.output_struct_name(dep);
-        try self.writer.print(" {{\n", .{});
-        try self.output_field_list(dep.base.children(), 4);
-        try self.writer.print("}};\n\n", .{});
-    } else if (dep.base.* == .array_of) {
-        try self.emitter.output_struct_name(dep);
-        try self.writer.print(" {{\n    ", .{});
-        try self.emitter.output_type(dep.base.child());
-        try self.writer.print(" _0[{}];\n", .{dep.base.array_of.len.int.data});
-        try self.writer.print("}};\n\n", .{});
-    }
-    // else if (dep.base.* == .slice_of) {
-    //     try self.emitter.output_struct_name(dep);
-    //     try self.writer.print(" {{\n    ", .{});
-    //     try self.emitter.output_type(dep.base.child());
-    //     try self.writer.print(" _0;\n    ", .{});
-    //     try self.emitter.output_type(prelude_.int_type);
-    //     try self.writer.print(" _1;\n", .{});
-    //     try self.writer.print("}};\n\n", .{});
-    // }
-    else if (dep.base.* == .enum_type) {
-        try self.emitter.output_struct_name(dep);
-        try self.writer.print(" {{\n    uint64_t tag;\n", .{});
-        if (!dep.base.enum_type.is_all_unit()) {
-            try self.writer.print("    union {{\n", .{});
-            try self.output_field_list(dep.base.children(), 8);
-            try self.writer.print("    }};\n", .{});
-        }
-        try self.writer.print("}};\n\n", .{});
-    } else if (dep.base.* == .untagged_sum_type) {
-        try self.emitter.output_untagged_sum_name(dep);
-        try self.writer.print(" {{\n", .{});
-        if (!dep.base.child().expand_identifier().enum_type.is_all_unit()) {
-            try self.output_field_list(dep.base.children(), 4);
-        }
-        try self.writer.print("}};\n\n", .{});
-    } else if (dep.base.* == .dyn_type) {
-        try self.emitter.output_dyn_name(dep);
-        try self.writer.print(" {{\n    void* data_ptr;\n    struct vtable_{s}", .{dep.base.child().symbol().?.name});
-        try self.writer.print("* vtable;\n}};\n\n", .{});
-    }
+    var str = try Canonical_Type_Fmt.canonical_rep(dep.base);
+    defer str.deinit();
+    try self.writer.print("#include \"types/{f}.h\"\n", .{Canonical_Type_Fmt{ .type = dep.base }});
 }
 
 /// Outputs the fields of a structure or union type based on the provided list of AST types.
@@ -229,7 +157,12 @@ fn output_traits(self: *Self) CodeGen_Error!void {
         if (trait.trait.num_virtual_methods == 0) {
             continue;
         }
-        try self.writer.print("struct vtable_{s} {{\n", .{trait.symbol().?.name});
+        try self.writer.print("struct vtable_{s}__{s}__{}_{s} {{\n", .{
+            self.module.package_name,
+            self.module.name(),
+            trait.symbol().?.scope.uid,
+            trait.symbol().?.name,
+        });
         for (trait.trait.method_decls.items) |decl| {
             if (!decl.method_decl.is_virtual) {
                 continue;
@@ -243,7 +176,7 @@ fn output_traits(self: *Self) CodeGen_Error!void {
 
             // Output receiver parameter
             if (method_decl_has_receiver) {
-                try self.writer.print("void*", .{});
+                try self.writer.print("void *", .{});
                 if (decl.children().items.len > 0 and !decl.children().items[0].binding.type.is_c_void_type()) {
                     try self.writer.print(", ", .{});
                 }
@@ -266,6 +199,39 @@ fn output_traits(self: *Self) CodeGen_Error!void {
             try self.writer.print(");\n", .{});
         }
         try self.writer.print("}};\n\n", .{});
+    }
+}
+
+fn output_impls(self: *Self) CodeGen_Error!void {
+    var vtable_count: usize = 0;
+    for (self.module.impls.items) |impl| {
+        if (impl.impl.num_virtual_methods != 0) {
+            vtable_count += 1;
+        }
+    }
+
+    if (vtable_count > 0) {
+        // TODO: Count impls that have virtual methods
+        // Do not output header comment if there are no impls!
+        try self.writer.print("/* Trait vtable implementation declarations */\n", .{});
+    }
+
+    for (self.module.impls.items) |impl| {
+        if (impl.impl.num_virtual_methods == 0) {
+            continue;
+        }
+        const trait = impl.impl.trait.?;
+        const trait_module = trait.symbol().?.scope.module.?;
+        try self.writer.print("extern const struct vtable_{s}__{s}__{}_{s} {s}__{s}_{}__vtable;\n", .{
+            trait_module.package_name,
+            trait_module.name(),
+            trait.symbol().?.scope.uid,
+            trait.symbol().?.name,
+            //
+            self.module.package_name,
+            self.module.name(),
+            impl.scope().?.uid,
+        });
     }
 }
 

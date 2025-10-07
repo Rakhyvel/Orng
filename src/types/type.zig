@@ -454,6 +454,11 @@ pub const Type_AST = union(enum) {
                 id.set_symbol(ast.symbol().?);
                 break :blk id;
             },
+            .access => blk: {
+                const id = Type_AST.create_access(ast.token(), ast, allocator);
+                id.set_symbol(ast.symbol().?);
+                break :blk id;
+            },
             .index => blk: {
                 const base = from_ast(ast.lhs(), allocator);
                 var args = std.array_list.Managed(*Type_AST).init(allocator);
@@ -462,7 +467,7 @@ pub const Type_AST = union(enum) {
                 }
                 break :blk Type_AST.create_generic_apply(ast.token(), base, args, allocator);
             },
-            else => unreachable, // or handle errors
+            else => std.debug.panic("unable to construct type from {t}", .{ast.*}),
         };
     }
 

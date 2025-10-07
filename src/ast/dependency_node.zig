@@ -1,9 +1,10 @@
 //! This file defines the type depenency node struct, which is used to represent a type in a type set. The
-//! Dependency_Node is used to store the dependencies between types, and is used to generate a topological sort of the
-//! types. This is used to generate types in C in a way that doesn't require forward declarations.
+//! Dependency_Node is used to store the dependencies between types, and is used to generate a topological
+//! sort of the types.
 
 const std = @import("std");
 const Type_AST = @import("../types/type.zig").Type_AST;
+const Canonical_Type_Fmt = @import("../codegen/canonical_type_fmt.zig");
 
 const Self = @This();
 
@@ -35,4 +36,11 @@ fn print(self: *Self) void {
         std.debug.print("{} ", .{dep.uid});
     }
     std.debug.print("\n", .{});
+}
+
+/// Prints out a graphviz representation of the dependency node
+pub fn graphviz(self: *Self) void {
+    for (self.dependencies.items) |dep| {
+        std.debug.print("\"{f}\" {f} -> \"{f}\" {f};\n", .{ self.base, dep.base, Canonical_Type_Fmt{ .type = self.base }, Canonical_Type_Fmt{ .type = dep.base } });
+    }
 }

@@ -45,6 +45,16 @@ fn validate_impl(self: *Self, impl: *ast_.AST) Validate_Error_Enum!void {
         return error.CompileError;
     }
 
+    _ = self.ctx.typecheck.typecheck_AST(impl.impl.trait.?, null) catch |e| switch (e) {
+        error.UnexpectedTypeType => {
+            self.ctx.errors.add_error(errs_.Error{ .basic = .{
+                .span = impl.impl.trait.?.token().span,
+                .msg = "cannot implement for this, not a trait",
+            } });
+            return error.CompileError;
+        },
+        else => return error.CompileError,
+    };
     try self.ctx.validate_type.validate(impl.impl._type);
 
     const trait_symbol: *Symbol = impl.impl.trait.?.symbol().?;

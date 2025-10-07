@@ -71,10 +71,10 @@ pub fn init(symbol: *Symbol, allocator: std.mem.Allocator) *Self {
     retval.symbol = symbol;
     retval.return_symbol = Symbol.init(
         symbol.scope,
-        "$retval",
+        "_retval",
         ast_.AST.create_decl(
             symbol.decl.?.token(),
-            ast_.AST.create_pattern_symbol(symbol.decl.?.token(), .mut, .local, "$retval", allocator),
+            ast_.AST.create_pattern_symbol(symbol.decl.?.token(), .mut, .local, "_retval", allocator),
             symbol.type().rhs(),
             null,
             allocator,
@@ -145,20 +145,20 @@ pub fn collect_generated_symbvers(self: *Self) void {
     }
 }
 
-pub fn collect_types(self: *Self, type_set: *Type_Set, allocator: std.mem.Allocator) void {
+pub fn collect_types(self: *Self, type_set: *Type_Set) void {
     // Add parameter types to type set
     const decl = self.symbol.decl.?;
     const param_symbols = decl.param_symbols();
     if (param_symbols != null) {
         for (param_symbols.?.items) |param| {
-            _ = type_set.add(param.expanded_type(), allocator);
+            _ = type_set.add(param.expanded_type());
         }
     }
-    _ = type_set.add(self.return_symbol.expanded_type(), allocator);
+    _ = type_set.add(self.return_symbol.expanded_type());
 
     // For all basic blocks in the cfg...
     for (self.basic_blocks.items) |bb| {
-        bb.collect_types(type_set, allocator);
+        bb.collect_types(type_set);
     }
 }
 
@@ -528,7 +528,7 @@ pub fn calculate_offsets(self: *Self) i64 //< Number of bytes used for locals by
     // Calculate locals offsets, ascending from local starting offset
     var local_offsets: i64 = locals_starting_offset;
     for (self.symbvers.items) |symbver| {
-        if (symbver.symbol.offset == null and !std.mem.eql(u8, symbver.symbol.name, "$retval")) {
+        if (symbver.symbol.offset == null and !std.mem.eql(u8, symbver.symbol.name, "_retval")) {
             local_offsets = alignment_.next_alignment(local_offsets, symbver.symbol.expanded_type().alignof());
             local_offsets += symbver.symbol.set_offset(local_offsets);
         }

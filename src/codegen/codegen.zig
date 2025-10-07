@@ -1,6 +1,7 @@
 const std = @import("std");
 const core_ = @import("../hierarchy/core.zig");
 const Module_Iterator = @import("../util/dfs.zig").Dfs_Iterator(*Module);
+const Dependency_Node = @import("../ast/dependency_node.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const Interned_String_Set = @import("../ir/interned_string_set.zig");
@@ -9,18 +10,34 @@ const Header_Emitter = @import("header_emitter.zig");
 const Source_Emitter = @import("source_emitter.zig");
 const Emitter = @import("emitter.zig");
 const Test_Emitter = @import("test_emitter.zig");
+const Typedef_Emitter = @import("typedef_emitter.zig");
+const Type_Set = @import("../ast/type-set.zig");
+const Canonical_Type_Fmt = @import("canonical_type_fmt.zig");
 
-/// Goes through each package and outputs a C/H file header pair for each module in each package
+/// Goes through each package and outputs a C/H file header pair for each module in each package.
+///
+/// Does not output packages that are not modified.
 pub fn output_modules(compiler: *Compiler_Context) !void {
     // Start from root module, of each package, DFS through imports and generate
     for (compiler.packages.keys()) |package_name| {
         const package = compiler.lookup_package(package_name).?;
         const package_root_module = package.root.init_value().?.module.module;
 
+        if (!package.modified.?) {
+            continue;
+        }
+
         const build_path = package.get_build_path(compiler.allocator());
         _ = std.fs.openDirAbsolute(build_path, .{}) catch {
             std.fs.makeDirAbsolute(build_path) catch unreachable;
         };
+
+        const types_path = package.get_types_path(compiler.allocator());
+        _ = std.fs.openDirAbsolute(types_path, .{}) catch {
+            std.fs.makeDirAbsolute(types_path) catch unreachable;
+        };
+
+        try output_types(&package.type_set, types_path, compiler.allocator());
 
         var modules = std.array_list.Managed(*Module).init(compiler.allocator());
         defer modules.deinit();
@@ -28,7 +45,7 @@ pub fn output_modules(compiler: *Compiler_Context) !void {
         defer dfs_iter.deinit();
         while (dfs_iter.next()) |module| {
             if (std.mem.eql(u8, module.get_package_abs_path(), package.absolute_path)) {
-                try output(module, &compiler.module_interned_strings, build_path, compiler.allocator());
+                try output_module(module, &compiler.module_interned_strings, build_path, compiler.allocator());
                 modules.append(module) catch unreachable;
 
                 if (package.kind == .test_executable) {
@@ -46,7 +63,7 @@ pub fn output_modules(compiler: *Compiler_Context) !void {
 }
 
 /// Takes in a statically correct module, writes it out to C source and header files
-fn output(
+fn output_module(
     module: *Module,
     module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set),
     build_path: []const u8,
@@ -68,6 +85,50 @@ fn output(
 
     output_c_file.writeAll(c_buffer.items) catch unreachable;
     output_h_file.writeAll(h_buffer.items) catch unreachable;
+}
+
+fn output_types(
+    type_set: *const Type_Set,
+    types_path: []const u8,
+    allocator: std.mem.Allocator,
+) !void {
+    // Output all typedefs
+    for (type_set.types.items) |dag| {
+        try output_type(dag, types_path, allocator);
+    }
+}
+
+fn output_type(
+    dep: *Dependency_Node,
+    types_path: []const u8,
+    allocator: std.mem.Allocator,
+) !void {
+    if (dep.visited) {
+        // only visit a DAG node once
+        return;
+    }
+    dep.mark_visited();
+
+    // output any types that this type depends on
+    for (dep.dependencies.items) |depen| {
+        try output_type(depen, types_path, allocator);
+    }
+
+    var output_filename = std.array_list.Managed(u8).init(allocator);
+    defer output_filename.deinit();
+    output_filename.print("{f}.h", .{Canonical_Type_Fmt{ .type = dep.base }}) catch unreachable;
+
+    const out_paths = [_][]const u8{ types_path, output_filename.items };
+    const out_path = std.fs.path.join(allocator, &out_paths) catch unreachable;
+
+    const output_type_h_file = std.fs.createFileAbsolute(out_path, .{}) catch unreachable;
+    var type_h_buffer = std.array_list.Managed(u8).init(allocator);
+    defer type_h_buffer.deinit();
+
+    var test_emitter = Typedef_Emitter.init(dep, &type_h_buffer);
+    test_emitter.generate() catch return error.CompileError;
+
+    output_type_h_file.writeAll(type_h_buffer.items) catch unreachable;
 }
 
 /// Takes in a statically correct module, writes the tests out to C source and header files
@@ -94,7 +155,12 @@ fn output_tests(
     output_h_file.writeAll(h_buffer.items) catch unreachable;
 }
 
-fn output_start(module: *Module, module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set), build_path: []const u8, allocator: std.mem.Allocator) !void {
+fn output_start(
+    module: *Module,
+    module_interned_strings: *const std.AutoArrayHashMap(u32, *Interned_String_Set),
+    build_path: []const u8,
+    allocator: std.mem.Allocator,
+) !void {
     const paths = [_][]const u8{ build_path, "start.c" };
     const path = std.fs.path.join(allocator, &paths) catch unreachable;
 
@@ -104,7 +170,11 @@ fn output_start(module: *Module, module_interned_strings: *const std.AutoArrayHa
     var buf = std.array_list.Managed(u8).init(allocator);
     defer buf.deinit();
 
-    var source_emitter = Source_Emitter.init(module, module_interned_strings, &buf);
+    var source_emitter = Source_Emitter.init(
+        module,
+        module_interned_strings,
+        &buf,
+    );
     source_emitter.output_header_include() catch return error.CompileError;
     buf.print("#include <stdio.h>\n\n", .{}) catch return error.CompileError;
     source_emitter.output_main_function() catch return error.CompileError;
@@ -112,7 +182,11 @@ fn output_start(module: *Module, module_interned_strings: *const std.AutoArrayHa
     start_file.writeAll(buf.items) catch unreachable;
 }
 
-fn output_testrunner(modules: std.array_list.Managed(*Module), build_path: []const u8, allocator: std.mem.Allocator) !void {
+fn output_testrunner(
+    modules: std.array_list.Managed(*Module),
+    build_path: []const u8,
+    allocator: std.mem.Allocator,
+) !void {
     const paths = [_][]const u8{ build_path, "test-runner.c" };
     const path = std.fs.path.join(allocator, &paths) catch unreachable;
 
@@ -140,7 +214,7 @@ fn output_testrunner(modules: std.array_list.Managed(*Module), build_path: []con
         \\
         \\typedef 
     , .{}) catch return error.CompileError;
-    var mod_0_emitter = Emitter.init(modules.items[0], &buf);
+    var mod_0_emitter = Emitter.init(&buf);
     mod_0_emitter.output_type(core_.test_result_type) catch return error.CompileError;
     buf.print(
         \\ test_result;
@@ -159,7 +233,7 @@ fn output_testrunner(modules: std.array_list.Managed(*Module), build_path: []con
 
     var num_tests: usize = 0;
     for (modules.items) |module| {
-        var emitter = Emitter.init(module, &buf);
+        var emitter = Emitter.init(&buf);
         for (module.tests.items) |@"test"| {
             buf.print("    {{\"{s}\", \"{s}\", (test_fn)", .{ @"test".symbol.scope.module.?.name(), @"test".symbol.decl.?.@"test".name.?.string.data }) catch return error.CompileError;
             emitter.output_symbol(@"test".symbol) catch return error.CompileError;
@@ -199,6 +273,7 @@ fn output_testrunner(modules: std.array_list.Managed(*Module), build_path: []con
         \\    }}
         \\    printf("[============]\n");
         \\}}
+        \\
     , .{num_tests}) catch return error.CompileError;
 
     testrunner_file.writeAll(buf.items) catch unreachable;

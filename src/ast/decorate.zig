@@ -121,7 +121,9 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
 
         .binding => {
             for (ast.binding.decls.items) |decl| {
-                decl.decl.name.symbol().?.defined = true;
+                if (decl.* == .decl) {
+                    decl.decl.name.symbol().?.defined = true;
+                }
             }
         },
         .trait => self.scope.traits.append(ast) catch unreachable,
@@ -134,24 +136,6 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
                 enum_value.enum_value.base = Type_AST.create_identifier(ast.lhs().token(), self.allocator);
                 enum_value.enum_value.base.?.set_symbol(ast.lhs().symbol());
                 ast.* = enum_value.*;
-            }
-        },
-
-        .call => {
-            if (ast.lhs().* == .enum_value) {
-                // Enum value
-                ast.lhs().enum_value.init = ast.children().items[0];
-                ast.* = ast.lhs().*;
-            } else if (ast.lhs().refers_to_type()) {
-                // Struct value construction
-                const struct_type = Type_AST.from_ast(ast.lhs(), self.allocator);
-                const struct_value = ast_.AST.create_struct_value(
-                    ast.lhs().token(),
-                    struct_type,
-                    ast.children().*,
-                    self.allocator,
-                );
-                ast.* = struct_value.*;
             }
         },
     }

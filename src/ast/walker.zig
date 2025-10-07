@@ -98,7 +98,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             try walk_asts(ast.generic_params(), new_context);
         },
 
-        .module => std.debug.panic("compiler error: walking over modules not implemented!\n", .{}),
+        .module => {}, // std.debug.panic("compiler error: walking over modules not implemented!\n", .{}),
 
         .size_of, .default => try walk_type(ast.type(), new_context),
 

@@ -77,8 +77,9 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     compiler.propagate_include_directories(package_abs_path);
     compiler.collect_package_local_modules();
     compiler.determine_if_modified(package_abs_path);
+    compiler.collect_types();
     try Codegen_Context.output_modules(compiler);
-    try compiler.compile(package_abs_path, false);
+    try compiler.compile(package_abs_path);
 
     if (std.mem.eql(u8, name, "run")) {
         try run(compiler, package_abs_path, allocator);
@@ -128,8 +129,9 @@ fn @"test"(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.
     compiler.propagate_include_directories(package_abs_path);
     compiler.collect_package_local_modules();
     compiler.determine_if_modified(package_abs_path);
+    compiler.collect_types();
     try Codegen_Context.output_modules(compiler);
-    try compiler.compile(package_abs_path, false);
+    try compiler.compile(package_abs_path);
 
     try run(compiler, package_abs_path, allocator);
 }

@@ -694,7 +694,7 @@ fn move_lval_list(
 fn effective_address(self: *Self, lval: *lval_.L_Value) error{CompileError}!i64 {
     switch (lval.*) {
         .symbver => {
-            if (std.mem.eql(u8, "$retval", lval.symbver.symbol.name)) {
+            if (std.mem.eql(u8, "_retval", lval.symbver.symbol.name)) {
                 // Intercept stores to the return symbol of the form:
                 //     retval := val
                 // and replace with:

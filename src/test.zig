@@ -151,9 +151,10 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
     compiler.propagate_include_directories(package_abs_path);
     compiler.collect_package_local_modules();
     compiler.determine_if_modified(package_abs_path);
+    compiler.collect_types();
 
     const package = compiler.lookup_package(package_abs_path).?;
-    package.modified = true;
+    package.modified = true; // so that it always re-does stuff
     Codegen_Context.output_modules(compiler) catch unreachable;
 
     if (mode == .coverage) {
@@ -169,7 +170,7 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
     _ = expected_out.replace("\r", "") catch unreachable;
     _ = expected_out.replace("\n", "") catch unreachable;
 
-    compiler.compile(package_abs_path, false) catch unreachable;
+    compiler.compile(package_abs_path) catch unreachable;
 
     // execute (make sure no signals)
     var output_name = String.init_with_contents(allocator, "") catch unreachable;
