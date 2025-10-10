@@ -143,15 +143,11 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             if (ast.symbol() != null) {
                 // Do not re-do symbol if already declared
                 return null;
-            } else if (ast.fn_decl.is_templated()) {
-                // TOOD: stamp
-            } else {
-                // Normal function declaration
-                const symbol = try create_function_symbol(ast, self.scope, self.errors, self.allocator);
-                try self.register_symbol(ast, symbol);
             }
 
-            return null; // NOTE: DO NOT WALK CHILDREN!
+            const symbol = try create_function_symbol(ast, self.scope, self.errors, self.allocator);
+            try self.register_symbol(ast, symbol);
+            return self;
         },
 
         // Create new scope, create and walk trait symbols/decls

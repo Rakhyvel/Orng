@@ -121,7 +121,7 @@ pub fn typecheck_AST(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Validate
 
 fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Validate_Error_Enum!*Type_AST {
     // TODO: Ugh this function is too long
-    // std.debug.print("{f}: {?f}\n", .{ ast, expected });
+    std.debug.print("{f}: {?f}\n", .{ ast, expected });
     switch (ast.*) {
         // Nop, always "valid"
         .poison => return poison_.poisoned_type,
@@ -378,6 +378,35 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 self.ctx.errors.add_error(errs_.Error{ .not_indexable = .{ .span = lhs_span, ._type = expanded_lhs_type } });
                 return error.CompileError;
             }
+        },
+        .generic_apply => {
+            const sym = ast.lhs().symbol().?;
+            const params = sym.decl.?.generic_params();
+            if (params.items.len != ast.generic_apply._children.items.len) {
+                self.ctx.errors.add_error(errs_.Error{ .mismatch_arity = .{
+                    .span = ast.token().span,
+                    .takes = params.items.len,
+                    .given = ast.generic_apply._children.items.len,
+                    .thing_name = sym.name,
+                    .takes_name = "type parameter",
+                    .given_name = "argument",
+                } });
+                return error.CompileError;
+            }
+
+            for (ast.generic_apply._children.items) |child| {
+                try self.ctx.validate_type.validate(child);
+            }
+
+            if (ast.generic_apply.state == .unmorphed) {
+                ast.generic_apply.state = .morphing;
+                ast.generic_apply._symbol = try sym.monomorphize(ast.generic_apply._children, self.ctx);
+                ast.generic_apply.state = .morphed;
+            }
+
+            try self.ctx.validate_symbol.validate(ast.generic_apply._symbol.?);
+
+            return ast.symbol().?.type();
         },
         .select => {
             const lhs_type = self.typecheck_AST(ast.lhs(), null) catch return error.CompileError;

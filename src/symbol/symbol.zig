@@ -53,7 +53,7 @@ cfg: ?*CFG,
 decl: ?*ast_.AST,
 storage: Storage,
 
-monomorphs: Monomorph_Map(*Type_AST),
+monomorphs: Monomorph_Map(*Self),
 
 // Use-def
 aliases: u64 = 0, // How many times the symbol is taken as a mutable address
@@ -88,7 +88,7 @@ pub fn init(
     retval.offset = null;
     retval.kind = kind;
     retval.storage = storage;
-    retval.monomorphs = Monomorph_Map(*Type_AST).init(allocator);
+    retval.monomorphs = Monomorph_Map(*Self).init(allocator);
     retval.cfg = null;
     if (kind == .@"fn" or kind == .@"const") {
         retval.defined = true;
@@ -225,25 +225,38 @@ pub fn represents_method(self: *Self, impl_for_type: *Type_AST, method_name: []c
         std.mem.eql(u8, self.name, method_name);
 }
 
+// TODO Move to its own component in compiler context
+const Compiler_Context = @import("../hierarchy/compiler.zig");
 pub fn monomorphize(
     self: *Self,
     key: std.array_list.Managed(*Type_AST),
-    allocator: std.mem.Allocator,
-) *Type_AST {
+    ctx: *Compiler_Context,
+) error{CompileError}!*Self {
     if (self.monomorphs.get(key)) |retval| {
         return retval;
     } else {
-        var subst = unification_.Substitutions.init(allocator);
+        var subst = unification_.Substitutions.init(ctx.allocator());
         defer subst.deinit();
 
         for (self.decl.?.generic_params().items, key.items) |param, arg| {
             subst.put(param.token().data, arg) catch unreachable;
         }
 
-        const clone = self.init_typedef().?.clone(&subst, allocator);
-        self.monomorphs.put(key, clone) catch unreachable;
+        const name = "hi";
+        const decl = self.decl.?.clone(&subst, ctx.allocator());
 
-        // Here, need to attempt to
+        // Decorate identifiers, validate
+        const Decorate = @import("../ast/decorate.zig");
+        const Decorate_Access = @import("../ast/decorate-access.zig");
+        const walker_ = @import("../ast/walker.zig");
+
+        const decorate_context = Decorate.new(self.scope, &ctx.errors, ctx.allocator());
+        const decorate_access_context = Decorate_Access.new(self.scope, &ctx.errors, ctx);
+        try walker_.walk_ast(decl, decorate_context);
+        try walker_.walk_ast(decl, decorate_access_context);
+
+        const clone = Self.init(self.scope, name, decl, self.kind, self.storage, ctx.allocator());
+        self.monomorphs.put(key, clone) catch unreachable;
 
         return clone;
     }
