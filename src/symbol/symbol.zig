@@ -159,9 +159,7 @@ pub fn err_if_undefined(self: *Self, errors: *errs_.Errors) error{CompileError}!
 
 /// Throws an `error.CompileError` if a symbol is not used.
 pub fn err_if_unused(self: *Self, errors: *errs_.Errors) error{CompileError}!void {
-    if (self.kind != .@"const" and
-        self.uses == 0)
-    {
+    if (self.kind != .@"const" and self.uses == 0) {
         errors.add_error(errs_.Error{ .symbol_error = .{
             .span = self.span(),
             .context_span = null,
@@ -225,6 +223,15 @@ pub fn represents_method(self: *Self, impl_for_type: *Type_AST, method_name: []c
         std.mem.eql(u8, self.name, method_name);
 }
 
+var num_anons: usize = 0;
+fn next_anon_name(class: []const u8, allocator: std.mem.Allocator) []const u8 {
+    defer num_anons += 1;
+    var out = std.array_list.Managed(u8).init(allocator);
+    defer out.deinit();
+    out.print("{s}__{}", .{ class, num_anons }) catch unreachable;
+    return out.toOwnedSlice() catch unreachable;
+}
+
 // TODO Move to its own component in compiler context
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 pub fn monomorphize(
@@ -242,20 +249,34 @@ pub fn monomorphize(
             subst.put(param.token().data, arg) catch unreachable;
         }
 
-        const name = "hi";
+        const name = next_anon_name(self.name, ctx.allocator());
         const decl = self.decl.?.clone(&subst, ctx.allocator());
 
         // Decorate identifiers, validate
+        const Symbol_Tree = @import("../ast/symbol-tree.zig");
         const Decorate = @import("../ast/decorate.zig");
         const Decorate_Access = @import("../ast/decorate-access.zig");
         const walker_ = @import("../ast/walker.zig");
 
-        const decorate_context = Decorate.new(self.scope, &ctx.errors, ctx.allocator());
-        const decorate_access_context = Decorate_Access.new(self.scope, &ctx.errors, ctx);
+        const scope = self.scope.parent.?;
+
+        const symbol_tree_context = Symbol_Tree.new(scope, &ctx.errors, ctx.allocator());
+        const decorate_context = Decorate.new(scope, &ctx.errors, ctx.allocator());
+        const decorate_access_context = Decorate_Access.new(scope, &ctx.errors, ctx);
+
+        decl.set_decl_name(ast_.AST.create_pattern_symbol(
+            Token.init_simple(name),
+            self.kind,
+            self.storage,
+            name,
+            ctx.allocator(),
+        ));
+
+        try walker_.walk_ast(decl, symbol_tree_context);
         try walker_.walk_ast(decl, decorate_context);
         try walker_.walk_ast(decl, decorate_access_context);
 
-        const clone = Self.init(self.scope, name, decl, self.kind, self.storage, ctx.allocator());
+        const clone = decl.symbol().?;
         self.monomorphs.put(key, clone) catch unreachable;
 
         return clone;

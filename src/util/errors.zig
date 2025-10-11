@@ -640,7 +640,9 @@ pub const Error = union(enum) {
     }
 
     fn peek_error(err: Error) void {
-        err.print_error(std.fs.File.stderr().writer(&.{}).interface, .{});
+        var writer = std.fs.File.stderr().writer(&.{});
+        const writer_intfc = &writer.interface;
+        err.print_error(writer_intfc, .{});
         unreachable;
     }
 };
@@ -668,7 +670,7 @@ pub const Errors = struct {
 
     pub fn add_error(self: *Errors, err: Error) void {
         self.errors_list.append(err) catch unreachable;
-        // err.peek_error(); // uncomment if you want to see where errors come from TODO: Make this a cmd line flag
+        err.peek_error(); // uncomment if you want to see where errors come from TODO: Make this a cmd line flag
     }
 
     /// Prints out all errors in the Errors list

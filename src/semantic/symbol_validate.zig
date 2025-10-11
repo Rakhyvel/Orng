@@ -58,7 +58,7 @@ pub fn validate(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
         }
     }
     // std.debug.print("type for: {s}: {?}\n", .{ symbol.name, expected });
-    std.debug.print("validating init for: {s}: {?f}\n", .{ symbol.name, expected });
+    // std.debug.print("validating init for: {s}: {?f}\n", .{ symbol.name, expected });
     if (symbol.init_value()) |_init| {
         // might be null for parameters
         _ = self.ctx.typecheck.typecheck_AST(_init, expected) catch |e| switch (e) {

@@ -145,9 +145,15 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 return null;
             }
 
-            const symbol = try create_function_symbol(ast, self.scope, self.errors, self.allocator);
+            var new_self = self;
+            new_self.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
+
+            ast.set_scope(new_self.scope);
+
+            const symbol = try create_function_symbol(ast, self.scope, self.allocator);
             try self.register_symbol(ast, symbol);
-            return self;
+
+            return new_self;
         },
 
         // Create new scope, create and walk trait symbols/decls
@@ -275,6 +281,15 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
                 method_decl.method_decl.c_type = create_method_type(method_decl, self.allocator);
             }
         },
+
+        .fn_decl => {
+            for (ast.children().items) |param_binding| {
+                const symbol = param_binding.binding.decls.items[0].decl.name.symbol().?;
+                ast.param_symbols().?.append(symbol) catch unreachable;
+                symbol.defined = true;
+                symbol.param = true;
+            }
+        },
     }
 }
 
@@ -391,7 +406,6 @@ fn create_match_pattern_symbol(match: *ast_.AST, scope: *Scope, errors: *errs_.E
 pub fn create_function_symbol(
     ast: *ast_.AST,
     scope: *Scope,
-    errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Error!*Symbol {
     // Calculate the domain type from the function paramter types
@@ -407,24 +421,12 @@ pub fn create_function_symbol(
     ast.fn_decl._decl_type = _type;
 
     // Create the function scope
-    var fn_scope = Scope.init(scope, scope.uid_gen, allocator);
-    fn_scope.function_depth = scope.function_depth + 1;
+    ast.scope().?.function_depth = scope.function_depth + 1;
 
-    // Recurse parameters and init
-    var symbol_walk = Self.new(fn_scope, errors, allocator);
-    symbol_walk.is_param_scope = true;
-    try walk_.walk_asts(ast.children(), symbol_walk);
-
-    // Put the param symbols in the param symbols list
-    for (ast.children().items) |param_binding| {
-        const symbol = param_binding.binding.decls.items[0].decl.name.symbol().?;
-        ast.param_symbols().?.append(symbol) catch unreachable;
-    }
-
-    const key_set = fn_scope.symbols.keys();
+    const key_set = ast.scope().?.symbols.keys();
     for (0..key_set.len) |i| {
         const key = key_set[i];
-        var symbol = fn_scope.symbols.get(key).?;
+        var symbol = ast.scope().?.symbols.get(key).?;
         symbol.defined = true;
         symbol.param = true;
     }
@@ -437,16 +439,15 @@ pub fn create_function_symbol(
         buf = next_anon_name("anon", allocator);
     }
     const retval = Symbol.init(
-        fn_scope,
+        ast.scope().?,
         buf,
         ast,
         .@"fn",
         .local,
         allocator,
     );
-    fn_scope.inner_function = retval;
+    ast.scope().?.inner_function = retval;
 
-    try walk_.walk_ast(ast.fn_decl.init, symbol_walk);
     return retval;
 }
 

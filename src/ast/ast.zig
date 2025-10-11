@@ -355,6 +355,7 @@ pub const AST = union(enum) {
         refinement: ?*AST,
         init: *AST,
         _symbol: ?*Symbol = null,
+        _scope: ?*Scope = null,
         infer_error: bool,
 
         pub fn is_templated(self: *@This()) bool {
@@ -1696,20 +1697,26 @@ pub const AST = union(enum) {
                 self.pattern_symbol.name,
                 allocator,
             ),
-            .binding => return create_binding(
-                self.token(),
-                self.binding.pattern,
-                self.binding.type,
-                self.binding.init,
-                allocator,
-            ),
-            .decl => return create_decl(
-                self.token(),
-                self.decl.name.clone(substs, allocator),
-                self.decl.type.clone(substs, allocator),
-                if (self.decl.init) |init| init.clone(substs, allocator) else null,
-                allocator,
-            ),
+            .binding => {
+                const retval = create_binding(
+                    self.token(),
+                    self.binding.pattern,
+                    self.binding.type.clone(substs, allocator),
+                    if (self.binding.init) |init| init.clone(substs, allocator) else null,
+                    allocator,
+                );
+                return retval;
+            },
+            .decl => {
+                const retval = create_decl(
+                    self.token(),
+                    self.decl.name.clone(substs, allocator),
+                    self.decl.type.clone(substs, allocator),
+                    if (self.decl.init) |init| init.clone(substs, allocator) else null,
+                    allocator,
+                );
+                return retval;
+            },
             .fn_decl => {
                 const cloned_generic_params = clone_children(self.fn_decl._generic_params, substs, allocator);
                 const cloned_params = clone_children(self.children().*, substs, allocator);
@@ -1723,7 +1730,7 @@ pub const AST = union(enum) {
                     self.fn_decl.init.clone(substs, allocator),
                     allocator,
                 );
-                retval.set_symbol(self.symbol());
+                // retval.set_symbol(self.symbol());
                 retval.fn_decl._decl_type = if (self.fn_decl._decl_type != null) self.fn_decl._decl_type.?.clone(substs, allocator) else null;
                 return retval;
             },
@@ -1924,6 +1931,16 @@ pub const AST = union(enum) {
             .type_alias => self.type_alias.name,
             else => std.debug.panic("compiler error: cannot call `.decl_name()` on the AST `{s}`", .{@tagName(self.*)}),
         };
+    }
+
+    pub fn set_decl_name(self: *AST, name: *AST) void {
+        switch (self.*) {
+            .struct_decl => self.struct_decl.name = name,
+            .enum_decl => self.enum_decl.name = name,
+            .type_alias => self.type_alias.name = name,
+            .fn_decl => self.fn_decl.name = name,
+            else => std.debug.panic("compiler error: cannot call `.decl_name()` on the AST `{s}`", .{@tagName(self.*)}),
+        }
     }
 
     pub fn param_symbols(self: *AST) ?*std.array_list.Managed(*Symbol) {
@@ -2330,7 +2347,9 @@ pub const AST = union(enum) {
             .@"continue" => try out.print("continue", .{}),
             .@"return" => try out.print("return()", .{}),
             .pattern_symbol => try out.print("pattern_symbol({s}, {s})", .{ @tagName(self.pattern_symbol.kind), self.pattern_symbol.name }),
-            .binding => try out.print("binding()", .{}),
+            .binding => {
+                try out.print("binding(.type={f})", .{self.binding.type});
+            },
             .decl => {
                 try out.print("decl(\n", .{});
                 try out.print("    .pattern = {f},\n", .{self.decl.name});

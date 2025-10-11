@@ -1087,6 +1087,10 @@ pub const Type_AST = union(enum) {
             } else {
                 return self;
             },
+            .type_of => {
+                const _expr = self.expr().clone(substs, allocator);
+                return create_type_of(self.token(), _expr, allocator);
+            },
             .addr_of => {
                 const _expr = clone(self.child(), substs, allocator);
                 return create_addr_of(self.token(), _expr, self.addr_of.mut, self.addr_of.multiptr, allocator);

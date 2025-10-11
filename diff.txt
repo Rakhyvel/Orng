@@ -1,0 +1,274 @@
+diff --git a/src/ast/ast.zig b/src/ast/ast.zig
+index 32592a10..cb921a20 100644
+--- a/src/ast/ast.zig
++++ b/src/ast/ast.zig
+@@ -355,6 +355,7 @@ pub const AST = union(enum) {
+         refinement: ?*AST,
+         init: *AST,
+         _symbol: ?*Symbol = null,
++        _scope: ?*Scope = null,
+         infer_error: bool,
+ 
+         pub fn is_templated(self: *@This()) bool {
+@@ -1696,20 +1697,27 @@ pub const AST = union(enum) {
+                 self.pattern_symbol.name,
+                 allocator,
+             ),
+-            .binding => return create_binding(
+-                self.token(),
+-                self.binding.pattern,
+-                self.binding.type,
+-                self.binding.init,
+-                allocator,
+-            ),
+-            .decl => return create_decl(
+-                self.token(),
+-                self.decl.name.clone(substs, allocator),
+-                self.decl.type.clone(substs, allocator),
+-                if (self.decl.init) |init| init.clone(substs, allocator) else null,
+-                allocator,
+-            ),
++            .binding => {
++                const retval = create_binding(
++                    self.token(),
++                    self.binding.pattern,
++                    self.binding.type.clone(substs, allocator),
++                    if (self.binding.init) |init| init.clone(substs, allocator) else null,
++                    allocator,
++                );
++                std.debug.print("cloned: {f}\n", .{retval});
++                return retval;
++            },
++            .decl => {
++                const retval = create_decl(
++                    self.token(),
++                    self.decl.name.clone(substs, allocator),
++                    self.decl.type.clone(substs, allocator),
++                    if (self.decl.init) |init| init.clone(substs, allocator) else null,
++                    allocator,
++                );
++                return retval;
++            },
+             .fn_decl => {
+                 const cloned_generic_params = clone_children(self.fn_decl._generic_params, substs, allocator);
+                 const cloned_params = clone_children(self.children().*, substs, allocator);
+@@ -1723,7 +1731,7 @@ pub const AST = union(enum) {
+                     self.fn_decl.init.clone(substs, allocator),
+                     allocator,
+                 );
+-                retval.set_symbol(self.symbol());
++                // retval.set_symbol(self.symbol());
+                 retval.fn_decl._decl_type = if (self.fn_decl._decl_type != null) self.fn_decl._decl_type.?.clone(substs, allocator) else null;
+                 return retval;
+             },
+@@ -1926,6 +1934,16 @@ pub const AST = union(enum) {
+         };
+     }
+ 
++    pub fn set_decl_name(self: *AST, name: *AST) void {
++        switch (self.*) {
++            .struct_decl => self.struct_decl.name = name,
++            .enum_decl => self.enum_decl.name = name,
++            .type_alias => self.type_alias.name = name,
++            .fn_decl => self.fn_decl.name = name,
++            else => std.debug.panic("compiler error: cannot call `.decl_name()` on the AST `{s}`", .{@tagName(self.*)}),
++        }
++    }
++
+     pub fn param_symbols(self: *AST) ?*std.array_list.Managed(*Symbol) {
+         return switch (self.*) {
+             .fn_decl => &self.fn_decl._param_symbols,
+@@ -2330,7 +2348,9 @@ pub const AST = union(enum) {
+             .@"continue" => try out.print("continue", .{}),
+             .@"return" => try out.print("return()", .{}),
+             .pattern_symbol => try out.print("pattern_symbol({s}, {s})", .{ @tagName(self.pattern_symbol.kind), self.pattern_symbol.name }),
+-            .binding => try out.print("binding()", .{}),
++            .binding => {
++                try out.print("binding(.type={f})", .{self.binding.type});
++            },
+             .decl => {
+                 try out.print("decl(\n", .{});
+                 try out.print("    .pattern = {f},\n", .{self.decl.name});
+diff --git a/src/ast/decorate.zig b/src/ast/decorate.zig
+index 960af64f..98ea91ef 100644
+--- a/src/ast/decorate.zig
++++ b/src/ast/decorate.zig
+@@ -62,13 +62,13 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
+             return self;
+         },
+ 
+-        .@"if", .match, .mapping, .@"while", .@"for", .block, .impl, .trait, .struct_decl, .enum_decl, .type_alias => {
++        .@"if", .match, .mapping, .@"while", .@"for", .block, .impl, .trait, .struct_decl, .enum_decl, .type_alias, .fn_decl => {
+             var new_context = self;
+             new_context.scope = ast.scope().?;
+             return new_context;
+         },
+ 
+-        .fn_decl, .method_decl => {
++        .method_decl => {
+             var new_context = self;
+             if (ast.symbol() != null) {
+                 new_context.scope = ast.symbol().?.scope;
+diff --git a/src/ast/symbol-tree.zig b/src/ast/symbol-tree.zig
+index 13557f5f..5674782c 100644
+--- a/src/ast/symbol-tree.zig
++++ b/src/ast/symbol-tree.zig
+@@ -99,6 +99,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
+                 ast.binding.decls.append(symbol.decl.?) catch unreachable;
+             }
+             try self.scope.put_all_symbols(&symbols, self.errors);
++            std.debug.print("binding\n", .{});
+         },
+ 
+         .struct_decl, .enum_decl, .type_alias => {
+@@ -145,9 +146,15 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
+                 return null;
+             }
+ 
++            var new_self = self;
++            new_self.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
++
++            ast.set_scope(new_self.scope);
++
+             const symbol = try create_function_symbol(ast, self.scope, self.errors, self.allocator);
+             try self.register_symbol(ast, symbol);
+-            return self;
++
++            return new_self;
+         },
+ 
+         // Create new scope, create and walk trait symbols/decls
+diff --git a/src/ir/cfg_store.zig b/src/ir/cfg_store.zig
+index d422f1a5..2414db22 100644
+--- a/src/ir/cfg_store.zig
++++ b/src/ir/cfg_store.zig
+@@ -38,6 +38,7 @@ pub fn get_cfg(
+     }
+     if (symbol.cfg == null) {
+         symbol.cfg = CFG.init(symbol, self.ctx.allocator());
++        std.debug.print("CFG: {s}\n", .{symbol.name});
+         var lower_context = Lower_Context.init(self.ctx, symbol.cfg.?, interned_strings);
+         try lower_context.lower_AST_into_cfg();
+         try cfg_validate_.validate_cfg(symbol.cfg.?, &self.ctx.errors);
+diff --git a/src/ir/lval.zig b/src/ir/lval.zig
+index 7301f709..36be1ce4 100644
+--- a/src/ir/lval.zig
++++ b/src/ir/lval.zig
+@@ -249,6 +249,9 @@ pub const L_Value = union(enum) {
+     }
+ 
+     pub fn increment_usage(lval: *L_Value) void {
++        if (lval.* == .symbver) {
++            std.debug.print("incr: {*}\n", .{lval.symbver});
++        }
+         switch (lval.*) {
+             .symbver => lval.symbver.increment_usage(),
+             .dereference => lval.dereference.expr.increment_usage(),
+diff --git a/src/symbol/scope.zig b/src/symbol/scope.zig
+index 104ce8e3..2d836eb4 100644
+--- a/src/symbol/scope.zig
++++ b/src/symbol/scope.zig
+@@ -58,7 +58,8 @@ pub const Lookup_Flags = struct {
+ };
+ 
+ pub fn lookup(self: *Self, name: []const u8, flags: Lookup_Flags) Lookup_Result {
+-    if (false) {
++    const log: bool = false;
++    if (log) {
+         const found = self.symbols.get(name) != null;
+         std.debug.print("searching for: {s} {}({})\n", .{ name, found, flags });
+         self.pprint();
+@@ -80,6 +81,9 @@ pub fn lookup(self: *Self, name: []const u8, flags: Lookup_Flags) Lookup_Result
+             return .found_but_fn;
+         } else {
+             // Found the symbol just fine
++            if (log) {
++                std.debug.print("Found: {s} {*}\n", .{ name, symbol });
++            }
+             return Lookup_Result{ .found = symbol };
+         }
+     } else if (self.parent) |parent| {
+diff --git a/src/symbol/symbol.zig b/src/symbol/symbol.zig
+index 8295414a..7fca79e3 100644
+--- a/src/symbol/symbol.zig
++++ b/src/symbol/symbol.zig
+@@ -159,9 +159,8 @@ pub fn err_if_undefined(self: *Self, errors: *errs_.Errors) error{CompileError}!
+ 
+ /// Throws an `error.CompileError` if a symbol is not used.
+ pub fn err_if_unused(self: *Self, errors: *errs_.Errors) error{CompileError}!void {
+-    if (self.kind != .@"const" and
+-        self.uses == 0)
+-    {
++    if (self.kind != .@"const" and self.uses == 0) {
++        std.debug.print("unused: {*}\n", .{self});
+         errors.add_error(errs_.Error{ .symbol_error = .{
+             .span = self.span(),
+             .context_span = null,
+@@ -246,16 +245,25 @@ pub fn monomorphize(
+         const decl = self.decl.?.clone(&subst, ctx.allocator());
+ 
+         // Decorate identifiers, validate
++        const Symbol_Tree = @import("../ast/symbol-tree.zig");
+         const Decorate = @import("../ast/decorate.zig");
+         const Decorate_Access = @import("../ast/decorate-access.zig");
+         const walker_ = @import("../ast/walker.zig");
+ 
+-        const decorate_context = Decorate.new(self.scope, &ctx.errors, ctx.allocator());
+-        const decorate_access_context = Decorate_Access.new(self.scope, &ctx.errors, ctx);
++        const scope = self.decl.?.scope().?.parent.?;
++
++        const symbol_tree_context = Symbol_Tree.new(scope, &ctx.errors, ctx.allocator());
++        const decorate_context = Decorate.new(scope, &ctx.errors, ctx.allocator());
++        const decorate_access_context = Decorate_Access.new(scope, &ctx.errors, ctx);
++
++        decl.set_decl_name(ast_.AST.create_identifier(Token.init_simple(name), ctx.allocator()));
++
++        std.debug.print("Walking the trees\n", .{});
++        try walker_.walk_ast(decl, symbol_tree_context);
+         try walker_.walk_ast(decl, decorate_context);
+         try walker_.walk_ast(decl, decorate_access_context);
+ 
+-        const clone = Self.init(self.scope, name, decl, self.kind, self.storage, ctx.allocator());
++        const clone = Self.init(scope, name, decl, self.kind, self.storage, ctx.allocator());
+         self.monomorphs.put(key, clone) catch unreachable;
+ 
+         return clone;
+diff --git a/src/types/type.zig b/src/types/type.zig
+index 8c51bf7e..4f1029d3 100644
+--- a/src/types/type.zig
++++ b/src/types/type.zig
+@@ -1087,6 +1087,10 @@ pub const Type_AST = union(enum) {
+             } else {
+                 return self;
+             },
++            .type_of => {
++                const _expr = self.expr().clone(substs, allocator);
++                return create_type_of(self.token(), _expr, allocator);
++            },
+             .addr_of => {
+                 const _expr = clone(self.child(), substs, allocator);
+                 return create_addr_of(self.token(), _expr, self.addr_of.mut, self.addr_of.multiptr, allocator);
+diff --git a/src/util/errors.zig b/src/util/errors.zig
+index accc2ff1..2c705620 100644
+--- a/src/util/errors.zig
++++ b/src/util/errors.zig
+@@ -640,7 +640,9 @@ pub const Error = union(enum) {
+     }
+ 
+     fn peek_error(err: Error) void {
+-        err.print_error(std.fs.File.stderr().writer(&.{}).interface, .{});
++        var writer = std.fs.File.stderr().writer(&.{});
++        const writer_intfc = &writer.interface;
++        err.print_error(writer_intfc, .{});
+         unreachable;
+     }
+ };
+@@ -668,7 +670,7 @@ pub const Errors = struct {
+ 
+     pub fn add_error(self: *Errors, err: Error) void {
+         self.errors_list.append(err) catch unreachable;
+-        // err.peek_error(); // uncomment if you want to see where errors come from TODO: Make this a cmd line flag
++        err.peek_error(); // uncomment if you want to see where errors come from TODO: Make this a cmd line flag
+     }
+ 
+     /// Prints out all errors in the Errors list
