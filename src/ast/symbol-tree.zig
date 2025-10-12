@@ -145,10 +145,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         // Create a symbol for this function
         // Transform into template if templated
         .fn_decl => {
-            if (ast.symbol() != null) {
-                // Do not re-do symbol if already declared
-                return null;
-            }
+            std.debug.assert(ast.symbol() == null);
 
             var new_self = self;
             new_self.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
@@ -408,11 +405,7 @@ fn create_match_pattern_symbol(match: *ast_.AST, scope: *Scope, errors: *errs_.E
     }
 }
 
-pub fn create_function_symbol(
-    ast: *ast_.AST,
-    scope: *Scope,
-    allocator: std.mem.Allocator,
-) Error!*Symbol {
+pub fn create_function_symbol(ast: *ast_.AST, scope: *Scope, allocator: std.mem.Allocator) Error!*Symbol {
     // Calculate the domain type from the function paramter types
     const domain = extract_domain(ast.children().*, allocator);
 

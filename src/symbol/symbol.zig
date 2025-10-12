@@ -239,7 +239,6 @@ pub fn monomorphize(
     key: std.array_list.Managed(*Type_AST),
     ctx: *Compiler_Context,
 ) error{ OutOfMemory, CompileError }!*Self {
-    std.debug.print("monomorph {s}\n", .{self.name});
     if (self.monomorphs.get(key)) |retval| {
         return retval;
     } else {
@@ -259,8 +258,7 @@ pub fn monomorphize(
         const Decorate_Access = @import("../ast/decorate-access.zig");
         const walker_ = @import("../ast/walker.zig");
 
-        const scope = self.scope;
-        std.debug.print("{?*}\n", .{self.scope.parent});
+        const scope = self.decl.?.scope().?.parent.?;
 
         const symbol_tree_context = Symbol_Tree.new(scope, &ctx.errors, ctx.allocator());
         const decorate_context = Decorate.new(scope, &ctx.errors, ctx.allocator());
