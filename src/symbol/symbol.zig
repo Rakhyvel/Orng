@@ -238,7 +238,8 @@ pub fn monomorphize(
     self: *Self,
     key: std.array_list.Managed(*Type_AST),
     ctx: *Compiler_Context,
-) error{CompileError}!*Self {
+) error{ OutOfMemory, CompileError }!*Self {
+    std.debug.print("monomorph {s}\n", .{self.name});
     if (self.monomorphs.get(key)) |retval| {
         return retval;
     } else {
@@ -246,7 +247,7 @@ pub fn monomorphize(
         defer subst.deinit();
 
         for (self.decl.?.generic_params().items, key.items) |param, arg| {
-            subst.put(param.token().data, arg) catch unreachable;
+            try subst.put(param.token().data, arg);
         }
 
         const name = next_anon_name(self.name, ctx.allocator());
@@ -258,7 +259,8 @@ pub fn monomorphize(
         const Decorate_Access = @import("../ast/decorate-access.zig");
         const walker_ = @import("../ast/walker.zig");
 
-        const scope = self.scope.parent.?;
+        const scope = self.scope;
+        std.debug.print("{?*}\n", .{self.scope.parent});
 
         const symbol_tree_context = Symbol_Tree.new(scope, &ctx.errors, ctx.allocator());
         const decorate_context = Decorate.new(scope, &ctx.errors, ctx.allocator());
@@ -277,7 +279,7 @@ pub fn monomorphize(
         try walker_.walk_ast(decl, decorate_access_context);
 
         const clone = decl.symbol().?;
-        self.monomorphs.put(key, clone) catch unreachable;
+        try self.monomorphs.put(try key.clone(), clone);
 
         return clone;
     }

@@ -4,7 +4,7 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 
-pub const Error = error{CompileError};
+pub const Error = error{ OutOfMemory, CompileError };
 
 pub fn Apply_Ast_Walk(Context_Type: type) type {
     return struct {

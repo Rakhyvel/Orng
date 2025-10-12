@@ -1480,15 +1480,12 @@ pub const AST = union(enum) {
             .trait => {
                 const cloned_method_decls = clone_children(self.trait.method_decls, substs, allocator);
                 const cloned_const_decls = clone_children(self.trait.const_decls, substs, allocator);
-                var retval = create_trait(
+                return create_trait(
                     self.token(),
                     cloned_method_decls,
                     cloned_const_decls,
                     allocator,
                 );
-                retval.set_symbol(self.symbol());
-                retval.set_scope(self.scope());
-                return retval;
             },
             .impl => {
                 const cloned_method_defs = clone_children(self.impl.method_defs, substs, allocator);
@@ -1507,7 +1504,6 @@ pub const AST = union(enum) {
                     method_def.method_decl.impl = retval;
                 }
                 retval.impl.impls_anon_trait = self.impl.impls_anon_trait;
-                retval.set_scope(self.scope());
                 return retval;
             },
             .invoke => {
@@ -1557,39 +1553,36 @@ pub const AST = union(enum) {
             .struct_decl => {
                 const cloned_terms = Type_AST.clone_types(self.struct_decl.fields, substs, allocator);
                 const cloned_generic_params = clone_children(self.struct_decl._generic_params, substs, allocator);
-                var retval = create_struct_decl(
+                const retval = create_struct_decl(
                     self.token(),
                     self.struct_decl.name.clone(substs, allocator),
                     cloned_terms,
                     cloned_generic_params,
                     allocator,
                 );
-                retval.set_symbol(self.symbol());
                 return retval;
             },
             .enum_decl => {
                 const cloned_terms = Type_AST.clone_types(self.enum_decl.fields, substs, allocator);
                 const cloned_generic_params = clone_children(self.enum_decl._generic_params, substs, allocator);
-                var retval = create_enum_decl(
+                const retval = create_enum_decl(
                     self.token(),
                     self.enum_decl.name.clone(substs, allocator),
                     cloned_terms,
                     cloned_generic_params,
                     allocator,
                 );
-                retval.set_symbol(self.symbol());
                 return retval;
             },
             .type_alias => {
                 const cloned_generic_params = clone_children(self.type_alias._generic_params, substs, allocator);
-                var retval = create_type_alias(
+                const retval = create_type_alias(
                     self.token(),
                     self.type_alias.name.clone(substs, allocator),
                     if (self.type_alias.init == null) null else self.type_alias.init.?.clone(substs, allocator),
                     cloned_generic_params,
                     allocator,
                 );
-                retval.set_symbol(self.symbol());
                 return retval;
             },
             .as => return create_as(
@@ -1628,29 +1621,23 @@ pub const AST = union(enum) {
                 return retval;
             },
 
-            .@"if" => {
-                var retval = create_if(
-                    self.token(),
-                    if (self.@"if".let) |let| let.clone(substs, allocator) else null,
-                    self.@"if".condition.clone(substs, allocator),
-                    self.body_block().clone(substs, allocator),
-                    if (self.else_block()) |_else| _else.clone(substs, allocator) else null,
-                    allocator,
-                );
-                retval.set_scope(self.scope());
-                return retval;
-            },
+            .@"if" => return create_if(
+                self.token(),
+                if (self.@"if".let) |let| let.clone(substs, allocator) else null,
+                self.@"if".condition.clone(substs, allocator),
+                self.body_block().clone(substs, allocator),
+                if (self.else_block()) |_else| _else.clone(substs, allocator) else null,
+                allocator,
+            ),
             .match => {
                 const cloned_mappings = clone_children(self.children().*, substs, allocator);
-                var retval = create_match(
+                return create_match(
                     self.token(),
                     if (self.match.let) |let| let.clone(substs, allocator) else null,
                     self.expr().clone(substs, allocator),
                     cloned_mappings,
                     allocator,
                 );
-                retval.set_scope(self.scope());
-                return retval;
             },
             .mapping => return create_mapping(
                 self.token(),
@@ -1658,30 +1645,24 @@ pub const AST = union(enum) {
                 self.rhs().clone(substs, allocator),
                 allocator,
             ),
-            .@"while" => {
-                var retval = create_while(
-                    self.token(),
-                    if (self.@"while".let) |let| let.clone(substs, allocator) else null,
-                    self.@"while".condition.clone(substs, allocator),
-                    if (self.@"while".post) |post| post.clone(substs, allocator) else null,
-                    self.body_block().clone(substs, allocator),
-                    if (self.else_block()) |_else| _else.clone(substs, allocator) else null,
-                    allocator,
-                );
-                retval.set_scope(self.scope());
-                return retval;
-            },
+            .@"while" => return create_while(
+                self.token(),
+                if (self.@"while".let) |let| let.clone(substs, allocator) else null,
+                self.@"while".condition.clone(substs, allocator),
+                if (self.@"while".post) |post| post.clone(substs, allocator) else null,
+                self.body_block().clone(substs, allocator),
+                if (self.else_block()) |_else| _else.clone(substs, allocator) else null,
+                allocator,
+            ),
             .@"for" => unreachable, // TODO
             .block => {
                 const cloned_statements = clone_children(self.children().*, substs, allocator);
-                var retval = create_block(
+                return create_block(
                     self.token(),
                     cloned_statements,
                     if (self.block.final) |final| final.clone(substs, allocator) else null,
                     allocator,
                 );
-                retval.set_scope(self.scope());
-                return retval;
             },
             .@"break" => return create_break(self.token(), allocator),
             .@"continue" => return create_continue(self.token(), allocator),
@@ -1730,7 +1711,6 @@ pub const AST = union(enum) {
                     self.fn_decl.init.clone(substs, allocator),
                     allocator,
                 );
-                // retval.set_symbol(self.symbol());
                 retval.fn_decl._decl_type = if (self.fn_decl._decl_type != null) self.fn_decl._decl_type.?.clone(substs, allocator) else null;
                 return retval;
             },
@@ -1750,7 +1730,6 @@ pub const AST = union(enum) {
                 retval.method_decl.impl = self.method_decl.impl;
                 retval.method_decl.domain = self.method_decl.domain;
                 retval.method_decl._decl_type = if (self.method_decl._decl_type != null) self.method_decl._decl_type.?.clone(substs, allocator) else null;
-                retval.set_symbol(null);
                 return retval;
             },
             .@"test" => return create_test(

@@ -102,6 +102,11 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         },
 
         .struct_decl, .enum_decl, .type_alias => {
+            if (ast.symbol() != null) {
+                // Do not re-do symbol if already declared
+                return null;
+            }
+
             var new_self = self;
             new_self.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
 

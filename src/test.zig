@@ -16,7 +16,14 @@ const fail_color = term_.Attr{ .fg = .red, .bold = true };
 const not_orng_color = term_.Attr{ .fg = .blue, .bold = true };
 
 const Test_Mode = enum { regular, coverage, bless };
-const Debug_Allocator = std.heap.DebugAllocator(.{ .never_unmap = true, .safety = true });
+const Debug_Allocator = std.heap.DebugAllocator(.{
+    .never_unmap = false,
+    .safety = true,
+    .retain_metadata = true,
+    .verbose_log = false, // <— logs every alloc/free with stack trace
+    .resize_stack_traces = true, // <— refresh trace on reallocs for better diagnostics
+    .enable_memory_limit = true, // leave off unless testing OOM
+});
 const Test_File_Fn = fn ([]const u8, Test_Mode, *Debug_Allocator) bool;
 
 // This is for compatability with Windows, since stdout for Windows isn't known at compile-time
@@ -74,7 +81,7 @@ fn parse_args(old_args: std.process.ArgIterator, mode: Test_Mode, comptime test_
             continue;
         }
 
-        var debug_alloc = std.heap.DebugAllocator(.{ .never_unmap = true, .safety = true }){};
+        var debug_alloc = Debug_Allocator{};
         const test_name = get_test_name(next) orelse continue;
         if (mode == .regular) {
             term_.outputColor(succeed_color, "[ RUN      ... ] ", writer) catch unreachable;
@@ -229,6 +236,7 @@ fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug
             switch (err) {
                 error.LexerError,
                 error.CompileError,
+                error.OutOfMemory,
                 => {
                     return errors_match;
                 },

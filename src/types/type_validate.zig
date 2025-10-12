@@ -9,7 +9,7 @@ const Symbol = @import("../symbol/symbol.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const walk_ = @import("../ast/walker.zig");
 
-const Validate_Error_Enum = error{CompileError};
+const Validate_Error_Enum = error{ OutOfMemory, CompileError };
 const Self: type = @This();
 
 ctx: *Compiler_Context,

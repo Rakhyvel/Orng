@@ -32,6 +32,7 @@ const Error: type = error{
     ParseError,
     CompileError,
     FileNotFound,
+    OutOfMemory,
 };
 
 arena: std.heap.ArenaAllocator,
@@ -139,6 +140,7 @@ pub fn compile_module(
             error.LexerError,
             error.ParseError,
             error.FileNotFound,
+            error.OutOfMemory,
             => {
                 return err;
             },

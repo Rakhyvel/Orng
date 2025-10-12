@@ -25,6 +25,8 @@ const Validate_Error_Enum = error{
     CompileError,
     // Returned when a type is encountered, which may or may not be expected
     UnexpectedTypeType,
+    // General purpose out of memory error
+    OutOfMemory,
 };
 
 const Self: type = @This();
@@ -164,8 +166,8 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
         },
         .access => {
             _ = self.typecheck_AST(ast.lhs(), null) catch |e| switch (e) {
-                error.CompileError => return error.CompileError,
                 error.UnexpectedTypeType => {}, // This is expected
+                else => return e,
             };
 
             // look up symbol, that's the type

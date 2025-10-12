@@ -8,7 +8,8 @@ const poison_ = @import("../ast/poison.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const Span = @import("../util/span.zig");
 
-const Validate_Error_Enum = error{ LexerError, ParseError, CompileError };
+// TODO: Are lexer, parse errors even possible?
+const Validate_Error_Enum = error{ LexerError, ParseError, CompileError, OutOfMemory };
 
 const Self: type = @This();
 
