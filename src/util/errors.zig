@@ -640,7 +640,9 @@ pub const Error = union(enum) {
     }
 
     fn peek_error(err: Error) void {
-        err.print_error(std.fs.File.stderr().writer(&.{}).interface, .{});
+        var writer = std.fs.File.stderr().writer(&.{});
+        const writer_intfc = &writer.interface;
+        err.print_error(writer_intfc, .{});
         unreachable;
     }
 };

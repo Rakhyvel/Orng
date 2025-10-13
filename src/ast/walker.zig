@@ -4,7 +4,7 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 
-pub const Error = error{CompileError};
+pub const Error = error{ OutOfMemory, CompileError };
 
 pub fn Apply_Ast_Walk(Context_Type: type) type {
     return struct {
@@ -94,8 +94,8 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .enum_decl,
         .type_alias,
         => {
-            try walk_type(ast.decl_typedef(), new_context);
             try walk_asts(ast.generic_params(), new_context);
+            try walk_type(ast.decl_typedef(), new_context);
         },
 
         .module => {}, // std.debug.panic("compiler error: walking over modules not implemented!\n", .{}),
@@ -151,6 +151,10 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .call, .index => {
             try walk_ast(ast.lhs(), new_context);
             try walk_asts(ast.children(), new_context);
+        },
+        .generic_apply => {
+            try walk_ast(ast.lhs(), new_context);
+            try walk_types(&ast.generic_apply._children, new_context);
         },
         .struct_value,
         .tuple_value,
@@ -220,6 +224,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             }
         },
         .fn_decl => {
+            try walk_asts(ast.generic_params(), new_context);
             try walk_ast(ast.fn_decl.init, new_context);
             try walk_asts(ast.children(), new_context);
             try walk_type(ast.fn_decl.ret_type, new_context);

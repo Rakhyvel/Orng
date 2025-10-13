@@ -7,12 +7,7 @@ const lval_ = @import("../ir/lval.zig");
 const repo_ = @import("../util/repo.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 
-const Error: type = error{
-    LexerError,
-    ParseError,
-    CompileError,
-    FileNotFound,
-};
+const Error: type = error{ LexerError, ParseError, CompileError, FileNotFound, OutOfMemory };
 
 const Package_Find_Result = struct { package_adrs: i64, package_dirname: []const u8 };
 

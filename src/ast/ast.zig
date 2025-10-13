@@ -20,6 +20,7 @@ const Type_AST = @import("../types/type.zig").Type_AST;
 const Monomorph_Map = @import("../ast/type_map.zig").Monomorph_Map;
 const validation_state_ = @import("../util/validation_state.zig");
 const unification_ = @import("../types/unification.zig");
+const fmt_ = @import("../util/fmt.zig");
 
 pub const AST_Validation_State = validation_state_.Validation_State;
 
@@ -135,6 +136,13 @@ pub const AST = union(enum) {
     left_shift: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
     right_shift: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
     index: struct { common: AST_Common, _lhs: *AST, _children: std.array_list.Managed(*AST) },
+    generic_apply: struct {
+        common: AST_Common,
+        _lhs: *AST,
+        _children: std.array_list.Managed(*Type_AST),
+        _symbol: ?*Symbol = null,
+        state: enum { unmorphed, morphing, morphed } = .unmorphed,
+    },
     select: struct {
         common: AST_Common,
         _lhs: *AST,
@@ -339,6 +347,7 @@ pub const AST = union(enum) {
     },
     fn_decl: struct {
         common: AST_Common,
+        _generic_params: std.array_list.Managed(*AST),
         name: ?*AST, //
         _params: std.array_list.Managed(*AST), // Parameters' decl ASTs
         _param_symbols: std.array_list.Managed(*Symbol), // Parameters' symbols
@@ -347,6 +356,7 @@ pub const AST = union(enum) {
         refinement: ?*AST,
         init: *AST,
         _symbol: ?*Symbol = null,
+        _scope: ?*Scope = null,
         infer_error: bool,
 
         pub fn is_templated(self: *@This()) bool {
@@ -755,6 +765,14 @@ pub const AST = union(enum) {
         } }, allocator);
     }
 
+    pub fn create_generic_apply(_token: Token, _lhs: *AST, _children: std.array_list.Managed(*Type_AST), allocator: std.mem.Allocator) *AST {
+        return AST.box(AST{ .generic_apply = .{
+            .common = AST_Common{ ._token = _token },
+            ._lhs = _lhs,
+            ._children = _children,
+        } }, allocator);
+    }
+
     pub fn create_select(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
         const _common: AST_Common = .{ ._token = _token };
         return AST.box(AST{ .select = .{
@@ -1128,6 +1146,7 @@ pub const AST = union(enum) {
     pub fn create_fn_decl(
         _token: Token,
         name: ?*AST,
+        _generic_params: std.array_list.Managed(*AST),
         params: std.array_list.Managed(*AST),
         ret_type: *Type_AST,
         refinement: ?*AST,
@@ -1137,6 +1156,7 @@ pub const AST = union(enum) {
         return AST.box(AST{ .fn_decl = .{
             .common = AST_Common{ ._token = _token },
             .name = name,
+            ._generic_params = _generic_params,
             ._params = params,
             ._param_symbols = std.array_list.Managed(*Symbol).init(allocator),
             .ret_type = ret_type,
@@ -1291,6 +1311,9 @@ pub const AST = union(enum) {
         );
     }
 
+    /// Clones an AST given a substitution map. If any identifiers match a substitution, they are substituted.
+    ///
+    /// Deliberately does _not_ copy over symbols and scopes. These need to be re-decorated.
     pub fn clone(self: *AST, substs: *unification_.Substitutions, allocator: std.mem.Allocator) *AST {
         switch (self.*) {
             .poison => unreachable,
@@ -1440,6 +1463,12 @@ pub const AST = union(enum) {
                 clone_children(self.children().*, substs, allocator),
                 allocator,
             ),
+            .generic_apply => return create_generic_apply(
+                self.token(),
+                self.lhs().clone(substs, allocator),
+                Type_AST.clone_types(self.generic_apply._children, substs, allocator),
+                allocator,
+            ),
             .select => return create_select(
                 self.token(),
                 self.lhs().clone(substs, allocator),
@@ -1455,15 +1484,12 @@ pub const AST = union(enum) {
             .trait => {
                 const cloned_method_decls = clone_children(self.trait.method_decls, substs, allocator);
                 const cloned_const_decls = clone_children(self.trait.const_decls, substs, allocator);
-                var retval = create_trait(
+                return create_trait(
                     self.token(),
                     cloned_method_decls,
                     cloned_const_decls,
                     allocator,
                 );
-                retval.set_symbol(self.symbol());
-                retval.set_scope(self.scope());
-                return retval;
             },
             .impl => {
                 const cloned_method_defs = clone_children(self.impl.method_defs, substs, allocator);
@@ -1482,7 +1508,6 @@ pub const AST = union(enum) {
                     method_def.method_decl.impl = retval;
                 }
                 retval.impl.impls_anon_trait = self.impl.impls_anon_trait;
-                retval.set_scope(self.scope());
                 return retval;
             },
             .invoke => {
@@ -1532,39 +1557,36 @@ pub const AST = union(enum) {
             .struct_decl => {
                 const cloned_terms = Type_AST.clone_types(self.struct_decl.fields, substs, allocator);
                 const cloned_generic_params = clone_children(self.struct_decl._generic_params, substs, allocator);
-                var retval = create_struct_decl(
+                const retval = create_struct_decl(
                     self.token(),
                     self.struct_decl.name.clone(substs, allocator),
                     cloned_terms,
                     cloned_generic_params,
                     allocator,
                 );
-                retval.set_symbol(self.symbol());
                 return retval;
             },
             .enum_decl => {
                 const cloned_terms = Type_AST.clone_types(self.enum_decl.fields, substs, allocator);
                 const cloned_generic_params = clone_children(self.enum_decl._generic_params, substs, allocator);
-                var retval = create_enum_decl(
+                const retval = create_enum_decl(
                     self.token(),
                     self.enum_decl.name.clone(substs, allocator),
                     cloned_terms,
                     cloned_generic_params,
                     allocator,
                 );
-                retval.set_symbol(self.symbol());
                 return retval;
             },
             .type_alias => {
                 const cloned_generic_params = clone_children(self.type_alias._generic_params, substs, allocator);
-                var retval = create_type_alias(
+                const retval = create_type_alias(
                     self.token(),
                     self.type_alias.name.clone(substs, allocator),
                     if (self.type_alias.init == null) null else self.type_alias.init.?.clone(substs, allocator),
                     cloned_generic_params,
                     allocator,
                 );
-                retval.set_symbol(self.symbol());
                 return retval;
             },
             .as => return create_as(
@@ -1603,29 +1625,23 @@ pub const AST = union(enum) {
                 return retval;
             },
 
-            .@"if" => {
-                var retval = create_if(
-                    self.token(),
-                    if (self.@"if".let) |let| let.clone(substs, allocator) else null,
-                    self.@"if".condition.clone(substs, allocator),
-                    self.body_block().clone(substs, allocator),
-                    if (self.else_block()) |_else| _else.clone(substs, allocator) else null,
-                    allocator,
-                );
-                retval.set_scope(self.scope());
-                return retval;
-            },
+            .@"if" => return create_if(
+                self.token(),
+                if (self.@"if".let) |let| let.clone(substs, allocator) else null,
+                self.@"if".condition.clone(substs, allocator),
+                self.body_block().clone(substs, allocator),
+                if (self.else_block()) |_else| _else.clone(substs, allocator) else null,
+                allocator,
+            ),
             .match => {
                 const cloned_mappings = clone_children(self.children().*, substs, allocator);
-                var retval = create_match(
+                return create_match(
                     self.token(),
                     if (self.match.let) |let| let.clone(substs, allocator) else null,
                     self.expr().clone(substs, allocator),
                     cloned_mappings,
                     allocator,
                 );
-                retval.set_scope(self.scope());
-                return retval;
             },
             .mapping => return create_mapping(
                 self.token(),
@@ -1633,30 +1649,24 @@ pub const AST = union(enum) {
                 self.rhs().clone(substs, allocator),
                 allocator,
             ),
-            .@"while" => {
-                var retval = create_while(
-                    self.token(),
-                    if (self.@"while".let) |let| let.clone(substs, allocator) else null,
-                    self.@"while".condition.clone(substs, allocator),
-                    if (self.@"while".post) |post| post.clone(substs, allocator) else null,
-                    self.body_block().clone(substs, allocator),
-                    if (self.else_block()) |_else| _else.clone(substs, allocator) else null,
-                    allocator,
-                );
-                retval.set_scope(self.scope());
-                return retval;
-            },
+            .@"while" => return create_while(
+                self.token(),
+                if (self.@"while".let) |let| let.clone(substs, allocator) else null,
+                self.@"while".condition.clone(substs, allocator),
+                if (self.@"while".post) |post| post.clone(substs, allocator) else null,
+                self.body_block().clone(substs, allocator),
+                if (self.else_block()) |_else| _else.clone(substs, allocator) else null,
+                allocator,
+            ),
             .@"for" => unreachable, // TODO
             .block => {
                 const cloned_statements = clone_children(self.children().*, substs, allocator);
-                var retval = create_block(
+                return create_block(
                     self.token(),
                     cloned_statements,
                     if (self.block.final) |final| final.clone(substs, allocator) else null,
                     allocator,
                 );
-                retval.set_scope(self.scope());
-                return retval;
             },
             .@"break" => return create_break(self.token(), allocator),
             .@"continue" => return create_continue(self.token(), allocator),
@@ -1672,32 +1682,40 @@ pub const AST = union(enum) {
                 self.pattern_symbol.name,
                 allocator,
             ),
-            .binding => return create_binding(
-                self.token(),
-                self.binding.pattern,
-                self.binding.type,
-                self.binding.init,
-                allocator,
-            ),
-            .decl => return create_decl(
-                self.token(),
-                self.decl.name.clone(substs, allocator),
-                self.decl.type.clone(substs, allocator),
-                if (self.decl.init) |init| init.clone(substs, allocator) else null,
-                allocator,
-            ),
+            .binding => {
+                const retval = create_binding(
+                    self.token(),
+                    self.binding.pattern,
+                    self.binding.type.clone(substs, allocator),
+                    if (self.binding.init) |init| init.clone(substs, allocator) else null,
+                    allocator,
+                );
+                return retval;
+            },
+            .decl => {
+                const retval = create_decl(
+                    self.token(),
+                    self.decl.name.clone(substs, allocator),
+                    self.decl.type.clone(substs, allocator),
+                    if (self.decl.init) |init| init.clone(substs, allocator) else null,
+                    allocator,
+                );
+                return retval;
+            },
             .fn_decl => {
+                const cloned_generic_params = clone_children(self.fn_decl._generic_params, substs, allocator);
                 const cloned_params = clone_children(self.children().*, substs, allocator);
                 var retval = create_fn_decl(
                     self.token(),
                     if (self.fn_decl.name) |name| name.clone(substs, allocator) else null,
+                    cloned_generic_params,
                     cloned_params,
                     self.fn_decl.ret_type.clone(substs, allocator),
                     if (self.fn_decl.refinement) |refinement| refinement.clone(substs, allocator) else null,
                     self.fn_decl.init.clone(substs, allocator),
                     allocator,
                 );
-                retval.set_symbol(self.symbol());
+                retval.fn_decl._decl_type = if (self.fn_decl._decl_type != null) self.fn_decl._decl_type.?.clone(substs, allocator) else null;
                 return retval;
             },
             .method_decl => {
@@ -1716,7 +1734,6 @@ pub const AST = union(enum) {
                 retval.method_decl.impl = self.method_decl.impl;
                 retval.method_decl.domain = self.method_decl.domain;
                 retval.method_decl._decl_type = if (self.method_decl._decl_type != null) self.method_decl._decl_type.?.clone(substs, allocator) else null;
-                retval.set_symbol(null);
                 return retval;
             },
             .@"test" => return create_test(
@@ -1899,6 +1916,16 @@ pub const AST = union(enum) {
         };
     }
 
+    pub fn set_decl_name(self: *AST, name: *AST) void {
+        switch (self.*) {
+            .struct_decl => self.struct_decl.name = name,
+            .enum_decl => self.enum_decl.name = name,
+            .type_alias => self.type_alias.name = name,
+            .fn_decl => self.fn_decl.name = name,
+            else => std.debug.panic("compiler error: cannot call `.decl_name()` on the AST `{s}`", .{@tagName(self.*)}),
+        }
+    }
+
     pub fn param_symbols(self: *AST) ?*std.array_list.Managed(*Symbol) {
         return switch (self.*) {
             .fn_decl => &self.fn_decl._param_symbols,
@@ -1914,8 +1941,20 @@ pub const AST = union(enum) {
             .enum_decl => &self.enum_decl._generic_params,
             .type_alias => &self.type_alias._generic_params,
             .impl => &self.impl._generic_params,
-            else => std.debug.panic("compiler error: cannot call `.generic_params()` on the AST `{f}`", .{self.*}),
+            .fn_decl => &self.fn_decl._generic_params,
+            else => std.debug.panic("compiler error: cannot call `.generic_params()` on the AST `{t}`", .{self.*}),
         };
+    }
+
+    pub fn set_generic_params(self: *AST, _generic_params: std.array_list.Managed(*AST)) void {
+        switch (self.*) {
+            .struct_decl => self.struct_decl._generic_params = _generic_params,
+            .enum_decl => self.enum_decl._generic_params = _generic_params,
+            .type_alias => self.type_alias._generic_params = _generic_params,
+            .impl => self.impl._generic_params = _generic_params,
+            .fn_decl => self.fn_decl._generic_params = _generic_params,
+            else => std.debug.panic("compiler error: cannot call `.set_generic_params()` on the AST `{t}`", .{self.*}),
+        }
     }
 
     pub fn top_level(self: *AST) bool {
@@ -2090,6 +2129,7 @@ pub const AST = union(enum) {
             .identifier, .access => self.symbol().?.refers_to_type(),
 
             .index => self.lhs().refers_to_type(), // generic type
+            .generic_apply => self.lhs().refers_to_type(),
         };
     }
 
@@ -2206,6 +2246,16 @@ pub const AST = union(enum) {
                 }
                 try out.print("])", .{});
             },
+            .generic_apply => {
+                try out.print("generic_apply(lhs={f},args=[", .{self.generic_apply._lhs});
+                for (self.generic_apply._children.items, 0..) |item, i| {
+                    try out.print("{f}", .{item});
+                    if (i < self.generic_apply._children.items.len - 1) {
+                        try out.print(",", .{});
+                    }
+                }
+                try out.print("])", .{});
+            },
             .select => {
                 try out.print("select({f},{f})", .{ self.lhs(), self.rhs() });
             },
@@ -2227,7 +2277,11 @@ pub const AST = union(enum) {
             },
             .type_param_decl => try out.print("type_param_decl({s})", .{self.type_param_decl.common._token.data}),
             .struct_decl => {
-                try out.print("struct()", .{});
+                try out.print("struct_decl(\n", .{});
+                try out.print("\t.name = {f}\n", .{self.struct_decl.name});
+                try out.print("\t.fields = {f}\n", .{fmt_.List_Printer(Type_AST){ .list = &self.struct_decl.fields }});
+                try out.print("\t.generic_params = {f}\n", .{fmt_.List_Printer(AST){ .list = &self.struct_decl._generic_params }});
+                try out.print(")", .{});
             },
             .enum_decl => {
                 try out.print("enum()", .{});
@@ -2291,7 +2345,9 @@ pub const AST = union(enum) {
             .@"continue" => try out.print("continue", .{}),
             .@"return" => try out.print("return()", .{}),
             .pattern_symbol => try out.print("pattern_symbol({s}, {s})", .{ @tagName(self.pattern_symbol.kind), self.pattern_symbol.name }),
-            .binding => try out.print("binding()", .{}),
+            .binding => {
+                try out.print("binding(.type={f})", .{self.binding.type});
+            },
             .decl => {
                 try out.print("decl(\n", .{});
                 try out.print("    .pattern = {f},\n", .{self.decl.name});
@@ -2321,7 +2377,7 @@ pub const AST = union(enum) {
                 try out.print("    .ret_type = {f},\n", .{self.fn_decl.ret_type});
                 try out.print("    .refinement = {?f},\n", .{self.fn_decl.refinement});
                 // try out.print("    .init = {f},\n", .{self.fn_decl.init});
-                try out.print("    ._symbol = {s},\n", .{self.fn_decl._symbol.?.name});
+                try out.print("    ._symbol = {?s},\n", .{if (self.fn_decl._symbol) |sym| sym.name else null});
                 try out.print("    .infer_error = {},\n", .{self.fn_decl.infer_error});
                 try out.print(")", .{});
             },

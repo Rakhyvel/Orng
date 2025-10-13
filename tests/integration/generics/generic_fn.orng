@@ -1,0 +1,10 @@
+// 360
+fn main() -> Int {
+    let x = 360
+    let y = &x
+    deref[Int](y)
+}
+
+fn deref[T](x: &T) -> T {
+    x^
+}

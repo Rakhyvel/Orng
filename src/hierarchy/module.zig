@@ -36,7 +36,7 @@ const Decorate = @import("../ast/decorate.zig");
 const Decorate_Access = @import("../ast/decorate-access.zig");
 const Type_Decorate = @import("../ast/type_decorate.zig");
 
-pub const Module_Errors = error{ LexerError, ParseError, CompileError, FileNotFound };
+pub const Module_Errors = error{ OutOfMemory, LexerError, ParseError, CompileError, FileNotFound };
 pub const Module_UID: type = u32;
 
 var module_uids: Module_UID = 0;

@@ -14,7 +14,7 @@ const version_year: usize = 25;
 const version_month: usize = 10;
 const version_minor: ?usize = null;
 
-pub const Command_Error: type = error{ LexerError, ParseError, CompileError, FileError, FileNotFound };
+pub const Command_Error: type = error{ LexerError, ParseError, CompileError, FileError, FileNotFound, OutOfMemory };
 
 const Command: type = *const fn (name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void;
 

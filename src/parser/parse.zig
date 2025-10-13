@@ -1217,6 +1217,9 @@ fn fn_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     if (self.accept(.identifier)) |token| {
         maybe_ident = ast_.AST.create_identifier(token, self.allocator);
     }
+
+    const gen_params = try self.generic_params();
+
     const params = try self.paramlist();
     _ = try self.expect(.skinny_arrow);
     const ret_type = try self.type_expr();
@@ -1230,6 +1233,7 @@ fn fn_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     return ast_.AST.create_fn_decl(
         introducer,
         maybe_ident,
+        gen_params,
         params,
         ret_type,
         refinement,

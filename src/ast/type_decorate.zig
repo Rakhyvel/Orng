@@ -26,11 +26,12 @@ pub fn postfix_type(self: Self, _type: *Type_AST) walk_.Error!void {
         switch (_type.*) {
             .type_of => {
                 const typeof_expr = self.ctx.typecheck.typecheck_AST(_type.type_of._expr, null) catch |e| switch (e) {
-                    error.CompileError => return error.CompileError,
                     error.UnexpectedTypeType => {
                         self.ctx.errors.add_error(errs_.Error{ .unexpected_type_type = .{ .expected = null, .span = _type.type_of._expr.token().span } });
                         return error.CompileError;
                     },
+                    error.CompileError => return error.CompileError,
+                    error.OutOfMemory => return error.OutOfMemory,
                 };
                 _type.* = typeof_expr.*;
             },

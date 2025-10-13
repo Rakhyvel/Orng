@@ -54,7 +54,7 @@ pub const Type_AST = union(enum) {
         common: Type_AST_Common,
         _lhs: *Type_AST,
         args: std.array_list.Managed(*Type_AST),
-        mono: ?*Type_AST = null,
+        _symbol: ?*Symbol = null,
         state: enum { unmorphed, morphing, morphed } = .unmorphed,
     },
     function: struct {
@@ -646,7 +646,7 @@ pub const Type_AST = union(enum) {
             return self.child().expand_identifier();
         }
         if (self.* == .generic_apply) {
-            return self.generic_apply.mono.?;
+            return self.generic_apply._symbol.?.init_typedef().?;
         }
         var res = self;
         while ((res.* == .identifier or res.* == .access) and res.symbol().?.init_typedef() != null) {
@@ -917,10 +917,10 @@ pub const Type_AST = union(enum) {
         } else if (B.* == .access) {
             return types_match(A, B.symbol().?.init_typedef().?);
         }
-        if (A.* == .generic_apply and A.generic_apply.mono != null and B.* != .generic_apply) {
-            return types_match(A.generic_apply.mono.?, B);
-        } else if (B.* == .generic_apply and B.generic_apply.mono != null and A.* != .generic_apply) {
-            return types_match(A, B.generic_apply.mono.?);
+        if (A.* == .generic_apply and A.generic_apply._symbol != null and B.* != .generic_apply) {
+            return types_match(A.generic_apply._symbol.?.init_typedef().?, B);
+        } else if (B.* == .generic_apply and B.generic_apply._symbol != null and A.* != .generic_apply) {
+            return types_match(A, B.generic_apply._symbol.?.init_typedef().?);
         }
         if (B.* == .anyptr_type and A.* == .addr_of) {
             return true;
@@ -1086,6 +1086,10 @@ pub const Type_AST = union(enum) {
                 return replacement;
             } else {
                 return self;
+            },
+            .type_of => {
+                const _expr = self.expr().clone(substs, allocator);
+                return create_type_of(self.token(), _expr, allocator);
             },
             .addr_of => {
                 const _expr = clone(self.child(), substs, allocator);

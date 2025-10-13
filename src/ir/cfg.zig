@@ -146,6 +146,11 @@ pub fn collect_generated_symbvers(self: *Self) void {
 }
 
 pub fn collect_types(self: *Self, type_set: *Type_Set) void {
+    // Don't collect types from generic CFGs
+    if (self.symbol.decl.?.* == .fn_decl and self.symbol.decl.?.generic_params().items.len > 0) {
+        return;
+    }
+
     // Add parameter types to type set
     const decl = self.symbol.decl.?;
     const param_symbols = decl.param_symbols();

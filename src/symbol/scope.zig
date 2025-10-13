@@ -58,7 +58,8 @@ pub const Lookup_Flags = struct {
 };
 
 pub fn lookup(self: *Self, name: []const u8, flags: Lookup_Flags) Lookup_Result {
-    if (false) {
+    const log: bool = false;
+    if (log) {
         const found = self.symbols.get(name) != null;
         std.debug.print("searching for: {s} {}({})\n", .{ name, found, flags });
         self.pprint();
@@ -80,6 +81,9 @@ pub fn lookup(self: *Self, name: []const u8, flags: Lookup_Flags) Lookup_Result 
             return .found_but_fn;
         } else {
             // Found the symbol just fine
+            if (log) {
+                std.debug.print("Found: {s} {*}\n", .{ name, symbol });
+            }
             return Lookup_Result{ .found = symbol };
         }
     } else if (self.parent) |parent| {
@@ -250,7 +254,11 @@ pub fn pprint(self: *Self) void {
     std.debug.print("scope_{}:\n", .{self.uid});
     for (self.symbols.keys()) |name| {
         const symbol = self.symbols.get(name).?;
-        std.debug.print("  {s} {s} \n", .{ @tagName(symbol.kind), name });
+        if (symbol.kind == .type) {
+            std.debug.print("  {s} {s} = {?f}\n", .{ @tagName(symbol.kind), name, symbol.init_typedef() });
+        } else {
+            std.debug.print("  {s} {s}\n", .{ @tagName(symbol.kind), name });
+        }
     }
 }
 

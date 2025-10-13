@@ -38,7 +38,7 @@ jobs:
       run: |
         BASE_BRANCH=${{ github.event.pull_request.base.ref }}
         TEST_FILES=$(git diff --name-only --diff-filter=AM origin/$BASE_BRANCH...HEAD | grep '^test/' | tr '\n' ' ' || echo "")
-        SRC_FILES=$(git diff --name-only --diff-filter=AM origin/$BASE_BRANCH...HEAD | grep '^src/' | tr '\n' ' ' || echo "")
+        SRC_FILES=$(find src/ -type f -name '*.zig' | tr '\n' ' ' || echo "")
         echo "test_files=$TEST_FILES" >> $GITHUB_ENV
         echo "src_files=$SRC_FILES" >> $GITHUB_ENV
 

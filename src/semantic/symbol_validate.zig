@@ -16,7 +16,7 @@ const Type_AST = @import("../types/type.zig").Type_AST;
 const type_validate_ = @import("../types/type_validate.zig");
 const walk_ = @import("../ast/walker.zig");
 
-const Validate_Error_Enum = error{CompileError};
+const Validate_Error_Enum = error{ OutOfMemory, CompileError };
 
 const Self: type = @This();
 
@@ -63,6 +63,7 @@ pub fn validate(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
         // might be null for parameters
         _ = self.ctx.typecheck.typecheck_AST(_init, expected) catch |e| switch (e) {
             error.CompileError => return error.CompileError,
+            error.OutOfMemory => return error.OutOfMemory,
             error.UnexpectedTypeType => {
                 self.ctx.errors.add_error(errs_.Error{ .unexpected_type_type = .{ .expected = expected, .span = _init.token().span } });
                 return error.CompileError;

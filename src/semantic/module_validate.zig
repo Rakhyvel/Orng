@@ -8,7 +8,8 @@ const poison_ = @import("../ast/poison.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const Span = @import("../util/span.zig");
 
-const Validate_Error_Enum = error{ LexerError, ParseError, CompileError };
+// TODO: Are lexer, parse errors even possible?
+const Validate_Error_Enum = error{ LexerError, ParseError, CompileError, OutOfMemory };
 
 const Self: type = @This();
 
@@ -23,7 +24,6 @@ pub fn validate(self: *Self, module: *module_.Module) Validate_Error_Enum!void {
     for (0..module.cincludes.items.len) |i| {
         _ = self.ctx.typecheck.typecheck_AST(module.cincludes.items[i], prelude_.string_type) catch return error.CompileError;
     }
-    try poison_.assert_none_poisoned(module.cincludes.items);
     if (self.ctx.errors.errors_list.items.len > 0) {
         return error.CompileError;
     }

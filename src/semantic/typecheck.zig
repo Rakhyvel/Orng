@@ -25,6 +25,8 @@ const Validate_Error_Enum = error{
     CompileError,
     // Returned when a type is encountered, which may or may not be expected
     UnexpectedTypeType,
+    // General purpose out of memory error
+    OutOfMemory,
 };
 
 const Self: type = @This();
@@ -164,8 +166,8 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
         },
         .access => {
             _ = self.typecheck_AST(ast.lhs(), null) catch |e| switch (e) {
-                error.CompileError => return error.CompileError,
                 error.UnexpectedTypeType => {}, // This is expected
+                else => return e,
             };
 
             // look up symbol, that's the type
@@ -378,6 +380,35 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 self.ctx.errors.add_error(errs_.Error{ .not_indexable = .{ .span = lhs_span, ._type = expanded_lhs_type } });
                 return error.CompileError;
             }
+        },
+        .generic_apply => {
+            const sym = ast.lhs().symbol().?;
+            const params = sym.decl.?.generic_params();
+            if (params.items.len != ast.generic_apply._children.items.len) {
+                self.ctx.errors.add_error(errs_.Error{ .mismatch_arity = .{
+                    .span = ast.token().span,
+                    .takes = params.items.len,
+                    .given = ast.generic_apply._children.items.len,
+                    .thing_name = sym.name,
+                    .takes_name = "type parameter",
+                    .given_name = "argument",
+                } });
+                return error.CompileError;
+            }
+
+            for (ast.generic_apply._children.items) |child| {
+                try self.ctx.validate_type.validate(child);
+            }
+
+            if (ast.generic_apply.state == .unmorphed) {
+                ast.generic_apply.state = .morphing;
+                ast.generic_apply._symbol = try sym.monomorphize(ast.generic_apply._children, self.ctx);
+                ast.generic_apply.state = .morphed;
+            }
+
+            try self.ctx.validate_symbol.validate(ast.symbol().?);
+
+            return ast.symbol().?.type();
         },
         .select => {
             const lhs_type = self.typecheck_AST(ast.lhs(), null) catch return error.CompileError;

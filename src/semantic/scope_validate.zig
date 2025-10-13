@@ -11,7 +11,7 @@ const Symbol = @import("../symbol/symbol.zig");
 const typing_ = @import("typing.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 
-const Validate_Error_Enum = error{CompileError};
+const Validate_Error_Enum = error{ OutOfMemory, CompileError };
 
 const Self: type = @This();
 

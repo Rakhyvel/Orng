@@ -7,6 +7,8 @@ pub var poisoned: *AST = undefined;
 pub var poisoned_type: *Type_AST = undefined;
 var inited: bool = false;
 
+// TODO: This could/should be a component in the compiler context
+
 /// Initializes internal structures if they are not already initialized.
 pub fn init_structures(allocator: std.mem.Allocator) void {
     if (!inited) {
@@ -21,6 +23,10 @@ pub fn init_structures(allocator: std.mem.Allocator) void {
         _ = poisoned.enpoison();
         inited = true;
     }
+}
+
+pub fn deinit() void {
+    inited = false;
 }
 
 pub fn assert_none_poisoned(value: anytype) error{CompileError}!void {

@@ -55,6 +55,23 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
                 ast.* = struct_value.*;
             }
         },
+
+        .index => {
+            var child = ast.lhs();
+            // child points to a generic function
+            if (child.* != .identifier and child.* != .access) return;
+
+            const sym = child.symbol() orelse return;
+            const decl = sym.decl orelse return;
+
+            if (decl.* == .fn_decl and decl.generic_params().items.len > 0) {
+                var types = std.array_list.Managed(*Type_AST).init(self.compiler.allocator());
+                for (ast.children().items) |arg| {
+                    try types.append(Type_AST.from_ast(arg, self.compiler.allocator()));
+                }
+                ast.* = ast_.AST.create_generic_apply(ast.token(), child, types, self.compiler.allocator()).*;
+            }
+        },
     }
 }
 

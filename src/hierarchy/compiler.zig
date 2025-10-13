@@ -32,6 +32,7 @@ const Error: type = error{
     ParseError,
     CompileError,
     FileNotFound,
+    OutOfMemory,
 };
 
 arena: std.heap.ArenaAllocator,
@@ -105,6 +106,7 @@ pub fn deinit(self: *Self) void {
         const writer_intfc = &writer.interface;
         self.errors.print_errors(writer_intfc, .{});
     }
+    poison_.deinit();
     self.arena.deinit();
     self.arena.child_allocator.destroy(self);
 }
@@ -139,6 +141,7 @@ pub fn compile_module(
             error.LexerError,
             error.ParseError,
             error.FileNotFound,
+            error.OutOfMemory,
             => {
                 return err;
             },

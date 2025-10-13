@@ -9,7 +9,7 @@ const Symbol = @import("../symbol/symbol.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const walk_ = @import("../ast/walker.zig");
 
-const Validate_Error_Enum = error{CompileError};
+const Validate_Error_Enum = error{ OutOfMemory, CompileError };
 const Self: type = @This();
 
 ctx: *Compiler_Context,
@@ -43,9 +43,9 @@ pub fn validate(self: *Self, @"type": *Type_AST) Validate_Error_Enum!void {
 
             if (@"type".generic_apply.state == .unmorphed) {
                 @"type".generic_apply.state = .morphing;
-                @"type".generic_apply.mono = sym.monomorphize(@"type".children().*, self.ctx.allocator());
+                @"type".generic_apply._symbol = try sym.monomorphize(@"type".generic_apply.args, self.ctx);
                 @"type".generic_apply.state = .morphed;
-                try self.validate(@"type".generic_apply.mono.?);
+                try self.validate(@"type".generic_apply._symbol.?.init_typedef().?);
             }
         },
 

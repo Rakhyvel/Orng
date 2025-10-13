@@ -27,6 +27,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
 
         .identifier => {
             if (ast.symbol() != null) return self;
+
             const res = self.scope.lookup(ast.token().data, .{ .allow_modules = true });
             switch (res) {
                 // Found the symbol, decorate the identifier AST with it
@@ -51,7 +52,10 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 },
             }
 
-            if ((ast.symbol().?.kind == .let or ast.symbol().?.kind == .mut) and !ast.symbol().?.defined) {
+            if ((ast.symbol().?.kind == .let or ast.symbol().?.kind == .mut) // local variable
+            and ast.symbol().?.decl.?.decl_init() != null // not a parameter
+            and !ast.symbol().?.defined // not defined
+            ) {
                 self.errors.add_error(errs_.Error{ .use_before_def = .{ .identifier = ast.token() } });
                 return error.CompileError;
             }
@@ -59,13 +63,13 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             return self;
         },
 
-        .@"if", .match, .mapping, .@"while", .@"for", .block, .impl, .trait, .struct_decl, .enum_decl, .type_alias => {
+        .@"if", .match, .mapping, .@"while", .@"for", .block, .impl, .trait, .struct_decl, .enum_decl, .type_alias, .fn_decl => {
             var new_context = self;
             new_context.scope = ast.scope().?;
             return new_context;
         },
 
-        .fn_decl, .method_decl => {
+        .method_decl => {
             var new_context = self;
             if (ast.symbol() != null) {
                 new_context.scope = ast.symbol().?.scope;
@@ -86,6 +90,12 @@ pub fn prefix_type(self: Self, _type: *Type_AST) walk_.Error!?Self {
         else => return self,
 
         .identifier => {
+            if (_type.symbol()) |_| {
+                // Do not re-decorate.
+                // Symbols are injected into ident types for lexical generic scoping
+                // Keep those symbols the way they are, even if they're not "visible" from this scope!
+                return self;
+            }
             const res = self.scope.lookup(_type.token().data, .{});
             switch (res) {
                 // Found the symbol, decorate the identifier AST with it
