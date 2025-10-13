@@ -10,6 +10,7 @@ const Type_AST = @import("../types/type.zig").Type_AST;
 const Monomorph_Map = @import("../ast/type_map.zig").Monomorph_Map;
 const unification_ = @import("../types/unification.zig");
 const validation_state_ = @import("../util/validation_state.zig");
+const fmt_ = @import("../util/fmt.zig");
 
 const Self = @This();
 
@@ -234,6 +235,7 @@ fn next_anon_name(class: []const u8, allocator: std.mem.Allocator) []const u8 {
 
 // TODO Move to its own component in compiler context
 const Compiler_Context = @import("../hierarchy/compiler.zig");
+
 pub fn monomorphize(
     self: *Self,
     key: std.array_list.Managed(*Type_AST),
@@ -242,13 +244,14 @@ pub fn monomorphize(
     if (self.monomorphs.get(key)) |retval| {
         return retval;
     } else {
+        // Create a substitution map that subs the param names for the given arg types
         var subst = unification_.Substitutions.init(ctx.allocator());
         defer subst.deinit();
-
         for (self.decl.?.generic_params().items, key.items) |param, arg| {
             try subst.put(param.token().data, arg);
         }
 
+        // Clone the decl with the substitution
         const name = next_anon_name(self.name, ctx.allocator());
         const decl = self.decl.?.clone(&subst, ctx.allocator());
 

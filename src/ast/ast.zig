@@ -20,6 +20,7 @@ const Type_AST = @import("../types/type.zig").Type_AST;
 const Monomorph_Map = @import("../ast/type_map.zig").Monomorph_Map;
 const validation_state_ = @import("../util/validation_state.zig");
 const unification_ = @import("../types/unification.zig");
+const fmt_ = @import("../util/fmt.zig");
 
 pub const AST_Validation_State = validation_state_.Validation_State;
 
@@ -1942,6 +1943,17 @@ pub const AST = union(enum) {
         };
     }
 
+    pub fn set_generic_params(self: *AST, _generic_params: std.array_list.Managed(*AST)) void {
+        switch (self.*) {
+            .struct_decl => self.struct_decl._generic_params = _generic_params,
+            .enum_decl => self.enum_decl._generic_params = _generic_params,
+            .type_alias => self.type_alias._generic_params = _generic_params,
+            .impl => self.impl._generic_params = _generic_params,
+            .fn_decl => self.fn_decl._generic_params = _generic_params,
+            else => std.debug.panic("compiler error: cannot call `.set_generic_params()` on the AST `{f}`", .{self.*}),
+        }
+    }
+
     pub fn top_level(self: *AST) bool {
         return switch (self.*) {
             .decl => false,
@@ -2262,7 +2274,11 @@ pub const AST = union(enum) {
             },
             .type_param_decl => try out.print("type_param_decl({s})", .{self.type_param_decl.common._token.data}),
             .struct_decl => {
-                try out.print("struct()", .{});
+                try out.print("struct_decl(\n", .{});
+                try out.print("\t.name = {f}\n", .{self.struct_decl.name});
+                try out.print("\t.fields = {f}\n", .{fmt_.List_Printer(Type_AST){ .list = &self.struct_decl.fields }});
+                try out.print("\t.fields = {f}\n", .{fmt_.List_Printer(AST){ .list = &self.struct_decl._generic_params }});
+                try out.print(")", .{});
             },
             .enum_decl => {
                 try out.print("enum()", .{});

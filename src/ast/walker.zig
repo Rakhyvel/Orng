@@ -94,8 +94,8 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .enum_decl,
         .type_alias,
         => {
-            try walk_type(ast.decl_typedef(), new_context);
             try walk_asts(ast.generic_params(), new_context);
+            try walk_type(ast.decl_typedef(), new_context);
         },
 
         .module => {}, // std.debug.panic("compiler error: walking over modules not implemented!\n", .{}),

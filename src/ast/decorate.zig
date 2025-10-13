@@ -89,6 +89,12 @@ pub fn prefix_type(self: Self, _type: *Type_AST) walk_.Error!?Self {
         else => return self,
 
         .identifier => {
+            if (_type.symbol()) |_| {
+                // Do not re-decorate.
+                // Symbols are injected into ident types for lexical generic scoping
+                // Keep those symbols the way they are, even if the'yre not "visible" from this scope!
+                return self;
+            }
             const res = self.scope.lookup(_type.token().data, .{});
             switch (res) {
                 // Found the symbol, decorate the identifier AST with it
