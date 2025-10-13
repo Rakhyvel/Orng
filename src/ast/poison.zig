@@ -23,6 +23,10 @@ pub fn init_structures(allocator: std.mem.Allocator) void {
     }
 }
 
+pub fn deinit() void {
+    inited = false;
+}
+
 pub fn assert_none_poisoned(value: anytype) error{CompileError}!void {
     // This entire function is cursed...
     const T = @TypeOf(value);

@@ -466,6 +466,8 @@ pub const Error = union(enum) {
                 std.debug.assert(err.unexpected_type.expected.* != .poison);
                 writer.print("expected a value of type `", .{}) catch unreachable;
                 err.unexpected_type.expected.print_type(writer) catch unreachable;
+                const poison_ = @import("../ast/poison.zig");
+                std.debug.print("{f}\n", .{poison_.poisoned_type});
                 if (err.unexpected_type.got.* != .poison) {
                     writer.print("`, got a value of type `", .{}) catch unreachable;
                     err.unexpected_type.got.print_type(writer) catch unreachable;
@@ -670,7 +672,7 @@ pub const Errors = struct {
 
     pub fn add_error(self: *Errors, err: Error) void {
         self.errors_list.append(err) catch unreachable;
-        err.peek_error(); // uncomment if you want to see where errors come from TODO: Make this a cmd line flag
+        // err.peek_error(); // uncomment if you want to see where errors come from TODO: Make this a cmd line flag
     }
 
     /// Prints out all errors in the Errors list

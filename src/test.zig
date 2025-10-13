@@ -222,7 +222,8 @@ fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug
     // Try to compile Orange (make sure YES errors)
     _ = module_.Module.compile(absolute_filename, "main", false, compiler) catch |err| {
         var error_string_writer = error_string.writer(error_string.buffer.?);
-        compiler.errors.print_errors(&error_string_writer.interface, .{ .print_full_path = false, .print_color = false });
+        const error_string_writer_intfc = &error_string_writer.interface;
+        compiler.errors.print_errors(error_string_writer_intfc, .{ .print_full_path = false, .print_color = false });
         if (mode == .bless) {
             bless_file(filename, error_string.str(), body) catch unreachable;
             return true;

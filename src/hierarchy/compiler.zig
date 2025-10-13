@@ -106,6 +106,7 @@ pub fn deinit(self: *Self) void {
         const writer_intfc = &writer.interface;
         self.errors.print_errors(writer_intfc, .{});
     }
+    poison_.deinit();
     self.arena.deinit();
     self.arena.child_allocator.destroy(self);
 }

@@ -145,7 +145,11 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         // Create a symbol for this function
         // Transform into template if templated
         .fn_decl => {
-            std.debug.assert(ast.symbol() == null);
+            if (ast.symbol() != null) {
+                // this can happen sometimes with: decl(fn_decl())
+                // its fine, just return
+                return null;
+            }
 
             var new_self = self;
             new_self.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);

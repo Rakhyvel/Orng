@@ -1,6 +1,9 @@
-// r33.orng:6:36: error: error: recursive definition detected
+// r33.orng:9:29: error: redefinition of symbol `main`
 //     main += match const main = main ; 4 { _ => 3 } 
-//                                   ^
+//                            ^
+// r33.orng:8:3: note: other definition of `main` here:
+// fn main() -> Int { 
+//  ^
 // 
 fn main() -> Int { 
     main += match const main = main ; 4 { _ => 3 } 
