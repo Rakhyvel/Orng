@@ -466,8 +466,6 @@ pub const Error = union(enum) {
                 std.debug.assert(err.unexpected_type.expected.* != .poison);
                 writer.print("expected a value of type `", .{}) catch unreachable;
                 err.unexpected_type.expected.print_type(writer) catch unreachable;
-                const poison_ = @import("../ast/poison.zig");
-                std.debug.print("{f}\n", .{poison_.poisoned_type});
                 if (err.unexpected_type.got.* != .poison) {
                     writer.print("`, got a value of type `", .{}) catch unreachable;
                     err.unexpected_type.got.print_type(writer) catch unreachable;
