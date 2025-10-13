@@ -155,8 +155,9 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             new_self.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
 
             ast.set_scope(new_self.scope);
+            new_self.scope.function_depth = self.scope.function_depth + 1;
 
-            const symbol = try create_function_symbol(ast, self.scope, self.allocator);
+            const symbol = create_function_symbol(ast, self.allocator);
             try self.register_symbol(ast, symbol);
 
             return new_self;
@@ -409,7 +410,7 @@ fn create_match_pattern_symbol(match: *ast_.AST, scope: *Scope, errors: *errs_.E
     }
 }
 
-pub fn create_function_symbol(ast: *ast_.AST, scope: *Scope, allocator: std.mem.Allocator) Error!*Symbol {
+pub fn create_function_symbol(ast: *ast_.AST, allocator: std.mem.Allocator) *Symbol {
     // Calculate the domain type from the function paramter types
     const domain = extract_domain(ast.children().*, allocator);
 
@@ -422,17 +423,6 @@ pub fn create_function_symbol(ast: *ast_.AST, scope: *Scope, allocator: std.mem.
     );
     ast.fn_decl._decl_type = _type;
 
-    // Create the function scope
-    ast.scope().?.function_depth = scope.function_depth + 1;
-
-    const key_set = ast.scope().?.symbols.keys();
-    for (0..key_set.len) |i| {
-        const key = key_set[i];
-        var symbol = ast.scope().?.symbols.get(key).?;
-        symbol.defined = true;
-        symbol.param = true;
-    }
-
     // Choose name (maybe anon)
     var buf: []const u8 = undefined;
     if (ast.fn_decl.name) |name| {
@@ -440,6 +430,8 @@ pub fn create_function_symbol(ast: *ast_.AST, scope: *Scope, allocator: std.mem.
     } else {
         buf = next_anon_name("anon", allocator);
     }
+
+    // Create the symbol
     const retval = Symbol.init(
         ast.scope().?,
         buf,
@@ -449,7 +441,6 @@ pub fn create_function_symbol(ast: *ast_.AST, scope: *Scope, allocator: std.mem.
         allocator,
     );
     ast.scope().?.inner_function = retval;
-
     return retval;
 }
 

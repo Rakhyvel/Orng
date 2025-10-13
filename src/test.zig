@@ -20,9 +20,9 @@ const Debug_Allocator = std.heap.DebugAllocator(.{
     .never_unmap = false,
     .safety = true,
     .retain_metadata = true,
-    .verbose_log = false, // <— logs every alloc/free with stack trace
-    .resize_stack_traces = true, // <— refresh trace on reallocs for better diagnostics
-    .enable_memory_limit = true, // leave off unless testing OOM
+    .verbose_log = false,
+    .resize_stack_traces = true,
+    .enable_memory_limit = true,
 });
 const Test_File_Fn = fn ([]const u8, Test_Mode, *Debug_Allocator) bool;
 

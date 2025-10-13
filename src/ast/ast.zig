@@ -1311,6 +1311,9 @@ pub const AST = union(enum) {
         );
     }
 
+    /// Clones an AST given a substitution map. If any identifiers match a substitution, they are substituted.
+    ///
+    /// Deliberately does _not_ copy over symbols and scopes. These need to be re-decorated.
     pub fn clone(self: *AST, substs: *unification_.Substitutions, allocator: std.mem.Allocator) *AST {
         switch (self.*) {
             .poison => unreachable,
@@ -1939,7 +1942,7 @@ pub const AST = union(enum) {
             .type_alias => &self.type_alias._generic_params,
             .impl => &self.impl._generic_params,
             .fn_decl => &self.fn_decl._generic_params,
-            else => std.debug.panic("compiler error: cannot call `.generic_params()` on the AST `{f}`", .{self.*}),
+            else => std.debug.panic("compiler error: cannot call `.generic_params()` on the AST `{t}`", .{self.*}),
         };
     }
 
@@ -1950,7 +1953,7 @@ pub const AST = union(enum) {
             .type_alias => self.type_alias._generic_params = _generic_params,
             .impl => self.impl._generic_params = _generic_params,
             .fn_decl => self.fn_decl._generic_params = _generic_params,
-            else => std.debug.panic("compiler error: cannot call `.set_generic_params()` on the AST `{f}`", .{self.*}),
+            else => std.debug.panic("compiler error: cannot call `.set_generic_params()` on the AST `{t}`", .{self.*}),
         }
     }
 
@@ -2277,7 +2280,7 @@ pub const AST = union(enum) {
                 try out.print("struct_decl(\n", .{});
                 try out.print("\t.name = {f}\n", .{self.struct_decl.name});
                 try out.print("\t.fields = {f}\n", .{fmt_.List_Printer(Type_AST){ .list = &self.struct_decl.fields }});
-                try out.print("\t.fields = {f}\n", .{fmt_.List_Printer(AST){ .list = &self.struct_decl._generic_params }});
+                try out.print("\t.generic_params = {f}\n", .{fmt_.List_Printer(AST){ .list = &self.struct_decl._generic_params }});
                 try out.print(")", .{});
             },
             .enum_decl => {

@@ -134,7 +134,7 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
     for (self.impls.items) |impl| {
         var subst = unification_.Substitutions.init(std.heap.page_allocator);
         defer subst.deinit();
-        // try compiler.validate_type.validate(impl.impl._type);
+        try compiler.validate_type.validate(impl.impl._type);
         unification_.unify(impl.impl._type, for_type, impl.impl._generic_params, &subst) catch continue;
 
         // TODO:

@@ -233,7 +233,6 @@ fn next_anon_name(class: []const u8, allocator: std.mem.Allocator) []const u8 {
     return out.toOwnedSlice() catch unreachable;
 }
 
-// TODO Move to its own component in compiler context
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 
 pub fn monomorphize(

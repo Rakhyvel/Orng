@@ -1,0 +1,113 @@
+diff --git a/src/symbol/symbol.zig b/src/symbol/symbol.zig
+index 68688b54..2740c0bd 100644
+--- a/src/symbol/symbol.zig
++++ b/src/symbol/symbol.zig
+@@ -10,6 +10,7 @@ const Type_AST = @import("../types/type.zig").Type_AST;
+ const Monomorph_Map = @import("../ast/type_map.zig").Monomorph_Map;
+ const unification_ = @import("../types/unification.zig");
+ const validation_state_ = @import("../util/validation_state.zig");
++const fmt_ = @import("../util/fmt.zig");
+ 
+ const Self = @This();
+ 
+@@ -53,7 +54,7 @@ cfg: ?*CFG,
+ decl: ?*ast_.AST,
+ storage: Storage,
+ 
+-monomorphs: Monomorph_Map(*Type_AST),
++monomorphs: Monomorph_Map(*Self),
+ 
+ // Use-def
+ aliases: u64 = 0, // How many times the symbol is taken as a mutable address
+@@ -88,7 +89,7 @@ pub fn init(
+     retval.offset = null;
+     retval.kind = kind;
+     retval.storage = storage;
+-    retval.monomorphs = Monomorph_Map(*Type_AST).init(allocator);
++    retval.monomorphs = Monomorph_Map(*Self).init(allocator);
+     retval.cfg = null;
+     if (kind == .@"fn" or kind == .@"const") {
+         retval.defined = true;
+@@ -159,9 +160,7 @@ pub fn err_if_undefined(self: *Self, errors: *errs_.Errors) error{CompileError}!
+ 
+ /// Throws an `error.CompileError` if a symbol is not used.
+ pub fn err_if_unused(self: *Self, errors: *errs_.Errors) error{CompileError}!void {
+-    if (self.kind != .@"const" and
+-        self.uses == 0)
+-    {
++    if (self.kind != .@"const" and self.uses == 0) {
+         errors.add_error(errs_.Error{ .symbol_error = .{
+             .span = self.span(),
+             .context_span = null,
+@@ -225,25 +224,63 @@ pub fn represents_method(self: *Self, impl_for_type: *Type_AST, method_name: []c
+         std.mem.eql(u8, self.name, method_name);
+ }
+ 
++var num_anons: usize = 0;
++fn next_anon_name(class: []const u8, allocator: std.mem.Allocator) []const u8 {
++    defer num_anons += 1;
++    var out = std.array_list.Managed(u8).init(allocator);
++    defer out.deinit();
++    out.print("{s}__{}", .{ class, num_anons }) catch unreachable;
++    return out.toOwnedSlice() catch unreachable;
++}
++
++// TODO Move to its own component in compiler context
++const Compiler_Context = @import("../hierarchy/compiler.zig");
++
+ pub fn monomorphize(
+     self: *Self,
+     key: std.array_list.Managed(*Type_AST),
+-    allocator: std.mem.Allocator,
+-) *Type_AST {
++    ctx: *Compiler_Context,
++) error{ OutOfMemory, CompileError }!*Self {
+     if (self.monomorphs.get(key)) |retval| {
+         return retval;
+     } else {
+-        var subst = unification_.Substitutions.init(allocator);
++        // Create a substitution map that subs the param names for the given arg types
++        var subst = unification_.Substitutions.init(ctx.allocator());
+         defer subst.deinit();
+-
+         for (self.decl.?.generic_params().items, key.items) |param, arg| {
+-            subst.put(param.token().data, arg) catch unreachable;
++            try subst.put(param.token().data, arg);
+         }
+ 
+-        const clone = self.init_typedef().?.clone(&subst, allocator);
+-        self.monomorphs.put(key, clone) catch unreachable;
++        // Clone the decl with the substitution
++        const name = next_anon_name(self.name, ctx.allocator());
++        const decl = self.decl.?.clone(&subst, ctx.allocator());
++
++        // Decorate identifiers, validate
++        const Symbol_Tree = @import("../ast/symbol-tree.zig");
++        const Decorate = @import("../ast/decorate.zig");
++        const Decorate_Access = @import("../ast/decorate-access.zig");
++        const walker_ = @import("../ast/walker.zig");
++
++        const scope = self.decl.?.scope().?.parent.?;
++
++        const symbol_tree_context = Symbol_Tree.new(scope, &ctx.errors, ctx.allocator());
++        const decorate_context = Decorate.new(scope, &ctx.errors, ctx.allocator());
++        const decorate_access_context = Decorate_Access.new(scope, &ctx.errors, ctx);
++
++        decl.set_decl_name(ast_.AST.create_pattern_symbol(
++            Token.init_simple(name),
++            self.kind,
++            self.storage,
++            name,
++            ctx.allocator(),
++        ));
++
++        try walker_.walk_ast(decl, symbol_tree_context);
++        try walker_.walk_ast(decl, decorate_context);
++        try walker_.walk_ast(decl, decorate_access_context);
+ 
+-        // Here, need to attempt to
++        const clone = decl.symbol().?;
++        try self.monomorphs.put(try key.clone(), clone);
+ 
+         return clone;
+     }
