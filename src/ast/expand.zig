@@ -47,17 +47,3 @@ fn expand_subslice(self: Self, ast: *ast_.AST) void {
         );
     }
 }
-
-fn annot_from_ast(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) walk_.Error!*ast_.AST {
-    if (ast.* == .annotation) {
-        return ast;
-    } else if (ast.* == .identifier) {
-        return ast_.AST.create_annotation(ast.token(), ast, prelude_.unit_type, null, null, allocator).assert_ast_valid();
-    } else {
-        errors.add_error(errs_.Error{ .basic = .{
-            .span = ast.token().span,
-            .msg = "invalid sum expression, must be annotation or identifier",
-        } });
-        return error.CompileError;
-    }
-}

@@ -316,7 +316,7 @@ fn prefix_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
         if (self.accept(.dyn)) |token2| {
             return Type_AST.create_dyn_type(
                 token2,
-                Type_AST.create_identifier(try self.expect(.identifier), self.allocator),
+                try self.type_expr(),
                 mut != null,
                 self.allocator,
             );
@@ -369,7 +369,7 @@ fn prefix_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
             slice_kind = .array;
             len = try self.bool_expr();
             if (!len.?.is_comptime_expr()) {
-                self.errors.add_error(errs_.Error{ .comptime_known = .{ .span = len.?.token().span, .what = "array lengths" } });
+                self.errors.add_error(errs_.Error{ .comptime_known = .{ .span = len.?.span(), .what = "array lengths" } });
                 return error.ParseError;
             }
         } else {
@@ -1613,7 +1613,7 @@ fn match_pattern_enum_value(self: *Self) Parser_Error_Enum!*ast_.AST {
         const retval = ast_.AST.create_enum_value(exp.token(), self.allocator);
         if (exp.* == .select) { // TODO: Figure out how Enum.ctor works
             retval.enum_value.base = Type_AST.create_identifier(exp.lhs().token(), self.allocator);
-            retval.common()._token = exp.rhs().token();
+            retval.set_token(exp.rhs().token());
         }
         retval.enum_value.init = try self.match_pattern_atom();
         _ = try self.expect(.right_parenthesis);

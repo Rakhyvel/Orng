@@ -31,7 +31,7 @@ pub fn middle_statement_check(span: Span, got: *Type_AST, errors: *errs_.Errors)
 }
 
 pub fn type_check_int(
-    ast: *ast_.AST,
+    ast: *const ast_.AST,
     expected: ?*Type_AST, // This should NOT be expanded < it is, though...
     errors: *errs_.Errors,
 ) Validate_Error_Enum!*Type_AST {
@@ -49,7 +49,7 @@ pub fn type_check_int(
             {
                 // This error is thrown because the `expanded_expected` is out of bounds of the expected type
                 errors.add_error(errs_.Error{ .integer_out_of_bounds = .{
-                    .span = ast.token().span,
+                    .span = ast.span(),
                     .expected = expected.?,
                     .value = ast.int.data,
                 } });
@@ -57,15 +57,15 @@ pub fn type_check_int(
             }
         } else {
             // This error is thrown because the `expanded_expected` is not an integer primitive type
-            return throw_unexpected_type(ast.token().span, expanded_expected.?, prelude_.int_type, errors);
+            return throw_unexpected_type(ast.span(), expanded_expected.?, prelude_.int_type, errors);
         }
     }
     return expected orelse prelude_.int_type;
 }
 
-pub fn type_check_float(ast: *ast_.AST, expected: ?*Type_AST, errors: *errs_.Errors) Validate_Error_Enum!*Type_AST {
+pub fn type_check_float(ast: *const ast_.AST, expected: ?*Type_AST, errors: *errs_.Errors) Validate_Error_Enum!*Type_AST {
     if (expected != null and !expected.?.can_represent_float()) {
-        return throw_unexpected_type(ast.token().span, expected.?, prelude_.float_type, errors);
+        return throw_unexpected_type(ast.span(), expected.?, prelude_.float_type, errors);
     }
     return expected orelse prelude_.float_type;
 }
@@ -136,7 +136,7 @@ pub fn throw_wrong_from(
     return error.CompileError;
 }
 
-pub fn coalesce_operator(lhs_expanded_type: *Type_AST, ast: *ast_.AST, span: Span, errors: *errs_.Errors) Validate_Error_Enum!void {
+pub fn coalesce_operator(lhs_expanded_type: *Type_AST, ast: *const ast_.AST, span: Span, errors: *errs_.Errors) Validate_Error_Enum!void {
     std.debug.assert(ast.* == .@"orelse" or ast.* == .@"catch");
     const expected_sum_from: Type_AST.Sum_From = if (ast.* == .@"orelse") .optional else .@"error";
     if (lhs_expanded_type.* != .enum_type or lhs_expanded_type.enum_type.from != expected_sum_from) {
@@ -157,7 +157,7 @@ fn put_many_annot_map(
     errors: *errs_.Errors,
 ) Validate_Error_Enum!void {
     for (asts.items) |term| {
-        try args_.put_ast_map(term.annotation.type, term.annotation.pattern.token().data, term.token().span, map, errors);
+        try args_.put_ast_map(term.annotation.type, term.annotation.pattern.token().data, term.span(), map, errors);
         new_terms.append(term) catch unreachable;
     }
 }

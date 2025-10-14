@@ -201,7 +201,7 @@ fn lookup_import_module(self: Self, pattern_ast: *ast_.AST, import_name: []const
             error.FileNotFound => {
                 self.compiler.errors.add_error(.{ .import_file_not_found = .{
                     .filename = import_name,
-                    .span = pattern_ast.token().span,
+                    .span = pattern_ast.span(),
                 } });
                 return error.CompileError;
             },

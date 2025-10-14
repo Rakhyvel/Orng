@@ -14,6 +14,7 @@ const poison_ = @import("poison.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");
+const Span = @import("../util/span.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
@@ -48,11 +49,6 @@ pub const Sum_From = enum {
 pub const AST_Common = struct {
     /// Token that defined the AST node in text.
     _token: Token,
-
-    /// The AST's validation status.
-    validation_state: AST_Validation_State = .unvalidated,
-
-    ok_for_comptime: bool = false, // HACK: generic functions that return a type have this set to true, passes valid_type check
 };
 
 /// Represents an Abstract Syntax Tree.
@@ -193,6 +189,7 @@ pub const AST = union(enum) {
         _args: std.array_list.Managed(*AST),
         _scope: ?*Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
         method_decl: ?*AST = null,
+        prepended: bool = false, // Whether or not this invoke has already been prepended, so that clones don't re-do that (TODO: Maybe turn invokes into calls?)
     },
     /// A struct-like-value of pointers to the vtable, and to the receiver
     dyn_value: struct {
@@ -1512,13 +1509,15 @@ pub const AST = union(enum) {
             },
             .invoke => {
                 const cloned_args = clone_children(self.children().*, substs, allocator);
-                return create_invoke(
+                var retval = create_invoke(
                     self.token(),
                     self.lhs().clone(substs, allocator),
                     self.rhs().clone(substs, allocator),
                     cloned_args,
                     allocator,
                 );
+                retval.invoke.prepended = self.invoke.prepended;
+                return retval;
             },
             .dyn_value => unreachable, // Shouldn't exist yet... have to clone scope?
             .enum_value => {
@@ -1765,12 +1764,24 @@ pub const AST = union(enum) {
         return retval;
     }
 
-    pub fn common(self: *AST) *AST_Common {
-        return get_field_ref(self, "common");
+    pub fn common(self: *const AST) *const AST_Common {
+        return get_field_const_ref(self, "common");
     }
 
-    pub fn token(self: *AST) Token {
+    pub fn token(self: *const AST) Token {
         return self.common()._token;
+    }
+
+    pub fn set_token(self: *AST, tok: Token) void {
+        get_field_ref(self, "common")._token = tok;
+    }
+
+    pub fn span(self: *const AST) Span {
+        return self.span();
+    }
+
+    pub fn set_span(self: *AST, _span: Span) void {
+        get_field_ref(self, "common")._token.span = _span;
     }
 
     pub fn expr(self: AST) *AST {
@@ -1822,7 +1833,27 @@ pub const AST = union(enum) {
         set_field(self, "_rhs", val);
     }
 
-    pub fn children(self: *AST) *std.array_list.Managed(*AST) {
+    pub fn children_mut(self: *AST) *std.array_list.Managed(*AST) {
+        return switch (self.*) {
+            .call => &self.call._args,
+            .index => &self.index._children,
+            .struct_value => &self.struct_value._terms,
+            .tuple_value => &self.tuple_value._terms,
+            .array_value => &self.array_value._terms,
+            .match => &self.match._mappings,
+            .block => &self.block._statements,
+            .fn_decl => &self.fn_decl._params,
+            .method_decl => &self.method_decl._params,
+            .invoke => &self.invoke._args,
+            .bit_and => &self.bit_and._args,
+            .bit_or => &self.bit_or._args,
+            .bit_xor => &self.bit_xor._args,
+            .binding => &self.binding.decls,
+            else => std.debug.panic("compiler error: cannot call `.children()` on the AST `{f}`", .{self.*}),
+        };
+    }
+
+    pub fn children(self: *const AST) *const std.array_list.Managed(*AST) {
         return switch (self.*) {
             .call => &self.call._args,
             .index => &self.index._children,
@@ -1861,7 +1892,7 @@ pub const AST = union(enum) {
         }
     }
 
-    pub fn decl_type(self: *AST) *Type_AST {
+    pub fn decl_type(self: *const AST) *Type_AST {
         return switch (self.*) {
             .decl => self.decl.type,
             .fn_decl => self.fn_decl._decl_type.?,
@@ -2039,6 +2070,13 @@ pub const AST = union(enum) {
         };
     }
 
+    /// Generically retrieve a reference to a field in a Zig union type
+    fn get_field_const_ref(u: anytype, comptime field: []const u8) *const Unwrapped(@TypeOf(u.*), field) {
+        return switch (u.*) {
+            inline else => |*v| &@field(v, field),
+        };
+    }
+
     /// Generically set a field in a Zig union type
     fn set_field(u: anytype, comptime field: []const u8, val: Unwrapped(@TypeOf(u.*), field)) void {
         switch (u.*) {
@@ -2086,14 +2124,14 @@ pub const AST = union(enum) {
         member.enum_value.base = opt_type;
         member.enum_value.init = value;
         member.set_pos(opt_type.get_pos("some"));
-        return member.assert_ast_valid();
+        return member;
     }
 
     pub fn create_none_value(opt_type: *Type_AST, allocator: std.mem.Allocator) *AST {
         const member = create_enum_value(Token.init_simple("none"), allocator);
         member.enum_value.base = opt_type;
         member.set_pos(opt_type.get_pos("none"));
-        return member.assert_ast_valid();
+        return member;
     }
 
     pub fn create_binop(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
@@ -2131,17 +2169,6 @@ pub const AST = union(enum) {
             .index => self.lhs().refers_to_type(), // generic type
             .generic_apply => self.lhs().refers_to_type(),
         };
-    }
-
-    /// Used to poison an AST node. Marks as valid, so any attempt to validate is memoized to return poison.
-    pub fn enpoison(self: *AST) void {
-        self.common().validation_state = .invalid;
-    }
-
-    /// Sets an ASTs validation status to valid.
-    pub fn assert_ast_valid(self: *AST) *AST {
-        self.common().validation_state = .valid;
-        return self;
     }
 
     // TODO: Use Tree Writer, don't call writer print, recursively call pprint

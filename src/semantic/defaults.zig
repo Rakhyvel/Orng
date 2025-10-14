@@ -42,7 +42,7 @@ pub fn generate_default(_type: *Type_AST, span: Span, errors: *errs_.Errors, all
                 retval.set_pos(0); // if nothing's wrong, then everything's `.ok`!
             }
             retval.enum_value.base = _type;
-            retval.common()._token = _type.children().items[retval.pos().?].annotation.pattern.token();
+            retval.set_token(_type.children().items[retval.pos().?].annotation.pattern.token());
             const proper_term: *Type_AST = _type.children().items[retval.pos().?];
             retval.enum_value.init = try generate_default(proper_term, span, errors, allocator);
             return retval;

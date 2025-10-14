@@ -303,7 +303,7 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
 fn in_loop_check(self: Self, ast: *ast_.AST, errors: *errs_.Errors) Error!void {
     if (!self.in_loop) {
         errors.add_error(errs_.Error{ .not_inside_loop = .{
-            .span = ast.token().span,
+            .span = ast.span(),
             .name = @tagName(ast.*),
         } });
         return error.CompileError;
@@ -314,7 +314,7 @@ fn in_loop_check(self: Self, ast: *ast_.AST, errors: *errs_.Errors) Error!void {
 fn in_function_check(ast: *ast_.AST, scope: *Scope, errors: *errs_.Errors) Error!*Symbol {
     if (scope.inner_function == null) {
         errors.add_error(errs_.Error{ .not_inside_function = .{
-            .span = ast.token().span,
+            .span = ast.span(),
             .name = @tagName(ast.*),
         } });
         return error.CompileError;
@@ -340,7 +340,7 @@ fn create_symbol(
                 if (pattern.pattern_symbol.kind != .let) {
                     // It is an error for `_` to be marked as `const` or `mut`
                     errors.add_error(errs_.Error{ .discard_marked = .{
-                        .span = pattern.token().span,
+                        .span = pattern.span(),
                         .kind = pattern.pattern_symbol.kind,
                     } });
                     return error.CompileError;
@@ -680,7 +680,7 @@ fn create_method_symbol(
         if (ast.method_decl.receiver.?.receiver.kind == .value) {
             const self_type = recv_type.child();
             const self_init = ast_.AST.create_dereference(ast.token(), ast_.AST.create_identifier(Token.init_simple("self__ptr"), allocator), allocator);
-            const receiver_span = ast.method_decl.receiver.?.token().span;
+            const receiver_span = ast.method_decl.receiver.?.span();
             const self_decl = ast_.AST.create_binding(
                 ast.token(),
                 ast_.AST.create_pattern_symbol(Token.init("self", .identifier, receiver_span.filename, receiver_span.line_text, receiver_span.line_number, receiver_span.col), .let, .local, "self", allocator),
@@ -689,7 +689,7 @@ fn create_method_symbol(
                 allocator,
             );
             if (ast.method_decl.init.?.* != .unit_value) {
-                const method_block_statements = ast.method_decl.init.?.children();
+                const method_block_statements = ast.method_decl.init.?.children_mut();
                 method_block_statements.insert(0, self_decl) catch unreachable;
             } else {
                 // Technically, init COULD be `{ }`, and it would cause a not-used error later on, but we need to handle this properly here before then
@@ -742,7 +742,7 @@ fn create_template_symbol(
     const retval = Symbol.init(
         scope,
         buf,
-        ast.template.decl.fn_decl.name.?.token().span,
+        ast.template.decl.fn_decl.name.?.span(),
         prelude_.unit_type,
         prelude_.unit_value,
         ast,

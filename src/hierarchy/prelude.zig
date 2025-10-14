@@ -357,7 +357,7 @@ fn create_anyptr_type_primitive(allocator: std.mem.Allocator) *Type_AST {
 }
 
 fn create_unit_value(allocator: std.mem.Allocator) *ast_.AST {
-    return ast_.AST.create_unit_value(Token.init_simple("{"), allocator).assert_ast_valid();
+    return ast_.AST.create_unit_value(Token.init_simple("{"), allocator);
 }
 
 fn create_prelude_symbol(name: []const u8, _type: *Type_AST, init: *ast_.AST, allocator: std.mem.Allocator) *Symbol {

@@ -4,6 +4,7 @@ const AST = @import("../ast/ast.zig").AST;
 const prelude_ = @import("../hierarchy/prelude.zig");
 const Scope = @import("../symbol/scope.zig");
 const String = @import("../zig-string/zig-string.zig").String;
+const Span = @import("../util/span.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
 const unification_ = @import("unification.zig");
@@ -493,6 +494,10 @@ pub const Type_AST = union(enum) {
 
     pub fn token(self: *const Type_AST) Token {
         return self.common()._token;
+    }
+
+    pub fn span(self: *const Type_AST) Span {
+        return self.common()._token.span;
     }
 
     /// Returns the type of the field with a given name in a Zig union type

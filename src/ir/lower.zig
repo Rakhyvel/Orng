@@ -106,7 +106,7 @@ fn lower_AST_inner(
         // Unit-values
         .enum_decl, .struct_decl, .unit_value, .template, .trait, .impl, .type_alias => return self.lval_from_unit_value(ast),
         // Literals
-        .int => return self.lval_from_int(ast.int.data, self.ctx.typecheck.typeof(ast), ast.token().span),
+        .int => return self.lval_from_int(ast.int.data, self.ctx.typecheck.typeof(ast), ast.span()),
         .char => {
             const temp = self.create_temp_lvalue(self.ctx.typecheck.typeof(ast));
             // Convert the character inside to a codepoint
@@ -126,18 +126,18 @@ fn lower_AST_inner(
                     codepoint = std.unicode.utf8Decode(ast.token().data[1 .. num_bytes + 1]) catch unreachable; // Checked by lexer
                 },
             }
-            self.instructions.append(Instruction.init_int(temp, codepoint, ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_int(temp, codepoint, ast.span(), self.ctx.allocator())) catch unreachable;
             return temp;
         },
         .float => {
             const temp = self.create_temp_lvalue(self.ctx.typecheck.typeof(ast));
-            self.instructions.append(Instruction.init_float(temp, ast.float.data, ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_float(temp, ast.float.data, ast.span(), self.ctx.allocator())) catch unreachable;
             return temp;
         },
         .string => {
             const id: Interned_String_Set.String_Idx = self.interned_strings.add(ast.string.data, self.cfg.symbol.scope.module.?.uid);
             const temp = self.create_temp_lvalue(self.ctx.typecheck.typeof(ast));
-            self.instructions.append(Instruction.init_string(temp, id, ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_string(temp, id, ast.span(), self.ctx.allocator())) catch unreachable;
             return temp;
         },
         .access, .identifier, .generic_apply => {
@@ -150,7 +150,7 @@ fn lower_AST_inner(
                 return error.CompileError;
             }
             if (symbol.kind == .@"fn") {
-                return try self.lval_from_symbol_cfg(symbol, ast.token().span);
+                return try self.lval_from_symbol_cfg(symbol, ast.span());
             } else if (symbol.kind == .@"const" and symbol.storage != .@"extern") {
                 return try self.lower_AST(symbol.init_value().?, labels);
             } else {
@@ -158,16 +158,16 @@ fn lower_AST_inner(
                 return src;
             }
         },
-        .pattern_symbol => return try self.lval_from_symbol_cfg(ast.symbol().?, ast.token().span),
-        .true => return self.lval_from_int(1, self.ctx.typecheck.typeof(ast), ast.token().span),
-        .false => return self.lval_from_int(0, self.ctx.typecheck.typeof(ast), ast.token().span),
+        .pattern_symbol => return try self.lval_from_symbol_cfg(ast.symbol().?, ast.span()),
+        .true => return self.lval_from_int(1, self.ctx.typecheck.typeof(ast), ast.span()),
+        .false => return self.lval_from_int(0, self.ctx.typecheck.typeof(ast), ast.span()),
         // Unary operators
         .not, .negate, .addr_of, .bit_not => return try self.unop(ast, labels),
         .as => {
             const expr = try self.lower_AST(ast.expr(), labels) orelse return null;
             const expanded_type = self.ctx.typecheck.typeof(ast).expand_identifier();
             const temp = self.create_temp_lvalue(expanded_type);
-            self.instructions.append(Instruction.init(.cast, temp, expr, null, ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init(.cast, temp, expr, null, ast.span(), self.ctx.allocator())) catch unreachable;
             return temp;
         },
         .dereference => {
@@ -179,26 +179,26 @@ fn lower_AST_inner(
         .@"try" => {
             var expr = (try self.lower_AST(ast.expr(), labels)) orelse return null;
 
-            const end_label = Instruction.init_label("try.end", ast.token().span, self.ctx.allocator());
-            const err_label = Instruction.init_label("try.err", ast.token().span, self.ctx.allocator());
+            const end_label = Instruction.init_label("try.end", ast.span(), self.ctx.allocator());
+            const err_label = Instruction.init_label("try.err", ast.span(), self.ctx.allocator());
 
             var expanded_expr_type = expr.get_expanded_type();
             // Trying error sum, runtime check if error, branch to error path
             const condition = self.create_temp_lvalue(prelude_.word64_type);
-            self.instructions.append(Instruction.init_get_tag(condition, expr, ast.token().span, self.ctx.allocator())) catch unreachable; // `ok` is zero, `err`s are nonzero
-            self.instructions.append(Instruction.init_branch(condition, err_label, ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_get_tag(condition, expr, ast.span(), self.ctx.allocator())) catch unreachable; // `ok` is zero, `err`s are nonzero
+            self.instructions.append(Instruction.init_branch(condition, err_label, ast.span(), self.ctx.allocator())) catch unreachable;
 
             // Unwrap the `.ok` value
             const retval_lval = lval_.L_Value.create_unversioned_symbver(self.cfg.return_symbol, self.ctx.allocator());
-            self.instructions.append(Instruction.init_simple_copy(retval_lval, expr, ast.token().span, self.ctx.allocator())) catch unreachable;
-            self.instructions.append(Instruction.init_jump(labels.error_label, ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_simple_copy(retval_lval, expr, ast.span(), self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_jump(labels.error_label, ast.span(), self.ctx.allocator())) catch unreachable;
 
             // Else, store the error in retval, return through error
             self.instructions.append(err_label) catch unreachable;
 
             const ok_type = expanded_expr_type.get_ok_type().expand_identifier();
             const ok_lval = expr.create_select_lval(0, 0, ok_type, null, self.ctx.allocator());
-            self.instructions.append(Instruction.init_jump(end_label, ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_jump(end_label, ast.span(), self.ctx.allocator())) catch unreachable;
             self.instructions.append(end_label) catch unreachable;
 
             return ok_lval;
@@ -241,7 +241,7 @@ fn lower_AST_inner(
             for (1..ast.children().items.len) |i| {
                 temp = self.create_temp_lvalue(self.ctx.typecheck.typeof(ast));
                 const src2 = (try self.lower_AST(ast.children().items[i], labels)) orelse continue;
-                self.instructions.append(Instruction.init(bit_ir_kind_from_ast_kind(ast), temp, src1, src2, ast.token().span, self.ctx.allocator())) catch unreachable;
+                self.instructions.append(Instruction.init(bit_ir_kind_from_ast_kind(ast), temp, src1, src2, ast.span(), self.ctx.allocator())) catch unreachable;
                 src1 = temp;
             }
             return temp;
@@ -249,20 +249,20 @@ fn lower_AST_inner(
         .call => {
             const lhs = (try self.lower_AST(ast.lhs(), labels)) orelse return null;
             var temp = self.create_temp_lvalue(self.ctx.typecheck.typeof(ast));
-            temp.extract_symbver().symbol.set_span(ast.token().span);
+            temp.extract_symbver().symbol.set_span(ast.span());
 
-            var instr = Instruction.init_call(temp, lhs, ast.token().span, self.ctx.allocator());
+            var instr = Instruction.init_call(temp, lhs, ast.span(), self.ctx.allocator());
             for (ast.children().items) |term| {
                 instr.data.lval_list.append((try self.lower_AST(term, labels)) orelse continue) catch unreachable;
             }
-            self.instructions.append(Instruction.init_stack_push(ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_stack_push(ast.span(), self.ctx.allocator())) catch unreachable;
             self.instructions.append(instr) catch unreachable;
-            self.instructions.append(Instruction.init_stack_pop(ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_stack_pop(ast.span(), self.ctx.allocator())) catch unreachable;
             return temp;
         },
         .invoke => {
             var temp = self.create_temp_lvalue(self.ctx.typecheck.typeof(ast));
-            temp.extract_symbver().symbol.set_span(ast.token().span);
+            temp.extract_symbver().symbol.set_span(ast.span());
 
             // dyn_value is the method receiver that will be passed in
             var dyn_value: ?*lval_.L_Value = null;
@@ -290,20 +290,20 @@ fn lower_AST_inner(
                     }
                 }
             }
-            const instr = Instruction.init_invoke(temp, ast.invoke.method_decl.?, lval_list, dyn_value, ast.token().span, self.ctx.allocator());
+            const instr = Instruction.init_invoke(temp, ast.invoke.method_decl.?, lval_list, dyn_value, ast.span(), self.ctx.allocator());
             if (ast.invoke.method_decl.?.symbol() != null) {
                 // Fine if symbol is null, for invokes on trait objects.
-                instr.data.invoke.method_decl_lval = try self.lval_from_symbol_cfg(ast.invoke.method_decl.?.symbol().?, ast.token().span);
+                instr.data.invoke.method_decl_lval = try self.lval_from_symbol_cfg(ast.invoke.method_decl.?.symbol().?, ast.span());
             }
-            self.instructions.append(Instruction.init_stack_push(ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_stack_push(ast.span(), self.ctx.allocator())) catch unreachable;
             self.instructions.append(instr) catch unreachable;
-            self.instructions.append(Instruction.init_stack_pop(ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_stack_pop(ast.span(), self.ctx.allocator())) catch unreachable;
             return temp;
         },
         .dyn_value => {
             const expr = try self.lower_AST(ast.expr(), labels) orelse return null;
             const temp = self.create_temp_lvalue(self.ctx.typecheck.typeof(ast));
-            self.instructions.append(Instruction.init_dyn(temp, expr, ast.dyn_value.mut, ast.dyn_value.impl.?, ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_dyn(temp, expr, ast.dyn_value.mut, ast.dyn_value.impl.?, ast.span(), self.ctx.allocator())) catch unreachable;
             return temp;
         },
         .index => {
@@ -324,7 +324,7 @@ fn lower_AST_inner(
             }
 
             // Surround with L_Value node
-            const length: ?*lval_.L_Value = self.generate_indexable_length(lhs, ast_expanded_type, ast.token().span);
+            const length: ?*lval_.L_Value = self.generate_indexable_length(lhs, ast_expanded_type, ast.span());
             return new_lhs.create_index_lval(rhs, length, _type.expand_identifier(), self.ctx.allocator());
         },
         .select => {
@@ -344,7 +344,7 @@ fn lower_AST_inner(
             if (lhs_expanded_type.* == .enum_type) {
                 // Check that the sum value has the proper tag before a selection
                 tag = self.create_temp_lvalue(prelude_.word64_type);
-                self.instructions.append(Instruction.init_get_tag(tag.?, ast_lval.?, ast.token().span, self.ctx.allocator())) catch unreachable;
+                self.instructions.append(Instruction.init_get_tag(tag.?, ast_lval.?, ast.span(), self.ctx.allocator())) catch unreachable;
             }
 
             // Surround with L_Value node
@@ -355,7 +355,7 @@ fn lower_AST_inner(
         .struct_value, .tuple_value, .array_value => {
             _ = self.ctx.typecheck.typeof(ast).expand_identifier();
             const temp = self.create_temp_lvalue(self.ctx.typecheck.typeof(ast));
-            var instr = Instruction.init_load_struct(temp, ast.token().span, self.ctx.allocator());
+            var instr = Instruction.init_load_struct(temp, ast.span(), self.ctx.allocator());
             for (ast.children().items) |term| {
                 instr.data.lval_list.append((try self.lower_AST(term, labels)) orelse return null) catch unreachable;
             }
@@ -368,19 +368,19 @@ fn lower_AST_inner(
             const lower = (try self.lower_AST(ast.sub_slice.lower.?, labels)) orelse return null;
             const upper = (try self.lower_AST(ast.sub_slice.upper.?, labels)) orelse return null;
 
-            self.generate_subslice_check(lower, upper, ast.token().span);
+            self.generate_subslice_check(lower, upper, ast.span());
 
             const new_size = self.create_temp_lvalue(prelude_.int_type);
-            self.instructions.append(Instruction.init(.sub_int, new_size, upper, lower, ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init(.sub_int, new_size, upper, lower, ast.span(), self.ctx.allocator())) catch unreachable;
 
             const data_type = self.ctx.typecheck.typeof(ast).children().items[0];
             const data_ptr = arr.create_select_lval(0, 0, data_type.expand_identifier(), null, self.ctx.allocator());
 
             const new_data_ptr = self.create_temp_lvalue(data_type);
-            self.instructions.append(Instruction.init(.add_int, new_data_ptr, data_ptr, lower, ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init(.add_int, new_data_ptr, data_ptr, lower, ast.span(), self.ctx.allocator())) catch unreachable;
 
             const temp = self.create_temp_lvalue(self.ctx.typecheck.typeof(ast));
-            var load_struct = Instruction.init_load_struct(temp, ast.token().span, self.ctx.allocator());
+            var load_struct = Instruction.init_load_struct(temp, ast.span(), self.ctx.allocator());
             load_struct.data.lval_list.append(new_data_ptr) catch unreachable;
             load_struct.data.lval_list.append(new_size) catch unreachable;
             self.instructions.append(load_struct) catch unreachable;
@@ -403,15 +403,15 @@ fn lower_AST_inner(
                 }
             }
             const temp = self.create_temp_lvalue(self.ctx.typecheck.typeof(ast));
-            self.instructions.append(Instruction.init_union(temp, _init, ast.pos().?, ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_union(temp, _init, ast.pos().?, ast.span(), self.ctx.allocator())) catch unreachable;
             return temp;
         },
         // Control-flow expressions
         .@"if" => {
             // Create the result symbol and labels used
             const symbol = self.create_temp_symbol(self.ctx.typecheck.typeof(ast));
-            const else_label = Instruction.init_label("if.else", ast.token().span, self.ctx.allocator());
-            const end_label = Instruction.init_label("if.end", ast.token().span, self.ctx.allocator());
+            const else_label = Instruction.init_label("if.else", ast.span(), self.ctx.allocator());
+            const end_label = Instruction.init_label("if.end", ast.span(), self.ctx.allocator());
 
             // If there's a let, then do it, dumby!
             if (ast.@"if".let) |let| {
@@ -419,16 +419,16 @@ fn lower_AST_inner(
             }
 
             // Test condition
-            try self.flow(ast.@"if".condition, else_label, false, ast.token().span, labels);
+            try self.flow(ast.@"if".condition, else_label, false, ast.span(), labels);
 
             // lhs was true
             try self.generate_control_flow_block(ast.body_block(), symbol, ast.else_block() != null, labels);
             // TODO: De-duplicate 1
-            self.instructions.append(Instruction.init_jump(end_label, ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_jump(end_label, ast.span(), self.ctx.allocator())) catch unreachable;
 
             // lhs was false
             self.instructions.append(else_label) catch unreachable;
-            try self.generate_control_flow_else(ast.else_block(), symbol, ast.token().span, labels);
+            try self.generate_control_flow_else(ast.else_block(), symbol, ast.span(), labels);
 
             self.instructions.append(end_label) catch unreachable;
             return lval_.L_Value.create_unversioned_symbver(symbol, self.ctx.allocator());
@@ -436,8 +436,8 @@ fn lower_AST_inner(
         .match => {
             // Create the result symbol and labels used
             const symbol = self.create_temp_symbol(self.ctx.typecheck.typeof(ast));
-            const end_label = Instruction.init_label("match.end", ast.token().span, self.ctx.allocator()); // Exit label of match
-            const fail_label = Instruction.init_label("match.fail", ast.token().span, self.ctx.allocator()); // jumped to if all tests fail and no `else` mapping
+            const end_label = Instruction.init_label("match.end", ast.span(), self.ctx.allocator()); // Exit label of match
+            const fail_label = Instruction.init_label("match.fail", ast.span(), self.ctx.allocator()); // jumped to if all tests fail and no `else` mapping
 
             if (ast.match.let) |let| { // If there's a let, then do it, dumby!
                 _ = try self.lower_AST(let, labels);
@@ -448,10 +448,10 @@ fn lower_AST_inner(
 
             // Couldn't match pattern, panic!
             self.instructions.append(fail_label) catch unreachable;
-            self.instructions.append(Instruction.init_stack_push(ast.token().span, self.ctx.allocator())) catch unreachable;
-            self.instructions.append(Instruction.init_panic("could not match pattern", ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_stack_push(ast.span(), self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_panic("could not match pattern", ast.span(), self.ctx.allocator())) catch unreachable;
 
-            const span = ast.token().span;
+            const span = ast.span();
             try self.generate_match_bodies(expr, ast.children().*, rhs_label_list, symbol, end_label, span, labels);
 
             self.instructions.append(end_label) catch unreachable;
@@ -460,10 +460,10 @@ fn lower_AST_inner(
         .@"while" => {
             // Create the result symbol and labels used
             const symbol = self.create_temp_symbol(self.ctx.typecheck.typeof(ast));
-            const cond_label = Instruction.init_label("while.cond", ast.token().span, self.ctx.allocator());
-            const current_continue_label = Instruction.init_label("while.continue", ast.token().span, self.ctx.allocator());
-            const else_label = Instruction.init_label("while.else", ast.token().span, self.ctx.allocator());
-            const end_label = Instruction.init_label("while.end", ast.token().span, self.ctx.allocator());
+            const cond_label = Instruction.init_label("while.cond", ast.span(), self.ctx.allocator());
+            const current_continue_label = Instruction.init_label("while.continue", ast.span(), self.ctx.allocator());
+            const else_label = Instruction.init_label("while.else", ast.span(), self.ctx.allocator());
+            const end_label = Instruction.init_label("while.end", ast.span(), self.ctx.allocator());
 
             if (ast.@"while".let) |let| { // do `let` if there's a let
                 _ = try self.lower_AST(let, labels);
@@ -484,7 +484,7 @@ fn lower_AST_inner(
 
             // Test condition, branch to either body or else block
             self.instructions.append(cond_label) catch unreachable;
-            try self.flow(ast.@"while".condition, else_label, false, ast.token().span, loop_labels);
+            try self.flow(ast.@"while".condition, else_label, false, ast.span(), loop_labels);
 
             // Body block
             try self.generate_control_flow_block(ast.body_block(), symbol, ast.else_block() != null, loop_labels);
@@ -493,10 +493,10 @@ fn lower_AST_inner(
             if (ast.@"while".post) |post| { // do `post` if there's a post, jump to end_label to break
                 _ = try self.lower_AST(post, post_labels);
             }
-            self.instructions.append(Instruction.init_jump(cond_label, ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_jump(cond_label, ast.span(), self.ctx.allocator())) catch unreachable;
 
             self.instructions.append(else_label) catch unreachable;
-            try self.generate_control_flow_else(ast.else_block(), symbol, ast.token().span, labels);
+            try self.generate_control_flow_else(ast.else_block(), symbol, ast.span(), labels);
 
             self.instructions.append(end_label) catch unreachable;
             return lval_.L_Value.create_unversioned_symbver(symbol, self.ctx.allocator());
@@ -515,14 +515,14 @@ fn lower_AST_inner(
             var error_labels = std.array_list.Managed(*Instruction).init(self.ctx.allocator());
             defer error_labels.deinit();
             for (ast.block.defers.items) |_| {
-                continue_labels.append(Instruction.init_label("block.continue", ast.token().span, self.ctx.allocator())) catch unreachable;
-                break_labels.append(Instruction.init_label("block.break", ast.token().span, self.ctx.allocator())) catch unreachable;
-                return_labels.append(Instruction.init_label("block.return", ast.token().span, self.ctx.allocator())) catch unreachable;
+                continue_labels.append(Instruction.init_label("block.continue", ast.span(), self.ctx.allocator())) catch unreachable;
+                break_labels.append(Instruction.init_label("block.break", ast.span(), self.ctx.allocator())) catch unreachable;
+                return_labels.append(Instruction.init_label("block.return", ast.span(), self.ctx.allocator())) catch unreachable;
             }
             for (ast.block.errdefers.items) |_| {
-                error_labels.append(Instruction.init_label("block.errdefer", ast.token().span, self.ctx.allocator())) catch unreachable;
+                error_labels.append(Instruction.init_label("block.errdefer", ast.span(), self.ctx.allocator())) catch unreachable;
             }
-            const end_label = Instruction.init_label("block.end", ast.token().span, self.ctx.allocator());
+            const end_label = Instruction.init_label("block.end", ast.span(), self.ctx.allocator());
 
             // These are the labels to go to on each final statement.
             // These are updated to point to different places in the defer chain at the end of this block.
@@ -547,20 +547,20 @@ fn lower_AST_inner(
             if (ast.block.final) |final| {
                 _ = try self.lower_AST(final, current_labels);
             } else if (temp) |_temp| {
-                self.wrap_error_return(_temp, ast.token().span, current_labels);
+                self.wrap_error_return(_temp, ast.span(), current_labels);
             }
 
             try self.generate_defers(&ast.block.defers, &continue_labels);
-            self.instructions.append(Instruction.init_jump(end_label, ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_jump(end_label, ast.span(), self.ctx.allocator())) catch unreachable;
 
             try self.generate_defers(&ast.block.defers, &break_labels);
-            self.instructions.append(Instruction.init_jump(labels.break_label, ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_jump(labels.break_label, ast.span(), self.ctx.allocator())) catch unreachable;
 
             try self.generate_defers(&ast.block.defers, &return_labels);
-            self.instructions.append(Instruction.init_jump(labels.return_label, ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_jump(labels.return_label, ast.span(), self.ctx.allocator())) catch unreachable;
 
             try self.generate_defers(&ast.block.errdefers, &error_labels);
-            self.instructions.append(Instruction.init_jump(labels.error_label, ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_jump(labels.error_label, ast.span(), self.ctx.allocator())) catch unreachable;
 
             self.instructions.append(end_label) catch unreachable;
 
@@ -581,19 +581,19 @@ fn lower_AST_inner(
         .decl => {
             return self.lval_from_unit_value(ast);
         },
-        .fn_decl => return try self.lval_from_symbol_cfg(ast.symbol().?, ast.token().span),
+        .fn_decl => return try self.lval_from_symbol_cfg(ast.symbol().?, ast.span()),
         .@"errdefer", .@"defer" => return self.lval_from_unit_value(ast),
         .@"continue" => {
-            self.instructions.append(Instruction.init_jump(labels.continue_label, ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_jump(labels.continue_label, ast.span(), self.ctx.allocator())) catch unreachable;
             return null;
         },
         .@"unreachable" => {
-            self.instructions.append(Instruction.init_stack_push(ast.token().span, self.ctx.allocator())) catch unreachable;
-            self.instructions.append(Instruction.init_panic("reached unreachable code", ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_stack_push(ast.span(), self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_panic("reached unreachable code", ast.span(), self.ctx.allocator())) catch unreachable;
             return null;
         },
         .@"break" => {
-            self.instructions.append(Instruction.init_jump(labels.break_label, ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_jump(labels.break_label, ast.span(), self.ctx.allocator())) catch unreachable;
             return null;
         },
         .@"return" => {
@@ -601,10 +601,10 @@ fn lower_AST_inner(
                 // Copy expr to retval
                 const retval = (try self.lower_AST(expr, labels)) orelse return null;
                 const retval_lval = lval_.L_Value.create_unversioned_symbver(self.cfg.return_symbol, self.ctx.allocator());
-                self.instructions.append(Instruction.init_simple_copy(retval_lval, retval, ast.token().span, self.ctx.allocator())) catch unreachable;
-                self.wrap_error_return(retval, ast.token().span, labels);
+                self.instructions.append(Instruction.init_simple_copy(retval_lval, retval, ast.span(), self.ctx.allocator())) catch unreachable;
+                self.wrap_error_return(retval, ast.span(), labels);
             }
-            self.instructions.append(Instruction.init_jump(labels.return_label, ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_jump(labels.return_label, ast.span(), self.ctx.allocator())) catch unreachable;
             return null;
         },
 
@@ -617,7 +617,7 @@ fn lval_from_unit_value(
     ast: *ast_.AST, // TODO: Just accept span
 ) *lval_.L_Value {
     const lval = self.create_temp_lvalue(prelude_.unit_type);
-    self.instructions.append(Instruction.init(.load_unit, lval, null, null, ast.token().span, self.ctx.allocator())) catch unreachable;
+    self.instructions.append(Instruction.init(.load_unit, lval, null, null, ast.span(), self.ctx.allocator())) catch unreachable;
     return lval;
 }
 
@@ -652,7 +652,7 @@ fn unop(
 ) Lower_Errors!?*lval_.L_Value {
     const expr = try self.lower_AST(ast.expr(), labels) orelse return null;
     const temp = self.create_temp_lvalue(self.ctx.typecheck.typeof(ast));
-    self.instructions.append(Instruction.init_int_float_kind(int_kind(ast), float_kind(ast), temp, expr, null, ast.token().span, self.ctx.allocator())) catch unreachable;
+    self.instructions.append(Instruction.init_int_float_kind(int_kind(ast), float_kind(ast), temp, expr, null, ast.span(), self.ctx.allocator())) catch unreachable;
     return temp;
 }
 
@@ -667,7 +667,7 @@ fn binop(
         return null;
     }
     const temp = self.create_temp_lvalue(self.ctx.typecheck.typeof(ast));
-    self.instructions.append(Instruction.init_int_float_kind(int_kind(ast), float_kind(ast), temp, lhs_lval, rhs_lval, ast.token().span, self.ctx.allocator())) catch unreachable;
+    self.instructions.append(Instruction.init_int_float_kind(int_kind(ast), float_kind(ast), temp, lhs_lval, rhs_lval, ast.span(), self.ctx.allocator())) catch unreachable;
     return temp;
 }
 
@@ -720,24 +720,24 @@ fn or_and_op(
 ) Lower_Errors!?*lval_.L_Value {
     // Create the result symbol and labels used
     const or_and_symbol = self.create_temp_symbol(self.ctx.typecheck.typeof(ast));
-    const jump_label = Instruction.init_label("or/and.jump", ast.token().span, self.ctx.allocator());
-    const end_label = Instruction.init_label("or/and.end", ast.token().span, self.ctx.allocator());
+    const jump_label = Instruction.init_label("or/and.jump", ast.span(), self.ctx.allocator());
+    const end_label = Instruction.init_label("or/and.end", ast.span(), self.ctx.allocator());
 
     const should_jump = ast.* == .@"or";
 
     // Test condition
-    try self.flow(ast.lhs(), jump_label, should_jump, ast.token().span, labels);
-    try self.flow(ast.rhs(), jump_label, should_jump, ast.token().span, labels);
+    try self.flow(ast.lhs(), jump_label, should_jump, ast.span(), labels);
+    try self.flow(ast.rhs(), jump_label, should_jump, ast.span(), labels);
 
     // never jumped, store whether that's good or not in temp
     const load_false_lval = lval_.L_Value.create_unversioned_symbver(or_and_symbol, self.ctx.allocator());
-    self.instructions.append(Instruction.init_int(load_false_lval, if (should_jump) 0 else 1, ast.token().span, self.ctx.allocator())) catch unreachable;
-    self.instructions.append(Instruction.init_jump(end_label, ast.token().span, self.ctx.allocator())) catch unreachable;
+    self.instructions.append(Instruction.init_int(load_false_lval, if (should_jump) 0 else 1, ast.span(), self.ctx.allocator())) catch unreachable;
+    self.instructions.append(Instruction.init_jump(end_label, ast.span(), self.ctx.allocator())) catch unreachable;
 
     // jumped, store whether that's good or not in temp
     self.instructions.append(jump_label) catch unreachable;
     const load_true_lval = lval_.L_Value.create_unversioned_symbver(or_and_symbol, self.ctx.allocator());
-    self.instructions.append(Instruction.init_int(load_true_lval, if (should_jump) 1 else 0, ast.token().span, self.ctx.allocator())) catch unreachable;
+    self.instructions.append(Instruction.init_int(load_true_lval, if (should_jump) 1 else 0, ast.span(), self.ctx.allocator())) catch unreachable;
 
     self.instructions.append(end_label) catch unreachable;
     return lval_.L_Value.create_unversioned_symbver(or_and_symbol, self.ctx.allocator());
@@ -757,16 +757,16 @@ fn tuple_equality_check(
     const temp = self.create_temp_lvalue(self.ctx.typecheck.typeof(ast));
 
     // Labels used
-    const fail_label = Instruction.init_label("tuple-eq.fail", ast.token().span, self.ctx.allocator());
-    const end_label = Instruction.init_label("tuple-eq.end", ast.token().span, self.ctx.allocator());
+    const fail_label = Instruction.init_label("tuple-eq.fail", ast.span(), self.ctx.allocator());
+    const end_label = Instruction.init_label("tuple-eq.end", ast.span(), self.ctx.allocator());
 
     self.tuple_equality_flow(lhs.?, rhs.?, fail_label);
 
-    self.instructions.append(Instruction.init_int(temp, if (ast.* == .equal) 1 else 0, ast.token().span, self.ctx.allocator())) catch unreachable;
-    self.instructions.append(Instruction.init_jump(end_label, ast.token().span, self.ctx.allocator())) catch unreachable;
+    self.instructions.append(Instruction.init_int(temp, if (ast.* == .equal) 1 else 0, ast.span(), self.ctx.allocator())) catch unreachable;
+    self.instructions.append(Instruction.init_jump(end_label, ast.span(), self.ctx.allocator())) catch unreachable;
 
     self.instructions.append(fail_label) catch unreachable;
-    self.instructions.append(Instruction.init_int(temp, if (ast.* == .equal) 0 else 1, ast.token().span, self.ctx.allocator())) catch unreachable;
+    self.instructions.append(Instruction.init_int(temp, if (ast.* == .equal) 0 else 1, ast.span(), self.ctx.allocator())) catch unreachable;
 
     self.instructions.append(end_label) catch unreachable;
     return temp;
@@ -810,22 +810,22 @@ fn coalesce_op(
 ) Lower_Errors!?*lval_.L_Value {
     // Create the result symbol and labels
     const coalesce_symbol = self.create_temp_symbol(self.ctx.typecheck.typeof(ast));
-    const zero_label = Instruction.init_label("coalesce.zero", ast.token().span, self.ctx.allocator());
-    const end_label = Instruction.init_label("coalesce.end", ast.token().span, self.ctx.allocator());
+    const zero_label = Instruction.init_label("coalesce.zero", ast.span(), self.ctx.allocator());
+    const end_label = Instruction.init_label("coalesce.end", ast.span(), self.ctx.allocator());
 
     // Test if lhs tag is 0 (`ok` or `some`)
     const lhs = (try self.lower_AST(ast.lhs(), labels)) orelse return null;
 
     const condition = self.create_temp_lvalue(prelude_.word64_type);
-    self.instructions.append(Instruction.init_get_tag(condition, lhs, ast.token().span, self.ctx.allocator())) catch unreachable;
-    self.instructions.append(Instruction.init_branch(condition, zero_label, ast.token().span, self.ctx.allocator())) catch unreachable;
+    self.instructions.append(Instruction.init_get_tag(condition, lhs, ast.span(), self.ctx.allocator())) catch unreachable;
+    self.instructions.append(Instruction.init_branch(condition, zero_label, ast.span(), self.ctx.allocator())) catch unreachable;
 
     // tag was an error/none, store rhs in temp
     const maybe_rhs = (try self.lower_AST(ast.rhs(), labels));
     if (maybe_rhs) |rhs| {
         const rhs_lval = lval_.L_Value.create_unversioned_symbver(coalesce_symbol, self.ctx.allocator());
-        self.instructions.append(Instruction.init_simple_copy(rhs_lval, rhs, ast.token().span, self.ctx.allocator())) catch unreachable;
-        self.instructions.append(Instruction.init_jump(end_label, ast.token().span, self.ctx.allocator())) catch unreachable;
+        self.instructions.append(Instruction.init_simple_copy(rhs_lval, rhs, ast.span(), self.ctx.allocator())) catch unreachable;
+        self.instructions.append(Instruction.init_jump(end_label, ast.span(), self.ctx.allocator())) catch unreachable;
     }
 
     // tag was `.ok` or `.some`, store lhs in temp
@@ -833,7 +833,7 @@ fn coalesce_op(
     const expanded_type = self.ctx.typecheck.typeof(ast).expand_identifier();
     const val = lhs.create_select_lval(0, 0, expanded_type, null, self.ctx.allocator());
     const ok_lval = lval_.L_Value.create_unversioned_symbver(coalesce_symbol, self.ctx.allocator());
-    self.instructions.append(Instruction.init_simple_copy(ok_lval, val, ast.token().span, self.ctx.allocator())) catch unreachable;
+    self.instructions.append(Instruction.init_simple_copy(ok_lval, val, ast.span(), self.ctx.allocator())) catch unreachable;
 
     self.instructions.append(end_label) catch unreachable;
     return lval_.L_Value.create_unversioned_symbver(coalesce_symbol, self.ctx.allocator());
@@ -882,20 +882,20 @@ fn generate_assign(
                 continue;
             }
             const expanded_type = rhs.get_expanded_type().child().expand_identifier();
-            const length: ?*lval_.L_Value = self.generate_indexable_length(rhs, lhs_expanded_type, lhs.token().span);
-            const idx = self.lval_from_int(field, prelude_.int_type, lhs.token().span);
+            const length: ?*lval_.L_Value = self.generate_indexable_length(rhs, lhs_expanded_type, lhs.span());
+            const idx = self.lval_from_int(field, prelude_.int_type, lhs.span());
             const index = rhs.create_index_lval(idx, length, expanded_type, self.ctx.allocator());
             try self.generate_assign(term, index, labels);
         }
     } else if (lhs.* == .select and self.ctx.typecheck.typeof(lhs.lhs()).expand_identifier().* == .enum_type) {
         // Select on a sum-type, convert to a copy of an enum value
         const enum_value = self.create_temp_lvalue(self.ctx.typecheck.typeof(lhs.lhs()).expand_identifier());
-        self.instructions.append(Instruction.init_union(enum_value, rhs, lhs.pos().?, lhs.token().span, self.ctx.allocator())) catch unreachable;
+        self.instructions.append(Instruction.init_union(enum_value, rhs, lhs.pos().?, lhs.span(), self.ctx.allocator())) catch unreachable;
         try self.generate_assign(lhs.lhs(), enum_value, labels);
     } else {
         // Get L_Value tree, create a `copy` Instruction of L_Value tree and rhs
         const lval = try self.lower_AST(lhs, labels);
-        const instr = Instruction.init(.copy, lval, rhs, null, lhs.token().span, self.ctx.allocator());
+        const instr = Instruction.init(.copy, lval, rhs, null, lhs.span(), self.ctx.allocator());
         self.instructions.append(instr) catch unreachable;
     }
 }
@@ -1002,9 +1002,9 @@ fn generate_control_flow_block(
     if (try self.lower_AST(ast, labels)) |rhs_lval| {
         const rhs_copy_lval = lval_.L_Value.create_unversioned_symbver(symbol, self.ctx.allocator());
         if (has_else) {
-            self.instructions.append(Instruction.init_simple_copy(rhs_copy_lval, rhs_lval, ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_simple_copy(rhs_copy_lval, rhs_lval, ast.span(), self.ctx.allocator())) catch unreachable;
         } else {
-            self.instructions.append(Instruction.init_union(rhs_copy_lval, rhs_lval, 0, ast.token().span, self.ctx.allocator())) catch unreachable; // `some` is 0
+            self.instructions.append(Instruction.init_union(rhs_copy_lval, rhs_lval, 0, ast.span(), self.ctx.allocator())) catch unreachable; // `some` is 0
         }
     }
 }
@@ -1040,8 +1040,8 @@ fn generate_match_pattern_checks(
     var rhs_label_list = std.array_list.Managed(*Instruction).init(self.ctx.allocator()); // labels to branch on a successful test ("code for the mapping")
     errdefer rhs_label_list.deinit();
     for (mappings.items) |mapping| {
-        lhs_label_list.append(Instruction.init_label("match.lhs", mapping.token().span, self.ctx.allocator())) catch unreachable;
-        rhs_label_list.append(Instruction.init_label("match-rhs", mapping.token().span, self.ctx.allocator())) catch unreachable;
+        lhs_label_list.append(Instruction.init_label("match.lhs", mapping.span(), self.ctx.allocator())) catch unreachable;
+        rhs_label_list.append(Instruction.init_label("match-rhs", mapping.span(), self.ctx.allocator())) catch unreachable;
     }
     for (mappings.items, 0..) |mapping, i| {
         self.instructions.append(lhs_label_list.items[i]) catch unreachable;
@@ -1050,7 +1050,7 @@ fn generate_match_pattern_checks(
         else
             none_label;
         try self.generate_match_pattern_check(mapping.lhs(), expr, next_label, labels);
-        self.instructions.append(Instruction.init_jump(rhs_label_list.items[i], mapping.token().span, self.ctx.allocator())) catch unreachable;
+        self.instructions.append(Instruction.init_jump(rhs_label_list.items[i], mapping.span(), self.ctx.allocator())) catch unreachable;
     }
     return rhs_label_list;
 }
@@ -1077,8 +1077,8 @@ fn generate_match_pattern_check(
         => {
             const value = (try self.lower_AST(pattern.?, labels)) orelse return;
             const condition = self.create_temp_lvalue(prelude_.bool_type);
-            self.instructions.append(Instruction.init(.equal, condition, expr, value, pattern.?.token().span, self.ctx.allocator())) catch unreachable;
-            self.instructions.append(Instruction.init_branch(condition, next_pattern, pattern.?.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init(.equal, condition, expr, value, pattern.?.span(), self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_branch(condition, next_pattern, pattern.?.span(), self.ctx.allocator())) catch unreachable;
         },
         .tuple_value => {
             for (pattern.?.children().items, 0..) |term, field| {
@@ -1092,16 +1092,16 @@ fn generate_match_pattern_check(
         .select, .enum_value => {
             // Get tag of pattern
             const sel = self.create_temp_lvalue(prelude_.word64_type);
-            self.instructions.append(Instruction.init_int(sel, pattern.?.pos().?, pattern.?.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_int(sel, pattern.?.pos().?, pattern.?.span(), self.ctx.allocator())) catch unreachable;
 
             // Get tag of expr
             const tag = self.create_temp_lvalue(prelude_.word64_type);
-            self.instructions.append(Instruction.init_get_tag(tag, expr, pattern.?.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_get_tag(tag, expr, pattern.?.span(), self.ctx.allocator())) catch unreachable;
 
             // Compare them, jump to next pattern if they are not equal
             const neql = self.create_temp_lvalue(prelude_.bool_type);
-            self.instructions.append(Instruction.init(.equal, neql, tag, sel, pattern.?.token().span, self.ctx.allocator())) catch unreachable;
-            self.instructions.append(Instruction.init_branch(neql, next_pattern, pattern.?.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init(.equal, neql, tag, sel, pattern.?.span(), self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_branch(neql, next_pattern, pattern.?.span(), self.ctx.allocator())) catch unreachable;
         },
         else => std.debug.panic("compiler error: unimplemented generate_match_pattern_check() for {s}", .{@tagName(pattern.?.*)}),
     }
@@ -1125,7 +1125,7 @@ fn generate_match_bodies(
         // Generate the rhs, copy result to symbol
         if (try self.lower_AST(mapping.rhs(), labels)) |rhs_lval| {
             const rhs_copy_lval = lval_.L_Value.create_unversioned_symbver(symbol, self.ctx.allocator());
-            self.instructions.append(Instruction.init_simple_copy(rhs_copy_lval, rhs_lval, mapping.rhs().token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_simple_copy(rhs_copy_lval, rhs_lval, mapping.rhs().span(), self.ctx.allocator())) catch unreachable;
         }
         self.instructions.append(Instruction.init_jump(end_label, span, self.ctx.allocator())) catch unreachable;
     }
@@ -1202,7 +1202,7 @@ fn generate_pattern(
     if (pattern.* == .pattern_symbol) {
         if (!std.mem.eql(u8, pattern.pattern_symbol.name, "_")) {
             const symbver = lval_.L_Value.create_unversioned_symbver(pattern.symbol().?, self.ctx.allocator());
-            self.instructions.append(Instruction.init_simple_copy(symbver, def, pattern.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_simple_copy(symbver, def, pattern.span(), self.ctx.allocator())) catch unreachable;
         }
     } else if (pattern.* == .tuple_value) {
         for (pattern.children().items, 0..) |term, field| {
@@ -1215,8 +1215,8 @@ fn generate_pattern(
         const lhs_expanded_type = self.ctx.typecheck.typeof(pattern).expand_identifier();
         for (pattern.children().items, 0..) |term, field| {
             const expanded_type = def.get_expanded_type().child().expand_identifier();
-            const length: ?*lval_.L_Value = self.generate_indexable_length(def, lhs_expanded_type, pattern.token().span);
-            const idx = self.lval_from_int(field, prelude_.int_type, pattern.token().span);
+            const length: ?*lval_.L_Value = self.generate_indexable_length(def, lhs_expanded_type, pattern.span());
+            const idx = self.lval_from_int(field, prelude_.int_type, pattern.span());
             const index = def.create_index_lval(idx, length, expanded_type, self.ctx.allocator());
             try self.generate_pattern(term, expanded_type, index);
         }

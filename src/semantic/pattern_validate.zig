@@ -46,7 +46,7 @@ pub fn assert_pattern_matches(
             const expanded_expr_type = expr_type.expand_identifier();
             if (expanded_expr_type.* != .tuple_type or expanded_expr_type.children().items.len != pattern.children().items.len) {
                 const got = self.ctx.typecheck.typecheck_AST(pattern, null) catch return error.CompileError;
-                return typing_.throw_unexpected_type(pattern.token().span, expr_type, got, &self.ctx.errors);
+                return typing_.throw_unexpected_type(pattern.span(), expr_type, got, &self.ctx.errors);
             }
             for (pattern.children().items, expanded_expr_type.children().items) |term, expanded_term| {
                 try self.assert_pattern_matches(term, expanded_term);
@@ -56,7 +56,7 @@ pub fn assert_pattern_matches(
             const expanded_expr_type = expr_type.expand_identifier();
             if (expanded_expr_type.* != .array_of or expanded_expr_type.array_of.len.int.data != pattern.children().items.len) {
                 const got = self.ctx.typecheck.typecheck_AST(pattern, null) catch return error.CompileError;
-                return typing_.throw_unexpected_type(pattern.token().span, expr_type, got, &self.ctx.errors);
+                return typing_.throw_unexpected_type(pattern.span(), expr_type, got, &self.ctx.errors);
             }
             const elem_type = expanded_expr_type.child();
             for (pattern.children().items) |term| {
@@ -67,7 +67,6 @@ pub fn assert_pattern_matches(
         else => std.debug.panic("compiler error: unimplemented assert_pattern_matches() for {s}", .{@tagName(pattern.*)}),
     }
     self.ctx.typecheck.assert_typeof(pattern, expr_type);
-    _ = pattern.assert_ast_valid();
 }
 
 /// Checks that a match's mappings cover all possible cases
@@ -77,7 +76,7 @@ pub fn assert_pattern_matches(
 pub fn exhaustive_check(
     self: *Self,
     _type: *Type_AST,
-    mappings: *std.array_list.Managed(*ast_.AST),
+    mappings: *const std.array_list.Managed(*ast_.AST),
     match_span: Span,
 ) Validate_Error_Enum!void {
     if (_type.* == .enum_type) {

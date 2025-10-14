@@ -65,7 +65,7 @@ pub fn validate(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
             error.CompileError => return error.CompileError,
             error.OutOfMemory => return error.OutOfMemory,
             error.UnexpectedTypeType => {
-                self.ctx.errors.add_error(errs_.Error{ .unexpected_type_type = .{ .expected = expected, .span = _init.token().span } });
+                self.ctx.errors.add_error(errs_.Error{ .unexpected_type_type = .{ .expected = expected, .span = _init.span() } });
                 return error.CompileError;
             },
         };
@@ -143,9 +143,9 @@ fn validate_trait(self: *Self, trait: *Symbol) Validate_Error_Enum!void {
     for (trait.decl.?.trait.method_decls.items) |decl| {
         if (names.get(decl.method_decl.name.token().data)) |other| {
             self.ctx.errors.add_error(errs_.Error{ .duplicate = .{
-                .span = decl.token().span,
+                .span = decl.span(),
                 .identifier = decl.method_decl.name.token().data,
-                .first = other.token().span,
+                .first = other.span(),
             } });
             return error.CompileError;
         } else {
@@ -161,7 +161,7 @@ fn validate_trait(self: *Self, trait: *Symbol) Validate_Error_Enum!void {
         if (decl.method_decl.is_virtual) {
             if (decl.method_decl.c_type.?.refers_to_self()) {
                 self.ctx.errors.add_error(errs_.Error{ .trait_virtual_refers_to_self = .{
-                    .span = decl.token().span,
+                    .span = decl.span(),
                     .method_name = decl.method_decl.name.token().data,
                     .trait_name = trait.name,
                 } });

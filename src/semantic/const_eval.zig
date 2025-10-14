@@ -48,7 +48,7 @@ fn eval_internal(self: *Self, ast: *ast_.AST) walk_.Error!void {
 
         .default => {
             const _type = ast.default._type;
-            ast.* = (try defaults_.generate_default(ast.default._type, ast.token().span, &self.ctx.errors, self.ctx.allocator())).*;
+            ast.* = (try defaults_.generate_default(ast.default._type, ast.span(), &self.ctx.errors, self.ctx.allocator())).*;
             _ = self.ctx.typecheck.typecheck_AST(ast, _type) catch return error.CompileError;
         },
 
@@ -90,5 +90,5 @@ pub fn interpret(
     try context.run();
 
     // Extract the retval
-    return try context.extract_ast(0, ret_type, ast.token().span);
+    return try context.extract_ast(0, ret_type, ast.span());
 }

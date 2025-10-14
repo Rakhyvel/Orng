@@ -27,7 +27,7 @@ pub fn validate(self: *Self, @"type": *Type_AST) Validate_Error_Enum!void {
             const params = sym.decl.?.generic_params();
             if (params.items.len != @"type".children().items.len) {
                 self.ctx.errors.add_error(errs_.Error{ .mismatch_arity = .{
-                    .span = @"type".token().span,
+                    .span = @"type".span(),
                     .takes = params.items.len,
                     .given = @"type".children().items.len,
                     .thing_name = sym.name,
@@ -51,7 +51,7 @@ pub fn validate(self: *Self, @"type": *Type_AST) Validate_Error_Enum!void {
 
         .identifier => {
             if (!@"type".symbol().?.refers_to_type()) {
-                self.ctx.errors.add_error(errs_.Error{ .basic = .{ .msg = "expected a type", .span = @"type".token().span } });
+                self.ctx.errors.add_error(errs_.Error{ .basic = .{ .msg = "expected a type", .span = @"type".span() } });
                 return error.CompileError;
             }
         },
@@ -60,7 +60,7 @@ pub fn validate(self: *Self, @"type": *Type_AST) Validate_Error_Enum!void {
             _ = self.ctx.typecheck.typecheck_AST(@"type".array_of.len, prelude_.int_type) catch return error.CompileError;
             try walk_.walk_ast(@"type".array_of.len, Const_Eval.new(self.ctx));
             if (@"type".array_of.len.* != .int) {
-                self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = @"type".token().span, .msg = "not a constant integer" } });
+                self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = @"type".span(), .msg = "not a constant integer" } });
                 return error.CompileError;
             }
             try self.validate(@"type".child());
@@ -68,15 +68,15 @@ pub fn validate(self: *Self, @"type": *Type_AST) Validate_Error_Enum!void {
 
         .untagged_sum_type => {
             if (@"type".child().expand_identifier().* != .enum_type) { // TODO: What if the identifier is cyclic?
-                self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = @"type".token().span, .msg = "not an enum type" } });
+                self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = @"type".span(), .msg = "not an enum type" } });
                 return error.CompileError;
             }
             try self.validate(@"type".child());
         },
 
         .dyn_type => {
-            if (@"type".child().* != .identifier or @"type".child().symbol().?.kind != .trait) {
-                self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = @"type".child().token().span, .msg = "not a trait" } });
+            if ((@"type".child().* != .identifier and @"type".child().* != .access) or @"type".child().symbol().?.kind != .trait) {
+                self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = @"type".child().span(), .msg = "not a trait" } });
                 return error.CompileError;
             }
         },

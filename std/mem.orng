@@ -1,3 +1,5 @@
+import ffi
+
 struct Heap_Allocator {}
 impl core::Allocator for Heap_Allocator {
     virtual fn alloc(&mut self, nbytes: Int) -> ?[*mut]Byte {
@@ -15,5 +17,12 @@ impl core::Allocator for Heap_Allocator {
     virtual fn resize(&mut self, allocation: [*mut]Byte, newsize: Int) -> ?[*mut]Byte {
         _ = (self, allocation, newsize)
         unreachable
+    }
+}
+
+fn new[T](alloc: &mut dyn core::Allocator) -> ()!&mut T {
+    match alloc.>alloc(@sizeof(T)) {
+        .some(bytes) => ffi::ref_from_ptr_mut(bytes)
+        .none => .err
     }
 }

@@ -39,7 +39,7 @@ pub fn validate(self: *Self, scope: *Scope) Validate_Error_Enum!void {
 fn validate_impl(self: *Self, impl: *ast_.AST) Validate_Error_Enum!void {
     if (impl.impl._type.* == .addr_of) {
         self.ctx.errors.add_error(errs_.Error{ .basic = .{
-            .span = impl.impl._type.token().span,
+            .span = impl.impl._type.span(),
             .msg = "cannot implement method for address types",
         } });
         return error.CompileError;
@@ -48,7 +48,7 @@ fn validate_impl(self: *Self, impl: *ast_.AST) Validate_Error_Enum!void {
     _ = self.ctx.typecheck.typecheck_AST(impl.impl.trait.?, null) catch |e| switch (e) {
         error.UnexpectedTypeType => {
             self.ctx.errors.add_error(errs_.Error{ .basic = .{
-                .span = impl.impl.trait.?.token().span,
+                .span = impl.impl.trait.?.span(),
                 .msg = "cannot implement for this, not a trait",
             } });
             return error.CompileError;
@@ -72,8 +72,8 @@ fn validate_impl(self: *Self, impl: *ast_.AST) Validate_Error_Enum!void {
     if (lookup_res.count > 1) {
         // Check if there's already an implementation for the same trait and type
         self.ctx.errors.add_error(errs_.Error{ .reimpl = .{
-            .first_defined_span = lookup_res.ast.?.token().span,
-            .redefined_span = impl.token().span,
+            .first_defined_span = lookup_res.ast.?.span(),
+            .redefined_span = impl.span(),
             .name = if (!impl.impl.impls_anon_trait) trait_symbol.name else null,
             ._type = impl.impl._type,
         } });
@@ -95,7 +95,7 @@ fn validate_impl(self: *Self, impl: *ast_.AST) Validate_Error_Enum!void {
         // Check that the trait defines the method
         if (trait_decl == null) {
             self.ctx.errors.add_error(errs_.Error{ .method_not_in_trait = .{
-                .method_span = def.token().span,
+                .method_span = def.span(),
                 .method_name = def.method_decl.name.token().data,
                 .trait_name = trait_ast.token().data,
             } });
@@ -105,7 +105,7 @@ fn validate_impl(self: *Self, impl: *ast_.AST) Validate_Error_Enum!void {
         // Check that receivers match
         if (!receivers_match(def.method_decl.receiver, trait_decl.?.method_decl.receiver)) {
             self.ctx.errors.add_error(errs_.Error{ .impl_receiver_mismatch = .{
-                .receiver_span = if (def.method_decl.receiver != null) def.method_decl.receiver.?.token().span else def.token().span,
+                .receiver_span = if (def.method_decl.receiver != null) def.method_decl.receiver.?.span() else def.span(),
                 .method_name = def.method_decl.name.token().data,
                 .trait_name = trait_ast.token().data,
                 .trait_receiver = if (trait_decl.?.method_decl.receiver != null) trait_decl.?.method_decl.receiver.?.receiver.kind else null,
@@ -117,7 +117,7 @@ fn validate_impl(self: *Self, impl: *ast_.AST) Validate_Error_Enum!void {
         // Check that paramter arity matches
         if (def.children().items.len != trait_decl.?.children().items.len) {
             self.ctx.errors.add_error(errs_.Error{ .mismatch_method_param_arity = .{
-                .span = def.token().span,
+                .span = def.span(),
                 .method_name = def.method_decl.name.token().data,
                 .trait_name = trait_ast.token().data,
                 .trait_arity = trait_decl.?.children().items.len + @intFromBool(trait_decl.?.method_decl.receiver != null),
@@ -136,7 +136,7 @@ fn validate_impl(self: *Self, impl: *ast_.AST) Validate_Error_Enum!void {
             const trait_type = Type_AST.clone(trait_param.binding.type, &subst, self.ctx.allocator());
             if (!impl_type.types_match(trait_type)) {
                 self.ctx.errors.add_error(errs_.Error{ .mismatch_method_type = .{
-                    .span = impl_param.binding.type.token().span,
+                    .span = impl_param.binding.type.span(),
                     .method_name = def.method_decl.name.token().data,
                     .trait_name = trait_ast.token().data,
                     .trait_type = trait_type,
@@ -151,7 +151,7 @@ fn validate_impl(self: *Self, impl: *ast_.AST) Validate_Error_Enum!void {
         const def_method_ret_type = Type_AST.clone(def.method_decl.ret_type, &subst, self.ctx.allocator());
         if (!def_method_ret_type.types_match(trait_method_ret_type)) {
             self.ctx.errors.add_error(errs_.Error{ .mismatch_method_type = .{
-                .span = def.method_decl.ret_type.token().span,
+                .span = def.method_decl.ret_type.span(),
                 .method_name = def.method_decl.name.token().data,
                 .trait_name = trait_ast.token().data,
                 .trait_type = trait_method_ret_type,
@@ -166,7 +166,7 @@ fn validate_impl(self: *Self, impl: *ast_.AST) Validate_Error_Enum!void {
         // Verify that impl virtuality matches trait virtuality
         if (def.method_decl.is_virtual != trait_decl.?.method_decl.is_virtual) {
             self.ctx.errors.add_error(errs_.Error{ .mismatch_method_virtuality = .{
-                .span = def.token().span,
+                .span = def.span(),
                 .method_name = def.method_decl.name.token().data,
                 .trait_name = trait_ast.token().data,
                 .trait_method_is_virtual = trait_decl.?.method_decl.is_virtual,
@@ -187,8 +187,8 @@ fn validate_impl(self: *Self, impl: *ast_.AST) Validate_Error_Enum!void {
     for (trait_decls.keys()) |trait_key| {
         const trait_decl = trait_decls.get(trait_key).?;
         self.ctx.errors.add_error(errs_.Error{ .method_not_in_impl = .{
-            .impl_span = impl.token().span,
-            .method_span = trait_decl.token().span,
+            .impl_span = impl.span(),
+            .method_span = trait_decl.span(),
             .method_name = trait_decl.method_decl.name.token().data,
             .trait_name = trait_ast.token().data,
         } });

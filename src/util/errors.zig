@@ -606,11 +606,11 @@ pub const Error = union(enum) {
             .non_exhaustive_sum => {
                 for (self.non_exhaustive_sum.forgotten.items) |_type| {
                     print_color(bold, writer, conf);
-                    print_note_label(_type.token().span, writer, conf);
+                    print_note_label(_type.span(), writer, conf);
                     print_color(bold, writer, conf);
                     writer.print("term not handled: `{s}`\n", .{_type.annotation.pattern.token().data}) catch unreachable;
                     print_color(not_bold, writer, conf);
-                    print_epilude(_type.token().span, writer, conf);
+                    print_epilude(_type.span(), writer, conf);
                 }
             },
             .reimpl => {
@@ -670,7 +670,7 @@ pub const Errors = struct {
 
     pub fn add_error(self: *Errors, err: Error) void {
         self.errors_list.append(err) catch unreachable;
-        // err.peek_error(); // uncomment if you want to see where errors come from TODO: Make this a cmd line flag
+        err.peek_error(); // uncomment if you want to see where errors come from TODO: Make this a cmd line flag
     }
 
     /// Prints out all errors in the Errors list

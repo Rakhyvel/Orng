@@ -128,11 +128,11 @@ pub fn init_typedef(self: *const Self) ?*Type_AST {
 }
 
 pub fn span(self: *const Self) Span {
-    return self.decl.?.token().span;
+    return self.decl.?.span();
 }
 
 pub fn set_span(self: *Self, _span: Span) void {
-    self.decl.?.common()._token.span = _span;
+    self.decl.?.set_span(_span);
 }
 
 pub fn expanded_type(self: *const Self) *Type_AST {

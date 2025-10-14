@@ -154,7 +154,7 @@ fn resolve_access_symbol(self: Self, lhs: *Symbol, rhs: *ast_.AST, scope: *Scope
         else => {
             self.compiler.errors.add_error(errs_.Error{
                 .member_not_in_module = .{
-                    .span = rhs.token().span,
+                    .span = rhs.span(),
                     .identifier = rhs.token().data,
                     .name = "symbol",
                     .module_name = lhs.name,
@@ -176,7 +176,7 @@ fn resolve_access_module(self: Self, module_symbol: *Symbol, rhs: *ast_.AST) wal
         else => {
             self.compiler.errors.add_error(errs_.Error{
                 .member_not_in_module = .{
-                    .span = rhs.token().span,
+                    .span = rhs.span(),
                     .identifier = rhs.token().data,
                     .name = "module",
                     .module_name = module_symbol.name,
@@ -203,7 +203,7 @@ fn resolve_access_const(self: Self, const_symbol: *Symbol, rhs: *ast_.AST, scope
     if (rhs_decl == null) {
         self.compiler.errors.add_error(errs_.Error{
             .type_not_impl_method = .{
-                .span = rhs.token().span,
+                .span = rhs.span(),
                 .method_name = rhs.token().data,
                 ._type = test_ident,
             },

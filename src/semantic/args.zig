@@ -81,7 +81,7 @@ fn args_are_named(
     }
     std.debug.assert(has_named_arg or has_pos_arg);
     if (has_named_arg and has_pos_arg) {
-        const arg_span = asts.items[0].token().span;
+        const arg_span = asts.items[0].span();
         errors.add_error(errs_.Error{ .basic = .{ .span = arg_span, .msg = "mixed positional and named arguments are not allowed" } });
         return error.CompileError;
     } else {
@@ -201,7 +201,7 @@ fn named_args(
         .annotation => {
             if (arg_name_to_val_map.keys().len > 1) { // Cannot be 0, since that is technically a positional arglist
                 errors.add_error(errs_.Error{ .mismatch_arity = .{
-                    .span = asts.items[0].token().span,
+                    .span = asts.items[0].span(),
                     .takes = 1,
                     .given = arg_name_to_val_map.keys().len,
                     .thing_name = thing.name(),
@@ -218,7 +218,7 @@ fn named_args(
             for (expected.children().items) |term| {
                 if (term.* != .annotation) {
                     errors.add_error(errs_.Error{ .basic = .{
-                        .span = asts.items[0].token().span,
+                        .span = asts.items[0].span(),
                         .msg = "expected type does not accept named fields",
                     } });
                     return error.NoDefault;
@@ -255,7 +255,7 @@ fn put_assign(ast: *ast_.AST, arg_map: *std.StringArrayHashMap(*ast_.AST), error
         errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "an named argument", .got = ast.lhs().token() } });
         return error.CompileError;
     }
-    try put_ast_map(ast.rhs(), ast.lhs().enum_value.get_name(), ast.token().span, arg_map, errors);
+    try put_ast_map(ast.rhs(), ast.lhs().enum_value.get_name(), ast.span(), arg_map, errors);
 }
 
 /// Puts an ast into a String->AST map, if a given name isn't already in the map.
@@ -280,7 +280,7 @@ pub fn put_ast_map(
 /// Validates that the number of arguments matches the number of parameters
 pub fn validate_args_arity(
     thing: Validate_Args_Thing,
-    args: *std.array_list.Managed(*ast_.AST),
+    args: *const std.array_list.Managed(*ast_.AST),
     expected: *Type_AST,
     variadic: bool,
     span: Span,

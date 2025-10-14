@@ -32,24 +32,22 @@ const Validate_Error_Enum = error{
 const Self: type = @This();
 
 ctx: *Compiler_Context,
-map: std.AutoArrayHashMap(*ast_.AST, *Type_AST),
+map: std.AutoArrayHashMap(*const ast_.AST, *Type_AST),
+validating: std.AutoArrayHashMap(*const ast_.AST, void),
 
 pub fn init(ctx: *Compiler_Context) Self {
     return Self{
         .ctx = ctx,
-        .map = std.AutoArrayHashMap(*ast_.AST, *Type_AST).init(ctx.allocator()),
+        .map = std.AutoArrayHashMap(*const ast_.AST, *Type_AST).init(ctx.allocator()),
+        .validating = std.AutoArrayHashMap(*const ast_.AST, void).init(ctx.allocator()),
     };
 }
 
-pub fn typeof(self: *const Self, ast: *ast_.AST) *Type_AST {
-    if ((ast.common().validation_state != .valid and ast.common().validation_state != .invalid)) {
-        std.debug.panic("type for ast {f} has not been constructed", .{ast});
-    }
-    return self.map.get(ast) orelse poison_.poisoned_type;
+pub fn typeof(self: *const Self, ast: *const ast_.AST) *Type_AST {
+    return self.map.get(ast).?;
 }
 
-pub fn assert_typeof(self: *Self, ast: *ast_.AST, _type: *Type_AST) void {
-    ast.common().validation_state = .valid;
+pub fn assert_typeof(self: *Self, ast: *const ast_.AST, _type: *Type_AST) void {
     self.map.put(ast, _type) catch unreachable;
 }
 
@@ -62,23 +60,23 @@ pub fn assert_typeof(self: *Self, ast: *ast_.AST, _type: *Type_AST) void {
 /// - `ast`: The AST to validate.
 /// - `old_expected_type`: Should be null if `ast` can be any type
 /// - `compiler`: The compiler instance.
-pub fn typecheck_AST(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Validate_Error_Enum!*Type_AST {
+pub fn typecheck_AST(self: *Self, ast: *const ast_.AST, expected: ?*Type_AST) Validate_Error_Enum!*Type_AST {
     // TODO: Bit long
-    if (ast.common().validation_state == .validating) {
+    if (self.validating.contains(ast)) {
         // std.debug.print("{}\n", .{ast});
         self.ctx.errors.add_error(errs_.Error{ .recursive_definition = .{
-            .span = ast.token().span,
+            .span = ast.span(),
             .symbol_name = null,
         } });
         return error.CompileError;
-    } else if (ast.common().validation_state != .unvalidated) {
+    } else if (self.map.contains(ast)) {
         return self.typeof(ast);
     }
 
     var expected_type = expected;
 
     // std.debug.print("{}: {?}\n", .{ ast, expected_type });
-    ast.common().validation_state = .validating;
+    try self.validating.put(ast, void{});
 
     if (expected_type != null and expected_type.?.* == .poison) {
         expected_type = null;
@@ -98,30 +96,25 @@ pub fn typecheck_AST(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Validate
     }
 
     const actual_type = self.typecheck_AST_internal(ast, expected_type) catch |e| {
-        ast.common().validation_state = .invalid;
+        _ = self.validating.swapRemove(ast);
         return e;
     };
 
     if (expected_type) |_| {
         if (!prelude_.unit_type.types_match(expected_type.?))
-            typing_.type_check(ast.token().span, actual_type, expected_type.?, &self.ctx.errors) catch |e| {
-                ast.common().validation_state = .invalid;
+            typing_.type_check(ast.span(), actual_type, expected_type.?, &self.ctx.errors) catch |e| {
+                _ = self.validating.swapRemove(ast);
                 return e;
             };
     }
 
     self.map.put(ast, actual_type) catch unreachable;
-
-    if (actual_type.* != .poison) {
-        ast.common().validation_state = .invalid;
-    } else {
-        ast.common().validation_state = .valid;
-    }
+    _ = self.validating.swapRemove(ast);
 
     return actual_type;
 }
 
-fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Validate_Error_Enum!*Type_AST {
+fn typecheck_AST_internal(self: *Self, ast: *const ast_.AST, expected: ?*Type_AST) Validate_Error_Enum!*Type_AST {
     // TODO: Ugh this function is too long
     // std.debug.print("{f}: {?f}\n", .{ ast, expected });
     switch (ast.*) {
@@ -157,7 +150,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             try self.ctx.validate_symbol.validate(symbol);
             if (symbol.refers_to_type()) {
                 if (expected != null) {
-                    self.ctx.errors.add_error(errs_.Error{ .unexpected_type_type = .{ .expected = expected, .span = ast.token().span } });
+                    self.ctx.errors.add_error(errs_.Error{ .unexpected_type_type = .{ .expected = expected, .span = ast.span() } });
                     return error.CompileError;
                 }
                 return error.UnexpectedTypeType;
@@ -178,7 +171,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             try self.ctx.validate_symbol.validate(symbol);
             if (symbol.refers_to_type()) {
                 if (expected != null) {
-                    self.ctx.errors.add_error(errs_.Error{ .unexpected_type_type = .{ .expected = expected, .span = ast.token().span } });
+                    self.ctx.errors.add_error(errs_.Error{ .unexpected_type_type = .{ .expected = expected, .span = ast.span() } });
                     return error.CompileError;
                 } else {
                     return prelude_.unit_type;
@@ -194,11 +187,11 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
         },
         .negate => {
             const expr_type = self.typecheck_AST(ast.expr(), expected) catch return error.CompileError;
-            try typing_.type_check_arithmetic(ast.token().span, expr_type, &self.ctx.errors);
+            try typing_.type_check_arithmetic(ast.span(), expr_type, &self.ctx.errors);
             return expr_type;
         },
         .dereference => {
-            const expr_span = ast.expr().token().span;
+            const expr_span = ast.expr().span();
             const expr_expected_type: ?*Type_AST =
                 if (expected != null)
                     Type_AST.create_addr_of(ast.token(), expected.?, false, false, self.ctx.allocator())
@@ -214,7 +207,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             }
         },
         .@"try" => {
-            const expr_span = ast.expr().token().span;
+            const expr_span = ast.expr().span();
             const expr_type = self.typecheck_AST(ast.expr(), null) catch return error.CompileError;
             var expanded_expr_type = expr_type.expand_identifier();
             if (expanded_expr_type.* != .enum_type or expanded_expr_type.enum_type.from != .@"error") {
@@ -223,7 +216,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             const expanded_function_codomain = ast.symbol().?.type().rhs().expand_identifier();
             if (expanded_function_codomain.* != .enum_type or expanded_function_codomain.enum_type.from != .@"error") {
                 self.ctx.errors.add_error(errs_.Error{ .basic = .{
-                    .span = ast.token().span,
+                    .span = ast.span(),
                     .msg = "enclosing function around try expression does not return an error",
                 } });
                 return error.CompileError;
@@ -249,7 +242,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             const expr_type = self.typecheck_AST(ast.expr(), expected) catch return error.CompileError;
             const expr_expanded_type = expr_type.expand_identifier();
             if (expr_expanded_type.types_match(prelude_.void_type)) {
-                return typing_.throw_unexpected_void_type(ast.expr().token().span, &self.ctx.errors);
+                return typing_.throw_unexpected_void_type(ast.expr().span(), &self.ctx.errors);
             }
             return expr_type;
         },
@@ -270,26 +263,26 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             // These operators are open, since they allow for polymorphism between their operands.
             const lhs_type = try self.binary_operator_open(ast, expected);
             const expanded_lhs_type = lhs_type.expand_identifier();
-            try typing_.type_check_arithmetic(ast.token().span, expanded_lhs_type, &self.ctx.errors);
+            try typing_.type_check_arithmetic(ast.span(), expanded_lhs_type, &self.ctx.errors);
             return expanded_lhs_type;
         },
         .mod => {
             const lhs_type = try self.binary_operator_open(ast, null);
-            try typing_.type_check_integral(ast.token().span, lhs_type, &self.ctx.errors);
+            try typing_.type_check_integral(ast.span(), lhs_type, &self.ctx.errors);
             return lhs_type;
         },
         .equal, .not_equal => {
             const lhs_type = try self.binary_operator_open(ast, null);
-            try typing_.type_check_eq(ast.token().span, lhs_type, &self.ctx.errors); // TODO: Return a constraint type thats T: Eq, and let the top-level-function try and unify it
+            try typing_.type_check_eq(ast.span(), lhs_type, &self.ctx.errors); // TODO: Return a constraint type thats T: Eq, and let the top-level-function try and unify it
             return prelude_.bool_type;
         },
         .greater, .lesser, .greater_equal, .lesser_equal => {
             const lhs_type = try self.binary_operator_open(ast, null);
-            try typing_.type_check_ord(ast.token().span, lhs_type, &self.ctx.errors);
+            try typing_.type_check_ord(ast.span(), lhs_type, &self.ctx.errors);
             return prelude_.bool_type;
         },
         .@"catch", .@"orelse" => {
-            const lhs_span = ast.lhs().token().span;
+            const lhs_span = ast.lhs().span();
             const lhs_type = self.typecheck_AST(ast.lhs(), null) catch return error.CompileError;
             _ = self.typecheck_AST(ast.rhs(), expected) catch return error.CompileError;
             var expanded_lhs_type = lhs_type.expand_identifier();
@@ -303,23 +296,23 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 if (retval == null) {
                     retval = arg_type;
                 }
-                try typing_.type_check_bits(ast.token().span, arg_type, &self.ctx.errors);
+                try typing_.type_check_bits(ast.span(), arg_type, &self.ctx.errors);
             }
             return retval.?;
         },
         .bit_not => {
             const expr_type = self.typecheck_AST(ast.expr(), expected) catch return error.CompileError;
-            try typing_.type_check_bits(ast.token().span, expr_type, &self.ctx.errors);
+            try typing_.type_check_bits(ast.span(), expr_type, &self.ctx.errors);
             return expr_type;
         },
         .left_shift, .right_shift => {
             const lhs_type = self.typecheck_AST(ast.lhs(), expected) catch return error.CompileError;
             _ = self.typecheck_AST(ast.rhs(), expected) catch return error.CompileError;
-            try typing_.type_check_bits(ast.token().span, lhs_type, &self.ctx.errors);
+            try typing_.type_check_bits(ast.span(), lhs_type, &self.ctx.errors);
             return lhs_type;
         },
         .call => {
-            const lhs_span = ast.lhs().token().span;
+            const lhs_span = ast.lhs().span();
             var lhs_type = self.typecheck_AST(ast.lhs(), null) catch return error.CompileError;
             const expanded_lhs_type = lhs_type.expand_identifier();
             if (ast.lhs().* != .enum_value and expanded_lhs_type.* != .function) {
@@ -338,21 +331,21 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             const domain = if (expanded_lhs_type.* == .function) expanded_lhs_type.lhs() else ast.lhs().enum_value.domain.?;
             const codomain = if (expanded_lhs_type.* == .function) expanded_lhs_type.rhs() else ast.lhs().enum_value.base.?;
             const variadic = expanded_lhs_type.* == .function and expanded_lhs_type.function.variadic;
-            ast.set_children(try args_.default_args(.function, ast.children().*, ast.token().span, domain, &self.ctx.errors, self.ctx.allocator()));
-            try args_.validate_args_arity(.function, ast.children(), domain, variadic, ast.token().span, &self.ctx.errors);
+            // ast.set_children(try args_.default_args(.function, ast.children().*, ast.span(), domain, &self.ctx.errors, self.ctx.allocator())); // TODO: no mutable
+            try args_.validate_args_arity(.function, ast.children(), domain, variadic, ast.span(), &self.ctx.errors);
             _ = try self.validate_args_type(ast.children(), domain, variadic);
             return codomain;
         },
         .index => {
-            const lhs_span = ast.lhs().token().span; // Used for error reporting
+            const lhs_span = ast.lhs().span(); // Used for error reporting
             const lhs_type = self.typecheck_AST(ast.lhs(), null) catch return error.CompileError;
             if (ast.children().items.len > 1) {
-                self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "too many indices" } });
+                self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = ast.span(), .msg = "too many indices" } });
                 return error.CompileError;
             }
             _ = self.typecheck_AST(ast.children().items[0], prelude_.int_type) catch return error.CompileError;
 
-            const expanded_lhs_type = try self.implicit_dereference(ast, lhs_type.expand_identifier());
+            const expanded_lhs_type = lhs_type.expand_identifier(); // try self.implicit_dereference(ast, lhs_type.expand_identifier()); // TODO: no mutable
 
             if (expanded_lhs_type.* == .struct_type) {
                 if (expanded_lhs_type.struct_type.was_slice) {
@@ -365,12 +358,12 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 // TODO: comptime expand the index
                 try walk_.walk_ast(ast.children().items[0], Const_Eval.new(self.ctx));
                 if (ast.children().items[0].* != .int) {
-                    self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "not a constant integer" } });
+                    self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = ast.span(), .msg = "not a constant integer" } });
                     return error.CompileError;
                 }
-                const pos = ast.children().items[0].int.data;
-                ast.* = ast_.AST.create_select(ast.token(), ast.lhs(), ast.children().items[0], self.ctx.allocator()).*;
-                ast.set_pos(@as(usize, @intCast(pos)));
+                // const pos = ast.children().items[0].int.data; // TODO: no mutable
+                // ast.* = ast_.AST.create_select(ast.token(), ast.lhs(), ast.children().items[0], self.ctx.allocator()).*; // TODO: no mutable
+                // ast.set_pos(@as(usize, @intCast(pos))); // TODO: no mutable
                 return self.typecheck_AST(ast, expected);
             } else if (expanded_lhs_type.* == .array_of) {
                 return expanded_lhs_type.child();
@@ -386,7 +379,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             const params = sym.decl.?.generic_params();
             if (params.items.len != ast.generic_apply._children.items.len) {
                 self.ctx.errors.add_error(errs_.Error{ .mismatch_arity = .{
-                    .span = ast.token().span,
+                    .span = ast.span(),
                     .takes = params.items.len,
                     .given = ast.generic_apply._children.items.len,
                     .thing_name = sym.name,
@@ -401,9 +394,11 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             }
 
             if (ast.generic_apply.state == .unmorphed) {
-                ast.generic_apply.state = .morphing;
-                ast.generic_apply._symbol = try sym.monomorphize(ast.generic_apply._children, self.ctx);
-                ast.generic_apply.state = .morphed;
+                // TODO: no mutable
+                // ast.generic_apply.state = .morphing;
+                // ast.generic_apply._symbol = try sym.monomorphize(ast.generic_apply._children, self.ctx);
+                // ast.generic_apply.state = .morphed;
+                // TODO: no mutable
             }
 
             try self.ctx.validate_symbol.validate(ast.symbol().?);
@@ -412,16 +407,16 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
         },
         .select => {
             const lhs_type = self.typecheck_AST(ast.lhs(), null) catch return error.CompileError;
-            const expanded_lhs_type = try self.implicit_dereference(ast, lhs_type.expand_identifier());
+            const expanded_lhs_type = lhs_type.expand_identifier(); // try self.implicit_dereference(ast, lhs_type.expand_identifier()); // TODO: no mutable
 
             if (ast.pos() == null) {
-                ast.set_pos(try typing_.find_select_pos(expanded_lhs_type, ast.rhs().token().data, ast.token().span, &self.ctx.errors));
+                // ast.set_pos(try typing_.find_select_pos(expanded_lhs_type, ast.rhs().token().data, ast.span(), &self.ctx.errors)); // TODO: no mutable
             }
 
             var select_lhs_type = expanded_lhs_type;
             if (ast.pos().? < 0 or ast.pos().? >= select_lhs_type.children().items.len) {
                 self.ctx.errors.add_error(errs_.Error{ .bad_index = .{
-                    .span = ast.token().span,
+                    .span = ast.span(),
                     ._type = lhs_type,
                     .index = ast.pos().?,
                     .length = select_lhs_type.children().items.len,
@@ -453,7 +448,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             if (method_decl == null) {
                 self.ctx.errors.add_error(errs_.Error{
                     .type_not_impl_method = .{
-                        .span = ast.token().span,
+                        .span = ast.span(),
                         .method_name = ast.rhs().token().data,
                         ._type = true_lhs_type, // TODO: Strip away addr_of's
                     },
@@ -461,10 +456,10 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 return error.CompileError;
             }
             _ = self.typecheck_AST(method_decl.?, null) catch return error.CompileError;
-            ast.invoke.method_decl = method_decl.?;
+            // ast.invoke.method_decl = method_decl.?; // TODO: no mutable
             const domain: *Type_AST = method_decl.?.method_decl.domain.?;
             const expanded_true_lhs_type = true_lhs_type.expand_identifier();
-            if (method_decl.?.method_decl.receiver != null) {
+            if (method_decl.?.method_decl.receiver != null and !ast.invoke.prepended) {
                 const receiver_kind: ?ast_.Receiver_Kind = method_decl.?.method_decl.receiver.?.receiver.kind;
                 // Trait method takes a receiver...
                 // Prepend invoke lhs to args if there is a receiver
@@ -476,19 +471,21 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                             .lhs_type = true_lhs_type,
                             .method_name = method_decl.?.method_decl.name.token().data,
                             .method_receiver = receiver_kind.?,
-                            .receiver_span = ast.lhs().token().span,
+                            .receiver_span = ast.lhs().span(),
                         } });
                         return error.CompileError;
                     }
-                    ast.children().insert(0, ast.lhs()) catch unreachable; // prepend lhs to children as a receiver
+                    // ast.children().insert(0, ast.lhs()) catch unreachable; // prepend lhs to children as a receiver // TODO: no mutable
                 } else {
                     // lhs type is not dynamic and not an address
                     const addr_of = ast_.AST.create_addr_of(ast.lhs().token(), ast.lhs(), receiver_kind.? == .mut_addr_of, false, self.ctx.allocator());
-                    ast.children().insert(0, addr_of) catch unreachable; // prepend lhs to children as a receiver
+                    _ = addr_of;
+                    // ast.children().insert(0, addr_of) catch unreachable; // prepend lhs to children as a receiver // TODO: no mutable
                 }
+                // ast.invoke.prepended = true; // TODO: no mutable
             }
-            ast.set_children(try args_.default_args(.method, ast.children().*, ast.token().span, domain, &self.ctx.errors, self.ctx.allocator()));
-            try args_.validate_args_arity(.method, ast.children(), domain, false, ast.token().span, &self.ctx.errors);
+            // ast.set_children(try args_.default_args(.method, ast.children().*, ast.span(), domain, &self.ctx.errors, self.ctx.allocator())); // TODO: no mutable
+            try args_.validate_args_arity(.method, ast.children(), domain, false, ast.span(), &self.ctx.errors);
             _ = try self.validate_args_type(ast.children(), domain, false);
 
             return ast.invoke.method_decl.?.method_decl.ret_type;
@@ -500,13 +497,13 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             const impl = ast.scope().?.impl_trait_lookup(expr_type, ast.dyn_value.dyn_type.child().symbol().?);
             if (impl.ast == null) {
                 self.ctx.errors.add_error(errs_.Error{ .type_not_impl_trait = .{
-                    .span = ast.token().span,
+                    .span = ast.span(),
                     .trait_name = ast.dyn_value.dyn_type.child().symbol().?.name,
                     ._type = expr_type,
                 } });
                 return error.CompileError;
             }
-            ast.dyn_value.impl = impl.ast;
+            // ast.dyn_value.impl = impl.ast; // TODO: no mutable
 
             return ast.dyn_value.dyn_type;
         },
@@ -515,18 +512,18 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             const expanded_expected: *Type_AST = if (expected == null) ast.struct_value.parent.expand_identifier() else expected.?.expand_identifier();
             if (expanded_expected.* == .struct_type) {
                 // Expecting ast to be a product value of some product type
-                ast.set_children(try args_.default_args(.@"struct", ast.children().*, ast.token().span, expanded_expected, &self.ctx.errors, self.ctx.allocator()));
-                try args_.validate_args_arity(.@"struct", ast.children(), expanded_expected, false, ast.token().span, &self.ctx.errors);
+                // ast.set_children(try args_.default_args(.@"struct", ast.children().*, ast.span(), expanded_expected, &self.ctx.errors, self.ctx.allocator())); // TODO: no mutable
+                try args_.validate_args_arity(.@"struct", ast.children(), expanded_expected, false, ast.span(), &self.ctx.errors);
                 _ = try self.validate_args_type(ast.children(), expanded_expected, false);
                 return ast.struct_value.parent;
             } else if (ast.struct_value.parent.expand_identifier().* != .struct_type) {
                 // Parent wasn't even a struct type!
-                return typing_.throw_wrong_from("struct", "struct value", ast.struct_value.parent, ast.token().span, &self.ctx.errors);
+                return typing_.throw_wrong_from("struct", "struct value", ast.struct_value.parent, ast.span(), &self.ctx.errors);
             } else if (!prelude_.unit_type.types_match(expanded_expected)) {
                 // It's ok to assign this to a unit type, something like `_ = (1, 2, 3)`
                 // expecting something that is not a type nor a product is not ok!
                 // poison `got`, so that it doesn't print anything for the `got` section, wouldn't make sense anyway
-                return typing_.throw_unexpected_type(ast.token().span, expanded_expected, ast.struct_value.parent, &self.ctx.errors);
+                return typing_.throw_unexpected_type(ast.span(), expanded_expected, ast.struct_value.parent, &self.ctx.errors);
             } else {
                 return prelude_.unit_type;
             }
@@ -544,21 +541,21 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 }
             } else if (expanded_expected != null and expanded_expected.?.* == .tuple_type) {
                 // Expecting ast to be a product value of some product type
-                try args_.validate_args_arity(.tuple, ast.children(), expanded_expected.?, false, ast.token().span, &self.ctx.errors);
+                try args_.validate_args_arity(.tuple, ast.children(), expanded_expected.?, false, ast.span(), &self.ctx.errors);
                 terms = try self.validate_args_type(ast.children(), expanded_expected.?, false);
                 return expected.?;
             } else {
                 // It's ok to assign this to a unit type, something like `_ = (1, 2, 3)`
                 // expecting something that is not a type nor a product is not ok!
                 // poison `got`, so that it doesn't print anything for the `got` section, wouldn't make sense anyway
-                return typing_.throw_unexpected_type(ast.token().span, expected.?, poison_.poisoned_type, &self.ctx.errors);
+                return typing_.throw_unexpected_type(ast.span(), expected.?, poison_.poisoned_type, &self.ctx.errors);
             }
             return Type_AST.create_tuple_type(ast.token(), terms, self.ctx.allocator());
         },
         .array_value => {
             const expanded_expanded = get_expanded_expected(expected);
             if (expanded_expanded != null and expanded_expanded.?.* != .array_of) {
-                return typing_.throw_wrong_from("array", "array value", expanded_expanded.?, ast.token().span, &self.ctx.errors);
+                return typing_.throw_wrong_from("array", "array value", expanded_expanded.?, ast.span(), &self.ctx.errors);
             }
             const elem_type = if (expanded_expanded == null) null else expanded_expanded.?.array_of._child;
             const first_type = self.typecheck_AST(ast.children().items[0], elem_type) catch return error.CompileError;
@@ -570,7 +567,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
         .as => {
             const child_type = self.typecheck_AST(ast.expr(), null) catch return error.CompileError;
             if (!child_type.convertible_to(ast.type())) {
-                self.ctx.errors.add_error(errs_.Error{ .non_convertible = .{ .span = ast.token().span, .from = child_type, .to = ast.type() } });
+                self.ctx.errors.add_error(errs_.Error{ .non_convertible = .{ .span = ast.span(), .from = child_type, .to = ast.type() } });
                 return error.CompileError;
             }
             return ast.type();
@@ -587,18 +584,18 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 const expanded_expected = expected.?.expand_identifier();
                 if (expanded_expected.* == .dyn_type) {
                     // TODO: Need to re-write this as a dyn-value
-                    ast.* = ast_.AST.create_dyn_value(
-                        ast.token(),
-                        expanded_expected,
-                        ast.expr(),
-                        ast.scope().?,
-                        ast.addr_of.mut,
-                        self.ctx.allocator(),
-                    ).*;
+                    // ast.* = ast_.AST.create_dyn_value( // TODO: no mutable
+                    //     ast.token(),
+                    //     expanded_expected,
+                    //     ast.expr(),
+                    //     ast.scope().?,
+                    //     ast.addr_of.mut,
+                    //     self.ctx.allocator(),
+                    // ).*;
                     return self.typecheck_AST(ast, expected);
                 } else if (expanded_expected.* != .addr_of) {
                     // Didn't expect an address type. Validate expr and report error
-                    return typing_.throw_unexpected_type(ast.token().span, expected.?, poison_.poisoned_type, &self.ctx.errors);
+                    return typing_.throw_unexpected_type(ast.span(), expected.?, poison_.poisoned_type, &self.ctx.errors);
                 }
                 _ = expanded_expected.child().expand_identifier();
 
@@ -622,7 +619,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             // ast.expr() must be homotypical tuple type of expected
             if (expr_type.* != .array_of) {
                 self.ctx.errors.add_error(errs_.Error{ .basic = .{
-                    .span = ast.token().span,
+                    .span = ast.span(),
                     .msg = "attempt to take slice-of something that is not an array",
                 } });
                 return error.CompileError;
@@ -638,7 +635,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 try self.assert_mutable(ast.expr());
             }
             const retval = Type_AST.create_slice_type(expr_type.child(), ast.slice_of.mut, self.ctx.allocator());
-            ast.* = ast_.AST.create_slice_value(ast.expr(), ast.slice_of.mut, expr_type, self.ctx.allocator()).*;
+            // ast.* = ast_.AST.create_slice_value(ast.expr(), ast.slice_of.mut, expr_type, self.ctx.allocator()).*; // TODO: no mutable
             _ = self.typecheck_AST(ast, null) catch return error.CompileError;
             return retval;
         },
@@ -648,7 +645,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             _ = self.typecheck_AST(ast.sub_slice.upper.?, null) catch return error.CompileError; // they are set in expand phase
             if (super_type.* != .struct_type or !super_type.struct_type.was_slice) {
                 self.ctx.errors.add_error(errs_.Error{ .basic = .{
-                    .span = ast.token().span,
+                    .span = ast.span(),
                     .msg = "cannot take a sub-slice of something that is not a slice",
                 } });
                 return error.CompileError;
@@ -658,30 +655,31 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
 
         .enum_value => {
             if (ast.enum_value.base == null and expected == null) {
-                self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "cannot infer type for initializer" } });
+                self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = ast.span(), .msg = "cannot infer type for initializer" } });
                 return error.CompileError;
             } else if (ast.enum_value.base == null) {
                 // Infer that the base type is `expected`
-                ast.enum_value.base = expected;
+                // ast.enum_value.base = expected; // TODO: no mutable
             }
 
             const expanded_base: *Type_AST = ast.enum_value.base.?.expand_identifier();
             if (expanded_base.* != .enum_type) {
-                return typing_.throw_wrong_from("enum", "enum value", expanded_base, ast.token().span, &self.ctx.errors);
+                return typing_.throw_wrong_from("enum", "enum value", expanded_base, ast.span(), &self.ctx.errors);
             }
 
             const pos = expanded_base.get_pos(ast.token().data);
             if (pos == null and expanded_base.* == .enum_type) {
-                self.ctx.errors.add_error(errs_.Error{ .member_not_in_type = .{ .span = ast.token().span, .identifier = ast.token().data, .name = "enum", .type = expanded_base } });
+                self.ctx.errors.add_error(errs_.Error{ .member_not_in_type = .{ .span = ast.span(), .identifier = ast.token().data, .name = "enum", .type = expanded_base } });
                 return error.CompileError;
             }
-            ast.set_pos(expanded_base.get_pos(ast.token().data));
+            // ast.set_pos(expanded_base.get_pos(ast.token().data)); // TODO: no mutable
 
-            ast.enum_value.domain = expanded_base.children().items[ast.pos().?];
+            // ast.enum_value.domain = expanded_base.children().items[ast.pos().?]; // TODO: no mutable
             if (ast.enum_value.init == null) {
+                // TODO: no mutable
                 // This may be usurped by a .call node
-                ast.enum_value.init = ast.enum_value.domain.?.annotation.init orelse
-                    try defaults_.generate_default(ast.enum_value.domain.?.child(), ast.token().span, &self.ctx.errors, self.ctx.allocator());
+                // ast.enum_value.init = ast.enum_value.domain.?.annotation.init orelse
+                // try defaults_.generate_default(ast.enum_value.domain.?.child(), ast.span(), &self.ctx.errors, self.ctx.allocator());
             }
             _ = self.typecheck_AST(ast.enum_value.init.?, ast.enum_value.domain.?.child()) catch return error.CompileError;
             return ast.enum_value.base.?;
@@ -710,7 +708,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 } else if (is_result_optional) {
                     expected_type = expanded_expected.get_some_type();
                 } else {
-                    return typing_.throw_unexpected_type(ast.token().span, expected.?, poison_.poisoned_type, &self.ctx.errors);
+                    return typing_.throw_unexpected_type(ast.span(), expected.?, poison_.poisoned_type, &self.ctx.errors);
                 }
             }
 
@@ -747,7 +745,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 try self.ctx.validate_pattern.assert_pattern_matches(ast.children().items[i].lhs(), expanded_expr_type);
             }
 
-            try self.ctx.validate_pattern.exhaustive_check(expanded_expr_type, ast.children(), ast.token().span);
+            try self.ctx.validate_pattern.exhaustive_check(expanded_expr_type, ast.children(), ast.span());
             return retval orelse prelude_.void_type;
         },
         .mapping => return self.typecheck_AST(ast.rhs(), expected),
@@ -780,7 +778,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 if ((statement.* != .fn_decl or statement.fn_decl.name == null) and is_middle_statement) {
                     // Don't worry about fn_decl's, those should be allowed to be "discarded"
                     const expanded_statement_type = statement_type.expand_identifier();
-                    try typing_.middle_statement_check(statement.token().span, expanded_statement_type, &self.ctx.errors);
+                    try typing_.middle_statement_check(statement.span(), expanded_statement_type, &self.ctx.errors);
                 }
             }
             if (ast.block.final) |final| {
@@ -797,7 +795,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             if (ast.@"return"._ret_expr) |expr| {
                 _ = self.typecheck_AST(expr, ast.symbol().?.type().rhs()) catch return error.CompileError;
             } else if (expected != null and (expected.?.expand_identifier()).* != .unit_type) {
-                return typing_.throw_unexpected_type(ast.token().span, expected.?, prelude_.void_type, &self.ctx.errors);
+                return typing_.throw_unexpected_type(ast.span(), expected.?, prelude_.void_type, &self.ctx.errors);
             }
             return prelude_.void_type;
         },
@@ -849,7 +847,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
 /// Returns the type of the validated operator.
 pub fn binary_operator_open(
     self: *Self,
-    ast: *ast_.AST,
+    ast: *const ast_.AST,
     expected: ?*Type_AST,
 ) Validate_Error_Enum!*Type_AST {
     const lhs_type = self.typecheck_AST(ast.lhs(), expected) catch return error.CompileError;
@@ -863,7 +861,7 @@ pub fn binary_operator_open(
 /// Validates just that each argument's type matches its corresponding parameter's type. Assumes arity is valid.
 pub fn validate_args_type(
     self: *Self,
-    args: *std.array_list.Managed(*ast_.AST),
+    args: *const std.array_list.Managed(*ast_.AST),
     expected: *Type_AST,
     variadic: bool,
 ) Validate_Error_Enum!std.array_list.Managed(*Type_AST) {
@@ -900,7 +898,7 @@ fn validate_L_Value(self: *Self, ast: *ast_.AST) Validate_Error_Enum!void {
         },
 
         else => {
-            self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "not an l-value" } });
+            self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = ast.span(), .msg = "not an l-value" } });
             return error.CompileError;
         },
     }
@@ -954,7 +952,7 @@ fn assert_mutable(self: *Self, ast: *ast_.AST) Validate_Error_Enum!void {
 
 fn assert_mutable_address(self: *const Self, ast: *Type_AST) Validate_Error_Enum!void {
     if (!ast.addr_of.mut) {
-        self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "cannot modify non-mutable address" } });
+        self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = ast.span(), .msg = "cannot modify non-mutable address" } });
         return error.CompileError;
     }
 }

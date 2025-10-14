@@ -20,7 +20,6 @@ pub fn init_structures(allocator: std.mem.Allocator) void {
             Token.init_simple("LMAO GET POISONED!"),
             allocator,
         );
-        _ = poisoned.enpoison();
         inited = true;
     }
 }
