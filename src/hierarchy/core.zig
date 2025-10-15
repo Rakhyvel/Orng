@@ -25,9 +25,9 @@ pub var test_type: *Type_AST = undefined;
 var core: ?*Scope = null;
 pub var core_symbol: ?*Symbol = null;
 pub var core_package_name: []const u8 = undefined;
-pub fn get_scope(compiler: *Compiler_Context) !*Scope {
+pub fn get_scope(ctx: *Compiler_Context) !*Scope {
     if (core == null) {
-        try create_core(compiler);
+        try create_core(ctx);
     }
     return core.?;
 }
@@ -36,35 +36,34 @@ pub fn deinit() void {
     core = null;
 }
 
-fn create_core(compiler: *Compiler_Context) !void {
+fn create_core(ctx: *Compiler_Context) !void {
     // Create core scope
     var uid_gen = UID_Gen.init();
 
-    repo_.ensure_packages_dir_exists(compiler.allocator());
-    core_package_name = repo_.get_repo_dir("core", compiler.allocator());
+    repo_.ensure_packages_dir_exists(ctx.allocator());
+    core_package_name = repo_.get_repo_dir("core", ctx.allocator());
     _ = std.fs.openDirAbsolute(core_package_name, .{}) catch {
         std.fs.makeDirAbsolute(core_package_name) catch unreachable;
     };
 
-    var core_module_abs_path = std.array_list.Managed(u8).init(compiler.allocator());
+    var core_module_abs_path = std.array_list.Managed(u8).init(ctx.allocator());
     core_module_abs_path.print("{s}{c}core.orng", .{ core_package_name, std.fs.path.sep }) catch unreachable;
 
-    const module = module_.Module.init(core_module_abs_path.toOwnedSlice() catch unreachable, compiler.allocator());
-    core = Scope.init(compiler.prelude, &uid_gen, compiler.allocator());
+    const module = module_.Module.init(core_module_abs_path.toOwnedSlice() catch unreachable, ctx);
+    core = Scope.init(ctx.prelude, &uid_gen, ctx.allocator());
     core_symbol = Symbol.init(
-        compiler.prelude,
+        ctx.prelude,
         "core",
-        ast_.AST.create_module(
-            Token.init_simple("core"),
-            core.?,
-            module,
-            compiler.allocator(),
-        ),
+        try ctx.ast_store.add(.{ .module = .{
+            ._token = Token.init_simple("core"),
+            ._scope = core.?,
+            .module = module,
+        } }),
         .module,
         .local,
-        compiler.allocator(),
+        ctx.allocator(),
     );
-    try compiler.prelude.put_symbol(core_symbol.?, &compiler.errors);
+    try ctx.prelude.put_symbol(core_symbol.?, &ctx.errors);
     core.?.module = module;
 
     const contents: []const u8 = @embedFile("core.orng");
@@ -76,10 +75,10 @@ fn create_core(compiler: *Compiler_Context) !void {
         module,
         core_symbol.?,
         false,
-        compiler,
+        ctx,
     );
 
-    const module_scope = compiler.module_scope(module.absolute_path).?;
+    const module_scope = ctx.module_scope(module.absolute_path).?;
     package_type = module_scope.lookup("Package", .{}).found.init_typedef().?;
     package_source_type = module_scope.lookup("Package_Source", .{}).found.init_typedef().?;
     test_result_type = module_scope.lookup("Test_Result", .{}).found.init_typedef().?;
@@ -87,7 +86,7 @@ fn create_core(compiler: *Compiler_Context) !void {
         test_result_type.token(),
         prelude_.unit_type,
         test_result_type,
-        compiler.allocator(),
+        ctx.allocator(),
     );
 
     _ = module_scope.lookup("Requirement", .{}).found.init_typedef().?;

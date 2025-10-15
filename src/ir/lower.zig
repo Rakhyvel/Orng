@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
+const Ast_Id = @import("../ast/ast_store.zig").Ast_Id;
 const Basic_Block = @import("../ir/basic-block.zig");
 const CFG = @import("../ir/cfg.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
@@ -83,7 +84,8 @@ pub fn lower_AST_into_cfg(self: *Self) Lower_Errors!void {
     }
 }
 
-fn lower_AST(self: *Self, ast: *ast_.AST, labels: Labels) Lower_Errors!?*lval_.L_Value {
+fn lower_AST(self: *Self, ast_id: Ast_Id, labels: Labels) Lower_Errors!?*lval_.L_Value {
+    const ast = self.ctx.ast_store.get(ast_id);
     const retval = self.lower_AST_inner(ast, labels);
     if (false) {
         std.debug.print("{}\n", .{ast});
@@ -99,9 +101,10 @@ fn lower_AST(self: *Self, ast: *ast_.AST, labels: Labels) Lower_Errors!?*lval_.L
 
 fn lower_AST_inner(
     self: *Self,
-    ast: *ast_.AST,
+    ast_id: Ast_Id,
     labels: Labels,
 ) Lower_Errors!?*lval_.L_Value {
+    const ast = self.ctx.ast_store.get(ast_id);
     switch (ast.*) {
         // Unit-values
         .enum_decl, .struct_decl, .unit_value, .template, .trait, .impl, .type_alias => return self.lval_from_unit_value(ast),
@@ -614,8 +617,9 @@ fn lower_AST_inner(
 
 fn lval_from_unit_value(
     self: *Self,
-    ast: *ast_.AST, // TODO: Just accept span
+    ast_id: Ast_Id, // TODO: Just accept span
 ) *lval_.L_Value {
+    const ast = self.ctx.ast_store.get(ast_id);
     const lval = self.create_temp_lvalue(prelude_.unit_type);
     self.instructions.append(Instruction.init(.load_unit, lval, null, null, ast.span(), self.ctx.allocator())) catch unreachable;
     return lval;
@@ -647,9 +651,10 @@ fn lval_from_symbol_cfg(
 
 fn unop(
     self: *Self,
-    ast: *ast_.AST, // TODO: Create some sort of context for these parameters?
+    ast_id: Ast_Id, // TODO: Create some sort of context for these parameters?
     labels: Labels,
 ) Lower_Errors!?*lval_.L_Value {
+    const ast = self.ctx.ast_store.get(ast_id);
     const expr = try self.lower_AST(ast.expr(), labels) orelse return null;
     const temp = self.create_temp_lvalue(self.ctx.typecheck.typeof(ast));
     self.instructions.append(Instruction.init_int_float_kind(int_kind(ast), float_kind(ast), temp, expr, null, ast.span(), self.ctx.allocator())) catch unreachable;
@@ -658,9 +663,10 @@ fn unop(
 
 fn binop(
     self: *Self,
-    ast: *ast_.AST, // TODO: Create some sort of context for these parameters?
+    ast_id: Ast_Id, // TODO: Create some sort of context for these parameters?
     labels: Labels,
 ) Lower_Errors!?*lval_.L_Value {
+    const ast = self.ctx.ast_store.get(ast_id);
     const lhs_lval = try self.lower_AST(ast.lhs(), labels);
     const rhs_lval = try self.lower_AST(ast.rhs(), labels);
     if (lhs_lval == null or rhs_lval == null) {
@@ -671,7 +677,8 @@ fn binop(
     return temp;
 }
 
-fn int_kind(ast: *ast_.AST) Instruction.Kind {
+fn int_kind(self: *Self, ast_id: Ast_Id) Instruction.Kind {
+    const ast = self.ctx.ast_store.get(ast_id);
     return switch (ast.*) {
         .not => .not,
         .negate => .negate_int,
@@ -692,7 +699,8 @@ fn int_kind(ast: *ast_.AST) Instruction.Kind {
     };
 }
 
-fn float_kind(ast: *ast_.AST) Instruction.Kind {
+fn float_kind(self: *Self, ast_id: Ast_Id) Instruction.Kind {
+    const ast = self.ctx.ast_store.get(ast_id);
     return switch (ast.*) {
         .not => .not,
         .negate => .negate_float,
@@ -715,9 +723,10 @@ fn float_kind(ast: *ast_.AST) Instruction.Kind {
 
 fn or_and_op(
     self: *Self,
-    ast: *ast_.AST,
+    ast_id: Ast_Id,
     labels: Labels,
 ) Lower_Errors!?*lval_.L_Value {
+    const ast = self.ctx.ast_store.get(ast_id);
     // Create the result symbol and labels used
     const or_and_symbol = self.create_temp_symbol(self.ctx.typecheck.typeof(ast));
     const jump_label = Instruction.init_label("or/and.jump", ast.span(), self.ctx.allocator());
@@ -745,9 +754,10 @@ fn or_and_op(
 
 fn tuple_equality_check(
     self: *Self,
-    ast: *ast_.AST,
+    ast_id: Ast_Id,
     labels: Labels,
 ) Lower_Errors!?*lval_.L_Value {
+    const ast = self.ctx.ast_store.get(ast_id);
     std.debug.assert(ast.* == .equal or ast.* == .not_equal);
     const lhs = try self.lower_AST(ast.lhs(), labels);
     const rhs = try self.lower_AST(ast.rhs(), labels);
@@ -805,9 +815,10 @@ fn tuple_equality_flow(
 
 fn coalesce_op(
     self: *Self,
-    ast: *ast_.AST, // The coalesce operator to lower
+    ast_id: Ast_Id, // The coalesce operator to lower
     labels: Labels, // The current labels to use
 ) Lower_Errors!?*lval_.L_Value {
+    const ast = self.ctx.ast_store.get(ast_id);
     // Create the result symbol and labels
     const coalesce_symbol = self.create_temp_symbol(self.ctx.typecheck.typeof(ast));
     const zero_label = Instruction.init_label("coalesce.zero", ast.span(), self.ctx.allocator());
@@ -839,7 +850,8 @@ fn coalesce_op(
     return lval_.L_Value.create_unversioned_symbver(coalesce_symbol, self.ctx.allocator());
 }
 
-fn bit_ir_kind_from_ast_kind(ast: *ast_.AST) Instruction.Kind {
+fn bit_ir_kind_from_ast_kind(self: *Self, ast_id: Ast_Id) Instruction.Kind {
+    const ast = self.ctx.ast_store.get(ast_id);
     return switch (ast.*) {
         .bit_and => Instruction.Kind.bit_and,
         .bit_or => Instruction.Kind.bit_or,
@@ -850,7 +862,7 @@ fn bit_ir_kind_from_ast_kind(ast: *ast_.AST) Instruction.Kind {
 
 fn generate_assign(
     self: *Self,
-    lhs: *ast_.AST, // AST node for the LHS of the `=`
+    lhs: Ast_Id, // AST node for the LHS of the `=`
     rhs: *lval_.L_Value, // L_Value which holds the value to assign
     labels: Labels,
 ) Lower_Errors!void {
@@ -946,7 +958,7 @@ fn generate_subslice_check(
 /// Generates Instruction code to jump to `label` iff `condition` evaluates to `sense`.
 fn flow(
     self: *Self,
-    condition: *ast_.AST,
+    condition: Ast_Id,
     label: *Instruction,
     sense: bool,
     span: Span,
@@ -994,11 +1006,12 @@ fn flow(
 /// Wraps stores to an lval in either a union or as a simple-copy
 fn generate_control_flow_block(
     self: *Self,
-    ast: *ast_.AST,
+    ast_id: Ast_Id,
     symbol: *Symbol,
     has_else: bool,
     labels: Labels,
 ) Lower_Errors!void {
+    const ast = self.ctx.ast_store.get(ast_id);
     if (try self.lower_AST(ast, labels)) |rhs_lval| {
         const rhs_copy_lval = lval_.L_Value.create_unversioned_symbver(symbol, self.ctx.allocator());
         if (has_else) {
@@ -1011,7 +1024,7 @@ fn generate_control_flow_block(
 
 fn generate_control_flow_else(
     self: *Self,
-    ast: ?*ast_.AST,
+    ast: ?Ast_Id,
     symbol: *Symbol,
     span: Span,
     labels: Labels,
@@ -1031,7 +1044,7 @@ fn generate_control_flow_else(
 fn generate_match_pattern_checks(
     self: *Self,
     expr: *lval_.L_Value,
-    mappings: std.array_list.Managed(*ast_.AST),
+    mappings: std.array_list.Managed(Ast_Id),
     none_label: *Instruction,
     labels: Labels,
 ) Lower_Errors!std.array_list.Managed(*Instruction) {
@@ -1058,7 +1071,7 @@ fn generate_match_pattern_checks(
 /// Generates the code which checks if the pattern matches the match expression
 fn generate_match_pattern_check(
     self: *Self,
-    pattern: ?*ast_.AST,
+    pattern: ?Ast_Id,
     expr: *lval_.L_Value,
     next_pattern: *Instruction,
     labels: Labels,
@@ -1110,7 +1123,7 @@ fn generate_match_pattern_check(
 fn generate_match_bodies(
     self: *Self,
     expr: *lval_.L_Value,
-    mappings: std.array_list.Managed(*ast_.AST),
+    mappings: std.array_list.Managed(Ast_Id),
     rhs_label_list: std.array_list.Managed(*Instruction),
     symbol: *Symbol,
     end_label: *Instruction,
@@ -1160,13 +1173,18 @@ fn create_temp_symbol(self: *Self, _type: *Type_AST) *Symbol {
     self.number_temps += 1;
     const name = buf.toOwnedSlice() catch unreachable;
     const token = Token.init_simple(name);
-    const decl = ast_.AST.create_decl(
-        token,
-        ast_.AST.create_pattern_symbol(token, .mut, .local, name, self.ctx.allocator()),
-        _type,
-        null,
-        self.ctx.allocator(),
-    );
+    const decl = try self.ctx.ast_store.add(.{ .decl = .{
+        ._token = token,
+        .name = try self.ctx.ast_store.add(.{ .pattern_symbol = .{
+            ._token = token,
+            .kind = .mut,
+            .storage = .local,
+            .name = name,
+        } }),
+        .type = _type,
+        .init = null,
+    } });
+
     var temp_symbol = Symbol.init(
         self.cfg.symbol.scope,
         name,
@@ -1182,7 +1200,7 @@ fn create_temp_symbol(self: *Self, _type: *Type_AST) *Symbol {
 
 fn generate_defers(
     self: *Self,
-    defers: *std.array_list.Managed(*ast_.AST),
+    defers: *std.array_list.Managed(Ast_Id),
     defer_labels: *std.array_list.Managed(*Instruction),
 ) Lower_Errors!void {
     var i: usize = defers.items.len;
@@ -1195,7 +1213,7 @@ fn generate_defers(
 /// Generates all symbol definitions in a pattern
 fn generate_pattern(
     self: *Self,
-    pattern: *ast_.AST,
+    pattern: Ast_Id,
     _type: *Type_AST,
     def: *lval_.L_Value,
 ) Lower_Errors!void {

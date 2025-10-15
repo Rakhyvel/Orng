@@ -7,6 +7,7 @@
 // 6. `pub using namespace @import("poisoned-ast.zig");
 
 const std = @import("std");
+const Ast_Id = @import("ast_store.zig").Ast_Id;
 const module_ = @import("../hierarchy/module.zig");
 const alignment_ = @import("../util/alignment.zig");
 const core_ = @import("../hierarchy/core.zig");
@@ -45,44 +46,38 @@ pub const Sum_From = enum {
     none, // Regular, plain sum-type
 };
 
-/// Contains common properties of all AST nodes
-pub const AST_Common = struct {
-    /// Token that defined the AST node in text.
-    _token: Token,
-};
-
 /// Represents an Abstract Syntax Tree.
 pub const AST = union(enum) {
-    poison: struct { common: AST_Common },
+    poison: struct { _token: Token },
     /// Unit value
-    unit_value: struct { common: AST_Common },
+    unit_value: struct { _token: Token },
     /// Integer constant
     int: struct {
-        common: AST_Common,
+        _token: Token,
         data: i128,
     },
     /// Floating-point constant
     float: struct {
-        common: AST_Common,
+        _token: Token,
         data: f64,
     },
     /// Character constant
-    char: struct { common: AST_Common },
+    char: struct { _token: Token },
     /// String constant
     string: struct {
-        common: AST_Common,
+        _token: Token,
         data: []const u8,
     },
     /// True constant
-    true: struct { common: AST_Common },
+    true: struct { _token: Token },
     /// False constant
-    false: struct { common: AST_Common },
+    false: struct { _token: Token },
     /// Field
     /// This tag is used for the right-hand-side of selects. They do not refer to symbols.
-    field: struct { common: AST_Common },
+    field: struct { _token: Token },
     /// Identifier
     identifier: struct {
-        common: AST_Common,
+        _token: Token,
         _symbol: ?*Symbol = null,
 
         pub inline fn refers_to_template(self: @This()) bool {
@@ -90,78 +85,78 @@ pub const AST = union(enum) {
         }
     },
 
-    not: struct { common: AST_Common, _expr: *AST },
-    negate: struct { common: AST_Common, _expr: *AST },
-    dereference: struct { common: AST_Common, _expr: *AST },
+    not: struct { _token: Token, _expr: Ast_Id },
+    negate: struct { _token: Token, _expr: Ast_Id },
+    dereference: struct { _token: Token, _expr: Ast_Id },
     @"try": struct {
-        common: AST_Common,
-        _expr: *AST,
+        _token: Token,
+        _expr: Ast_Id,
         _symbol: ?*Symbol, // `try`'s must be in functions. This is the function's symbol.
     },
     @"comptime": struct {
-        common: AST_Common,
-        _expr: *AST,
-        name: ?*AST = null,
-        result: ?*AST = null,
+        _token: Token,
+        _expr: Ast_Id,
+        name: ?Ast_Id = null,
+        result: ?Ast_Id = null,
         _scope: ?*Scope = null, // Surrounding scope. Filled in at symbol-tree creation. Used to create a comptime symbol
     },
 
     // Binary operators
     // TODO: We could de-duplicate this, I suppose.
-    assign: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
-    @"or": struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
-    @"and": struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
-    add: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
-    sub: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
-    mult: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
-    div: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
-    mod: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
-    equal: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
-    not_equal: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
-    greater: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
-    lesser: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
-    greater_equal: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
-    lesser_equal: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
-    @"catch": struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
-    @"orelse": struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
-    call: struct { common: AST_Common, _lhs: *AST, _args: std.array_list.Managed(*AST) },
-    bit_and: struct { common: AST_Common, _args: std.array_list.Managed(*AST) },
-    bit_or: struct { common: AST_Common, _args: std.array_list.Managed(*AST) },
-    bit_xor: struct { common: AST_Common, _args: std.array_list.Managed(*AST) },
-    bit_not: struct { common: AST_Common, _expr: *AST },
-    left_shift: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
-    right_shift: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
-    index: struct { common: AST_Common, _lhs: *AST, _children: std.array_list.Managed(*AST) },
+    assign: struct { _token: Token, _lhs: Ast_Id, _rhs: Ast_Id },
+    @"or": struct { _token: Token, _lhs: Ast_Id, _rhs: Ast_Id },
+    @"and": struct { _token: Token, _lhs: Ast_Id, _rhs: Ast_Id },
+    add: struct { _token: Token, _lhs: Ast_Id, _rhs: Ast_Id },
+    sub: struct { _token: Token, _lhs: Ast_Id, _rhs: Ast_Id },
+    mult: struct { _token: Token, _lhs: Ast_Id, _rhs: Ast_Id },
+    div: struct { _token: Token, _lhs: Ast_Id, _rhs: Ast_Id },
+    mod: struct { _token: Token, _lhs: Ast_Id, _rhs: Ast_Id },
+    equal: struct { _token: Token, _lhs: Ast_Id, _rhs: Ast_Id },
+    not_equal: struct { _token: Token, _lhs: Ast_Id, _rhs: Ast_Id },
+    greater: struct { _token: Token, _lhs: Ast_Id, _rhs: Ast_Id },
+    lesser: struct { _token: Token, _lhs: Ast_Id, _rhs: Ast_Id },
+    greater_equal: struct { _token: Token, _lhs: Ast_Id, _rhs: Ast_Id },
+    lesser_equal: struct { _token: Token, _lhs: Ast_Id, _rhs: Ast_Id },
+    @"catch": struct { _token: Token, _lhs: Ast_Id, _rhs: Ast_Id },
+    @"orelse": struct { _token: Token, _lhs: Ast_Id, _rhs: Ast_Id },
+    call: struct { _token: Token, _lhs: Ast_Id, _args: std.array_list.Managed(Ast_Id) },
+    bit_and: struct { _token: Token, _args: std.array_list.Managed(Ast_Id) },
+    bit_or: struct { _token: Token, _args: std.array_list.Managed(Ast_Id) },
+    bit_xor: struct { _token: Token, _args: std.array_list.Managed(Ast_Id) },
+    bit_not: struct { _token: Token, _expr: Ast_Id },
+    left_shift: struct { _token: Token, _lhs: Ast_Id, _rhs: Ast_Id },
+    right_shift: struct { _token: Token, _lhs: Ast_Id, _rhs: Ast_Id },
+    index: struct { _token: Token, _lhs: Ast_Id, _children: std.array_list.Managed(Ast_Id) },
     generic_apply: struct {
-        common: AST_Common,
-        _lhs: *AST,
+        _token: Token,
+        _lhs: Ast_Id,
         _children: std.array_list.Managed(*Type_AST),
         _symbol: ?*Symbol = null,
         state: enum { unmorphed, morphing, morphed } = .unmorphed,
     },
     select: struct {
-        common: AST_Common,
-        _lhs: *AST,
-        _rhs: *AST,
-        _pos: ?usize,
+        _token: Token,
+        _lhs: Ast_Id,
+        _rhs: Ast_Id,
+        _pos: ?usize = null,
     },
     access: struct {
-        common: AST_Common,
-        _lhs: *AST,
-        _rhs: *AST,
+        _token: Token,
+        _lhs: Ast_Id,
+        _rhs: Ast_Id,
         // _pos: ?usize,
         _symbol: ?*Symbol = null,
         _scope: ?*Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
     },
     trait: struct {
-        common: AST_Common,
-        method_decls: std.array_list.Managed(*AST),
-        const_decls: std.array_list.Managed(*AST),
+        _token: Token,
+        method_decls: std.array_list.Managed(Ast_Id),
+        const_decls: std.array_list.Managed(Ast_Id),
         num_virtual_methods: i64 = 0,
         _symbol: ?*Symbol = null, // Filled by symbol-tree pass.
         _scope: ?*Scope = null, // Filled by symbol-tree pass.
 
-        pub fn find_method(self: @This(), name: []const u8) ?*AST {
+        pub fn find_method(self: @This(), name: []const u8) ?Ast_Id {
             for (self.method_decls.items) |decl| {
                 if (std.mem.eql(u8, decl.method_decl.name.token().data, name)) {
                     return decl;
@@ -171,187 +166,187 @@ pub const AST = union(enum) {
         }
     },
     impl: struct {
-        common: AST_Common,
-        trait: ?*AST, // Identifier-like ast which refers to the trait
+        _token: Token,
+        trait: ?Ast_Id, // Identifier-like ast which refers to the trait
         _type: *Type_AST, // The `for` type for this impl
-        method_defs: std.array_list.Managed(*AST),
-        const_defs: std.array_list.Managed(*AST),
-        _generic_params: std.array_list.Managed(*AST), // list of annotations
+        method_defs: std.array_list.Managed(Ast_Id),
+        const_defs: std.array_list.Managed(Ast_Id),
+        _generic_params: std.array_list.Managed(Ast_Id), // list of annotations
         num_virtual_methods: i64 = 0,
         _scope: ?*Scope = null, // Scope used for `impl` methods, rooted in `impl`'s scope.
         impls_anon_trait: bool = false, // true when this impl implements an anonymous trait
-        instantiations: Monomorph_Map(*AST),
+        instantiations: Monomorph_Map(Ast_Id),
     },
     invoke: struct {
-        common: AST_Common,
-        _lhs: *AST,
-        _rhs: *AST,
-        _args: std.array_list.Managed(*AST),
+        _token: Token,
+        _lhs: Ast_Id,
+        _rhs: Ast_Id,
+        _args: std.array_list.Managed(Ast_Id),
         _scope: ?*Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
-        method_decl: ?*AST = null,
+        method_decl: ?Ast_Id = null,
         prepended: bool = false, // Whether or not this invoke has already been prepended, so that clones don't re-do that (TODO: Maybe turn invokes into calls?)
     },
     /// A struct-like-value of pointers to the vtable, and to the receiver
     dyn_value: struct {
-        common: AST_Common,
+        _token: Token,
         dyn_type: *Type_AST, // reference to the type of this value, since it is only created using address-ofs
-        _expr: *AST,
+        _expr: Ast_Id,
         mut: bool,
-        impl: ?*AST = null, // The implementation AST, whose vtable should be used
+        impl: ?Ast_Id = null, // The implementation AST, whose vtable should be used
         _scope: ?*Scope = null, // Surrounding scope. Filled in when addr-of is converted
     },
     enum_value: struct {
-        common: AST_Common,
+        _token: Token,
         domain: ?*Type_AST = null, // kept in it's annotation form, for compatability with calls
-        init: ?*AST = null,
+        init: ?Ast_Id = null,
         base: ?*Type_AST = null,
         _pos: ?usize = null,
 
         pub fn get_name(self: *const @This()) []const u8 {
-            return self.common._token.data;
+            return self._token.data;
         }
     },
     struct_value: struct {
-        common: AST_Common,
+        _token: Token,
         parent: *Type_AST,
-        _terms: std.array_list.Managed(*AST),
+        _terms: std.array_list.Managed(Ast_Id),
         was_slice: bool,
     },
     tuple_value: struct {
-        common: AST_Common,
-        _terms: std.array_list.Managed(*AST),
+        _token: Token,
+        _terms: std.array_list.Managed(Ast_Id),
     },
     array_value: struct {
-        common: AST_Common,
-        _terms: std.array_list.Managed(*AST),
+        _token: Token,
+        _terms: std.array_list.Managed(Ast_Id),
     },
 
     // Fancy operators
     as: struct {
-        common: AST_Common,
-        _expr: *AST,
+        _token: Token,
+        _expr: Ast_Id,
         _type: *Type_AST,
     },
     addr_of: struct {
-        common: AST_Common,
-        _expr: *AST,
+        _token: Token,
+        _expr: Ast_Id,
         mut: bool,
         multiptr: bool = false,
         anytptr: bool = false, // When this is true, the addr_of should output as a void*, and should be cast whenever dereferenced
         _scope: ?*Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
     },
     slice_of: struct {
-        common: AST_Common,
-        _expr: *AST,
+        _token: Token,
+        _expr: Ast_Id,
         mut: bool,
     },
-    sub_slice: struct { common: AST_Common, super: *AST, lower: ?*AST, upper: ?*AST },
+    sub_slice: struct { _token: Token, super: Ast_Id, lower: ?Ast_Id, upper: ?Ast_Id },
     receiver: struct {
-        common: AST_Common,
+        _token: Token,
         kind: Receiver_Kind,
         _type: ?*Type_AST = null,
     },
     default: struct {
-        common: AST_Common,
+        _token: Token,
         _type: *Type_AST,
     },
     size_of: struct {
-        common: AST_Common,
+        _token: Token,
         _type: *Type_AST,
     },
 
     // Control-flow expressions
     @"if": struct {
-        common: AST_Common,
+        _token: Token,
         _scope: ?*Scope,
-        let: ?*AST,
-        condition: *AST,
-        _body_block: *AST,
-        _else_block: ?*AST,
+        let: ?Ast_Id,
+        condition: Ast_Id,
+        _body_block: Ast_Id,
+        _else_block: ?Ast_Id,
     },
     match: struct {
-        common: AST_Common,
+        _token: Token,
         _scope: ?*Scope,
-        let: ?*AST,
-        _expr: *AST,
-        _mappings: std.array_list.Managed(*AST),
+        let: ?Ast_Id,
+        _expr: Ast_Id,
+        _mappings: std.array_list.Managed(Ast_Id),
     },
     mapping: struct {
-        common: AST_Common,
-        _lhs: *AST,
-        _rhs: *AST,
-        captures: std.array_list.Managed(*AST),
+        _token: Token,
+        _lhs: Ast_Id,
+        _rhs: Ast_Id,
+        captures: std.array_list.Managed(Ast_Id),
         _scope: ?*Scope, // Scope used for `match` mappings, rooted in `match`'s scope. Captures, rhs live in this scope
     },
     @"while": struct {
-        common: AST_Common,
+        _token: Token,
         _scope: ?*Scope,
-        let: ?*AST,
-        condition: *AST,
-        post: ?*AST,
-        _body_block: *AST,
-        _else_block: ?*AST,
+        let: ?Ast_Id,
+        condition: Ast_Id,
+        post: ?Ast_Id,
+        _body_block: Ast_Id,
+        _else_block: ?Ast_Id,
     },
     @"for": struct {
-        common: AST_Common,
+        _token: Token,
         _scope: ?*Scope,
-        let: ?*AST,
-        elem: *AST,
-        iterable: *AST,
-        _body_block: *AST,
-        _else_block: ?*AST,
+        let: ?Ast_Id,
+        elem: Ast_Id,
+        iterable: Ast_Id,
+        _body_block: Ast_Id,
+        _else_block: ?Ast_Id,
     },
     block: struct {
-        common: AST_Common,
+        _token: Token,
         _scope: ?*Scope,
-        _statements: std.array_list.Managed(*AST),
-        defers: std.array_list.Managed(*AST),
-        errdefers: std.array_list.Managed(*AST),
-        final: ?*AST, // either `return`, `continue`, or `break`
+        _statements: std.array_list.Managed(Ast_Id),
+        defers: std.array_list.Managed(Ast_Id),
+        errdefers: std.array_list.Managed(Ast_Id),
+        final: ?Ast_Id, // either `return`, `continue`, or `break`
     },
 
     // Control-flow statements
-    @"break": struct { common: AST_Common },
-    @"continue": struct { common: AST_Common },
-    @"unreachable": struct { common: AST_Common },
+    @"break": struct { _token: Token },
+    @"continue": struct { _token: Token },
+    @"unreachable": struct { _token: Token },
     @"return": struct {
-        common: AST_Common,
-        _ret_expr: ?*AST,
+        _token: Token,
+        _ret_expr: ?Ast_Id,
         _symbol: ?*Symbol, // `retrun`'s must be in functions. This is the function's symbol.
     },
     /// This type is a special version of an identifier. It is needed to encapsulate information about a
     /// symbol declaration that is needed before the symbol is even constructed. An identifier AST cannot be
     /// used for this purpose, because it refers to a symbol _after_ symbol decoration.
     pattern_symbol: struct {
-        common: AST_Common,
+        _token: Token,
         name: []const u8,
         kind: Symbol.Kind,
         storage: Symbol.Storage,
         _symbol: ?*Symbol = undefined,
     },
     binding: struct {
-        common: AST_Common,
-        pattern: *AST, // Pattern of the binding
+        _token: Token,
+        pattern: Ast_Id, // Pattern of the binding
         type: *Type_AST, // Conceptually, the type for the binding as a whole
-        init: ?*AST, // The init value for the binding as a whole. Possible to be null if `undefiend`.
-        decls: std.array_list.Managed(*AST),
+        init: ?Ast_Id, // The init value for the binding as a whole. Possible to be null if `undefiend`.
+        decls: std.array_list.Managed(Ast_Id),
     },
     decl: struct {
-        common: AST_Common,
-        name: *AST, // The pattern symbol AST for this decl. Access the symbol through this
+        _token: Token,
+        name: Ast_Id, // The pattern symbol AST for this decl. Access the symbol through this
         type: *Type_AST,
-        init: ?*AST,
+        init: ?Ast_Id,
     },
     fn_decl: struct {
-        common: AST_Common,
-        _generic_params: std.array_list.Managed(*AST),
-        name: ?*AST, //
-        _params: std.array_list.Managed(*AST), // Parameters' decl ASTs
+        _token: Token,
+        _generic_params: std.array_list.Managed(Ast_Id),
+        name: ?Ast_Id, //
+        _params: std.array_list.Managed(Ast_Id), // Parameters' decl ASTs
         _param_symbols: std.array_list.Managed(*Symbol), // Parameters' symbols
         ret_type: *Type_AST,
         _decl_type: ?*Type_AST = null,
-        refinement: ?*AST,
-        init: *AST,
+        refinement: ?Ast_Id,
+        init: Ast_Id,
         _symbol: ?*Symbol = null,
         _scope: ?*Scope = null,
         infer_error: bool,
@@ -377,1418 +372,94 @@ pub const AST = union(enum) {
         }
     },
     type_param_decl: struct {
-        common: AST_Common,
+        _token: Token,
         _symbol: ?*Symbol = null,
     },
     struct_decl: struct {
-        common: AST_Common,
-        name: *AST,
+        _token: Token,
+        name: Ast_Id,
         fields: std.array_list.Managed(*Type_AST),
-        _generic_params: std.array_list.Managed(*AST),
+        _generic_params: std.array_list.Managed(Ast_Id),
         _type: *Type_AST,
         _symbol: ?*Symbol = null,
         _scope: ?*Scope = null,
     },
     enum_decl: struct {
-        common: AST_Common,
-        name: *AST,
+        _token: Token,
+        name: Ast_Id,
         fields: std.array_list.Managed(*Type_AST),
-        _generic_params: std.array_list.Managed(*AST),
+        _generic_params: std.array_list.Managed(Ast_Id),
         _type: *Type_AST,
         _symbol: ?*Symbol = null,
         _scope: ?*Scope = null,
     },
     type_alias: struct {
-        common: AST_Common,
-        name: *AST,
+        _token: Token,
+        name: Ast_Id,
         init: ?*Type_AST,
-        _generic_params: std.array_list.Managed(*AST),
+        _generic_params: std.array_list.Managed(Ast_Id),
         _symbol: ?*Symbol = null,
         _scope: ?*Scope = null,
     },
     method_decl: struct {
-        common: AST_Common,
-        name: *AST,
+        _token: Token,
+        name: Ast_Id,
         is_virtual: bool,
-        receiver: ?*AST,
-        _params: std.array_list.Managed(*AST), // Parameters' decl ASTs
+        receiver: ?Ast_Id,
+        _params: std.array_list.Managed(Ast_Id), // Parameters' decl ASTs
         _param_symbols: std.array_list.Managed(*Symbol), // Parameters' symbols
         c_type: ?*Type_AST = null,
         domain: ?*Type_AST = null, // Domain type when calling. Filled in at symbol-tree creation for impls and traits.
         ret_type: *Type_AST,
         _decl_type: ?*Type_AST = null,
-        refinement: ?*AST,
-        init: ?*AST,
-        impl: ?*AST = null, // The surrounding `impl`. Null for method_decls in traits.
+        refinement: ?Ast_Id,
+        init: ?Ast_Id,
+        impl: ?Ast_Id = null, // The surrounding `impl`. Null for method_decls in traits.
         _symbol: ?*Symbol = null,
     },
     @"test": struct {
-        common: AST_Common,
-        name: ?*AST,
-        init: *AST,
+        _token: Token,
+        name: ?Ast_Id,
+        init: Ast_Id,
         _symbol: ?*Symbol = null,
     },
     module: struct {
-        common: AST_Common,
+        _token: Token,
         _scope: ?*Scope, // Only null for compatibility. Always present.
         module: *module_.Module,
     },
     import: struct {
-        common: AST_Common,
-        pattern: *AST,
+        _token: Token,
+        pattern: Ast_Id,
     },
     cinclude: struct {
-        common: AST_Common,
-        _expr: *AST,
+        _token: Token,
+        _expr: Ast_Id,
     },
-    template: struct {
-        common: AST_Common,
-        decl: *AST, // The decl of the symbol(s) that is being templated
-        memo: Monomorph_Map(*Symbol),
-        _symbol: ?*Symbol = null, // The symbol for this template
-    },
-    @"defer": struct { common: AST_Common, _statement: *AST },
-    @"errdefer": struct { common: AST_Common, _statement: *AST },
-
-    pub fn create_poison(_token: Token, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .poison = .{ .common = AST_Common{
-            ._token = _token,
-        } } }, allocator);
-    }
-
-    pub fn create_unit_value(_token: Token, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .unit_value = .{ .common = AST_Common{
-            ._token = _token,
-        } } }, allocator);
-    }
-
-    pub fn create_int(_token: Token, data: i128, allocator: std.mem.Allocator) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .int = .{
-            .common = _common,
-            .data = data,
-        } }, allocator);
-    }
-
-    pub fn create_char(
-        _token: Token, // `token.data` should of course encompass the `'` used for character delimination. This is unlike strings.
-        allocator: std.mem.Allocator,
-    ) *AST {
-        return AST.box(AST{ .char = .{ .common = AST_Common{
-            ._token = _token,
-        } } }, allocator);
-    }
-
-    pub fn create_float(_token: Token, data: f64, allocator: std.mem.Allocator) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .float = .{
-            .common = _common,
-            .data = data,
-        } }, allocator);
-    }
-
-    pub fn create_string(
-        _token: Token,
-        data: []const u8, // The string's raw utf8 bytes, not containing `"`'s, with escapes escaped
-        allocator: std.mem.Allocator,
-    ) *AST {
-        return AST.box(AST{ .string = .{ .common = AST_Common{
-            ._token = _token,
-        }, .data = data } }, allocator);
-    }
-
-    pub fn create_field(_token: Token, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .field = .{ .common = AST_Common{
-            ._token = _token,
-        } } }, allocator);
-    }
-
-    pub fn create_identifier(_token: Token, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .identifier = .{ .common = AST_Common{
-            ._token = _token,
-        } } }, allocator);
-    }
-
-    pub fn create_unreachable(_token: Token, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .@"unreachable" = .{ .common = AST_Common{
-            ._token = _token,
-        } } }, allocator);
-    }
-
-    pub fn create_true(_token: Token, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .true = .{ .common = AST_Common{
-            ._token = _token,
-        } } }, allocator);
-    }
-
-    pub fn create_false(_token: Token, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .false = .{ .common = AST_Common{
-            ._token = _token,
-        } } }, allocator);
-    }
-
-    pub fn create_not(_token: Token, _expr: *AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .not = .{
-            .common = AST_Common{ ._token = _token },
-            ._expr = _expr,
-        } }, allocator);
-    }
-
-    pub fn create_negate(_token: Token, _expr: *AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .negate = .{
-            .common = AST_Common{ ._token = _token },
-            ._expr = _expr,
-        } }, allocator);
-    }
-
-    pub fn create_dereference(_token: Token, _expr: *AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .dereference = .{
-            .common = AST_Common{ ._token = _token },
-            ._expr = _expr,
-        } }, allocator);
-    }
-
-    pub fn create_try(_token: Token, _expr: *AST, allocator: std.mem.Allocator) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .@"try" = .{ .common = _common, ._expr = _expr, ._symbol = null } }, allocator);
-    }
-
-    pub fn create_comptime(_token: Token, _expr: *AST, allocator: std.mem.Allocator) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(
-            AST{ .@"comptime" = .{ .common = _common, ._expr = _expr, .name = null } },
-            allocator,
-        );
-    }
-
-    pub fn create_default(_token: Token, _expr: *Type_AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .default = .{
-            .common = AST_Common{ ._token = _token },
-            ._type = _expr,
-        } }, allocator);
-    }
-
-    pub fn create_size_of(_token: Token, _expr: *Type_AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .size_of = .{
-            .common = AST_Common{ ._token = _token },
-            ._type = _expr,
-        } }, allocator);
-    }
-
-    pub fn create_assign(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .assign = .{
-            .common = AST_Common{ ._token = _token },
-            ._lhs = _lhs,
-            ._rhs = _rhs,
-        } }, allocator);
-    }
-
-    pub fn create_or(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .@"or" = .{
-            .common = AST_Common{ ._token = _token },
-            ._lhs = _lhs,
-            ._rhs = _rhs,
-        } }, allocator);
-    }
-
-    pub fn create_and(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .@"and" = .{
-            .common = AST_Common{ ._token = _token },
-            ._lhs = _lhs,
-            ._rhs = _rhs,
-        } }, allocator);
-    }
-
-    pub fn create_equal(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .equal = .{
-            .common = AST_Common{ ._token = _token },
-            ._lhs = _lhs,
-            ._rhs = _rhs,
-        } }, allocator);
-    }
-
-    pub fn create_not_equal(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .not_equal = .{
-            .common = _common,
-            ._lhs = _lhs,
-            ._rhs = _rhs,
-        } }, allocator);
-    }
-
-    pub fn create_greater(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .greater = .{
-            .common = _common,
-            ._lhs = _lhs,
-            ._rhs = _rhs,
-        } }, allocator);
-    }
-
-    pub fn create_lesser(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .lesser = .{
-            .common = _common,
-            ._lhs = _lhs,
-            ._rhs = _rhs,
-        } }, allocator);
-    }
-
-    pub fn create_greater_equal(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .greater_equal = .{
-            .common = _common,
-            ._lhs = _lhs,
-            ._rhs = _rhs,
-        } }, allocator);
-    }
-
-    pub fn create_lesser_equal(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .lesser_equal = .{
-            .common = _common,
-            ._lhs = _lhs,
-            ._rhs = _rhs,
-        } }, allocator);
-    }
-
-    pub fn create_add(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .add = .{
-            .common = AST_Common{ ._token = _token },
-            ._lhs = _lhs,
-            ._rhs = _rhs,
-        } }, allocator);
-    }
-
-    pub fn create_sub(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .sub = .{
-            .common = AST_Common{ ._token = _token },
-            ._lhs = _lhs,
-            ._rhs = _rhs,
-        } }, allocator);
-    }
-
-    pub fn create_mult(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .mult = .{
-            .common = AST_Common{ ._token = _token },
-            ._lhs = _lhs,
-            ._rhs = _rhs,
-        } }, allocator);
-    }
-
-    pub fn create_div(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .div = .{
-            .common = AST_Common{ ._token = _token },
-            ._lhs = _lhs,
-            ._rhs = _rhs,
-        } }, allocator);
-    }
-
-    pub fn create_mod(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .mod = .{
-            .common = AST_Common{ ._token = _token },
-            ._lhs = _lhs,
-            ._rhs = _rhs,
-        } }, allocator);
-    }
-
-    pub fn create_catch(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .@"catch" = .{ .common = _common, ._lhs = _lhs, ._rhs = _rhs } }, allocator);
-    }
-
-    pub fn create_orelse(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .@"orelse" = .{ .common = _common, ._lhs = _lhs, ._rhs = _rhs } }, allocator);
-    }
-
-    pub fn create_call(_token: Token, _lhs: *AST, args: std.array_list.Managed(*AST), allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .call = .{
-            .common = AST_Common{ ._token = _token },
-            ._lhs = _lhs,
-            ._args = args,
-        } }, allocator);
-    }
-
-    pub fn create_bit_and(_token: Token, args: std.array_list.Managed(*AST), allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .bit_and = .{
-            .common = AST_Common{ ._token = _token },
-            ._args = args,
-        } }, allocator);
-    }
-
-    pub fn create_bit_or(_token: Token, args: std.array_list.Managed(*AST), allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .bit_or = .{
-            .common = AST_Common{ ._token = _token },
-            ._args = args,
-        } }, allocator);
-    }
-
-    pub fn create_bit_xor(_token: Token, args: std.array_list.Managed(*AST), allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .bit_xor = .{
-            .common = AST_Common{ ._token = _token },
-            ._args = args,
-        } }, allocator);
-    }
-
-    pub fn create_bit_not(_token: Token, _expr: *AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .bit_not = .{
-            .common = AST_Common{ ._token = _token },
-            ._expr = _expr,
-        } }, allocator);
-    }
-
-    pub fn create_left_shift(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .left_shift = .{
-            .common = AST_Common{ ._token = _token },
-            ._lhs = _lhs,
-            ._rhs = _rhs,
-        } }, allocator);
-    }
-
-    pub fn create_right_shift(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .right_shift = .{
-            .common = AST_Common{ ._token = _token },
-            ._lhs = _lhs,
-            ._rhs = _rhs,
-        } }, allocator);
-    }
-
-    pub fn create_index(_token: Token, _lhs: *AST, _children: std.array_list.Managed(*AST), allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .index = .{
-            .common = AST_Common{ ._token = _token },
-            ._lhs = _lhs,
-            ._children = _children,
-        } }, allocator);
-    }
-
-    pub fn create_generic_apply(_token: Token, _lhs: *AST, _children: std.array_list.Managed(*Type_AST), allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .generic_apply = .{
-            .common = AST_Common{ ._token = _token },
-            ._lhs = _lhs,
-            ._children = _children,
-        } }, allocator);
-    }
-
-    pub fn create_select(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .select = .{
-            .common = _common,
-            ._lhs = _lhs,
-            ._rhs = _rhs,
-            ._pos = null,
-        } }, allocator);
-    }
-
-    pub fn create_access(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .access = .{
-            .common = _common,
-            ._lhs = _lhs,
-            ._rhs = _rhs,
-        } }, allocator);
-    }
-
-    pub fn create_enum_value(_token: Token, allocator: std.mem.Allocator) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .enum_value = .{ .common = _common } }, allocator);
-    }
-
-    pub fn create_trait(
-        _token: Token,
-        method_decls: std.array_list.Managed(*AST),
-        const_decls: std.array_list.Managed(*AST),
-        allocator: std.mem.Allocator,
-    ) *AST {
-        return AST.box(AST{ .trait = .{
-            .common = AST_Common{ ._token = _token },
-            .method_decls = method_decls,
-            .const_decls = const_decls,
-        } }, allocator);
-    }
-
-    pub fn create_impl(
-        _token: Token,
-        _trait: ?*AST,
-        _type: *Type_AST,
-        method_defs: std.array_list.Managed(*AST),
-        const_defs: std.array_list.Managed(*AST),
-        _generic_params: std.array_list.Managed(*AST),
-        allocator: std.mem.Allocator,
-    ) *AST {
-        return AST.box(
-            AST{ .impl = .{
-                .common = AST_Common{ ._token = _token },
-                .trait = _trait,
-                ._type = _type,
-                .method_defs = method_defs,
-                .const_defs = const_defs,
-                ._generic_params = _generic_params,
-                .instantiations = Monomorph_Map(*AST).init(allocator),
-            } },
-            allocator,
-        );
-    }
-
-    pub fn create_invoke(
-        _token: Token,
-        _lhs: *AST,
-        _rhs: *AST,
-        args: std.array_list.Managed(*AST),
-        allocator: std.mem.Allocator,
-    ) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .invoke = .{
-            .common = _common,
-            ._lhs = _lhs,
-            ._rhs = _rhs,
-            ._args = args,
-        } }, allocator);
-    }
-
-    pub fn create_dyn_value(
-        _token: Token,
-        dyn_type: *Type_AST,
-        _expr: *AST,
-        _scope: *Scope,
-        _mut: bool,
-        allocator: std.mem.Allocator,
-    ) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .dyn_value = .{
-            .common = _common,
-            .dyn_type = dyn_type,
-            ._expr = _expr,
-            ._scope = _scope,
-            .mut = _mut,
-        } }, allocator);
-    }
-
-    pub fn create_struct_value(_token: Token, parent: *Type_AST, terms: std.array_list.Managed(*AST), allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .struct_value = .{
-            .common = AST_Common{ ._token = _token },
-            .parent = parent,
-            ._terms = terms,
-            .was_slice = false,
-        } }, allocator);
-    }
-
-    pub fn create_tuple_value(_token: Token, terms: std.array_list.Managed(*AST), allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .tuple_value = .{
-            .common = AST_Common{ ._token = _token },
-            ._terms = terms,
-        } }, allocator);
-    }
-
-    pub fn create_array_value(_token: Token, terms: std.array_list.Managed(*AST), allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .array_value = .{
-            .common = AST_Common{ ._token = _token },
-            ._terms = terms,
-        } }, allocator);
-    }
-
-    pub fn create_as(_token: Token, _expr: *AST, _type: *Type_AST, allocator: std.mem.Allocator) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .as = .{
-            .common = _common,
-            ._expr = _expr,
-            ._type = _type,
-        } }, allocator);
-    }
-
-    pub fn create_addr_of(_token: Token, _expr: *AST, _mut: bool, multiptr: bool, allocator: std.mem.Allocator) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .addr_of = .{
-            .common = _common,
-            ._expr = _expr,
-            .mut = _mut,
-            .multiptr = multiptr,
-        } }, allocator);
-    }
-
-    pub fn create_slice_of(_token: Token, _expr: *AST, _mut: bool, allocator: std.mem.Allocator) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .slice_of = .{
-            .common = _common,
-            ._expr = _expr,
-            .mut = _mut,
-        } }, allocator);
-    }
-
-    pub fn create_sub_slice(
-        _token: Token,
-        super: *AST,
-        lower: ?*AST,
-        upper: ?*AST,
-        allocator: std.mem.Allocator,
-    ) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .sub_slice = .{
-            .common = _common,
-            .super = super,
-            .lower = lower,
-            .upper = upper,
-        } }, allocator);
-    }
-
-    pub fn create_receiver(_token: Token, kind: Receiver_Kind, allocator: std.mem.Allocator) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(
-            AST{ .receiver = .{ .common = _common, .kind = kind } },
-            allocator,
-        );
-    }
-
-    pub fn create_if(
-        _token: Token,
-        let: ?*AST,
-        condition: *AST,
-        _body_block: *AST,
-        _else_block: ?*AST,
-        allocator: std.mem.Allocator,
-    ) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(
-            AST{ .@"if" = .{
-                .common = _common,
-                ._scope = null,
-                .let = let,
-                .condition = condition,
-                ._body_block = _body_block,
-                ._else_block = _else_block,
-            } },
-            allocator,
-        );
-    }
-
-    pub fn create_match(
-        _token: Token,
-        let: ?*AST,
-        _expr: *AST,
-        mappings: std.array_list.Managed(*AST),
-        allocator: std.mem.Allocator,
-    ) *AST {
-        return AST.box(
-            AST{ .match = .{
-                .common = AST_Common{ ._token = _token },
-                ._scope = null,
-                .let = let,
-                ._expr = _expr,
-                ._mappings = mappings,
-            } },
-            allocator,
-        );
-    }
-
-    pub fn create_mapping(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(
-            AST{ .mapping = .{
-                .common = AST_Common{ ._token = _token },
-                ._lhs = _lhs,
-                ._rhs = _rhs,
-                ._scope = null,
-                .captures = std.array_list.Managed(*AST).init(allocator),
-            } },
-            allocator,
-        );
-    }
-
-    pub fn create_while(
-        _token: Token,
-        let: ?*AST,
-        condition: *AST,
-        post: ?*AST,
-        _body_block: *AST,
-        _else_block: ?*AST,
-        allocator: std.mem.Allocator,
-    ) *AST {
-        return AST.box(
-            AST{ .@"while" = .{
-                .common = AST_Common{ ._token = _token },
-                ._scope = null,
-                .let = let,
-                .condition = condition,
-                .post = post,
-                ._body_block = _body_block,
-                ._else_block = _else_block,
-            } },
-            allocator,
-        );
-    }
-
-    pub fn create_for(
-        _token: Token,
-        let: ?*AST,
-        elem: *AST,
-        iterable: *AST,
-        _body_block: *AST,
-        _else_block: ?*AST,
-        allocator: std.mem.Allocator,
-    ) *AST {
-        return AST.box(
-            AST{ .@"for" = .{
-                .common = AST_Common{ ._token = _token },
-                ._scope = null,
-                .let = let,
-                .elem = elem,
-                .iterable = iterable,
-                ._body_block = _body_block,
-                ._else_block = _else_block,
-            } },
-            allocator,
-        );
-    }
-
-    pub fn create_block(
-        _token: Token,
-        statements: std.array_list.Managed(*AST),
-        final: ?*AST,
-        allocator: std.mem.Allocator,
-    ) *AST {
-        if (final) |_final| {
-            std.debug.assert(_final.* == .@"return" or _final.* == .@"continue" or _final.* == .@"break");
-        }
-        return AST.box(
-            AST{ .block = .{
-                .common = AST_Common{ ._token = _token },
-                ._scope = null,
-                ._statements = statements,
-                .defers = std.array_list.Managed(*AST).init(allocator),
-                .errdefers = std.array_list.Managed(*AST).init(allocator),
-                .final = final,
-            } },
-            allocator,
-        );
-    }
-
-    pub fn create_break(_token: Token, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{
-            .@"break" = .{ .common = AST_Common{ ._token = _token } },
-        }, allocator);
-    }
-
-    pub fn create_continue(_token: Token, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .@"continue" = .{
-            .common = AST_Common{ ._token = _token },
-        } }, allocator);
-    }
-
-    pub fn create_return(_token: Token, _ret_expr: ?*AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(
-            AST{ .@"return" = .{
-                .common = AST_Common{ ._token = _token },
-                ._ret_expr = _ret_expr,
-                ._symbol = null,
-            } },
-            allocator,
-        );
-    }
-
-    pub fn create_pattern_symbol(
-        _token: Token,
-        kind: Symbol.Kind,
-        storage: Symbol.Storage,
-        name: []const u8,
-        allocator: std.mem.Allocator,
-    ) *AST {
-        return AST.box(
-            AST{ .pattern_symbol = .{
-                .common = AST_Common{ ._token = _token },
-                .kind = kind,
-                .storage = storage,
-                .name = name,
-            } },
-            allocator,
-        );
-    }
-
-    pub fn create_binding(
-        _token: Token,
-        pattern: *AST,
-        _type: *Type_AST,
-        init: ?*AST,
-        allocator: std.mem.Allocator,
-    ) *AST {
-        return AST.box(
-            AST{ .binding = .{
-                .common = AST_Common{ ._token = _token },
-                .pattern = pattern,
-                .type = _type,
-                .init = init,
-                .decls = std.array_list.Managed(*AST).init(allocator),
-            } },
-            allocator,
-        );
-    }
-
-    pub fn create_decl(
-        _token: Token,
-        name: *AST,
-        _type: *Type_AST,
-        init: ?*AST,
-        allocator: std.mem.Allocator,
-    ) *AST {
-        std.debug.assert(name.* == .pattern_symbol);
-        return AST.box(
-            AST{ .decl = .{
-                .common = AST_Common{ ._token = _token },
-                .name = name,
-                .type = _type,
-                .init = init,
-            } },
-            allocator,
-        );
-    }
-
-    pub fn create_fn_decl(
-        _token: Token,
-        name: ?*AST,
-        _generic_params: std.array_list.Managed(*AST),
-        params: std.array_list.Managed(*AST),
-        ret_type: *Type_AST,
-        refinement: ?*AST,
-        init: *AST,
-        allocator: std.mem.Allocator,
-    ) *AST {
-        return AST.box(AST{ .fn_decl = .{
-            .common = AST_Common{ ._token = _token },
-            .name = name,
-            ._generic_params = _generic_params,
-            ._params = params,
-            ._param_symbols = std.array_list.Managed(*Symbol).init(allocator),
-            .ret_type = ret_type,
-            .refinement = refinement,
-            .init = init,
-            .infer_error = false,
-        } }, allocator);
-    }
-
-    pub fn create_type_param_decl(
-        _token: Token,
-        allocator: std.mem.Allocator,
-    ) *AST {
-        return AST.box(AST{ .type_param_decl = .{
-            .common = AST_Common{ ._token = _token },
-        } }, allocator);
-    }
-
-    pub fn create_struct_decl(
-        _token: Token,
-        name: *AST,
-        fields: std.array_list.Managed(*Type_AST),
-        _generic_params: std.array_list.Managed(*AST),
-        allocator: std.mem.Allocator,
-    ) *AST {
-        return AST.box(AST{ .struct_decl = .{
-            .common = AST_Common{ ._token = _token },
-            .name = name,
-            .fields = fields,
-            ._generic_params = _generic_params,
-            ._type = Type_AST.create_struct_type(_token, fields, allocator),
-        } }, allocator);
-    }
-
-    pub fn create_enum_decl(
-        _token: Token,
-        name: *AST,
-        fields: std.array_list.Managed(*Type_AST),
-        _generic_params: std.array_list.Managed(*AST),
-        allocator: std.mem.Allocator,
-    ) *AST {
-        return AST.box(AST{ .enum_decl = .{
-            .common = AST_Common{ ._token = _token },
-            .name = name,
-            .fields = fields,
-            ._generic_params = _generic_params,
-            ._type = Type_AST.create_enum_type(_token, fields, allocator),
-        } }, allocator);
-    }
-
-    pub fn create_type_alias(
-        _token: Token,
-        name: *AST,
-        init: ?*Type_AST,
-        _generic_params: std.array_list.Managed(*AST),
-        allocator: std.mem.Allocator,
-    ) *AST {
-        return AST.box(AST{ .type_alias = .{
-            .common = AST_Common{ ._token = _token },
-            .name = name,
-            .init = init,
-            ._generic_params = _generic_params,
-        } }, allocator);
-    }
-
-    pub fn create_method_decl(
-        _token: Token,
-        name: *AST,
-        is_virtual: bool,
-        receiver: ?*AST,
-        params: std.array_list.Managed(*AST),
-        ret_type: *Type_AST,
-        refinement: ?*AST,
-        init: ?*AST,
-        allocator: std.mem.Allocator,
-    ) *AST {
-        return AST.box(AST{ .method_decl = .{
-            .common = AST_Common{ ._token = _token },
-            .name = name,
-            .is_virtual = is_virtual,
-            .receiver = receiver,
-            ._params = params,
-            ._param_symbols = std.array_list.Managed(*Symbol).init(allocator),
-            .ret_type = ret_type,
-            .refinement = refinement,
-            .init = init,
-        } }, allocator);
-    }
-
-    pub fn create_test(
-        _token: Token,
-        name: ?*AST,
-        init: *AST,
-        allocator: std.mem.Allocator,
-    ) *AST {
-        return AST.box(AST{ .@"test" = .{
-            .common = AST_Common{ ._token = _token },
-            .name = name,
-            .init = init,
-        } }, allocator);
-    }
-
-    pub fn create_module(
-        _token: Token,
-        _scope: *Scope,
-        module: *module_.Module,
-        allocator: std.mem.Allocator,
-    ) *AST {
-        return AST.box(AST{ .module = .{
-            .common = AST_Common{ ._token = _token },
-            ._scope = _scope,
-            .module = module,
-        } }, allocator);
-    }
-
-    pub fn create_import(
-        _token: Token,
-        pattern: *AST,
-        allocator: std.mem.Allocator,
-    ) *AST {
-        return AST.box(AST{ .import = .{
-            .common = AST_Common{ ._token = _token },
-            .pattern = pattern,
-        } }, allocator);
-    }
-
-    pub fn create_cinclude(
-        _token: Token,
-        _expr: *AST,
-        allocator: std.mem.Allocator,
-    ) *AST {
-        return AST.box(AST{ .cinclude = .{
-            .common = AST_Common{ ._token = _token },
-            ._expr = _expr,
-        } }, allocator);
-    }
-
-    pub fn create_defer(_token: Token, _statement: *AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .@"defer" = .{
-            .common = AST_Common{ ._token = _token },
-            ._statement = _statement,
-        } }, allocator);
-    }
-
-    pub fn create_errdefer(_token: Token, _statement: *AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(
-            AST{ .@"errdefer" = .{
-                .common = AST_Common{ ._token = _token },
-                ._statement = _statement,
-            } },
-            allocator,
-        );
-    }
-
-    /// Clones an AST given a substitution map. If any identifiers match a substitution, they are substituted.
-    ///
-    /// Deliberately does _not_ copy over symbols and scopes. These need to be re-decorated.
-    pub fn clone(self: *AST, substs: *unification_.Substitutions, allocator: std.mem.Allocator) *AST {
-        switch (self.*) {
-            .poison => unreachable,
-            .unit_value => return create_unit_value(self.token(), allocator),
-            .int => return create_int(self.token(), self.int.data, allocator),
-            .char => return create_char(self.token(), allocator),
-            .float => return create_float(self.token(), self.float.data, allocator),
-            .string => return create_string(self.token(), self.string.data, allocator),
-            .field => return create_field(self.token(), allocator),
-            .identifier => return create_identifier(self.token(), allocator),
-            .@"unreachable" => return create_unreachable(self.token(), allocator),
-            .true => return create_true(self.token(), allocator),
-            .false => return create_false(self.token(), allocator),
-
-            .template => unreachable, // TODO: You probably want this...
-
-            .not => return create_not(self.token(), self.expr().clone(substs, allocator), allocator),
-            .negate => return create_negate(self.token(), self.expr().clone(substs, allocator), allocator),
-            .dereference => return create_dereference(
-                self.token(),
-                self.expr().clone(substs, allocator),
-                allocator,
-            ),
-            .@"try" => return create_try(self.token(), self.expr().clone(substs, allocator), allocator),
-            .default => return create_default(self.token(), self.default._type.clone(substs, allocator), allocator),
-            .size_of => return create_size_of(self.token(), self.size_of._type.clone(substs, allocator), allocator),
-            .@"comptime" => return create_comptime(self.token(), self.expr().clone(substs, allocator), allocator),
-
-            .assign => return create_assign(
-                self.token(),
-                self.lhs().clone(substs, allocator),
-                self.rhs().clone(substs, allocator),
-                allocator,
-            ),
-            .@"or" => return create_or(
-                self.token(),
-                self.lhs().clone(substs, allocator),
-                self.rhs().clone(substs, allocator),
-                allocator,
-            ),
-            .@"and" => return create_and(
-                self.token(),
-                self.lhs().clone(substs, allocator),
-                self.rhs().clone(substs, allocator),
-                allocator,
-            ),
-            .add => return create_add(
-                self.token(),
-                self.lhs().clone(substs, allocator),
-                self.rhs().clone(substs, allocator),
-                allocator,
-            ),
-            .sub => return create_sub(
-                self.token(),
-                self.lhs().clone(substs, allocator),
-                self.rhs().clone(substs, allocator),
-                allocator,
-            ),
-            .mult => return create_mult(
-                self.token(),
-                self.lhs().clone(substs, allocator),
-                self.rhs().clone(substs, allocator),
-                allocator,
-            ),
-            .div => return create_div(
-                self.token(),
-                self.lhs().clone(substs, allocator),
-                self.rhs().clone(substs, allocator),
-                allocator,
-            ),
-            .mod => return create_mod(
-                self.token(),
-                self.lhs().clone(substs, allocator),
-                self.rhs().clone(substs, allocator),
-                allocator,
-            ),
-            .equal => return create_equal(
-                self.token(),
-                self.lhs().clone(substs, allocator),
-                self.rhs().clone(substs, allocator),
-                allocator,
-            ),
-            .not_equal => return create_not_equal(
-                self.token(),
-                self.lhs().clone(substs, allocator),
-                self.rhs().clone(substs, allocator),
-                allocator,
-            ),
-            .greater => return create_greater(
-                self.token(),
-                self.lhs().clone(substs, allocator),
-                self.rhs().clone(substs, allocator),
-                allocator,
-            ),
-            .lesser => return create_lesser(
-                self.token(),
-                self.lhs().clone(substs, allocator),
-                self.rhs().clone(substs, allocator),
-                allocator,
-            ),
-            .greater_equal => return create_greater_equal(
-                self.token(),
-                self.lhs().clone(substs, allocator),
-                self.rhs().clone(substs, allocator),
-                allocator,
-            ),
-            .lesser_equal => return create_lesser_equal(
-                self.token(),
-                self.lhs().clone(substs, allocator),
-                self.rhs().clone(substs, allocator),
-                allocator,
-            ),
-            .@"catch" => return create_catch(
-                self.token(),
-                self.lhs().clone(substs, allocator),
-                self.rhs().clone(substs, allocator),
-                allocator,
-            ),
-            .@"orelse" => return create_orelse(
-                self.token(),
-                self.lhs().clone(substs, allocator),
-                self.rhs().clone(substs, allocator),
-                allocator,
-            ),
-            .call => {
-                const cloned_args = clone_children(self.children().*, substs, allocator);
-                return create_call(self.token(), self.lhs().clone(substs, allocator), cloned_args, allocator);
-            },
-            .bit_and => {
-                const cloned_args = clone_children(self.children().*, substs, allocator);
-                return create_bit_and(self.token(), cloned_args, allocator);
-            },
-            .bit_or => {
-                const cloned_args = clone_children(self.children().*, substs, allocator);
-                return create_bit_or(self.token(), cloned_args, allocator);
-            },
-            .bit_xor => {
-                const cloned_args = clone_children(self.children().*, substs, allocator);
-                return create_bit_xor(self.token(), cloned_args, allocator);
-            },
-            .bit_not => return create_bit_not(self.token(), self.expr().clone(substs, allocator), allocator),
-            .left_shift => return create_left_shift(self.token(), self.lhs().clone(substs, allocator), self.rhs().clone(substs, allocator), allocator),
-            .right_shift => return create_right_shift(self.token(), self.lhs().clone(substs, allocator), self.rhs().clone(substs, allocator), allocator),
-            .index => return create_index(
-                self.token(),
-                self.lhs().clone(substs, allocator),
-                clone_children(self.children().*, substs, allocator),
-                allocator,
-            ),
-            .generic_apply => return create_generic_apply(
-                self.token(),
-                self.lhs().clone(substs, allocator),
-                Type_AST.clone_types(self.generic_apply._children, substs, allocator),
-                allocator,
-            ),
-            .select => return create_select(
-                self.token(),
-                self.lhs().clone(substs, allocator),
-                self.rhs().clone(substs, allocator),
-                allocator,
-            ),
-            .access => return create_access(
-                self.token(),
-                self.lhs().clone(substs, allocator),
-                self.rhs().clone(substs, allocator),
-                allocator,
-            ),
-            .trait => {
-                const cloned_method_decls = clone_children(self.trait.method_decls, substs, allocator);
-                const cloned_const_decls = clone_children(self.trait.const_decls, substs, allocator);
-                return create_trait(
-                    self.token(),
-                    cloned_method_decls,
-                    cloned_const_decls,
-                    allocator,
-                );
-            },
-            .impl => {
-                const cloned_method_defs = clone_children(self.impl.method_defs, substs, allocator);
-                const cloned_const_defs = clone_children(self.impl.const_defs, substs, allocator);
-                const cloned_generic_params = clone_children(self.impl._generic_params, substs, allocator);
-                var retval = create_impl(
-                    self.token(),
-                    if (self.impl.trait) |_trait| _trait.clone(substs, allocator) else null,
-                    self.impl._type.clone(substs, allocator),
-                    cloned_method_defs,
-                    cloned_const_defs,
-                    cloned_generic_params,
-                    allocator,
-                );
-                for (cloned_method_defs.items) |method_def| {
-                    method_def.method_decl.impl = retval;
-                }
-                retval.impl.impls_anon_trait = self.impl.impls_anon_trait;
-                return retval;
-            },
-            .invoke => {
-                const cloned_args = clone_children(self.children().*, substs, allocator);
-                var retval = create_invoke(
-                    self.token(),
-                    self.lhs().clone(substs, allocator),
-                    self.rhs().clone(substs, allocator),
-                    cloned_args,
-                    allocator,
-                );
-                retval.invoke.prepended = self.invoke.prepended;
-                return retval;
-            },
-            .dyn_value => unreachable, // Shouldn't exist yet... have to clone scope?
-            .enum_value => {
-                var retval = create_enum_value(self.token(), allocator);
-                retval.enum_value.init = self.enum_value.init;
-                return retval;
-            },
-            .type_param_decl => return create_type_param_decl(self.token(), allocator),
-            .struct_value => {
-                const cloned_terms = clone_children(self.children().*, substs, allocator);
-                var retval = create_struct_value(
-                    self.token(),
-                    self.struct_value.parent.clone(substs, allocator),
-                    cloned_terms,
-                    allocator,
-                );
-                retval.struct_value.was_slice = self.struct_value.was_slice;
-                return retval;
-            },
-            .tuple_value => {
-                const cloned_terms = clone_children(self.children().*, substs, allocator);
-                return create_tuple_value(
-                    self.token(),
-                    cloned_terms,
-                    allocator,
-                );
-            },
-            .array_value => {
-                const cloned_terms = clone_children(self.children().*, substs, allocator);
-                return create_array_value(
-                    self.token(),
-                    cloned_terms,
-                    allocator,
-                );
-            },
-            .struct_decl => {
-                const cloned_terms = Type_AST.clone_types(self.struct_decl.fields, substs, allocator);
-                const cloned_generic_params = clone_children(self.struct_decl._generic_params, substs, allocator);
-                const retval = create_struct_decl(
-                    self.token(),
-                    self.struct_decl.name.clone(substs, allocator),
-                    cloned_terms,
-                    cloned_generic_params,
-                    allocator,
-                );
-                return retval;
-            },
-            .enum_decl => {
-                const cloned_terms = Type_AST.clone_types(self.enum_decl.fields, substs, allocator);
-                const cloned_generic_params = clone_children(self.enum_decl._generic_params, substs, allocator);
-                const retval = create_enum_decl(
-                    self.token(),
-                    self.enum_decl.name.clone(substs, allocator),
-                    cloned_terms,
-                    cloned_generic_params,
-                    allocator,
-                );
-                return retval;
-            },
-            .type_alias => {
-                const cloned_generic_params = clone_children(self.type_alias._generic_params, substs, allocator);
-                const retval = create_type_alias(
-                    self.token(),
-                    self.type_alias.name.clone(substs, allocator),
-                    if (self.type_alias.init == null) null else self.type_alias.init.?.clone(substs, allocator),
-                    cloned_generic_params,
-                    allocator,
-                );
-                return retval;
-            },
-            .as => return create_as(
-                self.token(),
-                self.expr().clone(substs, allocator),
-                self.type().clone(substs, allocator),
-                allocator,
-            ),
-            .addr_of => return create_addr_of(
-                self.token(),
-                self.expr().clone(substs, allocator),
-                self.mut(),
-                self.addr_of.multiptr,
-                allocator,
-            ),
-            .slice_of => return create_slice_of(
-                self.token(),
-                self.expr().clone(substs, allocator),
-                self.slice_of.mut,
-                allocator,
-            ),
-            .sub_slice => return create_sub_slice(
-                self.token(),
-                self.sub_slice.super.clone(substs, allocator),
-                if (self.sub_slice.lower) |lower| lower.clone(substs, allocator) else null,
-                if (self.sub_slice.upper) |upper| upper.clone(substs, allocator) else null,
-                allocator,
-            ),
-            .receiver => {
-                var retval = create_receiver(
-                    self.token(),
-                    self.receiver.kind,
-                    allocator,
-                );
-                retval.receiver._type = if (retval.receiver._type) |_type| _type.clone(substs, allocator) else null;
-                return retval;
-            },
-
-            .@"if" => return create_if(
-                self.token(),
-                if (self.@"if".let) |let| let.clone(substs, allocator) else null,
-                self.@"if".condition.clone(substs, allocator),
-                self.body_block().clone(substs, allocator),
-                if (self.else_block()) |_else| _else.clone(substs, allocator) else null,
-                allocator,
-            ),
-            .match => {
-                const cloned_mappings = clone_children(self.children().*, substs, allocator);
-                return create_match(
-                    self.token(),
-                    if (self.match.let) |let| let.clone(substs, allocator) else null,
-                    self.expr().clone(substs, allocator),
-                    cloned_mappings,
-                    allocator,
-                );
-            },
-            .mapping => return create_mapping(
-                self.token(),
-                self.lhs().clone(substs, allocator),
-                self.rhs().clone(substs, allocator),
-                allocator,
-            ),
-            .@"while" => return create_while(
-                self.token(),
-                if (self.@"while".let) |let| let.clone(substs, allocator) else null,
-                self.@"while".condition.clone(substs, allocator),
-                if (self.@"while".post) |post| post.clone(substs, allocator) else null,
-                self.body_block().clone(substs, allocator),
-                if (self.else_block()) |_else| _else.clone(substs, allocator) else null,
-                allocator,
-            ),
-            .@"for" => unreachable, // TODO
-            .block => {
-                const cloned_statements = clone_children(self.children().*, substs, allocator);
-                return create_block(
-                    self.token(),
-                    cloned_statements,
-                    if (self.block.final) |final| final.clone(substs, allocator) else null,
-                    allocator,
-                );
-            },
-            .@"break" => return create_break(self.token(), allocator),
-            .@"continue" => return create_continue(self.token(), allocator),
-            .@"return" => return create_return(
-                self.token(),
-                if (self.@"return"._ret_expr) |ret_expr| ret_expr.clone(substs, allocator) else null,
-                allocator,
-            ),
-            .pattern_symbol => return create_pattern_symbol(
-                self.token(),
-                self.pattern_symbol.kind,
-                self.pattern_symbol.storage,
-                self.pattern_symbol.name,
-                allocator,
-            ),
-            .binding => {
-                const retval = create_binding(
-                    self.token(),
-                    self.binding.pattern,
-                    self.binding.type.clone(substs, allocator),
-                    if (self.binding.init) |init| init.clone(substs, allocator) else null,
-                    allocator,
-                );
-                return retval;
-            },
-            .decl => {
-                const retval = create_decl(
-                    self.token(),
-                    self.decl.name.clone(substs, allocator),
-                    self.decl.type.clone(substs, allocator),
-                    if (self.decl.init) |init| init.clone(substs, allocator) else null,
-                    allocator,
-                );
-                return retval;
-            },
-            .fn_decl => {
-                const cloned_generic_params = clone_children(self.fn_decl._generic_params, substs, allocator);
-                const cloned_params = clone_children(self.children().*, substs, allocator);
-                var retval = create_fn_decl(
-                    self.token(),
-                    if (self.fn_decl.name) |name| name.clone(substs, allocator) else null,
-                    cloned_generic_params,
-                    cloned_params,
-                    self.fn_decl.ret_type.clone(substs, allocator),
-                    if (self.fn_decl.refinement) |refinement| refinement.clone(substs, allocator) else null,
-                    self.fn_decl.init.clone(substs, allocator),
-                    allocator,
-                );
-                retval.fn_decl._decl_type = if (self.fn_decl._decl_type != null) self.fn_decl._decl_type.?.clone(substs, allocator) else null;
-                return retval;
-            },
-            .method_decl => {
-                const cloned_params = clone_children(self.children().*, substs, allocator);
-                var retval = create_method_decl(
-                    self.token(),
-                    self.method_decl.name.clone(substs, allocator),
-                    self.method_decl.is_virtual,
-                    if (self.method_decl.receiver) |receiver| receiver.clone(substs, allocator) else null,
-                    cloned_params,
-                    self.method_decl.ret_type.clone(substs, allocator),
-                    if (self.method_decl.refinement) |refinement| refinement.clone(substs, allocator) else null,
-                    if (self.method_decl.init) |init| init.clone(substs, allocator) else null,
-                    allocator,
-                );
-                retval.method_decl.impl = self.method_decl.impl;
-                retval.method_decl.domain = self.method_decl.domain;
-                retval.method_decl._decl_type = if (self.method_decl._decl_type != null) self.method_decl._decl_type.?.clone(substs, allocator) else null;
-                return retval;
-            },
-            .@"test" => return create_test(
-                self.token(),
-                self.@"test".name,
-                self.@"test".init,
-                allocator,
-            ),
-            .import => return create_import(self.token(), self.import.pattern.clone(substs, allocator), allocator),
-            .cinclude => return create_cinclude(self.token(), self.cinclude._expr.clone(substs, allocator), allocator),
-            .module => return create_module(self.token(), self.scope().?, self.module.module, allocator),
-            .@"defer" => return create_defer(self.token(), self.statement().clone(substs, allocator), allocator),
-            .@"errdefer" => return create_errdefer(self.token(), self.statement().clone(substs, allocator), allocator),
-        }
-    }
-
-    pub fn clone_children(children_terms: std.array_list.Managed(*AST), substs: *unification_.Substitutions, allocator: std.mem.Allocator) std.array_list.Managed(*AST) {
-        var retval = std.array_list.Managed(*AST).init(allocator);
-        for (children_terms.items) |child| {
-            retval.append(child.clone(substs, allocator)) catch unreachable;
-        }
-        return retval;
-    }
-
-    /// Boxes an AST value into an allocator.
-    fn box(ast: AST, alloc: std.mem.Allocator) *AST {
-        const retval = alloc.create(AST) catch unreachable;
-        retval.* = ast;
-        return retval;
-    }
-
-    pub fn common(self: *const AST) *const AST_Common {
-        return get_field_const_ref(self, "common");
-    }
+    @"defer": struct { _token: Token, _statement: Ast_Id },
+    @"errdefer": struct { _token: Token, _statement: Ast_Id },
 
     pub fn token(self: *const AST) Token {
-        return self.common()._token;
+        return get_field_const_ref(self, "_token");
     }
 
-    pub fn set_token(self: *AST, tok: Token) void {
-        get_field_ref(self, "common")._token = tok;
+    pub fn set_token(self: Ast_Id, tok: Token) void {
+        get_field_ref(self, "_token").* = tok;
     }
 
     pub fn span(self: *const AST) Span {
         return self.span();
     }
 
-    pub fn set_span(self: *AST, _span: Span) void {
-        get_field_ref(self, "common")._token.span = _span;
+    pub fn set_span(self: Ast_Id, _span: Span) void {
+        get_field_ref(self, "_token").span = _span;
     }
 
-    pub fn expr(self: AST) *AST {
+    pub fn expr(self: AST) Ast_Id {
         return get_struct_field(self, "_expr");
     }
 
-    pub fn set_expr(self: *AST, val: *AST) void {
+    pub fn set_expr(self: Ast_Id, val: Ast_Id) void {
         set_field(self, "_expr", val);
     }
 
@@ -1805,7 +476,7 @@ pub const AST = union(enum) {
         return get_struct_field(self, "_symbol");
     }
 
-    pub fn set_symbol(self: *AST, val: ?*Symbol) void {
+    pub fn set_symbol(self: Ast_Id, val: ?*Symbol) void {
         set_field(self, "_symbol", val);
     }
 
@@ -1813,27 +484,27 @@ pub const AST = union(enum) {
         return get_struct_field(self, "_scope");
     }
 
-    pub fn set_scope(self: *AST, val: ?*Scope) void {
+    pub fn set_scope(self: Ast_Id, val: ?*Scope) void {
         set_field(self, "_scope", val);
     }
 
-    pub fn lhs(self: AST) *AST {
+    pub fn lhs(self: AST) Ast_Id {
         return get_struct_field(self, "_lhs");
     }
 
-    pub fn set_lhs(self: *AST, val: *AST) void {
+    pub fn set_lhs(self: Ast_Id, val: Ast_Id) void {
         set_field(self, "_lhs", val);
     }
 
-    pub fn rhs(self: AST) *AST {
+    pub fn rhs(self: AST) Ast_Id {
         return get_struct_field(self, "_rhs");
     }
 
-    pub fn set_rhs(self: *AST, val: *AST) void {
+    pub fn set_rhs(self: Ast_Id, val: Ast_Id) void {
         set_field(self, "_rhs", val);
     }
 
-    pub fn children_mut(self: *AST) *std.array_list.Managed(*AST) {
+    pub fn children_mut(self: Ast_Id) *std.array_list.Managed(Ast_Id) {
         return switch (self.*) {
             .call => &self.call._args,
             .index => &self.index._children,
@@ -1853,7 +524,7 @@ pub const AST = union(enum) {
         };
     }
 
-    pub fn children(self: *const AST) *const std.array_list.Managed(*AST) {
+    pub fn children(self: *const AST) *const std.array_list.Managed(Ast_Id) {
         return switch (self.*) {
             .call => &self.call._args,
             .index => &self.index._children,
@@ -1873,7 +544,7 @@ pub const AST = union(enum) {
         };
     }
 
-    pub fn set_children(self: *AST, val: std.array_list.Managed(*AST)) void {
+    pub fn set_children(self: Ast_Id, val: std.array_list.Managed(Ast_Id)) void {
         switch (self.*) {
             .call => self.call._args = val,
             .struct_value => self.struct_value._terms = val,
@@ -1904,7 +575,7 @@ pub const AST = union(enum) {
         };
     }
 
-    pub fn decl_init(self: *AST) ?*AST {
+    pub fn decl_init(self: Ast_Id) ?Ast_Id {
         return switch (self.*) {
             .decl => self.decl.init,
             .fn_decl => self.fn_decl.init,
@@ -1916,7 +587,7 @@ pub const AST = union(enum) {
         };
     }
 
-    pub fn set_decl_init(self: *AST, init: *AST) void {
+    pub fn set_decl_init(self: Ast_Id, init: Ast_Id) void {
         return switch (self.*) {
             .decl => self.decl.init = init,
             .fn_decl => self.fn_decl.init = init,
@@ -1928,7 +599,7 @@ pub const AST = union(enum) {
         };
     }
 
-    pub fn decl_typedef(self: *AST) ?*Type_AST {
+    pub fn decl_typedef(self: Ast_Id) ?*Type_AST {
         return switch (self.*) {
             .struct_decl => self.struct_decl._type,
             .enum_decl => self.enum_decl._type,
@@ -1938,7 +609,7 @@ pub const AST = union(enum) {
         };
     }
 
-    pub fn decl_name(self: *AST) *AST {
+    pub fn decl_name(self: Ast_Id) Ast_Id {
         return switch (self.*) {
             .struct_decl => self.struct_decl.name,
             .enum_decl => self.enum_decl.name,
@@ -1947,7 +618,7 @@ pub const AST = union(enum) {
         };
     }
 
-    pub fn set_decl_name(self: *AST, name: *AST) void {
+    pub fn set_decl_name(self: Ast_Id, name: Ast_Id) void {
         switch (self.*) {
             .struct_decl => self.struct_decl.name = name,
             .enum_decl => self.enum_decl.name = name,
@@ -1957,7 +628,7 @@ pub const AST = union(enum) {
         }
     }
 
-    pub fn param_symbols(self: *AST) ?*std.array_list.Managed(*Symbol) {
+    pub fn param_symbols(self: Ast_Id) ?*std.array_list.Managed(*Symbol) {
         return switch (self.*) {
             .fn_decl => &self.fn_decl._param_symbols,
             .method_decl => &self.method_decl._param_symbols,
@@ -1966,7 +637,7 @@ pub const AST = union(enum) {
         };
     }
 
-    pub fn generic_params(self: *AST) *std.array_list.Managed(*AST) {
+    pub fn generic_params(self: Ast_Id) *std.array_list.Managed(Ast_Id) {
         return switch (self.*) {
             .struct_decl => &self.struct_decl._generic_params,
             .enum_decl => &self.enum_decl._generic_params,
@@ -1977,7 +648,7 @@ pub const AST = union(enum) {
         };
     }
 
-    pub fn set_generic_params(self: *AST, _generic_params: std.array_list.Managed(*AST)) void {
+    pub fn set_generic_params(self: Ast_Id, _generic_params: std.array_list.Managed(Ast_Id)) void {
         switch (self.*) {
             .struct_decl => self.struct_decl._generic_params = _generic_params,
             .enum_decl => self.enum_decl._generic_params = _generic_params,
@@ -1988,7 +659,7 @@ pub const AST = union(enum) {
         }
     }
 
-    pub fn top_level(self: *AST) bool {
+    pub fn top_level(self: Ast_Id) bool {
         return switch (self.*) {
             .decl => false,
             .fn_decl, .method_decl, .@"test" => true,
@@ -1996,7 +667,7 @@ pub const AST = union(enum) {
         };
     }
 
-    pub fn get_field(self: *AST, _type: *Type_AST, field_name: []const u8) *AST {
+    pub fn get_field(self: Ast_Id, _type: *Type_AST, field_name: []const u8) Ast_Id {
         for (0.., _type.children().items) |i, child| {
             if (child.* == .annotation and std.mem.eql(u8, field_name, child.annotation.pattern.token().data)) {
                 return self.children().items[i];
@@ -2009,31 +680,31 @@ pub const AST = union(enum) {
         return get_struct_field(self, "_pos");
     }
 
-    pub fn set_pos(self: *AST, val: ?usize) void {
+    pub fn set_pos(self: Ast_Id, val: ?usize) void {
         set_field(self, "_pos", val);
     }
 
-    pub fn statement(self: AST) *AST {
+    pub fn statement(self: AST) Ast_Id {
         return get_struct_field(self, "_statement");
     }
 
-    pub fn set_statement(self: *AST, val: *AST) void {
+    pub fn set_statement(self: Ast_Id, val: Ast_Id) void {
         set_field(self, "_statement", val);
     }
 
-    pub fn body_block(self: AST) *AST {
+    pub fn body_block(self: AST) Ast_Id {
         return get_struct_field(self, "_body_block");
     }
 
-    pub fn set_body_block(self: *AST, val: *AST) void {
+    pub fn set_body_block(self: Ast_Id, val: Ast_Id) void {
         set_field(self, "_body_block", val);
     }
 
-    pub fn else_block(self: AST) ?*AST {
+    pub fn else_block(self: AST) ?Ast_Id {
         return get_struct_field(self, "_else_block");
     }
 
-    pub fn set_else_block(self: *AST, val: ?*AST) void {
+    pub fn set_else_block(self: Ast_Id, val: ?Ast_Id) void {
         set_field(self, "_else_block", val);
     }
 
@@ -2041,7 +712,7 @@ pub const AST = union(enum) {
         return get_struct_field(self, "mut");
     }
 
-    pub fn set_mut(self: *AST, val: bool) void {
+    pub fn set_mut(self: Ast_Id, val: bool) void {
         set_field(self, "mut", val);
     }
 
@@ -2088,66 +759,9 @@ pub const AST = union(enum) {
         }
     }
 
-    // Expr must be an array value of length `l`. Slice value is `(&expr[0], l)`.
-    pub fn create_slice_value(_expr: *AST, _mut: bool, expr_type: *Type_AST, allocator: std.mem.Allocator) *AST {
-        var new_terms = std.array_list.Managed(*AST).init(allocator);
-        const zero = (AST.create_int(_expr.token(), 0, allocator));
-        var index_rhs = std.array_list.Managed(*AST).init(allocator);
-        index_rhs.append(zero) catch unreachable;
-        const index = (AST.create_index(
-            _expr.token(),
-            _expr,
-            index_rhs,
-            allocator,
-        ));
-        const addr = (AST.create_addr_of(
-            _expr.token(),
-            index,
-            _mut,
-            true,
-            allocator,
-        ));
-        new_terms.append(addr) catch unreachable;
-
-        const length = expr_type.array_of.len;
-        new_terms.append(length) catch unreachable;
-
-        const elem_type = expr_type.child();
-        const slice_type = Type_AST.create_slice_type(elem_type, _mut, allocator);
-        var retval = AST.create_struct_value(_expr.token(), slice_type, new_terms, allocator);
-        retval.struct_value.was_slice = true;
-        return retval;
-    }
-
-    pub fn create_some_value(opt_type: *Type_AST, value: *AST, allocator: std.mem.Allocator) *AST {
-        const member = create_enum_value(value.token(), allocator);
-        member.enum_value.base = opt_type;
-        member.enum_value.init = value;
-        member.set_pos(opt_type.get_pos("some"));
-        return member;
-    }
-
-    pub fn create_none_value(opt_type: *Type_AST, allocator: std.mem.Allocator) *AST {
-        const member = create_enum_value(Token.init_simple("none"), allocator);
-        member.enum_value.base = opt_type;
-        member.set_pos(opt_type.get_pos("none"));
-        return member;
-    }
-
-    pub fn create_binop(_token: Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
-        switch (_token.kind) {
-            .plus_equals => return create_add(_token, _lhs, _rhs, allocator),
-            .minus_equals => return create_sub(_token, _lhs, _rhs, allocator),
-            .star_equals => return create_mult(_token, _lhs, _rhs, allocator),
-            .slash_equals => return create_div(_token, _lhs, _rhs, allocator),
-            .percent_equals => return create_mod(_token, _lhs, _rhs, allocator),
-            else => std.debug.panic("compiler error: {s} is not a operator-assign token", .{@tagName(_token.kind)}),
-        }
-    }
-
     /// Determines if an AST expression can be evaluated at compile-time without having to specify a `comptime`
     /// keyword.
-    pub fn is_comptime_expr(self: *AST) bool {
+    pub fn is_comptime_expr(self: Ast_Id) bool {
         // It's easier to list all the ASTs that AREN'T comptime! :-)
         return !(self.* == .@"try" or
             self.* == .block or
@@ -2160,7 +774,7 @@ pub const AST = union(enum) {
         // would be annoying to have to wrap these in comptime.
     }
 
-    pub fn refers_to_type(self: *AST) bool {
+    pub fn refers_to_type(self: Ast_Id) bool {
         return switch (self.*) {
             else => false,
 
@@ -2183,8 +797,8 @@ pub const AST = union(enum) {
             .char => try out.print("char()", .{}),
             .float => try out.print("float()", .{}),
             .string => try out.print("string()", .{}),
-            .field => try out.print("field(\"{s}\")", .{self.field.common._token.data}),
-            .identifier => try out.print("identifier(\"{s}\")", .{self.identifier.common._token.data}),
+            .field => try out.print("field(\"{s}\")", .{self.field._token.data}),
+            .identifier => try out.print("identifier(\"{s}\")", .{self.identifier._token.data}),
             .@"unreachable" => try out.print("unreachable", .{}),
             .true => try out.print("true", .{}),
             .false => try out.print("false", .{}),
@@ -2302,7 +916,7 @@ pub const AST = union(enum) {
             .enum_value => {
                 try out.print("enum_value(.name={s}, .init={?f}, .tag={?})", .{ self.enum_value.get_name(), self.enum_value.init, self.enum_value._pos });
             },
-            .type_param_decl => try out.print("type_param_decl({s})", .{self.type_param_decl.common._token.data}),
+            .type_param_decl => try out.print("type_param_decl({s})", .{self.type_param_decl._token.data}),
             .struct_decl => {
                 try out.print("struct_decl(\n", .{});
                 try out.print("\t.name = {f}\n", .{self.struct_decl.name});

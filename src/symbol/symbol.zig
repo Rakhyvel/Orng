@@ -1,5 +1,6 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
+const Ast_Id = @import("../ast/ast_store.zig").Ast_Id;
 const CFG = @import("../ir/cfg.zig");
 const errs_ = @import("../util/errors.zig");
 const poison_ = @import("../ast/poison.zig");
@@ -35,7 +36,7 @@ pub const Kind = union(enum) {
 
 pub const Storage = union(enum) {
     local,
-    @"extern": struct { c_name: ?*ast_.AST },
+    @"extern": struct { c_name: ?Ast_Id },
 };
 
 pub const Symbol_Validation_State = validation_state_.Validation_State;
@@ -48,10 +49,10 @@ name: []const u8,
 // span: Span,
 // _type: *Type_AST,
 // expanded_type: ?*Type_AST,
-// init_value: ?*ast_.AST,
+// init_value: ?Ast_Id,
 kind: Kind,
 cfg: ?*CFG,
-decl: ?*ast_.AST,
+decl: ?Ast_Id,
 storage: Storage,
 
 monomorphs: Monomorph_Map(*Self),
@@ -74,7 +75,7 @@ offset: ?i64, // The offset from the BP that this symbol, for local variables an
 pub fn init(
     scope: *Scope,
     name: []const u8,
-    decl: ?*ast_.AST,
+    decl: ?Ast_Id,
     kind: Kind,
     storage: Storage,
     allocator: std.mem.Allocator,
@@ -119,7 +120,7 @@ pub fn @"type"(self: *const Self) *Type_AST {
     return self.decl.?.decl_type();
 }
 
-pub fn init_value(self: *const Self) ?*ast_.AST {
+pub fn init_value(self: *const Self) ?Ast_Id {
     return self.decl.?.decl_init();
 }
 
@@ -266,13 +267,14 @@ pub fn monomorphize(
         const decorate_context = Decorate.new(scope, &ctx.errors, ctx.allocator());
         const decorate_access_context = Decorate_Access.new(scope, &ctx.errors, ctx);
 
-        decl.set_decl_name(ast_.AST.create_pattern_symbol(
-            Token.init_simple(name),
-            self.kind,
-            self.storage,
-            name,
-            ctx.allocator(),
-        ));
+        const anon_name_pattern_symbol = ctx.ast_store.add(.{ .pattern_symbol = .{
+            ._token = Token.init_simple(name),
+            .kind = self.kind,
+            .storage = self.storage,
+            .name = name,
+        } });
+
+        decl.set_decl_name(anon_name_pattern_symbol);
 
         try walker_.walk_ast(decl, symbol_tree_context);
         try walker_.walk_ast(decl, decorate_context);

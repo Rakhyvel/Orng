@@ -1,5 +1,6 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
+const Ast_Id = @import("../ast/ast_store.zig").Ast_Id;
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const Decorate = @import("../ast/decorate.zig");
 const Decorate_Access = @import("../ast/decorate-access.zig");
@@ -19,9 +20,9 @@ const Lookup_Result = union(enum) { found_but_rt, found_but_fn, not_found, found
 parent: ?*Self,
 children: std.array_list.Managed(*Self),
 symbols: std.StringArrayHashMap(*Symbol),
-traits: std.array_list.Managed(*ast_.AST), // List of all `trait`s in this scope. Added to in the `decorate` phase.
-impls: std.array_list.Managed(*ast_.AST), // List of all `impl`s in this scope Added to in the `decorate` phase.
-tests: std.array_list.Managed(*ast_.AST), // List of all `test`s in this scope Added to in the `decorate` phase.
+traits: std.array_list.Managed(Ast_Id), // List of all `trait`s in this scope. Added to in the `decorate` phase.
+impls: std.array_list.Managed(Ast_Id), // List of all `impl`s in this scope Added to in the `decorate` phase.
+tests: std.array_list.Managed(Ast_Id), // List of all `test`s in this scope Added to in the `decorate` phase.
 module: ?*module_.Module, // Enclosing module
 uid: usize,
 uid_gen: *UID_Gen,
@@ -34,9 +35,9 @@ pub fn init(parent: ?*Self, uid_gen: *UID_Gen, allocator: std.mem.Allocator) *Se
     retval.parent = parent;
     retval.children = std.array_list.Managed(*Self).init(allocator);
     retval.symbols = std.StringArrayHashMap(*Symbol).init(allocator);
-    retval.traits = std.array_list.Managed(*ast_.AST).init(allocator);
-    retval.impls = std.array_list.Managed(*ast_.AST).init(allocator);
-    retval.tests = std.array_list.Managed(*ast_.AST).init(allocator);
+    retval.traits = std.array_list.Managed(Ast_Id).init(allocator);
+    retval.impls = std.array_list.Managed(Ast_Id).init(allocator);
+    retval.tests = std.array_list.Managed(Ast_Id).init(allocator);
     retval.uid = uid_gen.uid();
     retval.uid_gen = uid_gen;
     if (parent) |_parent| {
@@ -97,7 +98,7 @@ pub fn lookup(self: *Self, name: []const u8, flags: Lookup_Flags) Lookup_Result 
     }
 }
 
-const Impl_Trait_Lookup_Result = struct { count: u8, ast: ?*ast_.AST };
+const Impl_Trait_Lookup_Result = struct { count: u8, ast: ?Ast_Id };
 
 /// Returns the number of impls found for a given type-trait pair, and the impl ast. The impl is unique if count == 1.
 pub fn impl_trait_lookup(self: *Self, for_type: *Type_AST, trait: *Symbol) Impl_Trait_Lookup_Result {
@@ -126,7 +127,7 @@ pub fn impl_trait_lookup(self: *Self, for_type: *Type_AST, trait: *Symbol) Impl_
 }
 
 /// Looks up the impl's decl/method_decl ast for a given type, with a given name
-pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, compiler: *Compiler_Context) !?*ast_.AST {
+pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, ctx: *Compiler_Context) !?Ast_Id {
     if (false) {
         std.debug.print("searching for {f}::{s}\n", .{ for_type, name });
     }
@@ -134,7 +135,7 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
     for (self.impls.items) |impl| {
         var subst = unification_.Substitutions.init(std.heap.page_allocator);
         defer subst.deinit();
-        try compiler.validate_type.validate(impl.impl._type);
+        try ctx.validate_type.validate(impl.impl._type);
         unification_.unify(impl.impl._type, for_type, impl.impl._generic_params, &subst) catch continue;
 
         // TODO:
@@ -146,54 +147,53 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
         if (impl.impl._generic_params.items.len > 0) {
             const with_list = unification_.type_param_list_from_subst_map(&subst, impl.impl._generic_params, std.heap.page_allocator);
             if (impl.impl.instantiations.get(with_list) == null) {
-                const new_impl: *ast_.AST = impl.clone(&subst, std.heap.page_allocator);
+                const new_impl: Ast_Id = impl.clone(&subst, std.heap.page_allocator);
                 const new_scope = init(self, self.uid_gen, std.heap.page_allocator);
 
                 new_impl.set_scope(new_scope);
 
                 // Define each parameter in the new scope
-                // var const_decls = std.array_list.Managed(*ast_.AST).init(compiler.allocator());
+                // var const_decls = std.array_list.Managed(Ast_Id).init(ctx.allocator());
                 // for (impl.impl._generic_params.items) |type_param| {
                 //     const decl_init = subst.get(type_param.token().data);
                 //     const decl = ast_.AST.create_type_alias(
                 //         type_param.token(),
-                //         ast_.AST.create_pattern_symbol(type_param.token(), .type, .local, name, compiler.allocator()),
+                //         ast_.AST.create_pattern_symbol(type_param.token(), .type, .local, name, ctx.allocator()),
                 //         decl_init,
-                //         std.array_list.Managed(*ast_.AST).init(compiler.allocator()),
-                //         compiler.allocator(),
+                //         std.array_list.Managed(Ast_Id).init(ctx.allocator()),
+                //         ctx.allocator(),
                 //     );
                 //     const_decls.append(decl) catch unreachable;
                 // }
 
-                try walker_.walk_ast(new_impl, Symbol_Tree.new(new_scope, &compiler.errors, compiler.allocator()));
+                try walker_.walk_ast(new_impl, Symbol_Tree.new(new_scope, &ctx.errors, ctx.allocator()));
 
                 if (new_impl.impl.trait == null or new_impl.impl.impls_anon_trait) {
                     // impl'd for an anon trait, create an anon trait for it
                     // TODO: if there is a withlist, define the withs in the traits scope (?)
                     var token = new_impl.token();
                     token.kind = .identifier;
-                    token.data = Symbol_Tree.next_anon_name("Trait", compiler.allocator());
-                    const anon_trait = ast_.AST.create_trait(
-                        token,
-                        new_impl.impl.method_defs,
-                        new_impl.impl.const_defs,
-                        compiler.allocator(),
-                    );
-                    try walker_.walk_ast(anon_trait, Symbol_Tree.new(new_scope, &compiler.errors, compiler.allocator()));
-                    new_impl.impl.trait = ast_.AST.create_identifier(token, compiler.allocator());
+                    token.data = Symbol_Tree.next_anon_name("Trait", ctx.allocator());
+                    const anon_trait = ctx.ast_store.add(.{ .trait = .{
+                        ._token = token,
+                        .method_decls = new_impl.impl.method_defs,
+                        .const_decls = new_impl.impl.const_decls,
+                    } });
+                    try walker_.walk_ast(anon_trait, Symbol_Tree.new(new_scope, &ctx.errors, ctx.allocator()));
+                    new_impl.impl.trait = ctx.ast_store.add(.{ .identifier = .{ ._token = token } });
                     new_impl.impl.impls_anon_trait = true;
                 }
 
                 // Decorate identifiers, validate
-                const decorate_context = Decorate.new(new_scope, &compiler.errors, compiler.allocator());
-                const decorate_access_context = Decorate_Access.new(new_scope, &compiler.errors, compiler);
+                const decorate_context = Decorate.new(new_scope, &ctx.errors, ctx.allocator());
+                const decorate_access_context = Decorate_Access.new(new_scope, &ctx.errors, ctx);
                 // for (const_decls.items) |decl| {
                 //     try walker_.walk_ast(decl, decorate_context);
                 //     try walker_.walk_ast(decl, decorate_access_context);
                 // }
                 try walker_.walk_ast(new_impl, decorate_context); // this doesn't know about the anonymous trait
                 try walker_.walk_ast(new_impl, decorate_access_context);
-                try compiler.validate_scope.validate(new_scope);
+                try ctx.validate_scope.validate(new_scope);
 
                 impl.impl.instantiations.put(with_list, new_impl) catch unreachable;
             }
@@ -220,7 +220,7 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
             }
 
             const module_scope = res_symbol.init_value().?.scope().?;
-            const module_scope_lookup = try module_scope.lookup_impl_member(for_type, name, compiler);
+            const module_scope_lookup = try module_scope.lookup_impl_member(for_type, name, ctx);
             if (module_scope_lookup != null) {
                 return module_scope_lookup;
             }
@@ -229,14 +229,14 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
 
     if (self.parent != null) {
         // Did not match in this scope. Try parent scope
-        return self.parent.?.lookup_impl_member(for_type, name, compiler);
+        return self.parent.?.lookup_impl_member(for_type, name, ctx);
     } else {
         // Not found, parent scope is null
         return null;
     }
 }
 
-fn search_impl(impl: *ast_.AST, name: []const u8) ?*ast_.AST {
+fn search_impl(impl: Ast_Id, name: []const u8) ?Ast_Id {
     for (impl.impl.method_defs.items) |method_def| {
         if (std.mem.eql(u8, method_def.method_decl.name.token().data, name)) {
             return method_def;
@@ -286,8 +286,8 @@ pub fn put_all_symbols(scope: *Self, symbols: *std.array_list.Managed(*Symbol), 
 
 pub fn collect_traits_and_impls(
     self: *Self,
-    traits: *std.array_list.Managed(*ast_.AST),
-    impls: *std.array_list.Managed(*ast_.AST),
+    traits: *std.array_list.Managed(Ast_Id),
+    impls: *std.array_list.Managed(Ast_Id),
 ) void {
     traits.appendSlice(self.traits.items) catch unreachable;
     impls.appendSlice(self.impls.items) catch unreachable;
@@ -299,7 +299,7 @@ pub fn collect_traits_and_impls(
 
 pub fn collect_tests(
     self: *Self,
-    tests: *std.array_list.Managed(*ast_.AST),
+    tests: *std.array_list.Managed(Ast_Id),
 ) void {
     tests.appendSlice(self.tests.items) catch unreachable;
 

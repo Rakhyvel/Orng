@@ -3,25 +3,24 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
+const Ast_Id = @import("ast_store.zig").Ast_Id;
+const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const Token = @import("../lexer/token.zig");
 const walk_ = @import("../ast/walker.zig");
 
-errors: *errs_.Errors,
-allocator: std.mem.Allocator,
+ctx: *Compiler_Context,
 
 const Self = @This();
 
-pub fn new(errors: *errs_.Errors, allocator: std.mem.Allocator) Self {
-    return Self{
-        .errors = errors,
-        .allocator = allocator,
-    };
+pub fn new(ctx: *Compiler_Context) Self {
+    return Self{ .ctx = ctx };
 }
 
 /// Expand ASTs before descending to further children
-pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
+pub fn prefix(self: Self, ast_id: Ast_Id) walk_.Error!?Self {
+    const ast = self.ctx.ast_store.get(ast_id);
     switch (ast.*) {
         else => {},
 
@@ -33,17 +32,22 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
     return self;
 }
 
-fn expand_subslice(self: Self, ast: *ast_.AST) void {
+fn expand_subslice(self: Self, ast_id: Ast_Id) void {
+    const ast = self.ctx.ast_store.get(ast_id);
     if (ast.sub_slice.lower == null) {
-        ast.sub_slice.lower = ast_.AST.create_int(ast.token(), 0, self.allocator);
+        ast.sub_slice.lower = self.ctx.ast_store.add(.{ .int = .{
+            ._token = ast.token(),
+            .data = 0,
+        } });
     }
     if (ast.sub_slice.upper == null) {
-        const length = ast_.AST.create_field(Token.init("length", null, "", "", 0, 0), self.allocator);
-        ast.sub_slice.upper = ast_.AST.create_select(
-            ast.token(),
-            ast.sub_slice.super,
-            length,
-            self.allocator,
-        );
+        const length = self.ctx.ast_store.add(.{ .field = .{
+            ._token = Token.init("length", null, "", "", 0, 0),
+        } });
+        ast.sub_slice.upper = self.ctx.ast_store.add(.{ .select = .{
+            ._token = ast.token(),
+            ._lhs = ast.sub_slice.super,
+            ._rhs = length,
+        } });
     }
 }

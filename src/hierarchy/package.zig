@@ -25,6 +25,8 @@ module_hash: Module_Hash,
 type_set: Type_Set,
 modified: ?bool,
 
+ctx: *Compiler_Context,
+
 pub const Package_Kind = enum {
     executable,
     static_library,
@@ -33,33 +35,34 @@ pub const Package_Kind = enum {
 };
 
 pub const Package_Iterator_Node = struct {
-    compiler: *Compiler_Context,
+    ctx: *Compiler_Context,
     package: *Package,
 
-    pub fn init(compiler: *Compiler_Context, package_abs_path: []const u8) Package_Iterator_Node {
-        const package = compiler.lookup_package(package_abs_path).?;
-        return Package_Iterator_Node{ .compiler = compiler, .package = package };
+    pub fn init(ctx: *Compiler_Context, package_abs_path: []const u8) Package_Iterator_Node {
+        const package = ctx.lookup_package(package_abs_path).?;
+        return Package_Iterator_Node{ .ctx = ctx, .package = package };
     }
 
     pub fn get_adjacent(self: *Package_Iterator_Node) []Package_Iterator_Node {
-        var list = std.array_list.Managed(Package_Iterator_Node).init(self.compiler.allocator());
+        var list = std.array_list.Managed(Package_Iterator_Node).init(self.ctx.allocator());
 
         for (self.package.requirements.keys()) |requirement_name| {
             const requirement_root_module_symbol = self.package.requirements.get(requirement_name);
-            const requirement_root_module = requirement_root_module_symbol.?.init_value().?.module.module;
+            const requirement_root_module = self.ctx.ast_store.get(requirement_root_module_symbol.?.init_value().?).module.module;
             const requirement_root_abs_path = requirement_root_module.get_package_abs_path();
-            list.append(Package_Iterator_Node.init(self.compiler, requirement_root_abs_path)) catch unreachable;
+            list.append(Package_Iterator_Node.init(self.ctx, requirement_root_abs_path)) catch unreachable;
         }
 
         return list.toOwnedSlice() catch unreachable;
     }
 
     pub fn free_adjacent(self: *Package_Iterator_Node, adj: []Package_Iterator_Node) void {
-        self.compiler.allocator().free(adj);
+        self.ctx.allocator().free(adj);
     }
 };
 
-pub fn new(allocator: std.mem.Allocator, package_absolute_path: []const u8, kind: Package_Kind) *Package {
+pub fn new(ctx: *Compiler_Context, package_absolute_path: []const u8, kind: Package_Kind) *Package {
+    const allocator = ctx.allocator();
     const package = allocator.create(Package) catch unreachable;
     package.root = undefined; // filled in later
     package.output_absolute_path = undefined; // filled in when the output binary is created
@@ -73,8 +76,9 @@ pub fn new(allocator: std.mem.Allocator, package_absolute_path: []const u8, kind
     package.absolute_path = package_absolute_path;
     package.kind = kind;
     package.module_hash = Module_Hash.init(package_absolute_path, allocator) catch unreachable;
-    package.type_set = Type_Set.init(allocator);
+    package.type_set = Type_Set.init(ctx);
     package.modified = null;
+    package.ctx = ctx;
 
     package.set_executable_name(allocator) catch unreachable;
 
@@ -82,39 +86,39 @@ pub fn new(allocator: std.mem.Allocator, package_absolute_path: []const u8, kind
 }
 
 pub fn get_build_path(self: *const Package, allocator: std.mem.Allocator) []const u8 {
-    const package_root_module = self.root.init_value().?.module.module;
+    const package_root_module = self.ctx.ast_store.get(self.root.init_value().?).module.module;
     const package_path = package_root_module.get_package_abs_path();
     const build_paths = [_][]const u8{ package_path, "build" };
     return std.fs.path.join(allocator, &build_paths) catch unreachable;
 }
 
 pub fn get_types_path(self: *const Package, allocator: std.mem.Allocator) []const u8 {
-    const package_root_module = self.root.init_value().?.module.module;
+    const package_root_module = self.ctx.ast_store.get(self.root.init_value().?).module.module;
     const package_path = package_root_module.get_package_abs_path();
     const types_paths = [_][]const u8{ package_path, "build", "types" };
     return std.fs.path.join(allocator, &types_paths) catch unreachable;
 }
 
 pub fn get_build_module_absolute_path(self: *const Package, allocator: std.mem.Allocator) []const u8 {
-    const package_root_module = self.root.init_value().?.module.module;
+    const package_root_module = self.ctx.ast_store.get(self.root.init_value().?).module.module;
     const package_path = package_root_module.get_package_abs_path();
     const build_paths = [_][]const u8{ package_path, "build.orng" };
     return std.fs.path.join(allocator, &build_paths) catch unreachable;
 }
 
 pub fn entry(self: *const Package) ?*CFG {
-    return self.root.init_value().?.module.module.entry;
+    return self.ctx.ast_store.get(self.root.init_value().?).module.module.entry;
 }
 
-pub fn get_build_module(self: *const Package, compiler: *Compiler_Context) ?*Module {
-    const build_module_absolute_path: []const u8 = self.get_build_module_absolute_path(compiler.allocator());
-    const build_module_symbol: *Symbol = compiler.lookup_module(build_module_absolute_path) orelse return null;
-    return build_module_symbol.init_value().?.module.module;
+pub fn get_build_module(self: *const Package, ctx: *Compiler_Context) ?*Module {
+    const build_module_absolute_path: []const u8 = self.get_build_module_absolute_path(ctx.allocator());
+    const build_module_symbol: *Symbol = ctx.lookup_module(build_module_absolute_path) orelse return null;
+    return self.ctx.ast_store.get(build_module_symbol.init_value().?).module.module;
 }
 
 fn get_required_package(self: *Package, requirement_name: []const u8, packages: std.StringArrayHashMap(*Package)) *Package {
     const requirement_root_module_symbol: ?*Symbol = self.requirements.get(requirement_name);
-    const requirement_root_module: *Module = requirement_root_module_symbol.?.init_value().?.module.module;
+    const requirement_root_module: *Module = self.ctx.ast_store.get(requirement_root_module_symbol.?.init_value().?).module.module;
     const requirement_root_abs_path: []const u8 = requirement_root_module.get_package_abs_path();
     const required_package: *Package = packages.get(requirement_root_abs_path).?;
     return required_package;
@@ -123,7 +127,7 @@ fn get_required_package(self: *Package, requirement_name: []const u8, packages: 
 /// A package is modified if:
 /// - Any of its modules are modified
 /// - Any of its dependencies are modified
-pub fn determine_if_modified(self: *Package, packages: std.StringArrayHashMap(*Package), compiler: *Compiler_Context) void {
+pub fn determine_if_modified(self: *Package, packages: std.StringArrayHashMap(*Package), ctx: *Compiler_Context) void {
     if (self.modified != null) {
         return;
     }
@@ -132,21 +136,21 @@ pub fn determine_if_modified(self: *Package, packages: std.StringArrayHashMap(*P
     // Check if any requirements are modified
     for (self.requirements.keys()) |requirement_name| {
         const required_package = self.get_required_package(requirement_name, packages);
-        required_package.determine_if_modified(packages, compiler);
+        required_package.determine_if_modified(packages, ctx);
         self.modified = required_package.modified.? or self.modified.?;
     }
 
     // Check if the build module was modified, if it was, entire package will be rebuilt
-    if (self.get_build_module(compiler)) |build_module| {
-        build_module.determine_if_modified(compiler);
-        build_module.update_module_hash(&self.module_hash, compiler.allocator());
+    if (self.get_build_module(ctx)) |build_module| {
+        build_module.determine_if_modified(ctx);
+        build_module.update_module_hash(&self.module_hash, ctx.allocator());
         self.modified = build_module.modified.? or self.modified.?;
     }
 
     // Check if any modules are modified
     for (self.local_modules.items) |local_module| {
-        local_module.determine_if_modified(compiler);
-        local_module.update_module_hash(&self.module_hash, compiler.allocator());
+        local_module.determine_if_modified(ctx);
+        local_module.update_module_hash(&self.module_hash, ctx.allocator());
         self.modified = local_module.modified.? or self.modified.?;
     }
 
@@ -462,7 +466,7 @@ fn append_requirements_includes(
         const required_package = self.get_required_package(requirement_name, packages);
 
         var requirement_include_path = std.array_list.Managed(u8).init(allocator);
-        requirement_include_path.print("-I{s}{c}build", .{ required_package.root.init_value().?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
+        requirement_include_path.print("-I{s}{c}build", .{ self.ctx.ast_store.get(required_package.root.init_value().?).module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
         cc_cmd.append(requirement_include_path.items) catch unreachable;
     }
 }
@@ -621,7 +625,7 @@ fn append_library_dirs(
     allocator: std.mem.Allocator,
 ) !void {
     var requirement_library_path = std.array_list.Managed(u8).init(allocator);
-    requirement_library_path.print("{s}{c}build", .{ required_package.root.init_value().?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
+    requirement_library_path.print("{s}{c}build", .{ self.ctx.ast_store.get(required_package.root.init_value().?).module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
     cmd.append("-L") catch unreachable;
     cmd.append(requirement_library_path.items) catch unreachable;
 

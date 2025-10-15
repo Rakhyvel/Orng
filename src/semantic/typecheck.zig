@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
+const Ast_Id = @import("../ast/ast_store.zig").Ast_Id;
 const args_ = @import("args.zig");
 const Const_Eval = @import("../semantic/const_eval.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
@@ -434,7 +435,7 @@ fn typecheck_AST_internal(self: *Self, ast: *const ast_.AST, expected: ?*Type_AS
             // true_lhs_type is lhs's type
             const true_lhs_type = self.typecheck_AST(ast.lhs(), null) catch return error.CompileError;
             // method_decl is the method_decl AST of the method being invoked
-            var method_decl: ?*ast_.AST = undefined;
+            var method_decl: ?Ast_Id = undefined;
             if (true_lhs_type.expand_identifier().* == .dyn_type) {
                 // The receiver is a dynamic type
                 const trait = true_lhs_type.expand_identifier().child().symbol().?.decl.?;
@@ -861,7 +862,7 @@ pub fn binary_operator_open(
 /// Validates just that each argument's type matches its corresponding parameter's type. Assumes arity is valid.
 pub fn validate_args_type(
     self: *Self,
-    args: *const std.array_list.Managed(*ast_.AST),
+    args: *const std.array_list.Managed(Ast_Id),
     expected: *Type_AST,
     variadic: bool,
 ) Validate_Error_Enum!std.array_list.Managed(*Type_AST) {
@@ -883,7 +884,8 @@ pub fn validate_args_type(
     return terms;
 }
 
-fn validate_L_Value(self: *Self, ast: *ast_.AST) Validate_Error_Enum!void {
+fn validate_L_Value(self: *Self, ast_id: Ast_Id) Validate_Error_Enum!void {
+    const ast = self.ctx.ast_store.get(ast_id);
     switch (ast.*) {
         .select, .identifier, .array_value => {},
 
@@ -904,7 +906,8 @@ fn validate_L_Value(self: *Self, ast: *ast_.AST) Validate_Error_Enum!void {
     }
 }
 
-fn implicit_dereference(self: *Self, ast: *ast_.AST, old_lhs_type: *Type_AST) Validate_Error_Enum!*Type_AST {
+fn implicit_dereference(self: *Self, ast_id: Ast_Id, old_lhs_type: *Type_AST) Validate_Error_Enum!*Type_AST {
+    const ast = self.ctx.ast_store.get(ast_id);
     var lhs_type = old_lhs_type;
     if (lhs_type.* == .addr_of and !lhs_type.addr_of.multiptr) {
         ast.set_lhs(ast_.AST.create_dereference(ast.token(), ast.lhs(), self.ctx.allocator()));
@@ -914,7 +917,8 @@ fn implicit_dereference(self: *Self, ast: *ast_.AST, old_lhs_type: *Type_AST) Va
     return lhs_type;
 }
 
-fn assert_mutable(self: *Self, ast: *ast_.AST) Validate_Error_Enum!void {
+fn assert_mutable(self: *Self, ast_id: Ast_Id) Validate_Error_Enum!void {
+    const ast = self.ctx.ast_store.get(ast_id);
     switch (ast.*) {
         .identifier => {
             const symbol = ast.symbol().?;

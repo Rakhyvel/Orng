@@ -17,46 +17,46 @@ const Canonical_Type_Fmt = @import("canonical_type_fmt.zig");
 /// Goes through each package and outputs a C/H file header pair for each module in each package.
 ///
 /// Does not output packages that are not modified.
-pub fn output_modules(compiler: *Compiler_Context) !void {
+pub fn output_modules(ctx: *Compiler_Context) !void {
     // Start from root module, of each package, DFS through imports and generate
-    for (compiler.packages.keys()) |package_name| {
-        const package = compiler.lookup_package(package_name).?;
-        const package_root_module = package.root.init_value().?.module.module;
+    for (ctx.packages.keys()) |package_name| {
+        const package = ctx.lookup_package(package_name).?;
+        const package_root_module = ctx.ast_store.get(package.root.init_value().?).module.module;
 
         if (!package.modified.?) {
             continue;
         }
 
-        const build_path = package.get_build_path(compiler.allocator());
+        const build_path = package.get_build_path(ctx.allocator());
         _ = std.fs.openDirAbsolute(build_path, .{}) catch {
             std.fs.makeDirAbsolute(build_path) catch unreachable;
         };
 
-        const types_path = package.get_types_path(compiler.allocator());
+        const types_path = package.get_types_path(ctx.allocator());
         _ = std.fs.openDirAbsolute(types_path, .{}) catch {
             std.fs.makeDirAbsolute(types_path) catch unreachable;
         };
 
-        try output_types(&package.type_set, types_path, compiler.allocator());
+        try output_types(&package.type_set, types_path, ctx.allocator());
 
-        var modules = std.array_list.Managed(*Module).init(compiler.allocator());
+        var modules = std.array_list.Managed(*Module).init(ctx.allocator());
         defer modules.deinit();
-        var dfs_iter: Module_Iterator = Module_Iterator.init(package_root_module, compiler.allocator());
+        var dfs_iter: Module_Iterator = Module_Iterator.init(package_root_module, ctx.allocator());
         defer dfs_iter.deinit();
         while (dfs_iter.next()) |module| {
             if (std.mem.eql(u8, module.get_package_abs_path(), package.absolute_path)) {
-                try output_module(module, &compiler.module_interned_strings, build_path, compiler.allocator());
+                try output_module(module, &ctx.module_interned_strings, build_path, ctx.allocator());
                 modules.append(module) catch unreachable;
 
                 if (package.kind == .test_executable) {
-                    try output_tests(module, &compiler.module_interned_strings, build_path, compiler.allocator());
+                    try output_tests(module, &ctx.module_interned_strings, build_path, ctx.allocator());
                 }
             }
         }
 
         switch (package.kind) {
-            .test_executable => try output_testrunner(modules, build_path, compiler.allocator()),
-            .executable => try output_start(package_root_module, &compiler.module_interned_strings, build_path, compiler.allocator()),
+            .test_executable => try output_testrunner(modules, build_path, ctx.allocator()),
+            .executable => try output_start(package_root_module, &ctx.module_interned_strings, build_path, ctx.allocator()),
             else => {},
         }
     }

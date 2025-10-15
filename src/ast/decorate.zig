@@ -2,26 +2,27 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
+const Ast_Id = @import("ast_store.zig").Ast_Id;
+const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const Scope = @import("../symbol/scope.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 const walk_ = @import("../ast/walker.zig");
 
 scope: *Scope,
-errors: *errs_.Errors,
-allocator: std.mem.Allocator,
+ctx: *Compiler_Context,
 
 const Self = @This();
 
-pub fn new(scope: *Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Self {
+pub fn new(scope: *Scope, ctx: *Compiler_Context) Self {
     return Self{
         .scope = scope,
-        .errors = errors,
-        .allocator = allocator,
+        .ctx = ctx,
     };
 }
 
-pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
+pub fn prefix(self: Self, ast_id: Ast_Id) walk_.Error!?Self {
+    const ast = self.ctx.ast_store.get(ast_id);
     switch (ast.*) {
         else => return self,
 
@@ -125,7 +126,8 @@ pub fn prefix_type(self: Self, _type: *Type_AST) walk_.Error!?Self {
     }
 }
 
-pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
+pub fn postfix(self: Self, ast_id: Ast_Id) walk_.Error!void {
+    const ast = self.ctx.ast_store.get(ast_id);
     switch (ast.*) {
         else => {},
 
@@ -142,10 +144,12 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
 
         .select => {
             if (ast.lhs().* == .identifier and ast.lhs().symbol() != null and ast.lhs().symbol().?.refers_to_type()) {
-                const enum_value = ast_.AST.create_enum_value(ast.rhs().token(), self.allocator);
-                enum_value.enum_value.base = Type_AST.create_identifier(ast.lhs().token(), self.allocator);
-                enum_value.enum_value.base.?.set_symbol(ast.lhs().symbol());
-                ast.* = enum_value.*;
+                const base = Type_AST.create_identifier(ast.lhs().token(), self.allocator);
+                base.?.set_symbol(ast.lhs().symbol());
+                self.ctx.ast_store.replace(ast_id, .{ .enum_value = .{
+                    ._token = ast.rhs().token(),
+                    .base = base,
+                } });
             }
         },
     }

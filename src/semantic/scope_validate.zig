@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
+const Ast_Id = @import("../ast/ast_store.zig").Ast_Id;
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
@@ -36,7 +37,7 @@ pub fn validate(self: *Self, scope: *Scope) Validate_Error_Enum!void {
 }
 
 // TODO: Split up into smaller functions
-fn validate_impl(self: *Self, impl: *ast_.AST) Validate_Error_Enum!void {
+fn validate_impl(self: *Self, impl: Ast_Id) Validate_Error_Enum!void {
     if (impl.impl._type.* == .addr_of) {
         self.ctx.errors.add_error(errs_.Error{ .basic = .{
             .span = impl.impl._type.span(),
@@ -81,7 +82,7 @@ fn validate_impl(self: *Self, impl: *ast_.AST) Validate_Error_Enum!void {
     }
 
     // Construct a map of all trait decls
-    var trait_decls = std.StringArrayHashMap(*ast_.AST).init(self.ctx.allocator()); // Map name -> Method Decl
+    var trait_decls = std.StringArrayHashMap(Ast_Id).init(self.ctx.allocator()); // Map name -> Method Decl
     defer trait_decls.deinit();
     for (trait_ast.trait.method_decls.items) |decl| {
         trait_decls.put(decl.method_decl.name.token().data, decl) catch unreachable;
@@ -203,7 +204,7 @@ fn validate_impl(self: *Self, impl: *ast_.AST) Validate_Error_Enum!void {
     }
 }
 
-fn receivers_match(a: ?*ast_.AST, b: ?*ast_.AST) bool {
+fn receivers_match(a: ?Ast_Id, b: ?Ast_Id) bool {
     if (a == null and b != null) {
         return false;
     } else if (a != null and b == null) {

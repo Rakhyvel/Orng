@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
+const Ast_Id = @import("../ast/ast_store.zig").Ast_Id;
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const Const_Eval = @import("const_eval.zig");
 const typecheck_AST = @import("typecheck.zig").typecheck_AST;
@@ -118,13 +119,17 @@ pub fn validate(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
         if (symbol.storage.@"extern".c_name != null) {
             _ = self.ctx.typecheck.typecheck_AST(symbol.storage.@"extern".c_name.?, prelude_.string_type) catch return error.CompileError;
         } else {
-            symbol.storage.@"extern".c_name = ast_.AST.create_string(Token.init_simple(symbol.name), symbol.name, self.ctx.allocator());
+            symbol.storage.@"extern".c_name = self.ctx.ast_store.add(.{ .string = .{
+                ._token = Token.init_simple(symbol.name),
+                .data = symbol.name,
+            } });
         }
     }
     _ = symbol.assert_init_valid();
 }
 
-fn type_is_type_type(ast: *ast_.AST) bool {
+fn type_is_type_type(self: *Self, ast_id: Ast_Id) bool {
+    const ast = self.ctx.ast_store.get(ast_id);
     if (ast.* == .function) {
         return type_is_type_type_atom(ast.rhs());
     } else {
@@ -132,12 +137,13 @@ fn type_is_type_type(ast: *ast_.AST) bool {
     }
 }
 
-fn type_is_type_type_atom(ast: *ast_.AST) bool {
+fn type_is_type_type_atom(self: *Self, ast_id: Ast_Id) bool {
+    const ast = self.ctx.ast_store.get(ast_id);
     return ast.* == .identifier and std.mem.eql(u8, ast.token().data, "Type");
 }
 
 fn validate_trait(self: *Self, trait: *Symbol) Validate_Error_Enum!void {
-    var names = std.StringArrayHashMap(*ast_.AST).init(self.ctx.allocator());
+    var names = std.StringArrayHashMap(Ast_Id).init(self.ctx.allocator());
     defer names.deinit();
 
     for (trait.decl.?.trait.method_decls.items) |decl| {

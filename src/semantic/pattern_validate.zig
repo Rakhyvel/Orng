@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
+const Ast_Id = @import("../ast/ast_store.zig").Ast_Id;
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
@@ -15,19 +16,19 @@ const Validate_Error_Enum = error{CompileError};
 const Self: type = @This();
 
 ctx: *Compiler_Context,
-map: std.AutoArrayHashMap(*ast_.AST, *Type_AST),
+map: std.AutoArrayHashMap(Ast_Id, *Type_AST),
 
 pub fn init(ctx: *Compiler_Context) Self {
     return Self{
         .ctx = ctx,
-        .map = std.AutoArrayHashMap(*ast_.AST, *Type_AST).init(ctx.allocator()),
+        .map = std.AutoArrayHashMap(Ast_Id, *Type_AST).init(ctx.allocator()),
     };
 }
 
 /// Validates that `pattern` is valid given a match's `expr`
 pub fn assert_pattern_matches(
     self: *Self,
-    pattern: *ast_.AST,
+    pattern: Ast_Id,
     expr_type: *Type_AST,
 ) Validate_Error_Enum!void {
     switch (pattern.*) {
@@ -76,7 +77,7 @@ pub fn assert_pattern_matches(
 pub fn exhaustive_check(
     self: *Self,
     _type: *Type_AST,
-    mappings: *const std.array_list.Managed(*ast_.AST),
+    mappings: *const std.array_list.Managed(Ast_Id),
     match_span: Span,
 ) Validate_Error_Enum!void {
     if (_type.* == .enum_type) {
@@ -104,7 +105,8 @@ pub fn exhaustive_check(
     }
 }
 
-fn exhaustive_check_sub(ast: *ast_.AST, ids: *std.array_list.Managed(usize)) void {
+fn exhaustive_check_sub(self: *Self, ast_id: Ast_Id, ids: *std.array_list.Managed(usize)) void {
+    const ast = self.ctx.ast_store.get(ast_id);
     switch (ast.*) {
         .select, .enum_value => {
             for (ids.items, 0..) |item, i| {

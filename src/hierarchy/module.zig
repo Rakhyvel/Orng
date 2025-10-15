@@ -1,6 +1,7 @@
 const std = @import("std");
 const module_validate_ = @import("../semantic/module_validate.zig");
 const ast_ = @import("../ast/ast.zig");
+const Ast_Id = @import("../ast/ast_store.zig").Ast_Id;
 const CFG = @import("../ir/cfg.zig");
 const Cfg_Iterator = @import("../util/dfs.zig").Dfs_Iterator(*CFG);
 const Compiler_Context = @import("../hierarchy/compiler.zig");
@@ -62,7 +63,7 @@ pub const Module = struct {
     local_imported_modules: std.AutoArrayHashMap(*Module, void),
 
     // Set of C headers to include
-    cincludes: std.array_list.Managed(*ast_.AST),
+    cincludes: std.array_list.Managed(Ast_Id),
 
     /// List of instructions for this module. Used by the interpreter, so that instructions are indexable by a random
     /// access instruction pointer.
@@ -77,10 +78,10 @@ pub const Module = struct {
     entry: ?*CFG,
 
     /// List of all traits defined in this module. Used by codegen to output the vtable structs definitions
-    traits: std.array_list.Managed(*ast_.AST),
+    traits: std.array_list.Managed(Ast_Id),
 
     /// List of all impls defined in this module. Used by codegen to output the vtable implementations.
-    impls: std.array_list.Managed(*ast_.AST),
+    impls: std.array_list.Managed(Ast_Id),
 
     /// List of all tests defined in this module. Used by codegen to output the vtable implementations.
     tests: std.array_list.Managed(*CFG),
@@ -96,7 +97,8 @@ pub const Module = struct {
 
     modified: ?bool,
 
-    pub fn init(absolute_path: []const u8, allocator: std.mem.Allocator) *Module {
+    pub fn init(absolute_path: []const u8, ctx: *Compiler_Context) *Module {
+        const allocator = ctx.allocator();
         var retval = allocator.create(Module) catch unreachable;
         retval.uid = module_uids;
         retval.uid_gen = UID_Gen.init();
@@ -106,13 +108,13 @@ pub const Module = struct {
         retval.package_name = std.fs.path.basename(std.fs.path.dirname(absolute_path).?);
         retval.allocator = allocator;
         retval.local_imported_modules = std.AutoArrayHashMap(*Module, void).init(allocator);
-        retval.cincludes = std.array_list.Managed(*ast_.AST).init(allocator);
+        retval.cincludes = std.array_list.Managed(Ast_Id).init(allocator);
         retval.instructions = std.array_list.Managed(*Instruction).init(allocator);
-        retval.traits = std.array_list.Managed(*ast_.AST).init(allocator);
-        retval.impls = std.array_list.Managed(*ast_.AST).init(allocator);
+        retval.traits = std.array_list.Managed(Ast_Id).init(allocator);
+        retval.impls = std.array_list.Managed(Ast_Id).init(allocator);
         retval.tests = std.array_list.Managed(*CFG).init(allocator);
         retval.cfgs = std.array_list.Managed(*CFG).init(allocator);
-        retval.type_set = Type_Set.init(allocator);
+        retval.type_set = Type_Set.init(ctx);
         retval.entry = null;
         retval.modified = null;
 
@@ -124,7 +126,7 @@ pub const Module = struct {
         absolute_path: []const u8,
         entry_name: ?[]const u8,
         fuzz_tokens: bool,
-        compiler: *Compiler_Context,
+        ctx: *Compiler_Context,
     ) Module_Errors!*Module {
         // Check to see if the file exists
         {
@@ -136,25 +138,24 @@ pub const Module = struct {
         }
 
         // Create the symbol for this module
-        const module = Module.init(absolute_path, compiler.allocator());
-        var file_root = Scope.init(compiler.prelude, &module.uid_gen, compiler.allocator());
+        const module = Module.init(absolute_path, ctx);
+        var file_root = Scope.init(ctx.prelude, &module.uid_gen, ctx.allocator());
         const symbol = Symbol.init(
-            compiler.prelude,
+            ctx.prelude,
             module.name(),
-            ast_.AST.create_module(
-                Token.init_simple(module.name()),
-                file_root,
-                module,
-                compiler.allocator(),
-            ),
+            try ctx.ast_store.add(.{ .module = .{
+                ._token = Token.init_simple(module.name()),
+                ._scope = file_root,
+                .module = module,
+            } }),
             .module,
             .local,
-            compiler.allocator(),
+            ctx.allocator(),
         );
-        try compiler.prelude.put_symbol(symbol, &compiler.errors);
+        try ctx.prelude.put_symbol(symbol, &ctx.errors);
         file_root.module = module;
 
-        try fill_contents_from_file(absolute_path, entry_name, file_root, module, symbol, fuzz_tokens, compiler);
+        try fill_contents_from_file(absolute_path, entry_name, file_root, module, symbol, fuzz_tokens, ctx);
 
         return module;
     }
@@ -173,11 +174,11 @@ pub const Module = struct {
         module: *Module,
         module_symbol: *Symbol,
         fuzz_tokens: bool,
-        compiler: *Compiler_Context,
+        ctx: *Compiler_Context,
     ) Module_Errors!void {
-        const read_file = Read_File.init(compiler.allocator());
+        const read_file = Read_File.init(ctx.allocator());
         const contents = try read_file.run(in_name);
-        return fill_contents(contents, in_name, entry_name, file_root, module, module_symbol, fuzz_tokens, compiler);
+        return fill_contents(contents, in_name, entry_name, file_root, module, module_symbol, fuzz_tokens, ctx);
     }
 
     pub fn fill_contents(
@@ -188,70 +189,69 @@ pub const Module = struct {
         module: *Module,
         module_symbol: *Symbol,
         fuzz_tokens: bool,
-        compiler: *Compiler_Context,
+        ctx: *Compiler_Context,
     ) Module_Errors!void {
-        compiler.register_interned_string_set(module.uid);
-        compiler.register_module(module.absolute_path, module_symbol);
+        ctx.register_interned_string_set(module.uid);
+        ctx.register_module(module.absolute_path, module_symbol);
 
-        if (compiler.core != null) {
+        if (ctx.core != null) {
             // Can be null if you're compiling the core module itself!
-            module.local_imported_modules.put(compiler.core.?.module.?, void{}) catch unreachable;
+            module.local_imported_modules.put(ctx.core.?.module.?, void{}) catch unreachable;
             const core_import_symbol = Symbol.init(
                 file_root,
                 "core",
-                ast_.AST.create_module(
-                    Token.init_simple("core"),
-                    compiler.core.?,
-                    module,
-                    compiler.allocator(),
-                ),
+                try ctx.ast_store.add(.{ .module = .{
+                    ._token = Token.init_simple("core"),
+                    ._scope = ctx.core.?,
+                    .module = module,
+                } }),
                 .{ .import = .{ .real_name = "core" } },
                 .local,
-                compiler.allocator(),
+                ctx.allocator(),
             );
-            try file_root.put_symbol(core_import_symbol, &compiler.errors);
+            try file_root.put_symbol(core_import_symbol, &ctx.errors);
         }
 
         // Setup and run the front-end pipeline
         _ = try pipeline_.run(contents, .{
             Hash.init(&module.hash),
-            Split_Lines.init(&compiler.errors, compiler.allocator()),
-            Tokenize.init(in_name, &compiler.errors, fuzz_tokens, compiler.allocator()),
+            Split_Lines.init(&ctx.errors, ctx.allocator()),
+            Tokenize.init(in_name, &ctx.errors, fuzz_tokens, ctx.allocator()),
             Apply_Layout.init(),
-            Parse.init(&compiler.errors, compiler.allocator()),
-            Apply_Ast_Walk(Expand).init(Expand.new(&compiler.errors, compiler.allocator())),
-            Apply_Flat_Ast_Walk(Import).init(Import.new(compiler, module.get_package_abs_path(), &module.local_imported_modules)),
+            Parse.init(&ctx.errors, ctx.allocator()),
+            Apply_Ast_Walk(Expand).init(Expand.new(&ctx.errors, ctx.allocator())),
+            Apply_Flat_Ast_Walk(Import).init(Import.new(ctx, module.get_package_abs_path(), &module.local_imported_modules)),
             Apply_Flat_Ast_Walk(Cinclude).init(Cinclude.new(&module.cincludes)),
-            Apply_Ast_Walk(Symbol_Tree).init(Symbol_Tree.new(file_root, &compiler.errors, compiler.allocator())),
-            Apply_Ast_Walk(Decorate).init(Decorate.new(file_root, &compiler.errors, compiler.allocator())),
-            Apply_Ast_Walk(Decorate_Access).init(Decorate_Access.new(file_root, &compiler.errors, compiler)),
-            Apply_Ast_Walk(Type_Decorate).init(Type_Decorate.new(compiler)),
+            Apply_Ast_Walk(Symbol_Tree).init(Symbol_Tree.new(file_root, &ctx.errors, ctx.allocator())),
+            Apply_Ast_Walk(Decorate).init(Decorate.new(file_root, &ctx.errors, ctx.allocator())),
+            Apply_Ast_Walk(Decorate_Access).init(Decorate_Access.new(file_root, &ctx.errors, ctx)),
+            Apply_Ast_Walk(Type_Decorate).init(Type_Decorate.new(ctx)),
         });
 
         // Perform checks and collections on the module
-        try compiler.validate_module.validate(module);
-        compiler.module_scope(module.absolute_path).?.collect_traits_and_impls(&module.traits, &module.impls);
-        try module.add_all_cfgs(entry_name, compiler);
+        try ctx.validate_module.validate(module);
+        ctx.module_scope(module.absolute_path).?.collect_traits_and_impls(&module.traits, &module.impls);
+        try module.add_all_cfgs(entry_name, ctx);
         if (module.entry) |entry| {
             entry.assert_needed_at_runtime();
         }
-        try module.collect_impls_cfgs(compiler);
-        try module.collect_tests(compiler);
+        try module.collect_impls_cfgs(ctx);
+        try module.collect_tests(ctx);
         module.collect_local_types();
     }
 
-    fn add_all_cfgs(self: *Module, entry_name: ?[]const u8, compiler: *Compiler_Context) Module_Errors!void {
+    fn add_all_cfgs(self: *Module, entry_name: ?[]const u8, ctx: *Compiler_Context) Module_Errors!void {
         var found_entry = false;
         const need_entry = entry_name != null;
-        for (compiler.module_scope(self.absolute_path).?.symbols.keys()) |key| {
-            const symbol: *Symbol = compiler.module_scope(self.absolute_path).?.symbols.get(key).?;
+        for (ctx.module_scope(self.absolute_path).?.symbols.keys()) |key| {
+            const symbol: *Symbol = ctx.module_scope(self.absolute_path).?.symbols.get(key).?;
             if (symbol.kind != .@"fn") {
                 continue;
             }
 
             // Instruction translation
-            const interned_strings = compiler.lookup_interned_string_set(self.uid).?;
-            const cfg = try compiler.cfg_store.get_cfg(symbol, interned_strings);
+            const interned_strings = ctx.lookup_interned_string_set(self.uid).?;
+            const cfg = try ctx.cfg_store.get_cfg(symbol, interned_strings);
             self.collect_cfgs(cfg);
 
             if (need_entry and std.mem.eql(u8, key, entry_name.?)) {
@@ -260,7 +260,7 @@ pub const Module = struct {
             }
         }
         if (need_entry and !found_entry) {
-            compiler.errors.add_error(errs_.Error{ .basic = .{
+            ctx.errors.add_error(errs_.Error{ .basic = .{
                 .span = Span.phony,
                 .msg = "no main function found",
             } });
@@ -297,36 +297,36 @@ pub const Module = struct {
         type_set.union_from(&self.type_set);
     }
 
-    fn collect_impls_cfgs(self: *Module, compiler: *Compiler_Context) Module_Errors!void {
+    fn collect_impls_cfgs(self: *Module, ctx: *Compiler_Context) Module_Errors!void {
         for (self.impls.items) |impl| {
             if (impl.impl.instantiations.pairs.items.len == 0) {
-                try self.collect_impl_cfgs(impl, compiler);
+                try self.collect_impl_cfgs(impl, ctx);
             } else {
                 for (impl.impl.instantiations.pairs.items) |pair| {
-                    try self.collect_impl_cfgs(pair.value, compiler);
+                    try self.collect_impl_cfgs(pair.value, ctx);
                 }
             }
         }
     }
 
-    fn collect_impl_cfgs(self: *Module, impl: *ast_.AST, compiler: *Compiler_Context) Module_Errors!void {
+    fn collect_impl_cfgs(self: *Module, impl: Ast_Id, ctx: *Compiler_Context) Module_Errors!void {
         for (impl.impl.method_defs.items) |def| {
             const symbol = def.symbol().?;
-            const interned_strings = compiler.lookup_interned_string_set(self.uid).?;
-            const cfg = try compiler.cfg_store.get_cfg(symbol, interned_strings);
+            const interned_strings = ctx.lookup_interned_string_set(self.uid).?;
+            const cfg = try ctx.cfg_store.get_cfg(symbol, interned_strings);
             cfg.assert_needed_at_runtime();
             self.collect_cfgs(cfg);
         }
     }
 
-    fn collect_tests(self: *Module, compiler: *Compiler_Context) Module_Errors!void {
-        var test_asts = std.array_list.Managed(*ast_.AST).init(compiler.allocator());
-        compiler.module_scope(self.absolute_path).?.collect_tests(&test_asts);
+    fn collect_tests(self: *Module, ctx: *Compiler_Context) Module_Errors!void {
+        var test_asts = std.array_list.Managed(Ast_Id).init(ctx.allocator());
+        ctx.module_scope(self.absolute_path).?.collect_tests(&test_asts);
 
         for (test_asts.items) |test_ast| {
             const symbol = test_ast.symbol().?;
-            const interned_strings = compiler.lookup_interned_string_set(self.uid).?;
-            const cfg = try compiler.cfg_store.get_cfg(symbol, interned_strings);
+            const interned_strings = ctx.lookup_interned_string_set(self.uid).?;
+            const cfg = try ctx.cfg_store.get_cfg(symbol, interned_strings);
             self.tests.append(cfg) catch unreachable;
             cfg.assert_needed_at_runtime();
             self.collect_cfgs(cfg);
@@ -354,20 +354,20 @@ pub const Module = struct {
     /// A module is modified if:
     /// - Its source hash differs from what is stored in the package's json file
     /// - Any of the module it imports have been modified
-    pub fn determine_if_modified(self: *Module, compiler: *Compiler_Context) void {
+    pub fn determine_if_modified(self: *Module, ctx: *Compiler_Context) void {
         if (self.modified != null) {
             return;
         }
 
         const package_abs_path = self.get_package_abs_path();
-        const module_hashes = compiler.lookup_package(package_abs_path).?.module_hash;
+        const module_hashes = ctx.lookup_package(package_abs_path).?.module_hash;
         const old_hash = module_hashes.get_module_stored_hash(self.name());
-        const local_module_number_string = std.fmt.allocPrint(compiler.allocator(), "{X}", .{self.hash}) catch unreachable;
-        defer compiler.allocator().free(local_module_number_string);
+        const local_module_number_string = std.fmt.allocPrint(ctx.allocator(), "{X}", .{self.hash}) catch unreachable;
+        defer ctx.allocator().free(local_module_number_string);
         self.modified = (old_hash == null) or !std.mem.eql(u8, local_module_number_string, old_hash.?);
 
         for (self.local_imported_modules.keys()) |imported_module| {
-            imported_module.determine_if_modified(compiler);
+            imported_module.determine_if_modified(ctx);
             self.modified = imported_module.modified.? or self.modified.?;
         }
     }

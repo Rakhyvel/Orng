@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
+const Ast_Id = @import("../ast/ast_store.zig").Ast_Id;
 const Span = @import("../util/span.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const String = @import("../zig-string/zig-string.zig").String;
@@ -194,7 +195,7 @@ pub const Error = union(enum) {
     },
     undeclared_identifier: struct {
         identifier: Token,
-        expected: ?*ast_.AST,
+        expected: ?Ast_Id,
     },
     comptime_access_runtime: struct {
         identifier: Token,

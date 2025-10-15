@@ -1,6 +1,8 @@
 const std = @import("std");
 const alignment_ = @import("../util/alignment.zig");
+const Ast_Id = @import("../ast/ast_store.zig").Ast_Id;
 const AST = @import("../ast/ast.zig").AST;
+const Compiler_Context = @import("../hierarchy/compiler.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const Scope = @import("../symbol/scope.zig");
 const String = @import("../zig-string/zig-string.zig").String;
@@ -48,7 +50,7 @@ pub const Type_AST = union(enum) {
     // TOOD: generic_type
     access: struct {
         common: Type_AST_Common,
-        inner_access: *AST,
+        inner_access: Ast_Id,
         _symbol: ?*Symbol = null,
     },
     generic_apply: struct {
@@ -66,9 +68,9 @@ pub const Type_AST = union(enum) {
     },
     annotation: struct {
         common: Type_AST_Common,
-        pattern: *AST,
+        pattern: Ast_Id,
         _child: *Type_AST,
-        init: ?*AST,
+        init: ?Ast_Id,
     },
     enum_type: struct {
         common: Type_AST_Common,
@@ -170,7 +172,7 @@ pub const Type_AST = union(enum) {
     array_of: struct {
         common: Type_AST_Common,
         _child: *Type_AST,
-        len: *AST,
+        len: Ast_Id,
 
         pub fn get_offset(self: *@This(), field: usize) i64 {
             return self._child.sizeof() * @as(i64, @intCast(field));
@@ -178,7 +180,7 @@ pub const Type_AST = union(enum) {
     },
     type_of: struct {
         common: Type_AST_Common,
-        _expr: *AST,
+        _expr: Ast_Id,
     },
     /// This node type is needed for pattern matching.
     /// Symbols for captured sum-values in a `match` statement are created before their type information is
@@ -203,7 +205,7 @@ pub const Type_AST = union(enum) {
     index: struct {
         common: Type_AST_Common,
         _child: *Type_AST,
-        idx: *AST, // TODO: consider just making this an int, since its not available to the user
+        idx: Ast_Id, // TODO: consider just making this an int, since its not available to the user
     },
 
     pub fn create_poison(_token: Token, allocator: std.mem.Allocator) *Type_AST {
@@ -224,7 +226,7 @@ pub const Type_AST = union(enum) {
         return Type_AST.box(Type_AST{ .identifier = .{ .common = Type_AST_Common{ ._token = _token } } }, allocator);
     }
 
-    pub fn create_access(_token: Token, inner_access: *AST, allocator: std.mem.Allocator) *Type_AST {
+    pub fn create_access(_token: Token, inner_access: Ast_Id, allocator: std.mem.Allocator) *Type_AST {
         const _common: Type_AST_Common = .{ ._token = _token };
         return Type_AST.box(Type_AST{ .access = .{
             .common = _common,
@@ -266,9 +268,9 @@ pub const Type_AST = union(enum) {
 
     pub fn create_annotation(
         _token: Token,
-        pattern: *AST,
+        pattern: Ast_Id,
         _type: *Type_AST,
-        init: ?*AST,
+        init: ?Ast_Id,
         allocator: std.mem.Allocator,
     ) *Type_AST {
         const _common: Type_AST_Common = .{ ._token = _token };
@@ -325,7 +327,7 @@ pub const Type_AST = union(enum) {
     //     } }, allocator);
     // }
 
-    pub fn create_array_of(_token: Token, _child: *Type_AST, len: *AST, allocator: std.mem.Allocator) *Type_AST {
+    pub fn create_array_of(_token: Token, _child: *Type_AST, len: Ast_Id, allocator: std.mem.Allocator) *Type_AST {
         const _common: Type_AST_Common = .{ ._token = _token };
         return Type_AST.box(Type_AST{ .array_of = .{
             .common = _common,
@@ -334,7 +336,7 @@ pub const Type_AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn create_type_of(_token: Token, _expr: *AST, allocator: std.mem.Allocator) *Type_AST {
+    pub fn create_type_of(_token: Token, _expr: Ast_Id, allocator: std.mem.Allocator) *Type_AST {
         return Type_AST.box(Type_AST{ .type_of = .{
             .common = Type_AST_Common{ ._token = _token },
             ._expr = _expr,
@@ -350,7 +352,7 @@ pub const Type_AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn create_index(_token: Token, _lhs: *Type_AST, _rhs: *AST, allocator: std.mem.Allocator) *Type_AST {
+    pub fn create_index(_token: Token, _lhs: *Type_AST, _rhs: Ast_Id, allocator: std.mem.Allocator) *Type_AST {
         return Type_AST.box(Type_AST{ .index = .{
             .common = Type_AST_Common{ ._token = _token },
             ._child = _lhs,
@@ -448,25 +450,26 @@ pub const Type_AST = union(enum) {
         return retval;
     }
 
-    pub fn from_ast(ast: *AST, allocator: std.mem.Allocator) *Type_AST {
+    pub fn from_ast(ast_id: Ast_Id, ctx: *Compiler_Context) *Type_AST {
+        const ast = ctx.ast_store.get(ast_id);
         return switch (ast.*) {
             .identifier => blk: {
-                const id = Type_AST.create_identifier(ast.token(), allocator);
+                const id = Type_AST.create_identifier(ast.token(), ctx.allocator());
                 id.set_symbol(ast.symbol().?);
                 break :blk id;
             },
             .access => blk: {
-                const id = Type_AST.create_access(ast.token(), ast, allocator);
+                const id = Type_AST.create_access(ast.token(), ast, ctx.allocator());
                 id.set_symbol(ast.symbol().?);
                 break :blk id;
             },
             .index => blk: {
-                const base = from_ast(ast.lhs(), allocator);
-                var args = std.array_list.Managed(*Type_AST).init(allocator);
+                const base = from_ast(ast.lhs(), ctx.allocator());
+                var args = std.array_list.Managed(*Type_AST).init(ctx.allocator());
                 for (ast.children().items) |arg| {
-                    args.append(from_ast(arg, allocator)) catch unreachable;
+                    args.append(from_ast(arg, ctx.allocator())) catch unreachable;
                 }
-                break :blk Type_AST.create_generic_apply(ast.token(), base, args, allocator);
+                break :blk Type_AST.create_generic_apply(ast.token(), base, args, ctx.allocator());
             },
             else => std.debug.panic("unable to construct type from {t}", .{ast.*}),
         };
@@ -542,7 +545,7 @@ pub const Type_AST = union(enum) {
         }
     }
 
-    pub fn expr(self: Type_AST) *AST {
+    pub fn expr(self: Type_AST) Ast_Id {
         return get_struct_field(self, "_expr");
     }
 
@@ -596,7 +599,7 @@ pub const Type_AST = union(enum) {
             .untagged_sum_type => self.child().expand_identifier().children(),
             .struct_type => &self.struct_type._terms,
             .tuple_type => &self.tuple_type._terms,
-            else => std.debug.panic("compiler error: cannot call `.children()` on the Type_AST `{f}`", .{self}),
+            else => std.debug.panic("compiler error: cannot call `.children()` on the Type_AST `{t}`", .{self.*}),
         };
     }
 
@@ -606,7 +609,7 @@ pub const Type_AST = union(enum) {
             .untagged_sum_type => self.untagged_sum_type._child.enum_type._terms = val,
             .struct_type => self.struct_type._terms = val,
             .tuple_type => self.tuple_type._terms = val,
-            else => std.debug.panic("compiler error: cannot call `.set_children()` on the Type_AST `{s}`", .{@tagName(self.*)}),
+            else => std.debug.panic("compiler error: cannot call `.set_children()` on the Type_AST `{t}`", .{self.*}),
         }
     }
 
@@ -670,109 +673,109 @@ pub const Type_AST = union(enum) {
         }
     }
 
-    pub fn print_type(self: *const Type_AST, out: *std.Io.Writer) !void {
-        if (self.common()._unexpanded_type) |unexpanded| {
-            if (unexpanded != self) {
-                return try unexpanded.print_type(out);
-            }
-        }
+    // pub fn print_type(self: *const Type_AST, out: *std.Io.Writer) !void {
+    //     if (self.common()._unexpanded_type) |unexpanded| {
+    //         if (unexpanded != self) {
+    //             return try unexpanded.print_type(out);
+    //         }
+    //     }
 
-        switch (self.*) {
-            .poison => try out.print("???", .{}),
-            .anyptr_type => try out.print("anyptr", .{}),
-            .unit_type => try out.print("()", .{}),
-            .identifier => try out.print("{s}", .{self.token().data}),
-            .addr_of => {
-                if (self.addr_of.multiptr) {
-                    try out.print("[*", .{});
-                    if (self.addr_of.mut) {
-                        try out.print("mut", .{});
-                    }
-                    try out.print("]", .{});
-                } else {
-                    try out.print("&", .{});
-                    if (self.addr_of.mut) {
-                        try out.print("mut ", .{});
-                    }
-                }
-                try self.child().print_type(out);
-            },
-            .dyn_type => {
-                try out.print("&", .{});
-                if (self.dyn_type.mut) {
-                    try out.print("mut ", .{});
-                }
-                try out.print("dyn ", .{});
-                try self.child().print_type(out);
-            },
-            // .slice_of => {
-            //     try out.print("[", .{});
-            //     if (self.slice_of.mut) {
-            //         try out.print("mut", .{});
-            //     }
-            //     try out.print("]", .{});
-            //     try self.child().print_type(out);
-            // },
-            .array_of => {
-                try out.print("[{f}]", .{self.array_of.len});
-                try self.child().print_type(out);
-            },
-            .function => {
-                try self.lhs().print_type(out);
-                try out.print("->", .{});
-                try self.rhs().print_type(out);
-            },
-            .struct_type, .tuple_type => {
-                try out.print("(", .{});
-                for (self.children().items, 0..) |term, i| {
-                    try term.print_type(out);
-                    if (i + 1 < self.children().items.len) {
-                        try out.print(", ", .{});
-                    }
-                }
-                try out.print(")", .{});
-            },
+    //     switch (self.*) {
+    //         .poison => try out.print("???", .{}),
+    //         .anyptr_type => try out.print("anyptr", .{}),
+    //         .unit_type => try out.print("()", .{}),
+    //         .identifier => try out.print("{s}", .{self.token().data}),
+    //         .addr_of => {
+    //             if (self.addr_of.multiptr) {
+    //                 try out.print("[*", .{});
+    //                 if (self.addr_of.mut) {
+    //                     try out.print("mut", .{});
+    //                 }
+    //                 try out.print("]", .{});
+    //             } else {
+    //                 try out.print("&", .{});
+    //                 if (self.addr_of.mut) {
+    //                     try out.print("mut ", .{});
+    //                 }
+    //             }
+    //             try self.child().print_type(out);
+    //         },
+    //         .dyn_type => {
+    //             try out.print("&", .{});
+    //             if (self.dyn_type.mut) {
+    //                 try out.print("mut ", .{});
+    //             }
+    //             try out.print("dyn ", .{});
+    //             try self.child().print_type(out);
+    //         },
+    //         // .slice_of => {
+    //         //     try out.print("[", .{});
+    //         //     if (self.slice_of.mut) {
+    //         //         try out.print("mut", .{});
+    //         //     }
+    //         //     try out.print("]", .{});
+    //         //     try self.child().print_type(out);
+    //         // },
+    //         .array_of => {
+    //             try out.print("[{f}]", .{self.array_of.len});
+    //             try self.child().print_type(out);
+    //         },
+    //         .function => {
+    //             try self.lhs().print_type(out);
+    //             try out.print("->", .{});
+    //             try self.rhs().print_type(out);
+    //         },
+    //         .struct_type, .tuple_type => {
+    //             try out.print("(", .{});
+    //             for (self.children().items, 0..) |term, i| {
+    //                 try term.print_type(out);
+    //                 if (i + 1 < self.children().items.len) {
+    //                     try out.print(", ", .{});
+    //                 }
+    //             }
+    //             try out.print(")", .{});
+    //         },
 
-            .enum_type => if (self.enum_type.from == .optional) {
-                try out.print("?", .{});
-                try self.get_some_type().child().print_type(out);
-            } else {
-                try out.print("(", .{});
-                for (self.enum_type._terms.items, 0..) |term, i| {
-                    try term.print_type(out);
-                    if (self.enum_type._terms.items.len == 1 or i + 1 != self.enum_type._terms.items.len) {
-                        try out.print(" | ", .{});
-                    }
-                }
-                try out.print(")", .{});
-            },
-            .access => {
-                try out.print("{f}", .{self.access.inner_access});
-            },
-            .generic_apply => {
-                try out.print("{f}[{f}", .{ self.generic_apply._lhs, self.generic_apply.args.items[0] });
-                for (self.generic_apply.args.items[1..]) |arg| {
-                    try out.print(", {f}", .{arg});
-                }
-                try out.print("]", .{});
-            },
-            .annotation => {
-                try out.print("{s}: ", .{self.annotation.pattern.token().data});
-                try self.child().print_type(out);
-            },
-            .type_of => {
-                try out.print("@typeof({f})", .{self.type_of._expr});
-            },
-            .domain_of => {
-                try out.print("@domainof({f}.{s})", .{ self.domain_of._child, self.domain_of.ctor_name });
-            },
-            .index => try out.print("{f}[{f}]", .{ self.child(), self.index.idx }),
-            else => try out.print("{s}", .{@tagName(self.*)}),
-        }
-    }
+    //         .enum_type => if (self.enum_type.from == .optional) {
+    //             try out.print("?", .{});
+    //             try self.get_some_type().child().print_type(out);
+    //         } else {
+    //             try out.print("(", .{});
+    //             for (self.enum_type._terms.items, 0..) |term, i| {
+    //                 try term.print_type(out);
+    //                 if (self.enum_type._terms.items.len == 1 or i + 1 != self.enum_type._terms.items.len) {
+    //                     try out.print(" | ", .{});
+    //                 }
+    //             }
+    //             try out.print(")", .{});
+    //         },
+    //         .access => {
+    //             try out.print("{f}", .{self.access.inner_access});
+    //         },
+    //         .generic_apply => {
+    //             try out.print("{f}[{f}", .{ self.generic_apply._lhs, self.generic_apply.args.items[0] });
+    //             for (self.generic_apply.args.items[1..]) |arg| {
+    //                 try out.print(", {f}", .{arg});
+    //             }
+    //             try out.print("]", .{});
+    //         },
+    //         .annotation => {
+    //             try out.print("{s}: ", .{self.annotation.pattern.token().data});
+    //             try self.child().print_type(out);
+    //         },
+    //         .type_of => {
+    //             try out.print("@typeof({f})", .{self.type_of._expr});
+    //         },
+    //         .domain_of => {
+    //             try out.print("@domainof({f}.{s})", .{ self.domain_of._child, self.domain_of.ctor_name });
+    //         },
+    //         .index => try out.print("{f}[{f}]", .{ self.child(), self.index.idx }),
+    //         else => try out.print("{s}", .{@tagName(self.*)}),
+    //     }
+    // }
 
     pub fn format(self: *const Type_AST, writer: *std.io.Writer) !void {
-        self.print_type(writer) catch unreachable;
+        try writer.print("{t}", .{self.*});
     }
 
     /// Retrieves the size in bytes of an AST node.

@@ -3,6 +3,7 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
+const Ast_Id = @import("../ast/ast_store.zig").Ast_Id;
 const Basic_Block = @import("../ir/basic-block.zig");
 const CFG = @import("../ir/cfg.zig");
 const Emitter = @import("emitter.zig");
@@ -720,7 +721,7 @@ fn output_operator(self: *Self, instr: *Instruction) CodeGen_Error!void {
 }
 
 /// Prints out the vtable name given an impl AST
-fn output_vtable_impl(self: *Self, impl: *ast_.AST) CodeGen_Error!void {
+fn output_vtable_impl(self: *Self, impl: Ast_Id) CodeGen_Error!void {
     const impl_module = impl.scope().?.module.?; // what makes you think the impl is in the same module??
     try self.writer.print("{s}__{s}_{}__vtable", .{ impl_module.package_name, impl_module.name(), impl.scope().?.uid });
 }

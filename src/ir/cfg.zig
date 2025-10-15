@@ -4,6 +4,7 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const alignment_ = @import("../util/alignment.zig");
 const Basic_Block = @import("../ir/basic-block.zig");
+const Compiler_Context = @import("../hierarchy/compiler.zig");
 const Cfg_Iterator = @import("../util/dfs.zig").Dfs_Iterator(*Self);
 const Instruction = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
@@ -58,7 +59,8 @@ locals_size: ?i64,
 allocator: std.mem.Allocator,
 
 /// Initializes a Self
-pub fn init(symbol: *Symbol, allocator: std.mem.Allocator) *Self {
+pub fn init(symbol: *Symbol, ctx: *Compiler_Context) *Self {
+    const allocator = ctx.allocator();
     if (symbol.cfg) |cfg| {
         return cfg;
     }
@@ -72,13 +74,17 @@ pub fn init(symbol: *Symbol, allocator: std.mem.Allocator) *Self {
     retval.return_symbol = Symbol.init(
         symbol.scope,
         "_retval",
-        ast_.AST.create_decl(
-            symbol.decl.?.token(),
-            ast_.AST.create_pattern_symbol(symbol.decl.?.token(), .mut, .local, "_retval", allocator),
-            symbol.type().rhs(),
-            null,
-            allocator,
-        ),
+        ctx.ast_store.add(.{ .decl = .{
+            ._token = symbol.decl.?.token(),
+            .name = try ctx.ast_store.add(.{ .pattern_symbol = .{
+                ._token = symbol.decl.?.token(),
+                .kind = .mut,
+                .storage = .local,
+                .name = "_retval",
+            } }),
+            .type = symbol.type().rhs(),
+            .init = null,
+        } }),
         .mut,
         .local,
         allocator,

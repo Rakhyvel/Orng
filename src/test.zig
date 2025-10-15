@@ -137,7 +137,7 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
 
     // Try to compile Orange (make sure no errors)
     var compiler = Compiler_Context.init(if (mode != .coverage) get_std_out() else null, debug_alloc.allocator()) catch unreachable;
-    defer compiler.deinit();
+    defer ctx.deinit();
     defer prelude_.deinit();
     defer core_.deinit();
 
@@ -147,20 +147,20 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
         }
         return false;
     };
-    const module_symbol = compiler.lookup_module(module.absolute_path).?;
+    const module_symbol = ctx.lookup_module(module.absolute_path).?;
 
     const package_abs_path = module.get_package_abs_path();
-    compiler.register_package(package_abs_path, .executable);
-    compiler.set_package_root(package_abs_path, module_symbol);
-    compiler.clean_package(package_abs_path);
-    compiler.lookup_package(package_abs_path).?.include_directories.put(std.fs.path.dirname(absolute_filename).?, void{}) catch unreachable;
+    ctx.register_package(package_abs_path, .executable);
+    ctx.set_package_root(package_abs_path, module_symbol);
+    ctx.clean_package(package_abs_path);
+    ctx.lookup_package(package_abs_path).?.include_directories.put(std.fs.path.dirname(absolute_filename).?, void{}) catch unreachable;
 
-    compiler.propagate_include_directories(package_abs_path);
-    compiler.collect_package_local_modules();
-    compiler.determine_if_modified(package_abs_path);
-    compiler.collect_types();
+    ctx.propagate_include_directories(package_abs_path);
+    ctx.collect_package_local_modules();
+    ctx.determine_if_modified(package_abs_path);
+    ctx.collect_types();
 
-    const package = compiler.lookup_package(package_abs_path).?;
+    const package = ctx.lookup_package(package_abs_path).?;
     package.modified = true; // so that it always re-does stuff
     Codegen_Context.output_modules(compiler) catch unreachable;
 
@@ -169,7 +169,7 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
         return false;
     }
 
-    const contents = Read_File.init(compiler.allocator()).run(absolute_filename) catch unreachable;
+    const contents = Read_File.init(ctx.allocator()).run(absolute_filename) catch unreachable;
     const header_comment_contents = header_comment(contents, debug_alloc.allocator()) catch unreachable;
     defer debug_alloc.allocator().free(header_comment_contents);
     var expected_out = String.init_with_contents(debug_alloc.allocator(), header_comment_contents[0]) catch unreachable;
@@ -177,7 +177,7 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
     _ = expected_out.replace("\r", "") catch unreachable;
     _ = expected_out.replace("\n", "") catch unreachable;
 
-    compiler.compile(package_abs_path) catch unreachable;
+    ctx.compile(package_abs_path) catch unreachable;
 
     // execute (make sure no signals)
     var output_name = String.init_with_contents(allocator, "") catch unreachable;
@@ -206,10 +206,10 @@ fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug
     const absolute_filename = std.fs.cwd().realpathAlloc(allocator, filename) catch unreachable;
     // Try to compile Orange (make sure no errors)
     var compiler = Compiler_Context.init(if (mode != .coverage) get_std_out() else null, debug_alloc.allocator()) catch unreachable;
-    defer compiler.deinit();
+    defer ctx.deinit();
     defer prelude_.deinit();
     defer core_.deinit();
-    const contents = Read_File.init(compiler.allocator()).run(absolute_filename) catch unreachable;
+    const contents = Read_File.init(ctx.allocator()).run(absolute_filename) catch unreachable;
     const head = header_comment(contents, debug_alloc.allocator()) catch unreachable;
     defer debug_alloc.allocator().free(head);
     var flat_head = flatten_header_comment(head, debug_alloc.allocator()) catch unreachable;
@@ -223,7 +223,7 @@ fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug
     _ = module_.Module.compile(absolute_filename, "main", false, compiler) catch |err| {
         var error_string_writer = error_string.writer(error_string.buffer.?);
         const error_string_writer_intfc = &error_string_writer.interface;
-        compiler.errors.print_errors(error_string_writer_intfc, .{ .print_full_path = false, .print_color = false });
+        ctx.errors.print_errors(error_string_writer_intfc, .{ .print_full_path = false, .print_color = false });
         if (mode == .bless) {
             bless_file(filename, error_string.str(), body) catch unreachable;
             return true;

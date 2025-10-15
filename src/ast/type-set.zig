@@ -2,16 +2,17 @@
 //! to store types based on their C-equivalence.
 
 const std = @import("std");
+const Compiler_Context = @import("../hierarchy/compiler.zig");
 const Dependency_Node = @import("dependency_node.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 
 const Self = @This();
 
 types: std.array_list.Managed(*Dependency_Node),
-allocator: std.mem.Allocator,
+ctx: *Compiler_Context,
 
-pub fn init(allocator: std.mem.Allocator) Self {
-    return Self{ .types = std.array_list.Managed(*Dependency_Node).init(allocator), .allocator = allocator };
+pub fn init(ctx: *Compiler_Context) Self {
+    return Self{ .types = std.array_list.Managed(*Dependency_Node).init(ctx.allocator()), .ctx = ctx };
 }
 
 pub fn deinit(self: *Self) void {
@@ -25,7 +26,7 @@ pub fn add(self: *Self, oldast_: *Type_AST) ?*Dependency_Node {
 
 fn add_internal(self: *Self, oldast_: *Type_AST, from_function: bool) ?*Dependency_Node {
     const ast = oldast_.expand_identifier();
-    std.debug.assert(ast.* != .identifier or ast.symbol().?.decl.?.* != .type_param_decl);
+    std.debug.assert(ast.* != .identifier or self.ctx.ast_store.get(ast.symbol().?.decl.?).* != .type_param_decl);
 
     if (self.get(ast)) |dag| {
         // Type is already in the set, return Dependency_Node entry for it
@@ -48,7 +49,7 @@ fn add_internal(self: *Self, oldast_: *Type_AST, from_function: bool) ?*Dependen
         },
         .array_of => return self.add_array(ast),
         .identifier, .unit_type, .anyptr_type => return null, // Do not add to Dependency_Node
-        else => std.debug.panic("unknown: {f}", .{ast}),
+        else => std.debug.panic("unknown: {t}", .{ast.*}),
     }
 }
 
@@ -111,7 +112,7 @@ pub fn print(self: *Self) void {
 }
 
 fn add_dependency_node(self: *Self, ast: *Type_AST) *Dependency_Node {
-    const dag = Dependency_Node.init(ast, self.types.items.len, self.allocator);
+    const dag = Dependency_Node.init(ast, self.types.items.len, self.ctx.allocator());
     self.types.append(dag) catch unreachable;
     return dag;
 }

@@ -1,5 +1,6 @@
 const std = @import("std");
 const AST = @import("../ast/ast.zig").AST;
+const Ast_Store = @import("../ast/ast_store.zig");
 const CFG = @import("../ir/cfg.zig");
 const CFG_Store = @import("../ir/cfg_store.zig");
 const core_ = @import("core.zig");
@@ -48,6 +49,7 @@ core: ?*Scope, // Null when compiling prelude and core module itself!
 /// Maps module absolute paths to their symbol
 modules: std.StringArrayHashMap(*Symbol),
 
+ast_store: Ast_Store,
 cfg_store: CFG_Store,
 
 validate_module: Validate_Module,
@@ -68,7 +70,7 @@ pub fn init(stderr: ?std.fs.File, alloc: std.mem.Allocator) Error!*Self {
     var retval: *Self = alloc.create(Self) catch unreachable;
     retval.arena = std.heap.ArenaAllocator.init(alloc);
 
-    poison_.init_structures(retval.allocator());
+    try poison_.init_structures(retval);
     retval.errors = errs_.Errors.init(retval.allocator());
     retval.module_interned_strings = std.AutoArrayHashMap(u32, *Interned_String_Set).init(retval.allocator());
     retval.modules = std.StringArrayHashMap(*Symbol).init(retval.allocator());
@@ -76,6 +78,7 @@ pub fn init(stderr: ?std.fs.File, alloc: std.mem.Allocator) Error!*Self {
     retval.core = null;
     retval.stderr = stderr;
 
+    retval.ast_store = Ast_Store.init(retval.allocator());
     retval.cfg_store = CFG_Store.init(retval);
 
     retval.validate_module = Validate_Module.init(retval);
@@ -117,7 +120,7 @@ pub fn allocator(self: *Self) std.mem.Allocator {
 
 pub fn compile_build_file(self: *Self, absolute_path: []const u8) Error!*CFG {
     const build_module = try self.compile_module(absolute_path, "build", false);
-    return build_module.init_value().?.scope().?.lookup("build", .{}).found.cfg.?;
+    return self.ast_store.get(build_module.init_value().?).scope().?.lookup("build", .{}).found.cfg.?;
 }
 
 /// Compiles a module from a file
@@ -202,7 +205,7 @@ pub fn lookup_package_root_module(self: *Self, package_absolute_path: []const u8
 
 pub fn register_package(self: *Self, package_absolute_path: []const u8, kind: Package.Package_Kind) void {
     if (self.lookup_package(package_absolute_path) == null) {
-        const package = Package.new(self.allocator(), package_absolute_path, kind);
+        const package = Package.new(self, package_absolute_path, kind);
         self.packages.put(package_absolute_path, package) catch unreachable;
         if (!std.mem.eql(u8, package_absolute_path, core_.core_package_name)) {
             self.make_package_requirement_link(package_absolute_path, "core", core_.core_package_name);
@@ -247,7 +250,7 @@ pub fn clean_package(self: *Self, package_absolute_path: []const u8) void {
 pub fn collect_package_local_modules(self: *Self) void {
     for (self.packages.keys()) |package_name| {
         const package = self.lookup_package(package_name).?;
-        const module = package.root.init_value().?.module.module;
+        const module = self.ast_store.get(package.root.init_value().?).module.module;
 
         var dfs_iter: Module_Iterator = Module_Iterator.init(module, self.allocator());
         defer dfs_iter.deinit();

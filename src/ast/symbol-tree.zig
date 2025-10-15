@@ -2,6 +2,8 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
+const Ast_Id = @import("ast_store.zig").Ast_Id;
+const Compiler_Context = @import("../hierarchy/compiler.zig");
 const core_ = @import("../hierarchy/core.zig");
 const errs_ = @import("../util/errors.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
@@ -16,27 +18,26 @@ const walk_ = @import("../ast/walker.zig");
 scope: *Scope,
 in_loop: bool,
 is_param_scope: bool,
-defers: ?*std.array_list.Managed(*ast_.AST),
-errdefers: ?*std.array_list.Managed(*ast_.AST),
-errors: *errs_.Errors,
-allocator: std.mem.Allocator,
+defers: ?*std.array_list.Managed(Ast_Id),
+errdefers: ?*std.array_list.Managed(Ast_Id),
+ctx: *Compiler_Context,
 
 const Self = @This();
 const Error = walk_.Error;
 
-pub fn new(scope: *Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Self {
+pub fn new(scope: *Scope, ctx: *Compiler_Context) Self {
     return Self{
         .scope = scope,
         .in_loop = false,
         .is_param_scope = false,
         .defers = null,
         .errdefers = null,
-        .errors = errors,
-        .allocator = allocator,
+        .ctx = ctx,
     };
 }
 
-pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
+pub fn prefix(self: Self, ast_id: Ast_Id) walk_.Error!?Self {
+    const ast = self.ctx.ast_store.get(ast_id);
     switch (ast.*) {
         else => {},
 
@@ -175,19 +176,19 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             const symbol = try create_trait_symbol(ast, self.scope, self.allocator);
             try self.register_symbol(ast, symbol);
 
-            const self_type_decl = ast_.AST.create_type_alias(
-                ast.token(),
-                ast_.AST.create_pattern_symbol(
-                    Token.init_simple("Self"),
-                    .type,
-                    .local,
-                    "Self",
-                    self.allocator,
-                ),
-                null,
-                std.array_list.Managed(*ast_.AST).init(self.allocator),
-                self.allocator,
-            );
+            const self_type_decl = try self.ctx.ast_store.add(.{ .type_alias = .{
+                ._token = ast.token(),
+                .name = try self.ctx.ast_store.add(.{
+                    .pattern_symbol = .{
+                        ._token = Token.init_simple("Self"),
+                        .kind = .type,
+                        .storage = .local,
+                        .name = "Self",
+                    },
+                }),
+                .init = null,
+                ._generic_params = std.array_list.Managed(Ast_Id).init(self.allocator),
+            } });
             try walk_.walk_ast(self_type_decl, new_self);
 
             return new_self;
@@ -200,19 +201,19 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             new_self.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
             ast.set_scope(new_self.scope);
 
-            const self_type_decl = ast_.AST.create_type_alias(
-                ast.token(),
-                ast_.AST.create_pattern_symbol(
-                    Token.init_simple("Self"),
-                    .type,
-                    .local,
-                    "Self",
-                    self.allocator,
-                ),
-                ast.impl._type,
-                std.array_list.Managed(*ast_.AST).init(self.allocator),
-                self.allocator,
-            );
+            const self_type_decl = try self.ctx.ast_store.add(.{ .type_alias = .{
+                ._token = ast.token(),
+                .name = try self.ctx.ast_store.add(.{
+                    .pattern_symbol = .{
+                        ._token = Token.init_simple("Self"),
+                        .kind = .type,
+                        .storage = .local,
+                        .name = "Self",
+                    },
+                }),
+                .init = ast.impl._type,
+                ._generic_params = std.array_list.Managed(Ast_Id).init(self.allocator),
+            } });
             try walk_.walk_ast(self_type_decl, new_self);
 
             if (ast.impl.trait == null) {
@@ -231,14 +232,13 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 for (cloned_methods.items) |cloned_method| {
                     cloned_method.method_decl.init = null;
                 }
-                const anon_trait = ast_.AST.create_trait(
-                    token,
-                    cloned_methods,
-                    ast_.AST.clone_children(ast.impl.const_defs, &subst, self.allocator),
-                    self.allocator,
-                );
+                const anon_trait = self.ctx.ast_store.add(.{ .trait = .{
+                    ._token = token,
+                    .method_decls = cloned_methods,
+                    .const_decls = self.ctx.ast_store.clone_asts(ast.impl.const_defs, &subst, self.allocator),
+                } });
                 try walk_.walk_ast(anon_trait, new_self_for_anon_trait);
-                ast.impl.trait = ast_.AST.create_identifier(token, self.allocator);
+                ast.impl.trait = self.ctx.ast_store.add(.{ .identifier = .{ ._token = token } });
                 ast.impl.trait.?.set_symbol(anon_trait.symbol().?);
                 ast.impl.impls_anon_trait = true;
             }
@@ -270,12 +270,14 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
     return self;
 }
 
-fn register_symbol(self: Self, ast: *ast_.AST, symbol: *Symbol) walk_.Error!void {
+fn register_symbol(self: Self, ast_id: Ast_Id, symbol: *Symbol) walk_.Error!void {
+    const ast = self.ctx.ast_store.get(ast_id);
     try self.scope.put_symbol(symbol, self.errors);
     ast.set_symbol(symbol);
 }
 
-pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
+pub fn postfix(self: Self, ast_id: Ast_Id) walk_.Error!void {
+    const ast = self.ctx.ast_store.get(ast_id);
     switch (ast.*) {
         else => {},
 
@@ -300,7 +302,8 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
     }
 }
 
-fn in_loop_check(self: Self, ast: *ast_.AST, errors: *errs_.Errors) Error!void {
+fn in_loop_check(self: Self, ast_id: Ast_Id, errors: *errs_.Errors) Error!void {
+    const ast = self.ctx.ast_store.get(ast_id);
     if (!self.in_loop) {
         errors.add_error(errs_.Error{ .not_inside_loop = .{
             .span = ast.span(),
@@ -311,7 +314,8 @@ fn in_loop_check(self: Self, ast: *ast_.AST, errors: *errs_.Errors) Error!void {
 }
 
 /// Returns the inner symbol of a scope, or an error if one doesnt exist
-fn in_function_check(ast: *ast_.AST, scope: *Scope, errors: *errs_.Errors) Error!*Symbol {
+fn in_function_check(self: Self, ast_id: Ast_Id, scope: *Scope, errors: *errs_.Errors) Error!*Symbol {
+    const ast = self.ctx.ast_store.get(ast_id);
     if (scope.inner_function == null) {
         errors.add_error(errs_.Error{ .not_inside_function = .{
             .span = ast.span(),
@@ -325,21 +329,20 @@ fn in_function_check(ast: *ast_.AST, scope: *Scope, errors: *errs_.Errors) Error
 
 /// Creates symbols from a given pattern, declaration, type, and initializer within the given scope.
 fn create_symbol(
+    self: *Self,
     symbols: *std.array_list.Managed(*Symbol), // Mutable list that accumulates all the created symbols for a given scope, to be put() later.
-    pattern: *ast_.AST, // Represents the pattern being matched; processed recursively to create symbols.
-    decl: ?*ast_.AST, // Potential decl AST to be given to symbols.
+    pattern: Ast_Id, // Represents the pattern being matched; processed recursively to create symbols.
+    decl: ?Ast_Id, // Potential decl AST to be given to symbols.
     _type: *Type_AST, // Type of the current pattern.
-    init: ?*ast_.AST, // The value being matched on. Null for function parameter symbols.
+    init: ?Ast_Id, // The value being matched on. Null for function parameter symbols.
     scope: *Scope,
-    errors: *errs_.Errors,
-    allocator: std.mem.Allocator,
 ) Error!void {
     switch (pattern.*) {
         .pattern_symbol => {
             if (std.mem.eql(u8, pattern.pattern_symbol.name, "_")) {
                 if (pattern.pattern_symbol.kind != .let) {
                     // It is an error for `_` to be marked as `const` or `mut`
-                    errors.add_error(errs_.Error{ .discard_marked = .{
+                    self.ctx.errors.add_error(errs_.Error{ .discard_marked = .{
                         .span = pattern.span(),
                         .kind = pattern.pattern_symbol.kind,
                     } });
@@ -354,31 +357,36 @@ fn create_symbol(
             const symbol = Symbol.init(
                 scope,
                 pattern.pattern_symbol.name,
-                ast_.AST.create_decl(pattern.token(), pattern, _type, init, allocator),
+                try self.ctx.ast_store.add(.{ .decl = .{
+                    ._token = pattern.token(),
+                    .init = init,
+                    .type = type,
+                    .name = pattern,
+                } }),
                 pattern.pattern_symbol.kind,
                 pattern.pattern_symbol.storage,
-                allocator,
+                self.ctx.allocator(),
             );
             pattern.set_symbol(symbol);
             symbols.append(symbol) catch unreachable;
         },
         .tuple_value, .array_value => {
             for (pattern.children().items, 0..) |term, i| {
-                const index = ast_.AST.create_int(pattern.token(), i, allocator);
-                const new_type: *Type_AST = Type_AST.create_index(_type.token(), _type, index, allocator);
-                var index_rhs = std.array_list.Managed(*ast_.AST).init(allocator);
+                const index = try self.ctx.ast_store.add(.{ .int = .{ ._token = pattern.token(), .data = i } });
+                const new_type: *Type_AST = Type_AST.create_index(_type.token(), _type, index, self.ctx.allocator());
+                var index_rhs = std.array_list.Managed(Ast_Id).init(self.ctx.allocator());
                 index_rhs.append(index) catch unreachable;
-                const new_init: *ast_.AST = ast_.AST.create_index(init.?.token(), init.?, index_rhs, allocator);
-                try create_symbol(symbols, term, decl, new_type, new_init, scope, errors, allocator);
+                const new_init: Ast_Id = try self.ctx.ast_store.add(.{ .index = .{ ._token = init.?.token(), ._lhs = init.?, ._children = index_rhs } });
+                try self.create_symbol(symbols, term, decl, new_type, new_init, scope);
             }
         },
         .enum_value => {
-            const lhs_type = Type_AST.create_type_of(pattern.token(), init.?, allocator);
-            const rhs_type = Type_AST.create_domain_of(pattern.token(), lhs_type, pattern.enum_value.get_name(), allocator);
+            const lhs_type = Type_AST.create_type_of(pattern.token(), init.?, self.ctx.allocator());
+            const rhs_type = Type_AST.create_domain_of(pattern.token(), lhs_type, pattern.enum_value.get_name(), self.ctx.allocator());
 
             if (pattern.enum_value.init != null) {
                 // Here init is null!
-                try create_symbol(symbols, pattern.enum_value.init.?, decl, rhs_type, pattern.enum_value.init.?, scope, errors, allocator);
+                try self.create_symbol(symbols, pattern.enum_value.init.?, decl, rhs_type, pattern.enum_value.init.?, scope);
             }
         },
 
@@ -389,7 +397,7 @@ fn create_symbol(
 
 /// Creates and initializes pattern symbols for each mapping in a match expression, defining the symbols within the
 /// mapping's scope.
-fn create_match_pattern_symbol(match: *ast_.AST, scope: *Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Error!void {
+fn create_match_pattern_symbol(match: Ast_Id, scope: *Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Error!void {
     for (match.children().items) |mapping| {
         const new_scope = Scope.init(scope, scope.uid_gen, allocator);
         mapping.set_scope(new_scope);
@@ -410,7 +418,8 @@ fn create_match_pattern_symbol(match: *ast_.AST, scope: *Scope, errors: *errs_.E
     }
 }
 
-pub fn create_function_symbol(ast: *ast_.AST, allocator: std.mem.Allocator) *Symbol {
+pub fn create_function_symbol(self: *Self, ast_id: Ast_Id, allocator: std.mem.Allocator) *Symbol {
+    const ast = self.ctx.ast_store.get(ast_id);
     // Calculate the domain type from the function paramter types
     const domain = extract_domain(ast.children().*, allocator);
 
@@ -445,11 +454,13 @@ pub fn create_function_symbol(ast: *ast_.AST, allocator: std.mem.Allocator) *Sym
 }
 
 pub fn create_test_symbol(
-    ast: *ast_.AST,
+    self: *Self,
+    ast_id: Ast_Id,
     scope: *Scope,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Error!*Symbol {
+    const ast = self.ctx.ast_store.get(ast_id);
     // Create the function scope
     var fn_scope = Scope.init(scope, scope.uid_gen, allocator);
     fn_scope.function_depth = scope.function_depth + 1;
@@ -480,7 +491,7 @@ pub fn next_anon_name(class: []const u8, allocator: std.mem.Allocator) []const u
     return out.toOwnedSlice() catch unreachable;
 }
 
-pub fn extract_domain(params: std.array_list.Managed(*ast_.AST), allocator: std.mem.Allocator) *Type_AST {
+pub fn extract_domain(params: std.array_list.Managed(Ast_Id), allocator: std.mem.Allocator) *Type_AST {
     if (params.items.len == 0) {
         return prelude_.unit_type;
     } else if (params.items.len <= 1) {
@@ -498,7 +509,7 @@ pub fn extract_domain(params: std.array_list.Managed(*ast_.AST), allocator: std.
     }
 }
 
-fn extract_domain_with_receiver(impl_type: *Type_AST, receiver: *ast_.AST, params: std.array_list.Managed(*ast_.AST), allocator: std.mem.Allocator) *Type_AST {
+fn extract_domain_with_receiver(impl_type: *Type_AST, receiver: Ast_Id, params: std.array_list.Managed(Ast_Id), allocator: std.mem.Allocator) *Type_AST {
     const receiver_addr_type = create_receiver_addr(impl_type, receiver, allocator);
     receiver.receiver._type = receiver_addr_type;
     const _receiver_type = create_receiver_annot(receiver_addr_type, receiver, allocator);
@@ -511,7 +522,7 @@ fn extract_domain_with_receiver(impl_type: *Type_AST, receiver: *ast_.AST, param
     }
 }
 
-fn build_paramlist(params: std.array_list.Managed(*ast_.AST), param_types: *std.array_list.Managed(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
+fn build_paramlist(params: std.array_list.Managed(Ast_Id), param_types: *std.array_list.Managed(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
     for (0..params.items.len) |i| {
         param_types.append(Type_AST.create_annotation(
             params.items[i].token(),
@@ -525,17 +536,17 @@ fn build_paramlist(params: std.array_list.Managed(*ast_.AST), param_types: *std.
     return retval;
 }
 
-fn create_receiver_addr(impl_type: *Type_AST, receiver: *ast_.AST, allocator: std.mem.Allocator) *Type_AST {
+fn create_receiver_addr(impl_type: *Type_AST, receiver: Ast_Id, allocator: std.mem.Allocator) *Type_AST {
     return switch (receiver.receiver.kind) {
         .value, .addr_of => Type_AST.create_addr_of(receiver.token(), impl_type, false, false, allocator),
         .mut_addr_of => Type_AST.create_addr_of(receiver.token(), impl_type, true, false, allocator),
     };
 }
 
-fn create_receiver_annot(receiver_addr: *Type_AST, receiver: *ast_.AST, allocator: std.mem.Allocator) *Type_AST {
+fn create_receiver_annot(self: *Self, receiver_addr: *Type_AST, receiver: Ast_Id, allocator: std.mem.Allocator) *Type_AST {
     return Type_AST.create_annotation(
         receiver.token(),
-        ast_.AST.create_identifier(receiver.token(), allocator),
+        self.ctx.ast_store.add(.{ .identifier = .{ ._token = receiver.token() } }),
         receiver_addr,
         null,
         allocator,
@@ -544,49 +555,48 @@ fn create_receiver_annot(receiver_addr: *Type_AST, receiver: *ast_.AST, allocato
 
 /// Creates the comptime context symbol for `const` initializers
 fn create_comptime_init(
-    old_init: *ast_.AST,
+    self: *Self,
+    old_init: Ast_Id,
     scope: *Scope,
-    allocator: std.mem.Allocator,
-) Error!*ast_.AST {
-    const retval = ast_.AST.create_comptime(old_init.token(), old_init, allocator);
+) Error!Ast_Id {
+    const retval = self.ctx.ast_store.add(.{ .@"comptime" = .{ ._token = old_init.token(), ._expr = old_init } });
     retval.set_scope(scope);
     return retval;
 }
 
 /// Creates a symbol which represents the comptime function to be ran.
 pub fn create_temp_comptime_symbol(
-    ast: *ast_.AST,
+    self: *Self,
+    ast_id: Ast_Id,
     rhs_type_hint: ?*Type_AST,
     scope: *Scope,
-    allocator: std.mem.Allocator,
 ) Error!*Symbol {
+    const ast = self.ctx.ast_store.get(ast_id);
     // Create the function type. The rhs is a typeof node, since type expansion is done in a later time
     const lhs = prelude_.unit_type;
-    const rhs = Type_AST.create_type_of(ast.token(), ast, allocator);
-    const _type = Type_AST.create_function(ast.token(), lhs, rhs_type_hint orelse rhs, allocator);
+    const rhs = Type_AST.create_type_of(ast.token(), ast, self.ctx.allocator());
+    const _type = Type_AST.create_function(ast.token(), lhs, rhs_type_hint orelse rhs, self.ctx.allocator());
 
     // Create the comptime scope
     // This is to prevent `comptime` expressions from using runtime variables
-    var comptime_scope = Scope.init(scope, scope.uid_gen, allocator);
+    var comptime_scope = Scope.init(scope, scope.uid_gen, self.ctx.allocator());
     comptime_scope.function_depth = scope.function_depth + 1;
 
     // Choose name
     var buf: []const u8 = undefined;
-    buf = next_anon_name("comptime", allocator);
+    buf = next_anon_name("comptime", self.ctx.allocator());
 
-    const decl = ast_.AST.create_decl(
-        ast.token(),
-        ast_.AST.create_pattern_symbol(
-            ast.token(),
-            .@"comptime",
-            .local,
-            buf,
-            allocator,
-        ),
-        _type,
-        ast,
-        allocator,
-    );
+    const decl = try self.ctx.ast_store.add(.{ .decl = .{
+        ._token = ast.token(),
+        .name = try self.ctx.ast_store.add(.{ .pattern_symbol = .{
+            ._token = ast.token(),
+            .kind = .@"comptime",
+            .storage = .local,
+            .name = buf,
+        } }),
+        .type = _type,
+        .init = ast,
+    } });
 
     // Create the symbol
     const retval = Symbol.init(
@@ -595,7 +605,7 @@ pub fn create_temp_comptime_symbol(
         decl,
         .@"comptime",
         .local,
-        allocator,
+        self.ctx.allocator(),
     );
     comptime_scope.inner_function = retval;
 
@@ -603,10 +613,12 @@ pub fn create_temp_comptime_symbol(
 }
 
 fn create_trait_symbol(
-    ast: *ast_.AST,
+    self: *Self,
+    ast_id: Ast_Id,
     scope: *Scope,
     allocator: std.mem.Allocator,
 ) Error!*Symbol {
+    const ast = self.ctx.ast_store.get(ast_id);
     // Create the symbol
     const retval = Symbol.init(
         scope,
@@ -620,7 +632,8 @@ fn create_trait_symbol(
     return retval;
 }
 
-fn create_method_type(ast: *ast_.AST, allocator: std.mem.Allocator) *Type_AST {
+fn create_method_type(self: *Self, ast_id: Ast_Id, allocator: std.mem.Allocator) *Type_AST {
+    const ast = self.ctx.ast_store.get(ast_id);
     const receiver_base_type: *Type_AST = if (ast.method_decl.impl != null)
         ast.method_decl.impl.?.impl._type
     else
@@ -642,11 +655,13 @@ fn create_method_type(ast: *ast_.AST, allocator: std.mem.Allocator) *Type_AST {
 }
 
 fn create_method_symbol(
-    ast: *ast_.AST,
+    self: *Self,
+    ast_id: Ast_Id,
     scope: *Scope,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Error!*Symbol {
+    const ast = self.ctx.ast_store.get(ast_id);
     const receiver_base_type: *Type_AST = ast.method_decl.impl.?.impl._type;
 
     // Create the function type
@@ -679,23 +694,36 @@ fn create_method_symbol(
 
         if (ast.method_decl.receiver.?.receiver.kind == .value) {
             const self_type = recv_type.child();
-            const self_init = ast_.AST.create_dereference(ast.token(), ast_.AST.create_identifier(Token.init_simple("self__ptr"), allocator), allocator);
+            const self_init = self.ctx.ast_store.add(.{ .dereference = .{
+                ._token = ast.token(),
+                ._expr = try self.ctx.ast_store.add(.{ .identifier = .{
+                    ._token = Token.init_simple("self__ptr"),
+                } }),
+            } });
             const receiver_span = ast.method_decl.receiver.?.span();
-            const self_decl = ast_.AST.create_binding(
-                ast.token(),
-                ast_.AST.create_pattern_symbol(Token.init("self", .identifier, receiver_span.filename, receiver_span.line_text, receiver_span.line_number, receiver_span.col), .let, .local, "self", allocator),
-                self_type,
-                self_init,
-                allocator,
-            );
+            const self_decl = try self.ctx.ast_store.add(.{ .binding = .{
+                ._token = ast.token(),
+                .pattern = try self.ctx.ast_store.add(.{ .pattern_symbol = .{
+                    ._token = Token.init("self", .identifier, receiver_span.filename, receiver_span.line_text, receiver_span.line_number, receiver_span.col),
+                    .kind = .let,
+                    .storage = .local,
+                    .name = "self",
+                } }),
+                .type = self_type,
+                .init = self_init,
+            } });
             if (ast.method_decl.init.?.* != .unit_value) {
                 const method_block_statements = ast.method_decl.init.?.children_mut();
                 method_block_statements.insert(0, self_decl) catch unreachable;
             } else {
                 // Technically, init COULD be `{ }`, and it would cause a not-used error later on, but we need to handle this properly here before then
-                var statements = std.array_list.Managed(*ast_.AST).init(allocator);
+                var statements = std.array_list.Managed(Ast_Id).init(allocator);
                 statements.append(self_decl) catch unreachable;
-                ast.method_decl.init = ast_.AST.create_block(ast.method_decl.init.?.token(), statements, null, allocator);
+                ast.method_decl.init = self.ctx.ast_store.add(.{ .block = .{
+                    ._token = ast.method_decl.init.?.token(),
+                    ._statements = statements,
+                    .final = null,
+                } });
             }
         }
     }
@@ -729,10 +757,12 @@ fn create_method_symbol(
 }
 
 fn create_template_symbol(
-    ast: *ast_.AST,
+    self: *Self,
+    ast_id: Ast_Id,
     scope: *Scope,
     allocator: std.mem.Allocator,
 ) Error!*Symbol {
+    const ast = self.ctx.ast_store.get(ast_id);
     var buf: []const u8 = undefined;
     if (ast.template.decl.fn_decl.name) |name| {
         buf = name.token().data;

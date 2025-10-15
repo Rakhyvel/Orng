@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
+const Ast_Id = @import("ast_store.zig").Ast_Id;
 const Type_AST = @import("../types/type.zig").Type_AST;
 
 pub const Error = error{ OutOfMemory, CompileError };
@@ -15,7 +16,7 @@ pub fn Apply_Ast_Walk(Context_Type: type) type {
             return Self{ .context = context };
         }
 
-        pub fn run(self: *Self, asts: *std.array_list.Managed(*ast_.AST)) Error!*std.array_list.Managed(*ast_.AST) {
+        pub fn run(self: *Self, asts: *std.array_list.Managed(Ast_Id)) Error!*std.array_list.Managed(Ast_Id) {
             try walk_asts(asts, self.context);
             return asts;
         }
@@ -31,20 +32,20 @@ pub fn Apply_Flat_Ast_Walk(Context_Type: type) type {
             return Self{ .context = context };
         }
 
-        pub fn run(self: *Self, asts: *std.array_list.Managed(*ast_.AST)) Error!*std.array_list.Managed(*ast_.AST) {
+        pub fn run(self: *Self, asts: *std.array_list.Managed(Ast_Id)) Error!*std.array_list.Managed(Ast_Id) {
             try walk_asts_flat(asts, self.context);
             return asts;
         }
     };
 }
 
-pub fn walk_asts(asts: *const std.array_list.Managed(*ast_.AST), context: anytype) Error!void {
+pub fn walk_asts(asts: *const std.array_list.Managed(Ast_Id), context: anytype) Error!void {
     for (asts.items) |ast| {
         try walk_ast(ast, context);
     }
 }
 
-pub fn walk_asts_flat(asts: *std.array_list.Managed(*ast_.AST), context: anytype) Error!void {
+pub fn walk_asts_flat(asts: *std.array_list.Managed(Ast_Id), context: anytype) Error!void {
     var i: usize = 0;
     while (i < asts.items.len) : (i += 1) {
         const ast = asts.items[i];
@@ -53,7 +54,7 @@ pub fn walk_asts_flat(asts: *std.array_list.Managed(*ast_.AST), context: anytype
 }
 
 // A function that walks over an AST, applying prefix, postfix's function to each one
-pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
+pub fn walk_ast(maybe_ast: ?Ast_Id, context: anytype) Error!void {
     if (maybe_ast == null) {
         return;
     }

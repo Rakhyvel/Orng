@@ -1,5 +1,6 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
+const Ast_Id = @import("../ast/ast_store.zig").Ast_Id;
 const builtin_ = @import("builtin.zig");
 const core_ = @import("../hierarchy/core.zig");
 const CFG = @import("../ir/cfg.zig");
@@ -452,17 +453,13 @@ pub fn alloc(self: *Self, nbytes: i64, align_to: i64) error{CompileError}!usize 
 }
 
 /// Extracts an AST value from a specified memory address in interpreter's memory, based on the given AST type.
-pub fn extract_ast(self: *Self, address: i64, _type: *Type_AST, span: Span) Error!*ast_.AST {
+pub fn extract_ast(self: *Self, address: i64, _type: *Type_AST, span: Span) Error!Ast_Id {
     // FIXME: High Cyclo
     std.debug.assert(address >= 0);
     switch (_type.*) {
         .identifier => return self.extract_identifier(address, _type, span),
-        .addr_of => return ast_.AST.create_int(
-            Token.init_simple("unsigned int"),
-            self.memory.load_int(address, 8),
-            self.ctx.allocator(),
-        ),
-        .unit_type => return ast_.AST.create_unit_value(_type.token(), self.ctx.allocator()),
+        .addr_of => return self.ctx.ast_store.add(.{ .int = .{ ._token = Token.init_simple("unsigned int"), .data = self.memory.load_int(address, 8) } }),
+        .unit_type => return self.ctx.ast_store.add(.{ .unit_value = .{ ._token = _type.token() } }),
         .enum_type => return self.extract_enum_type(address, _type, span),
         .struct_type => return self.extract_struct_type(address, _type, span),
         .tuple_type => return self.extract_tuple_type(address, _type, span),
@@ -480,7 +477,7 @@ pub fn extract_ast(self: *Self, address: i64, _type: *Type_AST, span: Span) Erro
     }
 }
 
-fn extract_identifier(self: *Self, address: i64, identifier_type: *Type_AST, span: Span) Error!*ast_.AST {
+fn extract_identifier(self: *Self, address: i64, identifier_type: *Type_AST, span: Span) Error!Ast_Id {
     const info = prelude_.info_from_name(identifier_type.token().data);
     if (info == null) {
         return try self.extract_ast(address, identifier_type.symbol().?.init_typedef().?, span);
@@ -499,82 +496,69 @@ fn extract_identifier(self: *Self, address: i64, identifier_type: *Type_AST, spa
             const interned_strings = self.ctx.module_interned_strings.get(idx.module_uid);
             std.debug.assert(idx.module_uid == interned_strings.?.uid);
             const string = interned_strings.?.items()[idx.string_idx];
-            return ast_.AST.create_string(Token.init_simple("\""), string, self.ctx.allocator());
+            return try self.ctx.ast_store.add(.{ .string = .{ ._token = Token.init_simple(string), .data = string } });
         },
         .none => unreachable,
         .boolean => {
             const val = self.memory.load_int(address, info.?.size);
             if (val == 0) {
-                return ast_.AST.create_false(Token.init_simple("false"), self.ctx.allocator());
+                return try self.ctx.ast_store.add(.{ .false = .{ ._token = Token.init_simple("false") } });
             } else {
-                return ast_.AST.create_true(Token.init_simple("true"), self.ctx.allocator());
+                return try self.ctx.ast_store.add(.{ .true = .{ ._token = Token.init_simple("true") } });
             }
         },
-        .signed_integer => {
-            const retval = ast_.AST.create_int(
-                Token.init_simple("signed int"),
-                self.memory.load_int(address, info.?.size),
-                self.ctx.allocator(),
-            );
-            // retval.set_represents(identifier_type);
-            return retval;
-        },
-        .unsigned_integer => {
-            const retval = ast_.AST.create_int(
-                Token.init_simple("unsigned int"),
-                self.memory.load_int(address, info.?.size),
-                self.ctx.allocator(),
-            );
-            // retval.set_represents(identifier_type);
-            return retval;
-        },
-        .floating_point => {
-            const retval = ast_.AST.create_float(
-                Token.init_simple("float"),
-                self.memory.load_float(address, info.?.size),
-                self.ctx.allocator(),
-            );
-            // retval.set_represents(identifier_type);
-            return retval;
-        },
+        .signed_integer => return try self.ctx.ast_store.add(.{ .int = .{
+            ._token = Token.init_simple("signed int"),
+            .data = self.memory.load_int(address, info.?.size),
+        } }),
+        .unsigned_integer => return try self.ctx.ast_store.add(.{ .int = .{
+            ._token = Token.init_simple("unsigned int"),
+            .data = self.memory.load_int(address, info.?.size),
+        } }),
+        .floating_point => return try self.ctx.ast_store.add(.{ .float = .{
+            ._token = Token.init_simple("float"),
+            .data = self.memory.load_float(address, info.?.size),
+        } }),
     }
 }
 
-fn extract_function(self: *Self, address: i64) Error!*ast_.AST {
+fn extract_function(self: *Self, address: i64) Error!Ast_Id {
     const stack_value = @as(usize, @intCast(self.memory.load_int(address, 8)));
     const symbol: *Symbol = @ptrFromInt(stack_value);
-    const ast = ast_.AST.create_pattern_symbol(
-        Token.init_simple("function"),
-        .@"fn",
-        .local,
-        symbol.name,
-        self.ctx.allocator(),
-    );
-    ast.set_symbol(symbol);
-    return ast;
+    return try self.ctx.ast_store.add(.{ .pattern_symbol = .{
+        ._token = Token.init_simple("function"),
+        .kind = .@"fn",
+        .storage = .local,
+        ._symbol = symbol,
+        .name = symbol.name,
+    } });
 }
 
-fn extract_enum_type(self: *Self, address: i64, enum_type: *Type_AST, span: Span) Error!*ast_.AST {
+fn extract_enum_type(self: *Self, address: i64, enum_type: *Type_AST, span: Span) Error!Ast_Id {
     // self.print_memory(@intCast(address), @intCast(address + _type.sizeof()));
     const tag = self.memory.load_int(address + enum_type.sizeof() - 8, 8);
     const token = enum_type.children().items[@intCast(tag)].annotation.pattern.token();
-    var retval = ast_.AST.create_enum_value(token, self.ctx.allocator());
-    retval.set_pos(@as(usize, @intCast(tag)));
-    retval.enum_value.base = enum_type;
     const proper_term: *Type_AST = enum_type.children().items[@as(usize, @intCast(tag))];
-    retval.enum_value.init = try self.extract_ast(address, proper_term, span);
-    return retval;
+    return try self.ctx.ast_store.add(.{ .enum_value = .{
+        ._token = token,
+        ._pos = @as(usize, @intCast(tag)),
+        .base = enum_type,
+        .init = try self.extract_ast(address, proper_term, span),
+    } });
 }
 
-fn extract_struct_type(self: *Self, address: i64, struct_type: *Type_AST, span: Span) Error!*ast_.AST {
+fn extract_struct_type(self: *Self, address: i64, struct_type: *Type_AST, span: Span) Error!Ast_Id {
     if (struct_type.types_match(prelude_.string_type)) {
         const idx = self.memory.load(Interned_String_Set.String_Idx, address);
         const interned_strings = self.ctx.module_interned_strings.get(idx.module_uid);
         std.debug.assert(idx.module_uid == interned_strings.?.uid);
         const string = interned_strings.?.items()[idx.string_idx];
-        return ast_.AST.create_string(Token.init_simple("\""), string, self.ctx.allocator());
+        return try self.ctx.ast_store.add(.{ .string = .{
+            ._token = Token.init_simple("\""),
+            .data = string,
+        } });
     }
-    var value_terms = std.array_list.Managed(*ast_.AST).init(self.ctx.allocator());
+    var value_terms = std.array_list.Managed(Ast_Id).init(self.ctx.allocator());
     errdefer value_terms.deinit();
     for (0.., struct_type.children().items) |i, term| {
         // std.debug.print("term:{}\n", .{i});
@@ -584,11 +568,15 @@ fn extract_struct_type(self: *Self, address: i64, struct_type: *Type_AST, span: 
         // std.debug.print("extracted_term:{}\n", .{extracted_term});
         value_terms.append(extracted_term) catch unreachable;
     }
-    return ast_.AST.create_struct_value(struct_type.token(), struct_type, value_terms, self.ctx.allocator());
+    return try self.ctx.ast_store.add(.{ .struct_value = .{
+        ._token = struct_type.token(),
+        .parent = struct_type,
+        ._terms = value_terms,
+    } });
 }
 
-fn extract_tuple_type(self: *Self, address: i64, tuple_type: *Type_AST, span: Span) Error!*ast_.AST {
-    var value_terms = std.array_list.Managed(*ast_.AST).init(self.ctx.allocator());
+fn extract_tuple_type(self: *Self, address: i64, tuple_type: *Type_AST, span: Span) Error!Ast_Id {
+    var value_terms = std.array_list.Managed(Ast_Id).init(self.ctx.allocator());
     errdefer value_terms.deinit();
     for (0.., tuple_type.children().items) |i, term| {
         // std.debug.print("term:{}\n", .{i});
@@ -598,11 +586,14 @@ fn extract_tuple_type(self: *Self, address: i64, tuple_type: *Type_AST, span: Sp
         // std.debug.print("extracted_term:{}\n", .{extracted_term});
         value_terms.append(extracted_term) catch unreachable;
     }
-    return ast_.AST.create_tuple_value(tuple_type.token(), value_terms, self.ctx.allocator());
+    return try self.ctx.ast_store.add(.{ .tuple_value = .{
+        ._token = tuple_type.token(),
+        ._terms = value_terms,
+    } });
 }
 
-fn extract_array_type(self: *Self, address: i64, array_type: *Type_AST, span: Span) Error!*ast_.AST {
-    var value_terms = std.array_list.Managed(*ast_.AST).init(self.ctx.allocator());
+fn extract_array_type(self: *Self, address: i64, array_type: *Type_AST, span: Span) Error!Ast_Id {
+    var value_terms = std.array_list.Managed(Ast_Id).init(self.ctx.allocator());
     errdefer value_terms.deinit();
     const length: usize = @intCast(array_type.array_of.len.int.data);
     const elem_type = array_type.child();
@@ -614,7 +605,10 @@ fn extract_array_type(self: *Self, address: i64, array_type: *Type_AST, span: Sp
         // std.debug.print("extracted_term:{}\n", .{extracted_term});
         value_terms.append(extracted_term) catch unreachable;
     }
-    return ast_.AST.create_array_value(array_type.token(), value_terms, self.ctx.allocator());
+    return try self.ctx.ast_store.add(.{ .array_value = .{
+        ._token = array_type.token(),
+        ._terms = value_terms,
+    } });
 }
 
 /// Prints the values of the interpreter's registers

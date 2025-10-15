@@ -1,5 +1,6 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
+const Ast_Id = @import("../ast/ast_store.zig").Ast_Id;
 const Basic_Block = @import("../ir/basic-block.zig");
 const CFG = @import("../ir/cfg.zig");
 const errs_ = @import("../util/errors.zig");
@@ -70,12 +71,6 @@ pub fn init_string(dest: *lval_.L_Value, id: String_Idx, span: Span, allocator: 
     return retval;
 }
 
-pub fn init_ast(dest: *lval_.L_Value, ast: *ast_.AST, span: Span, allocator: std.mem.Allocator) *Self {
-    const retval = Self.init(.load_AST, dest, null, null, span, allocator);
-    retval.data = Data{ .ast = ast };
-    return retval;
-}
-
 pub fn init_symbol(dest: *lval_.L_Value, symbol: *Symbol, span: Span, allocator: std.mem.Allocator) *Self {
     var retval = Self.init(.load_symbol, dest, null, null, span, allocator);
     retval.data = Data{ .symbol = symbol };
@@ -129,7 +124,7 @@ pub fn init_call(dest: *lval_.L_Value, src1: *lval_.L_Value, span: Span, allocat
     return retval;
 }
 
-pub fn init_invoke(dest: *lval_.L_Value, method_decl: *ast_.AST, lval_list: std.array_list.Managed(*lval_.L_Value), dyn_value: ?*lval_.L_Value, span: Span, allocator: std.mem.Allocator) *Self {
+pub fn init_invoke(dest: *lval_.L_Value, method_decl: Ast_Id, lval_list: std.array_list.Managed(*lval_.L_Value), dyn_value: ?*lval_.L_Value, span: Span, allocator: std.mem.Allocator) *Self {
     var retval = Self.init(.invoke, dest, null, null, span, allocator);
     retval.data = Data{
         .invoke = .{
@@ -142,7 +137,7 @@ pub fn init_invoke(dest: *lval_.L_Value, method_decl: *ast_.AST, lval_list: std.
     return retval;
 }
 
-pub fn init_dyn(dest: *lval_.L_Value, src1: *lval_.L_Value, mut: bool, impl: *ast_.AST, span: Span, allocator: std.mem.Allocator) *Self {
+pub fn init_dyn(dest: *lval_.L_Value, src1: *lval_.L_Value, mut: bool, impl: Ast_Id, span: Span, allocator: std.mem.Allocator) *Self {
     var retval = Self.init(if (mut) .mut_dyn_value else .dyn_value, dest, src1, null, span, allocator);
     retval.data = Data{ .dyn = .{ .impl = impl } };
     return retval;
@@ -232,9 +227,6 @@ pub fn pprint(self: Self, allocator: std.mem.Allocator) ![]const u8 {
         },
         .load_string => {
             try out.print("    {f} := <interned string:{}>\n", .{ self.dest.?, self.data.string_id });
-        },
-        .load_AST => {
-            try out.print("    {f} := AST({f})\n", .{ self.dest.?, self.data.ast });
         },
         .load_unit => {
             try out.print("    {f} := {{}}\n", .{self.dest.?});
@@ -694,14 +686,13 @@ pub const Data = union(enum) {
     symbol: *Symbol,
     lval_list: std.array_list.Managed(*lval_.L_Value),
     invoke: struct {
-        method_decl: *ast_.AST, // AST of method decl. Either trait's definition if dyn, or impl's declaration if static
+        method_decl: Ast_Id, // AST of method decl. Either trait's definition if dyn, or impl's declaration if static
         method_decl_lval: ?*lval_.L_Value, // L-value of the method; non-null when statically known (ie not dyn)
         lval_list: std.array_list.Managed(*lval_.L_Value), // List of args. Receiver will always be prepended
         dyn_value: ?*lval_.L_Value, // L-value of the vtable-data-ptr pair; non-null when the call is through a vtable, regardless of if the method uses the receiver
     },
-    dyn: struct { impl: *ast_.AST },
+    dyn: struct { impl: Ast_Id },
     select: struct { offset: i128, field: i128 },
-    ast: *ast_.AST,
     none,
 
     pub fn pprint(self: Data, allocator: std.mem.Allocator) ![]const u8 {

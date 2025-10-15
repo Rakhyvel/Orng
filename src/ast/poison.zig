@@ -1,24 +1,25 @@
 const std = @import("std");
+const Ast_Id = @import("../ast/ast_store.zig").Ast_Id;
 const AST = @import("ast.zig").AST;
+const Compiler_Context = @import("../hierarchy/compiler.zig");
 const Token = @import("../lexer/token.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 
-pub var poisoned: *AST = undefined;
+pub var poisoned: Ast_Id = undefined;
 pub var poisoned_type: *Type_AST = undefined;
 var inited: bool = false;
 
 // TODO: This could/should be a component in the compiler context
 
 /// Initializes internal structures if they are not already initialized.
-pub fn init_structures(allocator: std.mem.Allocator) void {
+pub fn init_structures(ctx: *Compiler_Context) !void {
     if (!inited) {
-        poisoned = AST.create_poison(
-            Token.init_simple("LMAO GET POISONED!"),
-            allocator,
-        );
+        poisoned = try ctx.ast_store.add(.{ .poison = .{
+            ._token = Token.init_simple("LMAO GET POISONED!"),
+        } });
         poisoned_type = Type_AST.create_poison(
             Token.init_simple("LMAO GET POISONED!"),
-            allocator,
+            ctx.allocator(),
         );
         inited = true;
     }
@@ -31,7 +32,7 @@ pub fn deinit() void {
 pub fn assert_none_poisoned(value: anytype) error{CompileError}!void {
     // This entire function is cursed...
     const T = @TypeOf(value);
-    if (T == *std.array_list.Managed(*AST)) {
+    if (T == *std.array_list.Managed(Ast_Id)) {
         for (value.items) |ast| {
             if (ast.* == .poison) {
                 return error.CompileError;
