@@ -151,6 +151,8 @@ pub fn collect_types(self: *Self, type_set: *Type_Set) void {
         return;
     }
 
+    std.debug.print("{s}\n", .{self.symbol.name});
+
     // Add parameter types to type set
     const decl = self.symbol.decl.?;
     const param_symbols = decl.param_symbols();

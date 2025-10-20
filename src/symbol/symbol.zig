@@ -254,13 +254,24 @@ pub fn monomorphize(
         const name = next_anon_name(self.name, ctx.allocator());
         const decl = self.decl.?.clone(&subst, ctx.allocator());
 
-        decl.set_generic_params(std.array_list.Managed(*ast_.AST).init(ctx.allocator()));
-
-        // Decorate identifiers, validate
+        const Tree_Writer = @import("../ast/tree_writer.zig");
         const Symbol_Tree = @import("../ast/symbol-tree.zig");
         const Decorate = @import("../ast/decorate.zig");
         const Decorate_Access = @import("../ast/decorate-access.zig");
         const walker_ = @import("../ast/walker.zig");
+
+        var all_concrete: bool = true;
+        for (key.items) |k| {
+            if (k.* == .identifier and k.symbol().?.decl.?.* == .type_param_decl) {
+                all_concrete = false;
+            }
+        }
+
+        if (all_concrete) {
+            decl.set_generic_params(std.array_list.Managed(*ast_.AST).init(ctx.allocator()));
+        }
+
+        // Decorate identifiers, validate
 
         const scope = self.decl.?.scope().?.parent.?;
 
@@ -282,6 +293,8 @@ pub fn monomorphize(
 
         const clone = decl.symbol().?;
         try self.monomorphs.put(try key.clone(), clone);
+
+        try walker_.walk_ast(decl, Tree_Writer.new(0));
 
         return clone;
     }

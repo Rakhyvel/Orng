@@ -1526,7 +1526,7 @@ pub const AST = union(enum) {
             .dyn_value => unreachable, // Shouldn't exist yet... have to clone scope?
             .enum_value => {
                 var retval = create_enum_value(self.token(), allocator);
-                retval.enum_value.init = self.enum_value.init;
+                retval.enum_value.init = if (self.enum_value.init) |init| init.clone(substs, allocator) else null;
                 return retval;
             },
             .type_param_decl => return create_type_param_decl(self.token(), allocator),
