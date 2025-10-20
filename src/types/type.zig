@@ -161,11 +161,6 @@ pub const Type_AST = union(enum) {
         _child: *Type_AST,
         mut: bool,
     },
-    // slice_of: struct {
-    //     common: Type_AST_Common,
-    //     _child: *Type_AST,
-    //     mut: bool,
-    // },
     array_of: struct {
         common: Type_AST_Common,
         _child: *Type_AST,
@@ -314,15 +309,6 @@ pub const Type_AST = union(enum) {
             .mut = _mut,
         } }, allocator);
     }
-
-    // pub fn create_slice_of(_token: Token, _child: *Type_AST, _mut: bool, allocator: std.mem.Allocator) *Type_AST {
-    //     const _common: Type_AST_Common = .{ ._token = _token };
-    //     return Type_AST.box(Type_AST{ .slice_of = .{
-    //         .common = _common,
-    //         ._child = _child,
-    //         .mut = _mut,
-    //     } }, allocator);
-    // }
 
     pub fn create_array_of(_token: Token, _child: *Type_AST, len: *AST, allocator: std.mem.Allocator) *Type_AST {
         const _common: Type_AST_Common = .{ ._token = _token };
@@ -700,14 +686,6 @@ pub const Type_AST = union(enum) {
                 try out.print("dyn ", .{});
                 try self.child().print_type(out);
             },
-            // .slice_of => {
-            //     try out.print("[", .{});
-            //     if (self.slice_of.mut) {
-            //         try out.print("mut", .{});
-            //     }
-            //     try out.print("]", .{});
-            //     try self.child().print_type(out);
-            // },
             .array_of => {
                 try out.print("[{f}]", .{self.array_of.len});
                 try self.child().print_type(out);
@@ -742,7 +720,7 @@ pub const Type_AST = union(enum) {
                 try out.print(")", .{});
             },
             .access => {
-                try out.print("{f}", .{self.access.inner_access});
+                try out.print("{f}.{s}", .{ self.access.inner_access.lhs(), self.access.inner_access.rhs().token().data });
             },
             .generic_apply => {
                 try out.print("{f}[{f}", .{ self.generic_apply._lhs, self.generic_apply.args.items[0] });
@@ -860,7 +838,7 @@ pub const Type_AST = union(enum) {
             .function,
             .addr_of,
             .dyn_type,
-            // .slice_of,
+            .anyptr_type,
             => return 8,
 
             .untagged_sum_type => {
@@ -906,7 +884,7 @@ pub const Type_AST = union(enum) {
     /// Assumes ASTs structurally can refer to compile-time constant types.
     pub fn types_match(A: *Type_AST, B: *Type_AST) bool {
         // FIXME: High Cyclo
-        // std.debug.print("{f} == {f}\n", .{ A, B });
+        // std.debug.print("{t} == {t}\n", .{ A.*, B.* });
         if (A.* == .annotation) {
             return types_match(A.child(), B);
         } else if (B.* == .annotation) {
@@ -922,7 +900,7 @@ pub const Type_AST = union(enum) {
         } else if (B.* == .generic_apply and B.generic_apply._symbol != null and A.* != .generic_apply) {
             return types_match(A, B.generic_apply._symbol.?.init_typedef().?);
         }
-        if (B.* == .anyptr_type and A.* == .addr_of) {
+        if (B.* == .anyptr_type and (A.* == .addr_of or A.* == .dyn_type)) {
             return true;
         }
         if (A.* == .identifier and A.symbol().?.is_alias() and A != A.expand_identifier()) {
@@ -963,7 +941,6 @@ pub const Type_AST = union(enum) {
                 return A.symbol().? == B.symbol().?;
             },
             .addr_of => return (!B.addr_of.mut or B.addr_of.mut == A.addr_of.mut) and (B.addr_of.multiptr == A.addr_of.multiptr) and types_match(A.child(), B.child()),
-            // .slice_of => return (!B.slice_of.mut or B.slice_of.mut == A.slice_of.mut) and types_match(A.child(), B.child()),
             .array_of => return types_match(A.child(), B.child()) and A.array_of.len.int.data == B.array_of.len.int.data,
             .anyptr_type => return B.* == .anyptr_type,
             .unit_type => return true,
@@ -1074,7 +1051,6 @@ pub const Type_AST = union(enum) {
             },
             .function => return self.lhs().c_types_match(other.lhs()) and self.rhs().c_types_match(other.rhs()),
             .array_of => return self.child().c_types_match(other.child()),
-            // .slice_of => return self.child().c_types_match(other.child()),
             else => std.debug.panic("compiler error: c_types_match(): unimplemented for {s}", .{@tagName(self.*)}),
         }
     }

@@ -137,6 +137,12 @@ fn output_typedef(self: *Self) CodeGen_Error!void {
 /// Outputs the fields of a structure or union type based on the provided list of AST types.
 fn output_field_list(self: *Self, fields: *const std.array_list.Managed(*Type_AST), spaces: usize) CodeGen_Error!void {
     // output each field in the list
+    if (fields.items.len == 0) {
+        for (0..spaces) |_| {
+            try self.writer.print(" ", .{});
+        }
+        try self.writer.print("uint8_t placeholder;\n", .{});
+    }
     for (fields.items, 0..) |term, i| {
         if (!term.is_c_void_type()) {
             // Don't gen `void` structure/union fields

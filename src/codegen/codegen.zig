@@ -114,6 +114,11 @@ fn output_type(
         try output_type(depen, types_path, allocator);
     }
 
+    if (dep.base.sizeof() == 0) {
+        // Don't output zero-sized types
+        return;
+    }
+
     var output_filename = std.array_list.Managed(u8).init(allocator);
     defer output_filename.deinit();
     output_filename.print("{f}.h", .{Canonical_Type_Fmt{ .type = dep.base }}) catch unreachable;

@@ -526,6 +526,7 @@ fn build_paramlist(params: std.array_list.Managed(*ast_.AST), param_types: *std.
 }
 
 fn create_receiver_addr(impl_type: *Type_AST, receiver: *ast_.AST, allocator: std.mem.Allocator) *Type_AST {
+    if (impl_type.* == .anyptr_type) return impl_type; // If the type is already an anyptr, then dont make it an address too
     return switch (receiver.receiver.kind) {
         .value, .addr_of => Type_AST.create_addr_of(receiver.token(), impl_type, false, false, allocator),
         .mut_addr_of => Type_AST.create_addr_of(receiver.token(), impl_type, true, false, allocator),

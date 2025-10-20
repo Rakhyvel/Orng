@@ -316,7 +316,7 @@ fn prefix_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
         if (self.accept(.dyn)) |token2| {
             return Type_AST.create_dyn_type(
                 token2,
-                Type_AST.create_identifier(try self.expect(.identifier), self.allocator),
+                try self.type_expr(),
                 mut != null,
                 self.allocator,
             );

@@ -25,6 +25,9 @@ pub fn add(self: *Self, oldast_: *Type_AST) ?*Dependency_Node {
 
 fn add_internal(self: *Self, oldast_: *Type_AST, from_function: bool) ?*Dependency_Node {
     const ast = oldast_.expand_identifier();
+    if (ast.* == .identifier and ast.symbol().?.decl.?.* == .type_param_decl) {
+        return null;
+    }
     std.debug.assert(ast.* != .identifier or ast.symbol().?.decl.?.* != .type_param_decl);
 
     if (self.get(ast)) |dag| {
@@ -55,8 +58,16 @@ fn add_internal(self: *Self, oldast_: *Type_AST, from_function: bool) ?*Dependen
 /// Adds a function type to the type set
 fn add_function(self: *Self, function_type_ast: *Type_AST) ?*Dependency_Node {
     var dag = self.add_dependency_node(function_type_ast);
-    if (self.add_internal(function_type_ast.lhs(), true)) |domain| {
-        dag.add_dependency(domain);
+    if (function_type_ast.lhs().* == .tuple_type) {
+        for (function_type_ast.lhs().children().items) |c| {
+            if (self.add_internal(c, true)) |domain| {
+                dag.add_dependency(domain);
+            }
+        }
+    } else {
+        if (self.add_internal(function_type_ast.lhs(), true)) |domain| {
+            dag.add_dependency(domain);
+        }
     }
     if (self.add(function_type_ast.rhs())) |codomain| {
         dag.add_dependency(codomain);

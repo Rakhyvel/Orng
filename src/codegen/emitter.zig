@@ -50,7 +50,8 @@ pub fn output_type(self: *Self, old_type: *Type_AST) CodeGen_Error!void {
             try self.output_type(_type.child());
             try self.writer.print(" *", .{});
         },
-        .anyptr_type, .unit_type => try self.writer.print("void", .{}),
+        .anyptr_type => try self.writer.print("void *", .{}),
+        .unit_type => try self.writer.print("void", .{}),
         .annotation => try self.output_type(_type.child()),
 
         .function => try self.writer.print("{f}", .{Canonical_Type_Fmt{ .type = _type }}),

@@ -193,6 +193,7 @@ pub const AST = union(enum) {
         _args: std.array_list.Managed(*AST),
         _scope: ?*Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
         method_decl: ?*AST = null,
+        prepended: bool = false,
     },
     /// A struct-like-value of pointers to the vtable, and to the receiver
     dyn_value: struct {
@@ -1512,13 +1513,15 @@ pub const AST = union(enum) {
             },
             .invoke => {
                 const cloned_args = clone_children(self.children().*, substs, allocator);
-                return create_invoke(
+                var retval = create_invoke(
                     self.token(),
                     self.lhs().clone(substs, allocator),
                     self.rhs().clone(substs, allocator),
                     cloned_args,
                     allocator,
                 );
+                retval.invoke.prepended = self.invoke.prepended;
+                return retval;
             },
             .dyn_value => unreachable, // Shouldn't exist yet... have to clone scope?
             .enum_value => {

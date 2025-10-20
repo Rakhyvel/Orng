@@ -254,6 +254,8 @@ pub fn monomorphize(
         const name = next_anon_name(self.name, ctx.allocator());
         const decl = self.decl.?.clone(&subst, ctx.allocator());
 
+        decl.set_generic_params(std.array_list.Managed(*ast_.AST).init(ctx.allocator()));
+
         // Decorate identifiers, validate
         const Symbol_Tree = @import("../ast/symbol-tree.zig");
         const Decorate = @import("../ast/decorate.zig");

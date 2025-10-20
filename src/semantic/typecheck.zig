@@ -464,7 +464,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             ast.invoke.method_decl = method_decl.?;
             const domain: *Type_AST = method_decl.?.method_decl.domain.?;
             const expanded_true_lhs_type = true_lhs_type.expand_identifier();
-            if (method_decl.?.method_decl.receiver != null) {
+            if (method_decl.?.method_decl.receiver != null and !ast.invoke.prepended) {
                 const receiver_kind: ?ast_.Receiver_Kind = method_decl.?.method_decl.receiver.?.receiver.kind;
                 // Trait method takes a receiver...
                 // Prepend invoke lhs to args if there is a receiver
@@ -481,11 +481,15 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                         return error.CompileError;
                     }
                     ast.children().insert(0, ast.lhs()) catch unreachable; // prepend lhs to children as a receiver
+                    ast.invoke.prepended = true;
                 } else {
                     // lhs type is not dynamic and not an address
                     const addr_of = ast_.AST.create_addr_of(ast.lhs().token(), ast.lhs(), receiver_kind.? == .mut_addr_of, false, self.ctx.allocator());
                     ast.children().insert(0, addr_of) catch unreachable; // prepend lhs to children as a receiver
+                    ast.invoke.prepended = true;
                 }
+            } else if (ast.invoke.prepended) {
+                ast.set_lhs(ast.children().items[0]);
             }
             ast.set_children(try args_.default_args(.method, ast.children().*, ast.token().span, domain, &self.ctx.errors, self.ctx.allocator()));
             try args_.validate_args_arity(.method, ast.children(), domain, false, ast.token().span, &self.ctx.errors);

@@ -125,6 +125,11 @@ fn output_typedef(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
         try self.output_typedef(depen);
     }
 
+    if (dep.base.sizeof() == 0) {
+        // Do not output zero-sized types
+        return;
+    }
+
     var str = try Canonical_Type_Fmt.canonical_rep(dep.base);
     defer str.deinit();
     try self.writer.print("#include \"types/{f}.h\"\n", .{Canonical_Type_Fmt{ .type = dep.base }});
