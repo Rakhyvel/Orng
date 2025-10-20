@@ -218,7 +218,7 @@ fn output_impls(self: *Self) CodeGen_Error!void {
     if (vtable_count > 0) {
         // TODO: Count impls that have virtual methods
         // Do not output header comment if there are no impls!
-        try self.writer.print("/* Trait vtable implementation declarations */\n", .{});
+        try self.writer.print("\n/* Trait vtable implementation declarations */\n", .{});
     }
 
     for (self.module.impls.items) |impl| {
