@@ -148,8 +148,8 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             if (symbol.validation_state == .invalid) {
                 return error.CompileError;
             }
-            try self.ctx.validate_symbol.validate(symbol);
-            if (symbol.refers_to_type()) {
+            try self.ctx.validate_symbol.validate_symbol(symbol);
+            if (symbol.is_type()) {
                 if (expected != null) {
                     self.ctx.errors.add_error(errs_.Error{ .unexpected_type_type = .{ .expected = expected, .span = ast.token().span } });
                     return error.CompileError;
@@ -169,8 +169,8 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             if (symbol.validation_state == .invalid) {
                 return error.CompileError;
             }
-            try self.ctx.validate_symbol.validate(symbol);
-            if (symbol.refers_to_type()) {
+            try self.ctx.validate_symbol.validate_symbol(symbol);
+            if (symbol.is_type()) {
                 if (expected != null) {
                     self.ctx.errors.add_error(errs_.Error{ .unexpected_type_type = .{ .expected = expected, .span = ast.token().span } });
                     return error.CompileError;
@@ -195,7 +195,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             const expr_span = ast.expr().token().span;
             const expr_expected_type: ?*Type_AST =
                 if (expected != null)
-                    Type_AST.create_addr_of(ast.token(), expected.?, false, false, self.ctx.allocator())
+                    Type_AST.create_addr_of_type(ast.token(), expected.?, false, false, self.ctx.allocator())
                 else
                     null;
 
@@ -232,11 +232,11 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             return expanded_expr_type.get_ok_type().child();
         },
         .default => {
-            try self.ctx.validate_type.validate(ast.default._type);
+            try self.ctx.validate_type.validate_type(ast.default._type);
             return ast.default._type;
         },
         .size_of => {
-            try self.ctx.validate_type.validate(ast.size_of._type);
+            try self.ctx.validate_type.validate_type(ast.size_of._type);
             return prelude_.int_type;
         },
         .@"comptime" => {
@@ -391,7 +391,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             }
 
             for (ast.generic_apply._children.items) |child| {
-                try self.ctx.validate_type.validate(child);
+                try self.ctx.validate_type.validate_type(child);
             }
 
             if (ast.generic_apply.state == .unmorphed) {
@@ -400,7 +400,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 ast.generic_apply.state = .morphed;
             }
 
-            try self.ctx.validate_symbol.validate(ast.symbol().?);
+            try self.ctx.validate_symbol.validate_symbol(ast.symbol().?);
 
             return ast.symbol().?.type();
         },
@@ -441,7 +441,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             } else {
                 // The receiver is a regular type. STRIP AWAY ADDRs!
                 const lhs_type = if (true_lhs_type.* == .addr_of) true_lhs_type.child() else true_lhs_type;
-                try self.ctx.validate_type.validate(lhs_type);
+                try self.ctx.validate_type.validate_type(lhs_type);
                 method_decl = try ast.scope().?.lookup_impl_member(lhs_type, ast.rhs().token().data, self.ctx);
             }
             if (method_decl == null) {
@@ -493,7 +493,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
         },
         .dyn_value => {
             const expr_type = self.typecheck_AST(ast.expr(), null) catch return error.CompileError;
-            try self.ctx.validate_type.validate(ast.dyn_value.dyn_type);
+            try self.ctx.validate_type.validate_type(ast.dyn_value.dyn_type);
 
             const impl = ast.scope().?.impl_trait_lookup(expr_type, ast.dyn_value.dyn_type.child().symbol().?);
             if (impl.ast == null) {
@@ -509,7 +509,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             return ast.dyn_value.dyn_type;
         },
         .struct_value => {
-            try self.ctx.validate_type.validate(ast.struct_value.parent);
+            try self.ctx.validate_type.validate_type(ast.struct_value.parent);
             const expanded_expected: *Type_AST = if (expected == null) ast.struct_value.parent.expand_identifier() else expected.?.expand_identifier();
             if (expanded_expected.* == .struct_type) {
                 // Expecting ast to be a product value of some product type
@@ -579,7 +579,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 // Not expecting anything, just validate expr
                 const child_type = self.typecheck_AST(ast.expr(), null) catch return error.CompileError;
                 try self.validate_L_Value(ast.expr());
-                return Type_AST.create_addr_of(ast.token(), child_type, ast.addr_of.mut, ast.addr_of.multiptr, self.ctx.allocator());
+                return Type_AST.create_addr_of_type(ast.token(), child_type, ast.addr_of.mut, ast.addr_of.multiptr, self.ctx.allocator());
             } else {
                 // Address value, expected must be an address, inner must match with expected's inner
                 const expanded_expected = expected.?.expand_identifier();
@@ -611,7 +611,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 if (ast.addr_of.mut) {
                     try self.assert_mutable(ast.expr());
                 }
-                return Type_AST.create_addr_of(ast.token(), child_type, ast.addr_of.mut, ast.addr_of.multiptr, self.ctx.allocator());
+                return Type_AST.create_addr_of_type(ast.token(), child_type, ast.addr_of.mut, ast.addr_of.multiptr, self.ctx.allocator());
             }
         },
         .slice_of => {
@@ -804,35 +804,35 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             return prelude_.unit_type;
         },
         .fn_decl => {
-            try self.ctx.validate_symbol.validate(ast.symbol().?);
+            try self.ctx.validate_symbol.validate_symbol(ast.symbol().?);
             return ast.decl_type();
         },
         .method_decl => {
             std.debug.assert(expected == null); // Why wouldn't it be?
             if (ast.symbol() != null) {
                 // Not a trait-method
-                try self.ctx.validate_symbol.validate(ast.symbol().?);
+                try self.ctx.validate_symbol.validate_symbol(ast.symbol().?);
             }
             // ast.method_decl.domain = try self.typecheck_AST(ast.method_decl.domain.?, prelude_.type_type);
-            try self.ctx.validate_type.validate(ast.method_decl.domain.?);
+            try self.ctx.validate_type.validate_type(ast.method_decl.domain.?);
             return ast.decl_type();
         },
         .decl => {
             // ast.decl.type = try self.typecheck_AST(ast.decl.type, prelude_.type_type);
-            try self.ctx.validate_type.validate(ast.decl.type);
+            try self.ctx.validate_type.validate_type(ast.decl.type);
             if (ast.decl.init) |_init| {
                 _ = self.typecheck_AST(_init, ast.decl.type) catch return error.CompileError;
             }
-            try self.ctx.validate_symbol.validate(ast.decl.name.symbol().?);
+            try self.ctx.validate_symbol.validate_symbol(ast.decl.name.symbol().?);
             return prelude_.unit_type;
         },
         .binding => {
-            try self.ctx.validate_type.validate(ast.binding.type);
+            try self.ctx.validate_type.validate_type(ast.binding.type);
             if (ast.binding.init) |_init| {
                 _ = self.typecheck_AST(_init, ast.binding.type) catch return error.CompileError;
             }
             for (ast.binding.decls.items) |decl| {
-                try self.ctx.validate_symbol.validate(decl.decl.name.symbol().?);
+                try self.ctx.validate_symbol.validate_symbol(decl.decl.name.symbol().?);
             }
             try self.ctx.validate_pattern.assert_pattern_matches(ast.binding.pattern, ast.binding.type);
             return prelude_.unit_type;
@@ -851,7 +851,7 @@ pub fn binary_operator_open(
     expected: ?*Type_AST,
 ) Validate_Error_Enum!*Type_AST {
     const lhs_type = self.typecheck_AST(ast.lhs(), expected) catch return error.CompileError;
-    if (ast.lhs().* == .identifier and ast.lhs().symbol().?.refers_to_type()) {
+    if (ast.lhs().* == .identifier and ast.lhs().symbol().?.is_type()) {
         return error.CompileError;
     }
     _ = self.typecheck_AST(ast.rhs(), lhs_type) catch return error.CompileError;

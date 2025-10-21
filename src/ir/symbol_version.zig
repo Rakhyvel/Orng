@@ -57,20 +57,6 @@ pub fn set_def(self: *Self, def: ?*Instruction) void {
     }
 }
 
-pub fn get_expanded_type(self: *Self) *Type_AST {
-    return self.symbol.expanded_type();
-}
-
-pub fn reset_usage(self: *Self) void {
-    self.uses = 0;
-    self.symbol.uses = 0;
-}
-
-pub fn increment_usage(self: *Self) void {
-    self.uses += 1;
-    self.symbol.uses += 1;
-}
-
 /// Finds a Symbol Version in a Symbol Version set, or null if not found.
 ///
 /// Two Symbol Versions are considered equivalent if they refer to the same Symbol.

@@ -18,8 +18,8 @@ pub fn init(ctx: *Compiler_Context) Self {
     return Self{ .ctx = ctx };
 }
 
-pub fn validate(self: *Self, module: *module_.Module) Validate_Error_Enum!void {
-    try self.ctx.validate_scope.validate(self.ctx.module_scope(module.absolute_path).?);
+pub fn validate_module(self: *Self, module: *module_.Module) Validate_Error_Enum!void {
+    try self.ctx.validate_scope.validate_scope(self.ctx.module_scope(module.absolute_path).?);
     for (0..module.cincludes.items.len) |i| {
         _ = self.ctx.typecheck.typecheck_AST(module.cincludes.items[i], prelude_.string_type) catch return error.CompileError;
     }

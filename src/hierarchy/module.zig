@@ -117,7 +117,7 @@ pub const Module = struct {
     }
 
     // TODO: Move to compiler context
-    pub fn compile(
+    pub fn load_from_filename(
         absolute_path: []const u8,
         entry_name: ?[]const u8,
         fuzz_tokens: bool,
@@ -226,7 +226,7 @@ pub const Module = struct {
         });
 
         // Perform checks and collections on the module
-        try compiler.validate_module.validate(module);
+        try compiler.validate_module.validate_module(module);
         compiler.module_scope(module.absolute_path).?.collect_traits_and_impls(&module.traits, &module.impls);
         try module.add_all_cfgs(entry_name, compiler);
         if (module.entry) |entry| {
@@ -280,17 +280,17 @@ pub const Module = struct {
             for (trait.trait.method_decls.items) |decl| {
                 const @"type" = decl.method_decl.c_type.?.expand_identifier();
                 if (@"type".refers_to_self()) continue;
-                _ = self.type_set.add(decl.method_decl.c_type.?.expand_identifier());
-                _ = self.type_set.add(decl.method_decl.ret_type.expand_identifier());
+                _ = self.type_set.add_type(decl.method_decl.c_type.?.expand_identifier());
+                _ = self.type_set.add_type(decl.method_decl.ret_type.expand_identifier());
             }
         }
         for (self.cfgs.items) |cfg| {
-            cfg.collect_types(&self.type_set);
+            cfg.collect_cfg_types(&self.type_set);
         }
     }
 
     /// Puts all the types used in this module into the given type set
-    pub fn collect_types(self: *Module, type_set: *Type_Set) void {
+    pub fn collect_module_types(self: *Module, type_set: *Type_Set) void {
         type_set.union_from(&self.type_set);
     }
 
@@ -351,7 +351,7 @@ pub const Module = struct {
     /// A module is modified if:
     /// - Its source hash differs from what is stored in the package's json file
     /// - Any of the module it imports have been modified
-    pub fn determine_if_modified(self: *Module, compiler: *Compiler_Context) void {
+    pub fn determine_if_module_modified(self: *Module, compiler: *Compiler_Context) void {
         if (self.modified != null) {
             return;
         }
@@ -364,7 +364,7 @@ pub const Module = struct {
         self.modified = (old_hash == null) or !std.mem.eql(u8, local_module_number_string, old_hash.?);
 
         for (self.local_imported_modules.keys()) |imported_module| {
-            imported_module.determine_if_modified(compiler);
+            imported_module.determine_if_module_modified(compiler);
             self.modified = imported_module.modified.? or self.modified.?;
         }
     }

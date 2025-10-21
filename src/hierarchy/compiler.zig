@@ -82,8 +82,8 @@ pub fn init(stderr: ?std.fs.File, alloc: std.mem.Allocator) Error!*Self {
     retval.validate_pattern = Validate_Pattern.init(retval);
     retval.typecheck = Typecheck.init(retval);
 
-    retval.prelude = try prelude_.get_scope(retval);
-    retval.core = core_.get_scope(retval) catch |e| {
+    retval.prelude = try prelude_.get_prelude_scope(retval);
+    retval.core = core_.get_core_scope(retval) catch |e| {
         if (stderr == null) return e;
         var writer = stderr.?.writer(&.{}).interface;
         retval.errors.print_errors(&writer, .{});
@@ -132,7 +132,7 @@ pub fn compile_module(
         return module;
     }
 
-    const module = Module.compile(absolute_path, entry_name, fuzz_tokens, self) catch |err| {
+    const module = Module.load_from_filename(absolute_path, entry_name, fuzz_tokens, self) catch |err| {
         switch (err) {
             // Always print these errors for fuzz testing
             error.LexerError,
@@ -260,16 +260,16 @@ pub fn collect_package_local_modules(self: *Self) void {
 pub fn collect_types(self: *Self) void {
     for (self.packages.keys()) |package_name| {
         const package = self.lookup_package(package_name).?;
-        package.collect_types();
+        package.collect_package_types();
     }
 }
 
 pub fn determine_if_modified(self: *Self, root_package_absolute_path: []const u8) void {
     const package = self.lookup_package(root_package_absolute_path).?;
-    package.determine_if_modified(self.packages, self);
+    package.determine_if_package_modified(self.packages, self);
 }
 
 pub fn compile(self: *Self, root_package_absolute_path: []const u8) !void {
     const package = self.lookup_package(root_package_absolute_path).?;
-    try package.compile(self.packages, self.allocator());
+    try package.output(self.packages, self.allocator());
 }

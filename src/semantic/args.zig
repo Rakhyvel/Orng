@@ -16,7 +16,7 @@ pub const Validate_Args_Thing = enum {
     tuple,
     array,
 
-    fn name(self: @This()) []const u8 {
+    fn thing_name(self: @This()) []const u8 {
         return @tagName(self);
     }
 
@@ -121,7 +121,7 @@ fn positional_args(
                     .span = call_span,
                     .takes = 1,
                     .given = 0,
-                    .thing_name = thing.name(),
+                    .thing_name = thing.thing_name(),
                     .takes_name = thing.takes_name(),
                     .given_name = thing.given_name(),
                 } });
@@ -145,7 +145,7 @@ fn positional_args(
                             .span = call_span,
                             .takes = expected.children().items.len,
                             .given = asts.items.len,
-                            .thing_name = thing.name(),
+                            .thing_name = thing.thing_name(),
                             .takes_name = thing.takes_name(),
                             .given_name = thing.given_name(),
                         } });
@@ -204,7 +204,7 @@ fn named_args(
                     .span = asts.items[0].token().span,
                     .takes = 1,
                     .given = arg_name_to_val_map.keys().len,
-                    .thing_name = thing.name(),
+                    .thing_name = thing.thing_name(),
                     .takes_name = thing.takes_name(),
                     .given_name = thing.given_name(),
                 } });
@@ -233,7 +233,7 @@ fn named_args(
                             .span = call_span,
                             .takes = expected.children().items.len,
                             .given = arg_name_to_val_map.keys().len,
-                            .thing_name = thing.name(),
+                            .thing_name = thing.thing_name(),
                             .takes_name = thing.takes_name(),
                             .given_name = thing.given_name(),
                         } });
@@ -293,7 +293,7 @@ pub fn validate_args_arity(
                 .span = span,
                 .takes = expected_length,
                 .given = args.items.len,
-                .thing_name = thing.name(),
+                .thing_name = thing.thing_name(),
                 .takes_name = thing.takes_name(),
                 .given_name = thing.given_name(),
             } });
@@ -304,7 +304,7 @@ pub fn validate_args_arity(
             .span = span,
             .takes = expected_length,
             .given = args.items.len,
-            .thing_name = thing.name(),
+            .thing_name = thing.thing_name(),
             .takes_name = thing.takes_name(),
             .given_name = thing.given_name(),
         } });

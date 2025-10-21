@@ -44,6 +44,15 @@ class Scanner:
                 self.line += 1
             self.cursor += 1
 
+    def is_escaped(self, s: str) -> bool:
+        count = 0
+        for c in reversed(s):
+            if c == "\\":
+                count += 1
+            else:
+                break
+        return count % 2 == 1
+
     def tokenize(self) -> list[Token]:
         open_close: str = "(){}[]"
         tokens: list[Token] = []
@@ -56,7 +65,7 @@ class Scanner:
 
             if token.value[0] in {'"', "'"}:
                 token.value += char
-                if char == token.value[0]:
+                if char == token.value[0] and not self.is_escaped(token.value):
                     tokens.append(token)
                     self.skip_while(lambda x: x.isspace() or x == token.value[0])
                     token = Token(
@@ -68,6 +77,7 @@ class Scanner:
                 or (prev_char and prev_char in open_close)
                 or char in open_close
                 or char == '"'
+                or char == "'"
             ):
                 if token.value.startswith("//"):
                     self.skip_while(lambda x: self.curr() != "\n")

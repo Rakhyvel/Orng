@@ -20,8 +20,12 @@ pub fn new(errors: *errs_.Errors, allocator: std.mem.Allocator) Self {
     };
 }
 
-/// Expand ASTs before descending to further children
 pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
+    return self.expand_prefix(ast);
+}
+
+/// Expand ASTs before descending to further children
+fn expand_prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
     switch (ast.*) {
         else => {},
 
@@ -45,19 +49,5 @@ fn expand_subslice(self: Self, ast: *ast_.AST) void {
             length,
             self.allocator,
         );
-    }
-}
-
-fn annot_from_ast(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) walk_.Error!*ast_.AST {
-    if (ast.* == .annotation) {
-        return ast;
-    } else if (ast.* == .identifier) {
-        return ast_.AST.create_annotation(ast.token(), ast, prelude_.unit_type, null, null, allocator).assert_ast_valid();
-    } else {
-        errors.add_error(errs_.Error{ .basic = .{
-            .span = ast.token().span,
-            .msg = "invalid sum expression, must be annotation or identifier",
-        } });
-        return error.CompileError;
     }
 }

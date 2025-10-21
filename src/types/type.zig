@@ -200,7 +200,7 @@ pub const Type_AST = union(enum) {
         idx: *AST, // TODO: consider just making this an int, since its not available to the user
     },
 
-    pub fn create_poison(_token: Token, allocator: std.mem.Allocator) *Type_AST {
+    pub fn create_poisoned_type(_token: Token, allocator: std.mem.Allocator) *Type_AST {
         return Type_AST.box(Type_AST{ .poison = .{ .common = Type_AST_Common{ ._token = _token } } }, allocator);
     }
 
@@ -214,11 +214,11 @@ pub const Type_AST = union(enum) {
         return Type_AST.box(Type_AST{ .unit_type = .{ .common = Type_AST_Common{ ._token = _token } } }, allocator);
     }
 
-    pub fn create_identifier(_token: Token, allocator: std.mem.Allocator) *Type_AST {
+    pub fn create_type_identifier(_token: Token, allocator: std.mem.Allocator) *Type_AST {
         return Type_AST.box(Type_AST{ .identifier = .{ .common = Type_AST_Common{ ._token = _token } } }, allocator);
     }
 
-    pub fn create_access(_token: Token, inner_access: *AST, allocator: std.mem.Allocator) *Type_AST {
+    pub fn create_type_access(_token: Token, inner_access: *AST, allocator: std.mem.Allocator) *Type_AST {
         const _common: Type_AST_Common = .{ ._token = _token };
         return Type_AST.box(Type_AST{ .access = .{
             .common = _common,
@@ -226,7 +226,7 @@ pub const Type_AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn create_generic_apply(_token: Token, _lhs: *Type_AST, args: std.array_list.Managed(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
+    pub fn create_generic_apply_type(_token: Token, _lhs: *Type_AST, args: std.array_list.Managed(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
         const _common: Type_AST_Common = .{ ._token = _token };
         return Type_AST.box(Type_AST{ .generic_apply = .{
             .common = _common,
@@ -291,7 +291,7 @@ pub const Type_AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn create_addr_of(_token: Token, _child: *Type_AST, _mut: bool, multiptr: bool, allocator: std.mem.Allocator) *Type_AST {
+    pub fn create_addr_of_type(_token: Token, _child: *Type_AST, _mut: bool, multiptr: bool, allocator: std.mem.Allocator) *Type_AST {
         const _common: Type_AST_Common = .{ ._token = _token };
         return Type_AST.box(Type_AST{ .addr_of = .{
             .common = _common,
@@ -335,7 +335,7 @@ pub const Type_AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn create_index(_token: Token, _lhs: *Type_AST, _rhs: *AST, allocator: std.mem.Allocator) *Type_AST {
+    pub fn create_index_type(_token: Token, _lhs: *Type_AST, _rhs: *AST, allocator: std.mem.Allocator) *Type_AST {
         return Type_AST.box(Type_AST{ .index = .{
             .common = Type_AST_Common{ ._token = _token },
             ._child = _lhs,
@@ -351,7 +351,7 @@ pub const Type_AST = union(enum) {
 
     pub fn create_slice_type(of: *Type_AST, _mut: bool, allocator: std.mem.Allocator) *Type_AST {
         var term_types = std.array_list.Managed(*Type_AST).init(allocator);
-        const data_type = create_addr_of(
+        const data_type = create_addr_of_type(
             of.token(),
             of,
             _mut,
@@ -436,12 +436,12 @@ pub const Type_AST = union(enum) {
     pub fn from_ast(ast: *AST, allocator: std.mem.Allocator) *Type_AST {
         return switch (ast.*) {
             .identifier => blk: {
-                const id = Type_AST.create_identifier(ast.token(), allocator);
+                const id = Type_AST.create_type_identifier(ast.token(), allocator);
                 id.set_symbol(ast.symbol().?);
                 break :blk id;
             },
             .access => blk: {
-                const id = Type_AST.create_access(ast.token(), ast, allocator);
+                const id = Type_AST.create_type_access(ast.token(), ast, allocator);
                 id.set_symbol(ast.symbol().?);
                 break :blk id;
             },
@@ -451,7 +451,7 @@ pub const Type_AST = union(enum) {
                 for (ast.children().items) |arg| {
                     args.append(from_ast(arg, allocator)) catch unreachable;
                 }
-                break :blk Type_AST.create_generic_apply(ast.token(), base, args, allocator);
+                break :blk Type_AST.create_generic_apply_type(ast.token(), base, args, allocator);
             },
             else => std.debug.panic("unable to construct type from {t}", .{ast.*}),
         };
@@ -1069,7 +1069,7 @@ pub const Type_AST = union(enum) {
             },
             .addr_of => {
                 const _expr = clone(self.child(), substs, allocator);
-                return create_addr_of(self.token(), _expr, self.addr_of.mut, self.addr_of.multiptr, allocator);
+                return create_addr_of_type(self.token(), _expr, self.addr_of.mut, self.addr_of.multiptr, allocator);
             },
             .array_of => {
                 const _expr = clone(self.child(), substs, allocator);
@@ -1115,7 +1115,7 @@ pub const Type_AST = union(enum) {
             },
             .generic_apply => {
                 const new_args = clone_types(self.children().*, substs, allocator);
-                return create_generic_apply(
+                return create_generic_apply_type(
                     self.token(),
                     self.lhs().clone(substs, allocator),
                     new_args,

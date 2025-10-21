@@ -371,7 +371,7 @@ fn package_find(self: *Self, instr: *Instruction) !void {
     if (builtin_.package_find(self.ctx, self, current_module_path, src_ast)) |package_info| {
         const adrs = package_info.package_adrs;
         // Store the directory of the package inside the package struct before returning
-        const dir_string = interned_strings.add(package_info.package_dirname, self.modules.get(1).?.uid);
+        const dir_string = interned_strings.add_string(package_info.package_dirname, self.modules.get(1).?.uid);
         const dir_offset = core_.package_type.struct_type.get_offset_field("dir");
         self.memory.store(Interned_String_Set.String_Idx, adrs + dir_offset, dir_string);
         // Store the address of the package in the retval

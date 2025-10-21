@@ -465,10 +465,6 @@ pub fn copy_of_prop(self: *Self, src: *?*lval_.L_Value, src_def: ?*Self) bool {
     }
 }
 
-pub fn mark_for_removal(self: *Self) void {
-    self.removed = true;
-}
-
 pub const Kind = enum {
     // nullary instructions
     load_symbol,

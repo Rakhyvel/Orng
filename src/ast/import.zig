@@ -40,6 +40,10 @@ fn next_anon_name(class: []const u8, allocator: std.mem.Allocator) []const u8 {
 
 /// Converts imports to constant declarations
 pub fn flat(self: Self, ast: *ast_.AST, asts: *std.array_list.Managed(*ast_.AST), idx: usize) walker_.Error!usize {
+    return self.import_flat(ast, asts, idx);
+}
+
+fn import_flat(self: Self, ast: *ast_.AST, asts: *std.array_list.Managed(*ast_.AST), idx: usize) walker_.Error!usize {
     if (ast.* != .import) {
         return 0;
     }

@@ -16,6 +16,10 @@ pub fn new(cincludes: *std.array_list.Managed(*ast_.AST)) Self {
 
 /// Walks the AST and collects cincludes into the module
 pub fn flat(self: Self, ast: *ast_.AST, asts: *std.array_list.Managed(*ast_.AST), idx: usize) walker_.Error!usize {
+    return self.cinclude_flat(ast, asts, idx);
+}
+
+fn cinclude_flat(self: Self, ast: *ast_.AST, asts: *std.array_list.Managed(*ast_.AST), idx: usize) walker_.Error!usize {
     _ = asts;
     _ = idx;
     if (ast.* == .cinclude) {

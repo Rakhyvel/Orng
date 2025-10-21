@@ -259,7 +259,7 @@ pub fn count_predecessors(self: *Self) void {
     }
 }
 
-pub fn set_offset(self: *Self, instructions_list: *std.array_list.Managed(*Instruction), work_queue: *std.array_list.Managed(*Self)) void {
+pub fn append_instructions(self: *Self, instructions_list: *std.array_list.Managed(*Instruction), work_queue: *std.array_list.Managed(*Self)) void {
     self.offset = @as(Instruction.Index, @intCast(instructions_list.items.len)) -| 1;
 
     for (self.instructions.items) |instr| {
@@ -296,12 +296,12 @@ pub fn set_offset(self: *Self, instructions_list: *std.array_list.Managed(*Instr
     }
 }
 
-pub fn collect_types(self: *Self, type_set: *Type_Set) void {
+pub fn collect_basic_block_types(self: *Self, type_set: *Type_Set) void {
     // For all instructions in the basic block...
     for (self.instructions.items) |instr| {
         if (instr.dest != null) {
-            _ = type_set.add(instr.dest.?.get_expanded_type());
-            _ = type_set.add(instr.dest.?.extract_symbver().symbol.expanded_type());
+            _ = type_set.add_type(instr.dest.?.get_expanded_type());
+            _ = type_set.add_type(instr.dest.?.extract_symbver().symbol.expanded_type());
         }
     }
 }

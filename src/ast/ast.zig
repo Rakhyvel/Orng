@@ -2126,7 +2126,7 @@ pub const AST = union(enum) {
         return switch (self.*) {
             else => false,
 
-            .identifier, .access => self.symbol().?.refers_to_type(),
+            .identifier, .access => self.symbol().?.is_type(),
 
             .index => self.lhs().refers_to_type(), // generic type
             .generic_apply => self.lhs().refers_to_type(),

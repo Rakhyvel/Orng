@@ -20,7 +20,7 @@ pub fn init(uid: u32, allocator: std.mem.Allocator) Self {
     };
 }
 
-pub fn add(self: *Self, str: []const u8, uid: u32) String_Idx {
+pub fn add_string(self: *Self, str: []const u8, uid: u32) String_Idx {
     std.debug.assert(uid == self.uid);
     for (0..self.interned_strings.items.len) |i| {
         const item = self.interned_strings.items[i];
@@ -36,7 +36,7 @@ pub fn add(self: *Self, str: []const u8, uid: u32) String_Idx {
 
 pub fn merge(self: *Self, other: *const Self) void {
     for (0..other.interned_strings.items) |i| {
-        _ = self.add(other.interned_strings.items[i]);
+        _ = self.add_string(other.interned_strings.items[i]);
     }
 }
 

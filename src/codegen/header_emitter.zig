@@ -100,12 +100,12 @@ fn output_typedefs(self: *Self) CodeGen_Error!void {
 
     // Output all typedefs
     for (self.module.type_set.types.items) |dag| {
-        try self.output_typedef(dag);
+        try self.output_typedef_include(dag);
     }
 }
 
 /// Outputs a typedef declaration based on the provided `DAG`.
-fn output_typedef(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
+fn output_typedef_include(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
     // FIXME: High Cyclo
     if (dep.visited) {
         // only visit a DAG node once
@@ -115,7 +115,7 @@ fn output_typedef(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
 
     // output any types that this type depends on
     for (dep.dependencies.items) |depen| {
-        try self.output_typedef(depen);
+        try self.output_typedef_include(depen);
     }
 
     if (dep.base.sizeof() == 0) {

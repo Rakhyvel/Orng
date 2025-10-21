@@ -22,7 +22,7 @@ pub var test_type: *Type_AST = undefined;
 var core: ?*Scope = null;
 pub var core_symbol: ?*Symbol = null;
 pub var core_package_name: []const u8 = undefined;
-pub fn get_scope(compiler: *Compiler_Context) !*Scope {
+pub fn get_core_scope(compiler: *Compiler_Context) !*Scope {
     if (core == null) {
         try create_core(compiler);
     }

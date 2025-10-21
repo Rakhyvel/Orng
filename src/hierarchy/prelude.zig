@@ -96,7 +96,7 @@ var primitives: std.StringArrayHashMap(Primitive_Info) = undefined;
 
 // The prelude should only be created once per compilation. _ALL_ packages and modules are within this one prelude scope.
 var prelude: ?*Scope = null;
-pub fn get_scope(compiler: *Compiler_Context) !*Scope {
+pub fn get_prelude_scope(compiler: *Compiler_Context) !*Scope {
     if (prelude == null) {
         try create_prelude(compiler);
     }
@@ -343,7 +343,7 @@ fn create_prelude(compiler: *Compiler_Context) !void {
 }
 
 fn create_primitive_identifier(name: []const u8, allocator: std.mem.Allocator) *Type_AST {
-    return Type_AST.create_identifier(Token.init_simple(name), allocator);
+    return Type_AST.create_type_identifier(Token.init_simple(name), allocator);
 }
 
 fn create_unit_type(allocator: std.mem.Allocator) *Type_AST {

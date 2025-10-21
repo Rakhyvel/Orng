@@ -13,8 +13,12 @@ pub fn new(indent: usize) Self {
     return Self{ .indent = indent };
 }
 
-/// Converts imports to constant declarations
 pub fn prefix(self: Self, ast: *ast_.AST) walker_.Error!?Self {
+    return self.tree_writer_prefix(ast);
+}
+
+/// Converts imports to constant declarations
+fn tree_writer_prefix(self: Self, ast: *ast_.AST) walker_.Error!?Self {
     for (0..self.indent) |_| {
         std.debug.print(" ", .{});
     }

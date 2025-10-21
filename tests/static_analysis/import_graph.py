@@ -1,6 +1,7 @@
 import argparse
 from zig_scanner import Token, Scanner, alnumus
 import networkx as nx
+import os
 
 
 def main():
@@ -17,32 +18,24 @@ def main():
     for filename in args.files:
         with open(filename) as f:
             file_text = f.read() + "\n"
-            parser = Parser(Scanner(file_text).tokenize())
-            parser.parse(filename)
-
-    print(longest_call_chain(parser.digraph(), "resolve_qualified_name"))
+            parser = Parser(Scanner(file_text).tokenize(), filename)
+            parser.parse()
 
 
 def parse(filename):
     with open(filename) as f:
         file_text = f.read() + "\n"
-        parser = Parser(Scanner(file_text).tokenize())
-        parser.parse(filename)
+        parser = Parser(Scanner(file_text).tokenize(), filename)
+        parser.parse()
     return parser
 
 
-class Function:
-    def __init__(self, filename):
-        self.filename = filename
-        self.children = set()
-        self.tokens = []
-
-
 class Parser:
-    def __init__(self, tokens):
+    def __init__(self, tokens, filename):
         self.cursor = 0
         self.tokens = tokens
-        self.functions = dict()  # function name -> [functions called]
+        self.filename = filename
+        self.imports = []
         self.dupes = set()
 
     def accept(self, token) -> Token | None:
@@ -65,70 +58,26 @@ class Parser:
         self.cursor += 1
         return retval
 
-    def parse(self, filename):
+    def parse(self):
         while self.cursor < len(self.tokens):
-            if self.peek().value == "fn" and is_identifier(self.peek(1).value):
-                self.parse_function(filename)
+            if self.peek().value == "@import":
+                self.pop()  # import
+                self.pop()  # (
+                name = self.pop().value.strip('"')
+                if name == "std" or name == "builtin":
+                    continue
+                path = os.path.normpath(
+                    os.path.join(os.path.dirname(self.filename), name)
+                )
+                self.imports.append(path)
             elif self.cursor < len(self.tokens):
                 self.pop()
 
-    def parse_function(self, filename):
-        self.expect("fn")
-
-        function_name = self.peek().value
-
-        if function_name not in self.functions and function_name not in ignore_calls:
-            self.functions[function_name] = Function(filename)
-        else:
-            self.dupes.add(function_name)
-
-        # find the begining of the function
-        while self.pop().value != "{":
-            pass
-
-        fn_token_start = self.cursor
-
-        brace_depth = 1
-
-        while brace_depth > 0:
-            fn_token_end = self.cursor
-            if self.peek().value == "{":
-                brace_depth += 1
-            elif self.peek().value == "}":
-                brace_depth -= 1
-            if is_identifier(self.peek().value) and self.peek(1).value == "(":
-                callee_name = self.peek().value
-                # idx = -1
-                # while self.peek(idx) == '.':
-                #     callee_name = self.peek(idx - 1) + '.' + callee_name
-                #     idx -= 2
-                if (
-                    callee_name not in ignore_calls
-                    and function_name not in ignore_calls
-                ):
-                    self.functions[function_name].children.add(callee_name)
-            self.pop()
-
-        if function_name in self.functions:
-            self.functions[function_name].tokens = self.tokens[
-                fn_token_start:fn_token_end
-            ]
-
     def edge_list(self):
         edge_list = []
-        for function_name in self.functions.keys():
-            for called in self.functions[function_name].children:
-                edge_list.append((called, function_name))
+        for import_name in self.imports:
+            edge_list.append((self.filename, import_name))
         return edge_list
-
-    def digraph(self):
-        call_graph = nx.DiGraph()
-        call_graph.add_edges_from(self.edge_list())
-        return call_graph
-
-    def print_call_graph(self):
-        for function_name in self.functions.keys():
-            print(f"{function_name}: {self.functions[function_name].children}")
 
 
 def is_identifier(token):

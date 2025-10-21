@@ -19,7 +19,7 @@ pub fn deinit(self: *Self) void {
 }
 
 /// Adds a type to the type set. Returns the dependency node for the corresponding type
-pub fn add(self: *Self, oldast_: *Type_AST) ?*Dependency_Node {
+pub fn add_type(self: *Self, oldast_: *Type_AST) ?*Dependency_Node {
     return self.add_internal(oldast_, false);
 }
 
@@ -30,7 +30,7 @@ fn add_internal(self: *Self, oldast_: *Type_AST, from_function: bool) ?*Dependen
     // }
     std.debug.assert(ast.* != .identifier or ast.symbol().?.decl.?.* != .type_param_decl);
 
-    if (self.get(ast)) |dag| {
+    if (self.get_node(ast)) |dag| {
         // Type is already in the set, return Dependency_Node entry for it
         return dag;
     }
@@ -40,9 +40,9 @@ fn add_internal(self: *Self, oldast_: *Type_AST, from_function: bool) ?*Dependen
         .function => return self.add_function(ast),
         .struct_type, .tuple_type, .enum_type, .untagged_sum_type => return self.add_aggregate(ast),
         .dyn_type => return self.add_dependency_node(ast),
-        .annotation => return self.add(ast.child()),
+        .annotation => return self.add_type(ast.child()),
         .addr_of => {
-            const retval = self.add(ast.child());
+            const retval = self.add_type(ast.child());
             if (from_function) {
                 return retval;
             } else {
@@ -69,7 +69,7 @@ fn add_function(self: *Self, function_type_ast: *Type_AST) ?*Dependency_Node {
             dag.add_dependency(domain);
         }
     }
-    if (self.add(function_type_ast.rhs())) |codomain| {
+    if (self.add_type(function_type_ast.rhs())) |codomain| {
         dag.add_dependency(codomain);
     }
     return dag;
@@ -79,7 +79,7 @@ fn add_function(self: *Self, function_type_ast: *Type_AST) ?*Dependency_Node {
 fn add_aggregate(self: *Self, aggregate_ast: *Type_AST) ?*Dependency_Node {
     var dag = self.add_dependency_node(aggregate_ast);
     for (aggregate_ast.children().items) |term| {
-        if (self.add(term)) |dependency| {
+        if (self.add_type(term)) |dependency| {
             if (term.* != .addr_of)
                 dag.add_dependency(dependency);
         }
@@ -90,7 +90,7 @@ fn add_aggregate(self: *Self, aggregate_ast: *Type_AST) ?*Dependency_Node {
 /// Adds a function type to the type set
 fn add_array(self: *Self, array_type_ast: *Type_AST) ?*Dependency_Node {
     var dag = self.add_dependency_node(array_type_ast);
-    if (self.add(array_type_ast.child())) |domain| {
+    if (self.add_type(array_type_ast.child())) |domain| {
         dag.add_dependency(domain);
     }
     return dag;
@@ -99,12 +99,12 @@ fn add_array(self: *Self, array_type_ast: *Type_AST) ?*Dependency_Node {
 /// Performs A = A U B
 pub fn union_from(self: *Self, other: *const Self) void {
     for (other.types.items) |_type| {
-        _ = self.add(_type.base);
+        _ = self.add_type(_type.base);
     }
 }
 
 /// Retrieves the dependency node from the type set given a type
-pub fn get(self: *const Self, oldast_: *Type_AST) ?*Dependency_Node {
+pub fn get_node(self: *const Self, oldast_: *Type_AST) ?*Dependency_Node {
     const ast = oldast_.expand_identifier();
     for (self.types.items) |dag| {
         if (dag.base.c_types_match(ast)) {

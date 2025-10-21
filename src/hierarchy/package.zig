@@ -123,7 +123,7 @@ fn get_required_package(self: *Package, requirement_name: []const u8, packages: 
 /// A package is modified if:
 /// - Any of its modules are modified
 /// - Any of its dependencies are modified
-pub fn determine_if_modified(self: *Package, packages: std.StringArrayHashMap(*Package), compiler: *Compiler_Context) void {
+pub fn determine_if_package_modified(self: *Package, packages: std.StringArrayHashMap(*Package), compiler: *Compiler_Context) void {
     if (self.modified != null) {
         return;
     }
@@ -132,20 +132,20 @@ pub fn determine_if_modified(self: *Package, packages: std.StringArrayHashMap(*P
     // Check if any requirements are modified
     for (self.requirements.keys()) |requirement_name| {
         const required_package = self.get_required_package(requirement_name, packages);
-        required_package.determine_if_modified(packages, compiler);
+        required_package.determine_if_package_modified(packages, compiler);
         self.modified = required_package.modified.? or self.modified.?;
     }
 
     // Check if the build module was modified, if it was, entire package will be rebuilt
     if (self.get_build_module(compiler)) |build_module| {
-        build_module.determine_if_modified(compiler);
+        build_module.determine_if_module_modified(compiler);
         build_module.update_module_hash(&self.module_hash, compiler.allocator());
         self.modified = build_module.modified.? or self.modified.?;
     }
 
     // Check if any modules are modified
     for (self.local_modules.items) |local_module| {
-        local_module.determine_if_modified(compiler);
+        local_module.determine_if_module_modified(compiler);
         local_module.update_module_hash(&self.module_hash, compiler.allocator());
         self.modified = local_module.modified.? or self.modified.?;
     }
@@ -154,9 +154,9 @@ pub fn determine_if_modified(self: *Package, packages: std.StringArrayHashMap(*P
     self.modified = !file_exists(self.output_absolute_path) or self.modified.?;
 }
 
-pub fn collect_types(self: *Package) void {
+pub fn collect_package_types(self: *Package) void {
     for (self.local_modules.items) |module| {
-        module.collect_types(&self.type_set);
+        module.collect_module_types(&self.type_set);
     }
 }
 
@@ -170,7 +170,7 @@ fn file_exists(abs_path: []const u8) bool {
 }
 
 /// Compiles a package. Assumes C files have already been emitted.
-pub fn compile(self: *Package, packages: std.StringArrayHashMap(*Package), allocator: std.mem.Allocator) !void {
+pub fn output(self: *Package, packages: std.StringArrayHashMap(*Package), allocator: std.mem.Allocator) !void {
     if (self.visited) {
         return;
     }
@@ -178,7 +178,7 @@ pub fn compile(self: *Package, packages: std.StringArrayHashMap(*Package), alloc
 
     for (self.requirements.keys()) |requirement_name| {
         const required_package = self.get_required_package(requirement_name, packages);
-        try required_package.compile(packages, allocator);
+        try required_package.output(packages, allocator);
     }
 
     const obj_files = try self.compile_obj_files(packages, allocator);

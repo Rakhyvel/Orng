@@ -52,7 +52,7 @@ pub fn postfix_type(self: Self, _type: *Type_AST) walk_.Error!void {
                     }
                     _type.* = child.children().items[@intCast(_type.index.idx.int.data)].*;
                 } else {
-                    _type.* = Type_AST.create_poison(_type.token(), self.ctx.allocator()).*;
+                    _type.* = Type_AST.create_poisoned_type(_type.token(), self.ctx.allocator()).*;
                 }
             },
             else => unreachable,

@@ -22,6 +22,18 @@ pub fn new(scope: *Scope, errors: *errs_.Errors, compiler: *Compiler_Context) Se
 }
 
 pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
+    return self.decorate_access_prefix(ast);
+}
+
+pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
+    return self.decorate_access_postfix(ast);
+}
+
+pub fn prefix_type(self: Self, _type: *Type_AST) walk_.Error!?Self {
+    return self.decorate_access_prefix_type(_type);
+}
+
+fn decorate_access_prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
     switch (ast.*) {
         else => return self,
 
@@ -32,7 +44,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
     }
 }
 
-pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
+fn decorate_access_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
     switch (ast.*) {
         else => {},
 
@@ -73,7 +85,7 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
     }
 }
 
-pub fn prefix_type(self: Self, _type: *Type_AST) walk_.Error!?Self {
+pub fn decorate_access_prefix_type(self: Self, _type: *Type_AST) walk_.Error!?Self {
     switch (_type.*) {
         else => return self,
 
@@ -195,7 +207,7 @@ fn resolve_access_import(self: Self, import_symbol: *Symbol, rhs: *ast_.AST, sco
 
 /// Resolves a symbol access on a constant symbol, likely a trait lookup
 fn resolve_access_const(self: Self, const_symbol: *Symbol, rhs: *ast_.AST, scope: *Scope) walk_.Error!*Symbol {
-    var test_ident = Type_AST.create_identifier(token_.init_simple(const_symbol.name), self.compiler.allocator());
+    var test_ident = Type_AST.create_type_identifier(token_.init_simple(const_symbol.name), self.compiler.allocator());
     test_ident.set_symbol(const_symbol);
     const rhs_decl = scope.lookup_impl_member(test_ident, rhs.token().data, self.compiler) catch return error.CompileError;
     if (rhs_decl == null) {

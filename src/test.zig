@@ -141,7 +141,7 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
     defer prelude_.deinit();
     defer core_.deinit();
 
-    const module = module_.Module.compile(absolute_filename, "main", false, compiler) catch {
+    const module = module_.Module.load_from_filename(absolute_filename, "main", false, compiler) catch {
         if (mode == .regular) {
             writer.print("Orange -> C.\n", .{}) catch unreachable;
         }
@@ -220,7 +220,7 @@ fn negative_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debug
     defer error_string.deinit();
 
     // Try to compile Orange (make sure YES errors)
-    _ = module_.Module.compile(absolute_filename, "main", false, compiler) catch |err| {
+    _ = module_.Module.load_from_filename(absolute_filename, "main", false, compiler) catch |err| {
         var error_string_writer = error_string.writer(error_string.buffer.?);
         const error_string_writer_intfc = &error_string_writer.interface;
         compiler.errors.print_errors(error_string_writer_intfc, .{ .print_full_path = false, .print_color = false });
