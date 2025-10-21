@@ -1,5 +1,4 @@
 const std = @import("std");
-const AST = @import("../ast/ast.zig").AST;
 const CFG = @import("../ir/cfg.zig");
 const CFG_Store = @import("../ir/cfg_store.zig");
 const core_ = @import("core.zig");
@@ -12,8 +11,6 @@ const Package_Iterator = @import("../util/dfs.zig").Dfs_Iterator(Package_Iterato
 const Package_Iterator_Node = @import("../hierarchy/package.zig").Package_Iterator_Node;
 const poison_ = @import("../ast/poison.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
-const repo_ = @import("../util/repo.zig");
-const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
 const Scope = @import("../symbol/scope.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;

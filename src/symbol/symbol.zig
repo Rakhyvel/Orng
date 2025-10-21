@@ -2,7 +2,6 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const CFG = @import("../ir/cfg.zig");
 const errs_ = @import("../util/errors.zig");
-const poison_ = @import("../ast/poison.zig");
 const Scope = @import("../symbol/scope.zig");
 const Span = @import("../util/span.zig");
 const Token = @import("../lexer/token.zig");
@@ -10,7 +9,6 @@ const Type_AST = @import("../types/type.zig").Type_AST;
 const Monomorph_Map = @import("../ast/type_map.zig").Monomorph_Map;
 const unification_ = @import("../types/unification.zig");
 const validation_state_ = @import("../util/validation_state.zig");
-const fmt_ = @import("../util/fmt.zig");
 
 const Self = @This();
 

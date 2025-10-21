@@ -4,7 +4,6 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const alignment_ = @import("../util/alignment.zig");
 const Basic_Block = @import("../ir/basic-block.zig");
-const Cfg_Iterator = @import("../util/dfs.zig").Dfs_Iterator(*Self);
 const Instruction = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
 const Span = @import("../util/span.zig");

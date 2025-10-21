@@ -1,13 +1,8 @@
 const std = @import("std");
-const ast_ = @import("../ast/ast.zig");
 const Basic_Block = @import("basic-block.zig");
 const CFG = @import("../ir/cfg.zig");
 const errs_ = @import("../util/errors.zig");
 const Instruction = @import("../ir/instruction.zig");
-const lval_ = @import("../ir/lval.zig");
-const prelude_ = @import("../hierarchy/prelude.zig");
-const String = @import("../zig-string/zig-string.zig").String;
-const Span = @import("../util/span.zig");
 const Symbol_Version = @import("symbol_version.zig");
 
 var debug = false;

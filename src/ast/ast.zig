@@ -8,11 +8,8 @@
 
 const std = @import("std");
 const module_ = @import("../hierarchy/module.zig");
-const alignment_ = @import("../util/alignment.zig");
 const core_ = @import("../hierarchy/core.zig");
-const poison_ = @import("poison.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
-const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");

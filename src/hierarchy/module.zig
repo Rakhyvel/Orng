@@ -1,5 +1,4 @@
 const std = @import("std");
-const module_validate_ = @import("../semantic/module_validate.zig");
 const ast_ = @import("../ast/ast.zig");
 const CFG = @import("../ir/cfg.zig");
 const Cfg_Iterator = @import("../util/dfs.zig").Dfs_Iterator(*CFG);
@@ -7,10 +6,8 @@ const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const Instruction = @import("../ir/instruction.zig");
 const pipeline_ = @import("../util/pipeline.zig");
-const prelude_ = @import("../hierarchy/prelude.zig");
 const Span = @import("../util/span.zig");
 const Scope = @import("../symbol/scope.zig");
-const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
 const Module_Hash = @import("module_hash.zig");
 const Token = @import("../lexer/token.zig");

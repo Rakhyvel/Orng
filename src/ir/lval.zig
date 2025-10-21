@@ -1,7 +1,6 @@
 // TODO: Split up symbol version and lval, put them in the SSA namespace along with basic blocks
 
 const std = @import("std");
-const ast_ = @import("../ast/ast.zig");
 const Instruction = @import("../ir/instruction.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const String = @import("../zig-string/zig-string.zig").String;

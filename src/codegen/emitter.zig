@@ -1,11 +1,8 @@
 const std = @import("std");
 const AST = @import("../ast/ast.zig").AST;
 const CFG = @import("../ir/cfg.zig");
-const Module = @import("../hierarchy/module.zig").Module;
 const prelude_ = @import("../hierarchy/prelude.zig");
-const Dependency_Node = @import("../ast/dependency_node.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
-const Type_Set = @import("../ast/type-set.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Canonical_Type_Fmt = @import("canonical_type_fmt.zig");
 

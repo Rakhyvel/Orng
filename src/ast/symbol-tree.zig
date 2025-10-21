@@ -2,7 +2,6 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
-const core_ = @import("../hierarchy/core.zig");
 const errs_ = @import("../util/errors.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const String = @import("../zig-string/zig-string.zig").String;
@@ -10,7 +9,6 @@ const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
-const Type_Map = @import("../ast/type_map.zig").Type_Map;
 const walk_ = @import("../ast/walker.zig");
 
 scope: *Scope,

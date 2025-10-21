@@ -1,7 +1,5 @@
 const std = @import("std");
-const AST = @import("../ast/ast.zig").AST;
 const Symbol = @import("../symbol/symbol.zig");
-const String = @import("../zig-string/zig-string.zig").String;
 const Instruction = @import("../ir/instruction.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 

@@ -4,7 +4,6 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const Span = @import("../util/span.zig");
 const Symbol = @import("../symbol/symbol.zig");
-const String = @import("../zig-string/zig-string.zig").String;
 const term_ = @import("term.zig");
 const Token = @import("../lexer/token.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;

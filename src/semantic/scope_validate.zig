@@ -4,11 +4,8 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
-const prelude_ = @import("../hierarchy/prelude.zig");
-const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
-const typing_ = @import("typing.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 
 const Validate_Error_Enum = error{ OutOfMemory, CompileError };

@@ -1,18 +1,10 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
-const args_ = @import("../semantic/args.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const Interpreter_Context = @import("../interpretation/interpreter.zig");
-const Decorate = @import("../ast/decorate.zig");
-const Decorate_Access = @import("../ast/decorate-access.zig");
-const Span = @import("../util/span.zig");
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
-const scope_validate_ = @import("../semantic/scope_validate.zig");
 const Symbol_Tree = @import("../ast/symbol-tree.zig");
-const Token = @import("../lexer/token.zig");
-const UID_Gen = @import("../util/uid_gen.zig");
-const walker_ = @import("../ast/walker.zig");
 
 /// Relatively light-weight way to interpret an AST.
 ///

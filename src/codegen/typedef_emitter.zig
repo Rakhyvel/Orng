@@ -1,19 +1,8 @@
 // This file contains the implementation of the Orange compiler's C code generator.
 
 const std = @import("std");
-const ast_ = @import("../ast/ast.zig");
-const Basic_Block = @import("../ir/basic-block.zig");
-const CFG = @import("../ir/cfg.zig");
 const Emitter = @import("emitter.zig");
-const Instruction = @import("../ir/instruction.zig");
-const lval_ = @import("../ir/lval.zig");
-const prelude_ = @import("../hierarchy/prelude.zig");
-const module_ = @import("../hierarchy/module.zig");
-const Span = @import("../util/span.zig");
-const String = @import("../zig-string/zig-string.zig").String;
-const Type_Set = @import("../ast/type-set.zig");
 const Dependency_Node = @import("../ast/dependency_node.zig");
-const Symbol = @import("../symbol/symbol.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 const Canonical_Type_Fmt = @import("canonical_type_fmt.zig");
 
@@ -137,12 +126,6 @@ fn output_typedef(self: *Self) CodeGen_Error!void {
 /// Outputs the fields of a structure or union type based on the provided list of AST types.
 fn output_field_list(self: *Self, fields: *const std.array_list.Managed(*Type_AST), spaces: usize) CodeGen_Error!void {
     // output each field in the list
-    if (fields.items.len == 0) {
-        for (0..spaces) |_| {
-            try self.writer.print(" ", .{});
-        }
-        try self.writer.print("uint8_t placeholder;\n", .{});
-    }
     for (fields.items, 0..) |term, i| {
         if (!term.is_c_void_type()) {
             // Don't gen `void` structure/union fields

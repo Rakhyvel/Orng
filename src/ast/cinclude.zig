@@ -3,7 +3,6 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
-const module_ = @import("../hierarchy/module.zig");
 const walker_ = @import("../ast/walker.zig");
 
 cincludes: *std.array_list.Managed(*ast_.AST),

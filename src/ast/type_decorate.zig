@@ -1,7 +1,6 @@
 //! This file represents a struct for an AST walk, and is used to decorate ASTs with their types.
 
 const std = @import("std");
-const ast_ = @import("../ast/ast.zig");
 const errs_ = @import("../util/errors.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;

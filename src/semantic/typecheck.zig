@@ -8,15 +8,9 @@ const Compiler_Context = @import("../hierarchy/compiler.zig");
 const defaults_ = @import("defaults.zig");
 const errs_ = @import("../util/errors.zig");
 const interpret = @import("interpret.zig").interpret;
-const Interpreter_Context = @import("../interpretation/interpreter.zig");
-const module_ = @import("../hierarchy/module.zig");
 const poison_ = @import("../ast/poison.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
-const Span = @import("../util/span.zig");
-const stamp = @import("stamp.zig").stamp;
-const Token = @import("../lexer/token.zig");
 const typing_ = @import("typing.zig");
-const validate_pattern_ = @import("pattern_validate.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 const walk_ = @import("../ast/walker.zig");
 
