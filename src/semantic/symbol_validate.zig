@@ -8,12 +8,9 @@ const typecheck_AST = @import("typecheck.zig").typecheck_AST;
 const errs_ = @import("../util/errors.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const String = @import("../zig-string/zig-string.zig").String;
-const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
-const typing_ = @import("typing.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
-const type_validate_ = @import("../types/type_validate.zig");
 const walk_ = @import("../ast/walker.zig");
 
 const Validate_Error_Enum = error{ OutOfMemory, CompileError };
@@ -26,7 +23,7 @@ pub fn init(ctx: *Compiler_Context) Self {
     return Self{ .ctx = ctx };
 }
 
-pub fn validate(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
+pub fn validate_symbol(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
     // TODO: Bit long
     if (symbol.validation_state == .valid or symbol.validation_state == .validating) {
         return;
@@ -47,7 +44,7 @@ pub fn validate(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
         else => symbol.type(),
     };
     if (expected) |expected_type| {
-        try self.ctx.validate_type.validate(expected_type);
+        try self.ctx.validate_type.validate_type(expected_type);
         if (self.ctx.validate_type.detect_cycle(expected_type, null)) {
             self.ctx.errors.add_error(errs_.Error{ .symbol_error = .{
                 .problem = "cyclic type detected",
@@ -73,7 +70,7 @@ pub fn validate(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
             try walk_.walk_ast(_init, Const_Eval.new(self.ctx));
         }
     } else if (symbol.kind == .type and symbol.init_typedef() != null) {
-        try self.ctx.validate_type.validate(symbol.init_typedef().?);
+        try self.ctx.validate_type.validate_type(symbol.init_typedef().?);
         if (self.ctx.validate_type.detect_cycle(symbol.init_typedef().?, symbol)) {
             self.ctx.errors.add_error(errs_.Error{ .basic = .{
                 .msg = "cyclic type detected",
@@ -94,7 +91,7 @@ pub fn validate(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
     }
 
     // Symbol's name must be capitalized iff its type is Type
-    if (symbol.refers_to_type() or symbol.kind == .trait) {
+    if (symbol.is_type() or symbol.kind == .trait) {
         if (!is_capitalized(symbol.name)) {
             self.ctx.errors.add_error(errs_.Error{ .symbol_error = .{
                 .problem = "must start with an uppercase letter",
@@ -153,10 +150,10 @@ fn validate_trait(self: *Self, trait: *Symbol) Validate_Error_Enum!void {
         }
 
         for (decl.method_decl._params.items) |param| {
-            try self.ctx.validate_type.validate(param.binding.type);
+            try self.ctx.validate_type.validate_type(param.binding.type);
         }
-        try self.ctx.validate_type.validate(decl.method_decl.ret_type);
-        try self.ctx.validate_type.validate(decl.method_decl.c_type.?);
+        try self.ctx.validate_type.validate_type(decl.method_decl.ret_type);
+        try self.ctx.validate_type.validate_type(decl.method_decl.c_type.?);
 
         if (decl.method_decl.is_virtual) {
             if (decl.method_decl.c_type.?.refers_to_self()) {

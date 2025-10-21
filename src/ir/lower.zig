@@ -2,16 +2,13 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
-const Basic_Block = @import("../ir/basic-block.zig");
 const CFG = @import("../ir/cfg.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
 const Interned_String_Set = @import("../ir/interned_string_set.zig");
 const Instruction = @import("../ir/instruction.zig");
 const lval_ = @import("lval.zig");
-const module_ = @import("../hierarchy/module.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
-const String = @import("../zig-string/zig-string.zig").String;
 const Span = @import("../util/span.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Symbol_Version = @import("symbol_version.zig");
@@ -135,7 +132,7 @@ fn lower_AST_inner(
             return temp;
         },
         .string => {
-            const id: Interned_String_Set.String_Idx = self.interned_strings.add(ast.string.data, self.cfg.symbol.scope.module.?.uid);
+            const id: Interned_String_Set.String_Idx = self.interned_strings.add_string(ast.string.data, self.cfg.symbol.scope.module.?.uid);
             const temp = self.create_temp_lvalue(self.ctx.typecheck.typeof(ast));
             self.instructions.append(Instruction.init_string(temp, id, ast.token().span, self.ctx.allocator())) catch unreachable;
             return temp;
@@ -180,21 +177,26 @@ fn lower_AST_inner(
             var expr = (try self.lower_AST(ast.expr(), labels)) orelse return null;
 
             const end_label = Instruction.init_label("try.end", ast.token().span, self.ctx.allocator());
-            const err_label = Instruction.init_label("try.err", ast.token().span, self.ctx.allocator());
+            const ok_label = Instruction.init_label("try.ok", ast.token().span, self.ctx.allocator());
 
             var expanded_expr_type = expr.get_expanded_type();
-            // Trying error sum, runtime check if error, branch to error path
+
+            // Trying error sum, runtime check if ok, branch to ok path
             const condition = self.create_temp_lvalue(prelude_.word64_type);
             self.instructions.append(Instruction.init_get_tag(condition, expr, ast.token().span, self.ctx.allocator())) catch unreachable; // `ok` is zero, `err`s are nonzero
-            self.instructions.append(Instruction.init_branch(condition, err_label, ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_branch(condition, ok_label, ast.token().span, self.ctx.allocator())) catch unreachable;
 
-            // Unwrap the `.ok` value
+            // Unwrap the `.err` value
+            const err_type = expanded_expr_type.get_err_type().expand_identifier();
+            const err_lval = expr.create_select_lval(1, 0, err_type, null, self.ctx.allocator());
+            const full_err_lval = self.create_temp_lvalue(self.cfg.return_symbol.type());
+            self.instructions.append(Instruction.init_union(full_err_lval, err_lval, 1, ast.token().span, self.ctx.allocator())) catch unreachable;
             const retval_lval = lval_.L_Value.create_unversioned_symbver(self.cfg.return_symbol, self.ctx.allocator());
-            self.instructions.append(Instruction.init_simple_copy(retval_lval, expr, ast.token().span, self.ctx.allocator())) catch unreachable;
+            self.instructions.append(Instruction.init_simple_copy(retval_lval, full_err_lval, ast.token().span, self.ctx.allocator())) catch unreachable;
             self.instructions.append(Instruction.init_jump(labels.error_label, ast.token().span, self.ctx.allocator())) catch unreachable;
 
-            // Else, store the error in retval, return through error
-            self.instructions.append(err_label) catch unreachable;
+            // Else, unwrap the `.ok` value
+            self.instructions.append(ok_label) catch unreachable;
 
             const ok_type = expanded_expr_type.get_ok_type().expand_identifier();
             const ok_lval = expr.create_select_lval(0, 0, ok_type, null, self.ctx.allocator());

@@ -8,11 +8,8 @@
 
 const std = @import("std");
 const module_ = @import("../hierarchy/module.zig");
-const alignment_ = @import("../util/alignment.zig");
 const core_ = @import("../hierarchy/core.zig");
-const poison_ = @import("poison.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
-const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
@@ -193,6 +190,7 @@ pub const AST = union(enum) {
         _args: std.array_list.Managed(*AST),
         _scope: ?*Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
         method_decl: ?*AST = null,
+        prepended: bool = false,
     },
     /// A struct-like-value of pointers to the vtable, and to the receiver
     dyn_value: struct {
@@ -1512,18 +1510,20 @@ pub const AST = union(enum) {
             },
             .invoke => {
                 const cloned_args = clone_children(self.children().*, substs, allocator);
-                return create_invoke(
+                var retval = create_invoke(
                     self.token(),
                     self.lhs().clone(substs, allocator),
                     self.rhs().clone(substs, allocator),
                     cloned_args,
                     allocator,
                 );
+                retval.invoke.prepended = self.invoke.prepended;
+                return retval;
             },
             .dyn_value => unreachable, // Shouldn't exist yet... have to clone scope?
             .enum_value => {
                 var retval = create_enum_value(self.token(), allocator);
-                retval.enum_value.init = self.enum_value.init;
+                retval.enum_value.init = if (self.enum_value.init) |init| init.clone(substs, allocator) else null;
                 return retval;
             },
             .type_param_decl => return create_type_param_decl(self.token(), allocator),
@@ -2126,7 +2126,7 @@ pub const AST = union(enum) {
         return switch (self.*) {
             else => false,
 
-            .identifier, .access => self.symbol().?.refers_to_type(),
+            .identifier, .access => self.symbol().?.is_type(),
 
             .index => self.lhs().refers_to_type(), // generic type
             .generic_apply => self.lhs().refers_to_type(),

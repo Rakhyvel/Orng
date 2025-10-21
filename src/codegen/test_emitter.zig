@@ -3,7 +3,6 @@
 const std = @import("std");
 const Source_Emitter = @import("source_emitter.zig");
 const Header_Emitter = @import("header_emitter.zig");
-const Type_Set = @import("../ast/type-set.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const module_ = @import("../hierarchy/module.zig");
 const Interned_String_Set = @import("../ir/interned_string_set.zig");

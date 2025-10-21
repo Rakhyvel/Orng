@@ -1,12 +1,10 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const Basic_Block = @import("../ir/basic-block.zig");
-const CFG = @import("../ir/cfg.zig");
 const errs_ = @import("../util/errors.zig");
 const lval_ = @import("../ir/lval.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const Span = @import("../util/span.zig");
-const String = @import("../zig-string/zig-string.zig").String;
 const String_Idx = @import("../ir/interned_string_set.zig").String_Idx;
 const Symbol = @import("../symbol/symbol.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
@@ -465,10 +463,6 @@ pub fn copy_of_prop(self: *Self, src: *?*lval_.L_Value, src_def: ?*Self) bool {
         // src's definition isn't in a good shape to look up re-definitions. Cannot do copy-propagation.
         return false;
     }
-}
-
-pub fn mark_for_removal(self: *Self) void {
-    self.removed = true;
 }
 
 pub const Kind = enum {

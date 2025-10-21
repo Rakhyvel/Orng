@@ -4,7 +4,6 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const alignment_ = @import("../util/alignment.zig");
 const Basic_Block = @import("../ir/basic-block.zig");
-const Cfg_Iterator = @import("../util/dfs.zig").Dfs_Iterator(*Self);
 const Instruction = @import("../ir/instruction.zig");
 const lval_ = @import("../ir/lval.zig");
 const Span = @import("../util/span.zig");
@@ -145,7 +144,7 @@ pub fn collect_generated_symbvers(self: *Self) void {
     }
 }
 
-pub fn collect_types(self: *Self, type_set: *Type_Set) void {
+pub fn collect_cfg_types(self: *Self, type_set: *Type_Set) void {
     // Don't collect types from generic CFGs
     if (self.symbol.decl.?.* == .fn_decl and self.symbol.decl.?.generic_params().items.len > 0) {
         return;
@@ -156,14 +155,14 @@ pub fn collect_types(self: *Self, type_set: *Type_Set) void {
     const param_symbols = decl.param_symbols();
     if (param_symbols != null) {
         for (param_symbols.?.items) |param| {
-            _ = type_set.add(param.expanded_type());
+            _ = type_set.add_type(param.expanded_type());
         }
     }
-    _ = type_set.add(self.return_symbol.expanded_type());
+    _ = type_set.add_type(self.return_symbol.expanded_type());
 
     // For all basic blocks in the cfg...
     for (self.basic_blocks.items) |bb| {
-        bb.collect_types(type_set);
+        bb.collect_basic_block_types(type_set);
     }
 }
 
@@ -425,7 +424,7 @@ fn append_basic_block(self: *Self, first_bb: *Basic_Block, instructions_list: *s
         label.uid = bb.uid;
         instructions_list.append(label) catch unreachable;
 
-        bb.set_offset(instructions_list, &work_queue);
+        bb.append_instructions(instructions_list, &work_queue);
     }
     return first_bb.offset.?;
 }

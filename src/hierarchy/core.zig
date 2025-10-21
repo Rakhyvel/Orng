@@ -4,13 +4,10 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
-const errs_ = @import("../util/errors.zig");
 const module_ = @import("../hierarchy/module.zig");
 const prelude_ = @import("prelude.zig");
 const repo_ = @import("../util/repo.zig");
-const Span = @import("../util/span.zig");
 const Scope = @import("../symbol/scope.zig");
-const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
 const UID_Gen = @import("../util/uid_gen.zig");
@@ -25,7 +22,7 @@ pub var test_type: *Type_AST = undefined;
 var core: ?*Scope = null;
 pub var core_symbol: ?*Symbol = null;
 pub var core_package_name: []const u8 = undefined;
-pub fn get_scope(compiler: *Compiler_Context) !*Scope {
+pub fn get_core_scope(compiler: *Compiler_Context) !*Scope {
     if (core == null) {
         try create_core(compiler);
     }

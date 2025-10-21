@@ -7,7 +7,6 @@ const errs_ = @import("util/errors.zig");
 const Interpreter_Context = @import("interpretation/interpreter.zig");
 const Package_Kind = @import("hierarchy/package.zig").Package_Kind;
 const Span = @import("util/span.zig");
-const String = @import("zig-string/zig-string.zig").String;
 const Symbol = @import("symbol/symbol.zig");
 
 const version_year: usize = 25;

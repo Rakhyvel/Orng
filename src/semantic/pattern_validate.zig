@@ -4,9 +4,7 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
-const prelude_ = @import("../hierarchy/prelude.zig");
 const Span = @import("../util/span.zig");
-const poison_ = @import("../ast/poison.zig");
 const typing_ = @import("typing.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 

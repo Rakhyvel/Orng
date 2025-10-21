@@ -1,5 +1,4 @@
 const std = @import("std");
-const prelude_ = @import("../hierarchy/prelude.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 
 /// A type map using C type equivelence

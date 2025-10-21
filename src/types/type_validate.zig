@@ -18,10 +18,10 @@ pub fn init(ctx: *Compiler_Context) Self {
     return Self{ .ctx = ctx };
 }
 
-pub fn validate(self: *Self, @"type": *Type_AST) Validate_Error_Enum!void {
+pub fn validate_type(self: *Self, @"type": *Type_AST) Validate_Error_Enum!void {
     switch (@"type".*) {
         .generic_apply => {
-            try self.validate(@"type".lhs());
+            try self.validate_type(@"type".lhs());
 
             const sym = @"type".lhs().symbol().?;
             const params = sym.decl.?.generic_params();
@@ -38,19 +38,19 @@ pub fn validate(self: *Self, @"type": *Type_AST) Validate_Error_Enum!void {
             }
 
             for (@"type".children().items) |child| {
-                try self.validate(child);
+                try self.validate_type(child);
             }
 
             if (@"type".generic_apply.state == .unmorphed) {
                 @"type".generic_apply.state = .morphing;
                 @"type".generic_apply._symbol = try sym.monomorphize(@"type".generic_apply.args, self.ctx);
                 @"type".generic_apply.state = .morphed;
-                try self.validate(@"type".generic_apply._symbol.?.init_typedef().?);
+                try self.validate_type(@"type".generic_apply._symbol.?.init_typedef().?);
             }
         },
 
         .identifier => {
-            if (!@"type".symbol().?.refers_to_type()) {
+            if (!@"type".symbol().?.is_type()) {
                 self.ctx.errors.add_error(errs_.Error{ .basic = .{ .msg = "expected a type", .span = @"type".token().span } });
                 return error.CompileError;
             }
@@ -63,7 +63,7 @@ pub fn validate(self: *Self, @"type": *Type_AST) Validate_Error_Enum!void {
                 self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = @"type".token().span, .msg = "not a constant integer" } });
                 return error.CompileError;
             }
-            try self.validate(@"type".child());
+            try self.validate_type(@"type".child());
         },
 
         .untagged_sum_type => {
@@ -71,11 +71,11 @@ pub fn validate(self: *Self, @"type": *Type_AST) Validate_Error_Enum!void {
                 self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = @"type".token().span, .msg = "not an enum type" } });
                 return error.CompileError;
             }
-            try self.validate(@"type".child());
+            try self.validate_type(@"type".child());
         },
 
         .dyn_type => {
-            if (@"type".child().* != .identifier or @"type".child().symbol().?.kind != .trait) {
+            if ((@"type".child().* != .identifier and @"type".child().* != .access) or @"type".child().symbol().?.kind != .trait) {
                 self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = @"type".child().token().span, .msg = "not a trait" } });
                 return error.CompileError;
             }
@@ -86,7 +86,7 @@ pub fn validate(self: *Self, @"type": *Type_AST) Validate_Error_Enum!void {
         },
 
         .domain_of => {
-            try self.validate(@"type".child());
+            try self.validate_type(@"type".child());
             try walk_.walk_type(@"type", Type_Decorate.new(self.ctx));
         },
 
@@ -94,12 +94,12 @@ pub fn validate(self: *Self, @"type": *Type_AST) Validate_Error_Enum!void {
         .addr_of,
         .index,
         => {
-            try self.validate(@"type".child());
+            try self.validate_type(@"type".child());
         },
 
         .function => {
-            try self.validate(@"type".lhs());
-            try self.validate(@"type".rhs());
+            try self.validate_type(@"type".lhs());
+            try self.validate_type(@"type".rhs());
         },
 
         .enum_type,
@@ -107,7 +107,7 @@ pub fn validate(self: *Self, @"type": *Type_AST) Validate_Error_Enum!void {
         .tuple_type,
         => {
             for (@"type".children().items) |child| {
-                try self.validate(child);
+                try self.validate_type(child);
             }
         },
 

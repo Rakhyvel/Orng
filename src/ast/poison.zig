@@ -16,7 +16,7 @@ pub fn init_structures(allocator: std.mem.Allocator) void {
             Token.init_simple("LMAO GET POISONED!"),
             allocator,
         );
-        poisoned_type = Type_AST.create_poison(
+        poisoned_type = Type_AST.create_poisoned_type(
             Token.init_simple("LMAO GET POISONED!"),
             allocator,
         );

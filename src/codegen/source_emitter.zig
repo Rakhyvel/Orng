@@ -12,10 +12,7 @@ const lval_ = @import("../ir/lval.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const module_ = @import("../hierarchy/module.zig");
 const Span = @import("../util/span.zig");
-const String = @import("../zig-string/zig-string.zig").String;
 const Type_AST = @import("../types/type.zig").Type_AST;
-const Type_Set = @import("../ast/type-set.zig");
-const Dependency_Node = @import("../ast/dependency_node.zig");
 const Symbol = @import("../symbol/symbol.zig");
 
 const Self = @This();

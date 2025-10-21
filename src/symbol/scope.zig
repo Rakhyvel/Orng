@@ -113,6 +113,33 @@ pub fn impl_trait_lookup(self: *Self, for_type: *Type_AST, trait: *Symbol) Impl_
         }
     }
 
+    // Go through imports
+    for (self.symbols.keys()) |symbol_name| {
+        const symbol = self.symbols.get(symbol_name).?;
+        if (symbol.kind == .import) {
+            var res_symbol: *Symbol = undefined;
+            if (symbol.kind.import.real_symbol != null) {
+                res_symbol = symbol.kind.import.real_symbol.?;
+            } else {
+                const res = self.parent.?.lookup(symbol.kind.import.real_name, .{ .allow_modules = true });
+                switch (res) {
+                    .found => {
+                        res_symbol = res.found;
+                    },
+                    else => std.debug.panic("compiler error: import didn't resolve to a module: {s}", .{symbol.kind.import.real_name}),
+                }
+            }
+
+            const module_scope = res_symbol.init_value().?.scope().?;
+            const parent_res = module_scope.impl_trait_lookup(for_type, trait);
+            if (parent_res.count > 0) {
+                retval.count += parent_res.count;
+                retval.ast = retval.ast orelse parent_res.ast;
+                return parent_res;
+            }
+        }
+    }
+
     if (self.parent != null) {
         // Did not match in this scope. Try parent scope
         const parent_res = self.parent.?.impl_trait_lookup(for_type, trait);
@@ -134,7 +161,7 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
     for (self.impls.items) |impl| {
         var subst = unification_.Substitutions.init(std.heap.page_allocator);
         defer subst.deinit();
-        try compiler.validate_type.validate(impl.impl._type);
+        try compiler.validate_type.validate_type(impl.impl._type);
         unification_.unify(impl.impl._type, for_type, impl.impl._generic_params, &subst) catch continue;
 
         // TODO:
@@ -193,7 +220,7 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
                 // }
                 try walker_.walk_ast(new_impl, decorate_context); // this doesn't know about the anonymous trait
                 try walker_.walk_ast(new_impl, decorate_access_context);
-                try compiler.validate_scope.validate(new_scope);
+                try compiler.validate_scope.validate_scope(new_scope);
 
                 impl.impl.instantiations.put(with_list, new_impl) catch unreachable;
             }

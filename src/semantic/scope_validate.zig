@@ -4,11 +4,8 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const errs_ = @import("../util/errors.zig");
-const prelude_ = @import("../hierarchy/prelude.zig");
-const String = @import("../zig-string/zig-string.zig").String;
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
-const typing_ = @import("typing.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 
 const Validate_Error_Enum = error{ OutOfMemory, CompileError };
@@ -21,14 +18,14 @@ pub fn init(ctx: *Compiler_Context) Self {
     return Self{ .ctx = ctx };
 }
 
-pub fn validate(self: *Self, scope: *Scope) Validate_Error_Enum!void {
+pub fn validate_scope(self: *Self, scope: *Scope) Validate_Error_Enum!void {
     for (scope.symbols.keys()) |key| {
         const symbol = scope.symbols.get(key).?;
 
-        try self.ctx.validate_symbol.validate(symbol);
+        try self.ctx.validate_symbol.validate_symbol(symbol);
     }
     for (scope.children.items) |child| {
-        try self.validate(child);
+        try self.validate_scope(child);
     }
     for (scope.impls.items) |impl| {
         try self.validate_impl(impl);
@@ -55,7 +52,7 @@ fn validate_impl(self: *Self, impl: *ast_.AST) Validate_Error_Enum!void {
         },
         else => return error.CompileError,
     };
-    try self.ctx.validate_type.validate(impl.impl._type);
+    try self.ctx.validate_type.validate_type(impl.impl._type);
 
     const trait_symbol: *Symbol = impl.impl.trait.?.symbol().?;
     if (trait_symbol.kind != .trait) {

@@ -1,7 +1,6 @@
 // TODO: Split up symbol version and lval, put them in the SSA namespace along with basic blocks
 
 const std = @import("std");
-const ast_ = @import("../ast/ast.zig");
 const Instruction = @import("../ir/instruction.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const String = @import("../zig-string/zig-string.zig").String;
@@ -209,7 +208,7 @@ pub const L_Value = union(enum) {
 
     pub fn get_expanded_type(self: *L_Value) *Type_AST {
         switch (self.*) {
-            .symbver => return self.symbver.get_expanded_type(),
+            .symbver => return self.symbver.symbol.expanded_type(),
             .dereference => return self.dereference.expanded_type,
             .index => return self.index.expanded_type,
             .select => return self.select.expanded_type,
@@ -229,7 +228,10 @@ pub const L_Value = union(enum) {
 
     pub fn reset_usage(lval: *L_Value) void {
         switch (lval.*) {
-            .symbver => lval.symbver.reset_usage(),
+            .symbver => {
+                lval.symbver.uses = 0;
+                lval.symbver.symbol.uses = 0;
+            },
             .dereference => lval.dereference.expr.reset_usage(),
             .index => {
                 lval.index.lhs.reset_usage();
@@ -250,7 +252,10 @@ pub const L_Value = union(enum) {
 
     pub fn increment_usage(lval: *L_Value) void {
         switch (lval.*) {
-            .symbver => lval.symbver.increment_usage(),
+            .symbver => {
+                lval.symbver.uses += 1;
+                lval.symbver.symbol.uses += 1;
+            },
             .dereference => lval.dereference.expr.increment_usage(),
             .index => {
                 lval.index.lhs.increment_usage();

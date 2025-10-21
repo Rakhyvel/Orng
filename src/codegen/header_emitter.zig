@@ -2,19 +2,12 @@
 // TODO: Make this a context struct (to fix self.module)
 
 const std = @import("std");
-const ast_ = @import("../ast/ast.zig");
-const Basic_Block = @import("../ir/basic-block.zig");
 const CFG = @import("../ir/cfg.zig");
 const Emitter = @import("emitter.zig");
-const Instruction = @import("../ir/instruction.zig");
-const lval_ = @import("../ir/lval.zig");
-const prelude_ = @import("../hierarchy/prelude.zig");
 const module_ = @import("../hierarchy/module.zig");
-const Span = @import("../util/span.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Type_Set = @import("../ast/type-set.zig");
 const Dependency_Node = @import("../ast/dependency_node.zig");
-const Symbol = @import("../symbol/symbol.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 const Canonical_Type_Fmt = @import("canonical_type_fmt.zig");
 
@@ -107,12 +100,12 @@ fn output_typedefs(self: *Self) CodeGen_Error!void {
 
     // Output all typedefs
     for (self.module.type_set.types.items) |dag| {
-        try self.output_typedef(dag);
+        try self.output_typedef_include(dag);
     }
 }
 
 /// Outputs a typedef declaration based on the provided `DAG`.
-fn output_typedef(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
+fn output_typedef_include(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
     // FIXME: High Cyclo
     if (dep.visited) {
         // only visit a DAG node once
@@ -122,7 +115,12 @@ fn output_typedef(self: *Self, dep: *Dependency_Node) CodeGen_Error!void {
 
     // output any types that this type depends on
     for (dep.dependencies.items) |depen| {
-        try self.output_typedef(depen);
+        try self.output_typedef_include(depen);
+    }
+
+    if (dep.base.sizeof() == 0) {
+        // Do not output zero-sized types
+        return;
     }
 
     var str = try Canonical_Type_Fmt.canonical_rep(dep.base);
@@ -213,7 +211,7 @@ fn output_impls(self: *Self) CodeGen_Error!void {
     if (vtable_count > 0) {
         // TODO: Count impls that have virtual methods
         // Do not output header comment if there are no impls!
-        try self.writer.print("/* Trait vtable implementation declarations */\n", .{});
+        try self.writer.print("\n/* Trait vtable implementation declarations */\n", .{});
     }
 
     for (self.module.impls.items) |impl| {

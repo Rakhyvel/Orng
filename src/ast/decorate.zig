@@ -22,6 +22,18 @@ pub fn new(scope: *Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) S
 }
 
 pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
+    return self.decorate_prefix(ast);
+}
+
+pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
+    return self.decorate_postfix(ast);
+}
+
+pub fn prefix_type(self: Self, _type: *Type_AST) walk_.Error!?Self {
+    return self.decorate_prefix_type(_type);
+}
+
+fn decorate_prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
     switch (ast.*) {
         else => return self,
 
@@ -85,7 +97,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
     }
 }
 
-pub fn prefix_type(self: Self, _type: *Type_AST) walk_.Error!?Self {
+fn decorate_prefix_type(self: Self, _type: *Type_AST) walk_.Error!?Self {
     switch (_type.*) {
         else => return self,
 
@@ -125,7 +137,7 @@ pub fn prefix_type(self: Self, _type: *Type_AST) walk_.Error!?Self {
     }
 }
 
-pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
+fn decorate_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
     switch (ast.*) {
         else => {},
 
@@ -141,9 +153,9 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
         .@"test" => self.scope.tests.append(ast) catch unreachable,
 
         .select => {
-            if (ast.lhs().* == .identifier and ast.lhs().symbol() != null and ast.lhs().symbol().?.refers_to_type()) {
+            if (ast.lhs().* == .identifier and ast.lhs().symbol() != null and ast.lhs().symbol().?.is_type()) {
                 const enum_value = ast_.AST.create_enum_value(ast.rhs().token(), self.allocator);
-                enum_value.enum_value.base = Type_AST.create_identifier(ast.lhs().token(), self.allocator);
+                enum_value.enum_value.base = Type_AST.create_type_identifier(ast.lhs().token(), self.allocator);
                 enum_value.enum_value.base.?.set_symbol(ast.lhs().symbol());
                 ast.* = enum_value.*;
             }

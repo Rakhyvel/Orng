@@ -4,7 +4,6 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const Interpreter_Context = @import("../interpretation/interpreter.zig");
-const errs_ = @import("../util/errors.zig");
 const defaults_ = @import("defaults.zig");
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
@@ -25,6 +24,10 @@ pub fn new(ctx: *Compiler_Context) Self {
 }
 
 pub fn prefix(self: *Self, ast: *ast_.AST) walk_.Error!?Self {
+    return self.const_eval_prefix(ast);
+}
+
+fn const_eval_prefix(self: *Self, ast: *ast_.AST) walk_.Error!?Self {
     if (self.map.get(ast)) |_| {
         return null;
     }
@@ -42,7 +45,7 @@ fn eval_internal(self: *Self, ast: *ast_.AST) walk_.Error!void {
         .@"comptime" => {
             try self.eval_internal(ast.expr());
             const expected_type = self.ctx.typecheck.typecheck_AST(ast, null) catch return error.CompileError;
-            ast.* = (try self.interpret(ast.expr(), expected_type, ast.scope().?)).*;
+            ast.* = (try self.interpret_comptime_expr(ast.expr(), expected_type, ast.scope().?)).*;
             _ = self.ctx.typecheck.typecheck_AST(ast, expected_type) catch return error.CompileError;
         },
 
@@ -60,7 +63,7 @@ fn eval_internal(self: *Self, ast: *ast_.AST) walk_.Error!void {
     }
 }
 
-pub fn interpret(
+fn interpret_comptime_expr(
     self: *Self,
     ast: *ast_.AST,
     ret_type: *Type_AST,

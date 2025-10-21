@@ -2,7 +2,6 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
-const core_ = @import("../hierarchy/core.zig");
 const errs_ = @import("../util/errors.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const String = @import("../zig-string/zig-string.zig").String;
@@ -10,7 +9,6 @@ const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
-const Type_Map = @import("../ast/type_map.zig").Type_Map;
 const walk_ = @import("../ast/walker.zig");
 
 scope: *Scope,
@@ -37,6 +35,14 @@ pub fn new(scope: *Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) S
 }
 
 pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
+    return self.symbol_tree_prefix(ast);
+}
+
+pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
+    return self.symbol_tree_postfix(ast);
+}
+
+fn symbol_tree_prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
     switch (ast.*) {
         else => {},
 
@@ -275,7 +281,7 @@ fn register_symbol(self: Self, ast: *ast_.AST, symbol: *Symbol) walk_.Error!void
     ast.set_symbol(symbol);
 }
 
-pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
+fn symbol_tree_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
     switch (ast.*) {
         else => {},
 
@@ -365,7 +371,7 @@ fn create_symbol(
         .tuple_value, .array_value => {
             for (pattern.children().items, 0..) |term, i| {
                 const index = ast_.AST.create_int(pattern.token(), i, allocator);
-                const new_type: *Type_AST = Type_AST.create_index(_type.token(), _type, index, allocator);
+                const new_type: *Type_AST = Type_AST.create_index_type(_type.token(), _type, index, allocator);
                 var index_rhs = std.array_list.Managed(*ast_.AST).init(allocator);
                 index_rhs.append(index) catch unreachable;
                 const new_init: *ast_.AST = ast_.AST.create_index(init.?.token(), init.?, index_rhs, allocator);
@@ -526,9 +532,10 @@ fn build_paramlist(params: std.array_list.Managed(*ast_.AST), param_types: *std.
 }
 
 fn create_receiver_addr(impl_type: *Type_AST, receiver: *ast_.AST, allocator: std.mem.Allocator) *Type_AST {
+    if (impl_type.* == .anyptr_type) return impl_type; // If the type is already an anyptr, then dont make it an address too
     return switch (receiver.receiver.kind) {
-        .value, .addr_of => Type_AST.create_addr_of(receiver.token(), impl_type, false, false, allocator),
-        .mut_addr_of => Type_AST.create_addr_of(receiver.token(), impl_type, true, false, allocator),
+        .value, .addr_of => Type_AST.create_addr_of_type(receiver.token(), impl_type, false, false, allocator),
+        .mut_addr_of => Type_AST.create_addr_of_type(receiver.token(), impl_type, true, false, allocator),
     };
 }
 

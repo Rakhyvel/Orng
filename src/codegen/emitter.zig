@@ -1,11 +1,8 @@
 const std = @import("std");
 const AST = @import("../ast/ast.zig").AST;
 const CFG = @import("../ir/cfg.zig");
-const Module = @import("../hierarchy/module.zig").Module;
 const prelude_ = @import("../hierarchy/prelude.zig");
-const Dependency_Node = @import("../ast/dependency_node.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
-const Type_Set = @import("../ast/type-set.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Canonical_Type_Fmt = @import("canonical_type_fmt.zig");
 
@@ -50,7 +47,8 @@ pub fn output_type(self: *Self, old_type: *Type_AST) CodeGen_Error!void {
             try self.output_type(_type.child());
             try self.writer.print(" *", .{});
         },
-        .anyptr_type, .unit_type => try self.writer.print("void", .{}),
+        .anyptr_type => try self.writer.print("void *", .{}),
+        .unit_type => try self.writer.print("void", .{}),
         .annotation => try self.output_type(_type.child()),
 
         .function => try self.writer.print("{f}", .{Canonical_Type_Fmt{ .type = _type }}),

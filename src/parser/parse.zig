@@ -1,7 +1,6 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const errs_ = @import("../util/errors.zig");
-const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
@@ -316,12 +315,12 @@ fn prefix_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
         if (self.accept(.dyn)) |token2| {
             return Type_AST.create_dyn_type(
                 token2,
-                Type_AST.create_identifier(try self.expect(.identifier), self.allocator),
+                try self.type_expr(),
                 mut != null,
                 self.allocator,
             );
         } else {
-            return Type_AST.create_addr_of(token, try self.prefix_type_expr(), mut != null, false, self.allocator);
+            return Type_AST.create_addr_of_type(token, try self.prefix_type_expr(), mut != null, false, self.allocator);
         }
     } else if (self.accept(.at_symbol)) |_| {
         const token = try self.expect(.identifier);
@@ -385,7 +384,7 @@ fn prefix_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
             return error.ParseError;
         }
         switch (slice_kind) {
-            .multiptr => return Type_AST.create_addr_of(token, try self.prefix_type_expr(), mut, true, self.allocator),
+            .multiptr => return Type_AST.create_addr_of_type(token, try self.prefix_type_expr(), mut, true, self.allocator),
             .slice => return Type_AST.create_slice_type(try self.prefix_type_expr(), mut, self.allocator),
             .array => return Type_AST.create_array_of(token, try self.prefix_type_expr(), len.?, self.allocator),
         }
@@ -416,10 +415,10 @@ fn postfix_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
             );
         } else if (self.peek_kind(.left_square)) {
             const args = try self.generics_args();
-            exp = Type_AST.create_generic_apply(exp.token(), exp, args, self.allocator);
+            exp = Type_AST.create_generic_apply_type(exp.token(), exp, args, self.allocator);
         } else {
             if (val_access) |val| {
-                return Type_AST.create_access(val.token(), val, self.allocator);
+                return Type_AST.create_type_access(val.token(), val, self.allocator);
             }
             return exp;
         }
@@ -428,7 +427,7 @@ fn postfix_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
 
 fn terminal_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
     if (self.accept(.identifier)) |token| {
-        return Type_AST.create_identifier(token, self.allocator);
+        return Type_AST.create_type_identifier(token, self.allocator);
     } else if (self.peek_kind(.left_parenthesis)) {
         return try self.paren_type_expr();
     } else {
@@ -1218,7 +1217,7 @@ fn fn_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
         maybe_ident = ast_.AST.create_identifier(token, self.allocator);
     }
 
-    const gen_params = try self.generic_params();
+    const gen_params = try self.generic_params_list();
 
     const params = try self.paramlist();
     _ = try self.expect(.skinny_arrow);
@@ -1298,7 +1297,7 @@ fn struct_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     const identifier = try self.expect(.identifier);
     const name = ast_.AST.create_pattern_symbol(identifier, .type, .local, identifier.data, self.allocator);
 
-    const gen_params = try self.generic_params();
+    const gen_params = try self.generic_params_list();
 
     _ = try self.expect(.left_brace);
 
@@ -1336,7 +1335,7 @@ fn enum_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     const identifier = try self.expect(.identifier);
     const name = ast_.AST.create_pattern_symbol(identifier, .type, .local, identifier.data, self.allocator);
 
-    const gen_params = try self.generic_params();
+    const gen_params = try self.generic_params_list();
 
     _ = try self.expect(.left_brace);
 
@@ -1373,7 +1372,7 @@ fn type_alias_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     const identifier = try self.expect(.identifier);
     const name = ast_.AST.create_pattern_symbol(identifier, .type, .local, identifier.data, self.allocator);
 
-    const gen_params = try self.generic_params();
+    const gen_params = try self.generic_params_list();
 
     var _init: ?*Type_AST = null;
 
@@ -1384,7 +1383,7 @@ fn type_alias_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     return ast_.AST.create_type_alias(identifier, name, _init, gen_params, self.allocator);
 }
 
-fn generic_params(self: *Self) Parser_Error_Enum!std.array_list.Managed(*ast_.AST) {
+fn generic_params_list(self: *Self) Parser_Error_Enum!std.array_list.Managed(*ast_.AST) {
     var params = std.array_list.Managed(*ast_.AST).init(self.allocator);
     if (self.accept(.left_square) != null) {
         while (!self.peek_kind(.right_square)) {
@@ -1426,7 +1425,7 @@ fn trait_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
 fn impl_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     const token = try self.expect(.impl);
 
-    const gen_params = try self.generic_params();
+    const gen_params = try self.generic_params_list();
 
     const trait_ident: ?*ast_.AST = if (!self.peek_kind(.@"for")) (try self.bool_expr()) else null;
     _ = try self.expect(.@"for");
@@ -1612,7 +1611,7 @@ fn match_pattern_enum_value(self: *Self) Parser_Error_Enum!*ast_.AST {
     if (self.accept(.left_parenthesis)) |_| {
         const retval = ast_.AST.create_enum_value(exp.token(), self.allocator);
         if (exp.* == .select) { // TODO: Figure out how Enum.ctor works
-            retval.enum_value.base = Type_AST.create_identifier(exp.lhs().token(), self.allocator);
+            retval.enum_value.base = Type_AST.create_type_identifier(exp.lhs().token(), self.allocator);
             retval.common()._token = exp.rhs().token();
         }
         retval.enum_value.init = try self.match_pattern_atom();

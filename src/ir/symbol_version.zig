@@ -1,7 +1,5 @@
 const std = @import("std");
-const AST = @import("../ast/ast.zig").AST;
 const Symbol = @import("../symbol/symbol.zig");
-const String = @import("../zig-string/zig-string.zig").String;
 const Instruction = @import("../ir/instruction.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 
@@ -57,20 +55,6 @@ pub fn set_def(self: *Self, def: ?*Instruction) void {
     if (def) |_| {
         self.symbol.defs += 1;
     }
-}
-
-pub fn get_expanded_type(self: *Self) *Type_AST {
-    return self.symbol.expanded_type();
-}
-
-pub fn reset_usage(self: *Self) void {
-    self.uses = 0;
-    self.symbol.uses = 0;
-}
-
-pub fn increment_usage(self: *Self) void {
-    self.uses += 1;
-    self.symbol.uses += 1;
 }
 
 /// Finds a Symbol Version in a Symbol Version set, or null if not found.

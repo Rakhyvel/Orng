@@ -1,7 +1,6 @@
 //! This file represents a struct for an AST walk, and is used to decorate ASTs with their types.
 
 const std = @import("std");
-const ast_ = @import("../ast/ast.zig");
 const errs_ = @import("../util/errors.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
@@ -53,7 +52,7 @@ pub fn postfix_type(self: Self, _type: *Type_AST) walk_.Error!void {
                     }
                     _type.* = child.children().items[@intCast(_type.index.idx.int.data)].*;
                 } else {
-                    _type.* = Type_AST.create_poison(_type.token(), self.ctx.allocator()).*;
+                    _type.* = Type_AST.create_poisoned_type(_type.token(), self.ctx.allocator()).*;
                 }
             },
             else => unreachable,

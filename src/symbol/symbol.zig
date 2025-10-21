@@ -2,7 +2,6 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const CFG = @import("../ir/cfg.zig");
 const errs_ = @import("../util/errors.zig");
-const poison_ = @import("../ast/poison.zig");
 const Scope = @import("../symbol/scope.zig");
 const Span = @import("../util/span.zig");
 const Token = @import("../lexer/token.zig");
@@ -10,7 +9,6 @@ const Type_AST = @import("../types/type.zig").Type_AST;
 const Monomorph_Map = @import("../ast/type_map.zig").Monomorph_Map;
 const unification_ = @import("../types/unification.zig");
 const validation_state_ = @import("../util/validation_state.zig");
-const fmt_ = @import("../util/fmt.zig");
 
 const Self = @This();
 
@@ -111,7 +109,8 @@ pub fn assert_init_valid(self: *Self) *Self {
     return self;
 }
 
-pub fn refers_to_type(self: *const Self) bool {
+/// Whether or not this symbol represents a type or not
+pub fn is_type(self: *const Self) bool {
     return self.decl.?.* == .struct_decl or self.decl.?.* == .enum_decl or self.decl.?.* == .type_alias or self.decl.?.* == .type_param_decl;
 }
 
@@ -254,11 +253,23 @@ pub fn monomorphize(
         const name = next_anon_name(self.name, ctx.allocator());
         const decl = self.decl.?.clone(&subst, ctx.allocator());
 
-        // Decorate identifiers, validate
         const Symbol_Tree = @import("../ast/symbol-tree.zig");
         const Decorate = @import("../ast/decorate.zig");
         const Decorate_Access = @import("../ast/decorate-access.zig");
         const walker_ = @import("../ast/walker.zig");
+
+        var all_concrete: bool = true;
+        for (key.items) |k| {
+            if (k.* == .identifier and k.symbol().?.decl.?.* == .type_param_decl) {
+                all_concrete = false;
+            }
+        }
+
+        if (all_concrete) {
+            decl.set_generic_params(std.array_list.Managed(*ast_.AST).init(ctx.allocator()));
+        }
+
+        // Decorate identifiers, validate
 
         const scope = self.decl.?.scope().?.parent.?;
 
