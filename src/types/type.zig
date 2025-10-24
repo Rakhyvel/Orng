@@ -101,6 +101,10 @@ pub const Type_AST = union(enum) {
         common: Type_AST_Common,
         _child: *Type_AST,
     },
+    context_type: struct {
+        common: Type_AST_Common,
+        _terms: std.array_list.Managed(*Type_AST),
+    },
     struct_type: struct {
         common: Type_AST_Common,
         _terms: std.array_list.Managed(*Type_AST),
@@ -275,6 +279,13 @@ pub const Type_AST = union(enum) {
             } },
             allocator,
         );
+    }
+
+    pub fn create_context_type(_token: Token, terms: std.array_list.Managed(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
+        return Type_AST.box(Type_AST{ .context_type = .{
+            .common = Type_AST_Common{ ._token = _token },
+            ._terms = terms,
+        } }, allocator);
     }
 
     pub fn create_struct_type(_token: Token, terms: std.array_list.Managed(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
@@ -575,6 +586,7 @@ pub const Type_AST = union(enum) {
             .generic_apply => &self.generic_apply.args,
             .enum_type => &self.enum_type._terms,
             .untagged_sum_type => self.child().expand_identifier().children(),
+            .context_type => &self.context_type._terms,
             .struct_type => &self.struct_type._terms,
             .tuple_type => &self.tuple_type._terms,
             else => std.debug.panic("compiler error: cannot call `.children()` on the Type_AST `{f}`", .{self}),

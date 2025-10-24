@@ -302,6 +302,12 @@ pub const AST = union(enum) {
         _body_block: *AST,
         _else_block: ?*AST,
     },
+    with: struct {
+        common: AST_Common,
+        contexts: std.array_list.Managed(*AST),
+        _body_block: *AST,
+        _scope: ?*Scope = null,
+    },
     block: struct {
         common: AST_Common,
         _scope: ?*Scope,
@@ -350,6 +356,7 @@ pub const AST = union(enum) {
         _params: std.array_list.Managed(*AST), // Parameters' decl ASTs
         _param_symbols: std.array_list.Managed(*Symbol), // Parameters' symbols
         ret_type: *Type_AST,
+        uses: std.array_list.Managed(*Type_AST),
         _decl_type: ?*Type_AST = null,
         refinement: ?*AST,
         init: *AST,
@@ -376,6 +383,15 @@ pub const AST = union(enum) {
                 }
             }
         }
+    },
+    context_decl: struct {
+        common: AST_Common,
+        name: *AST,
+        fields: std.array_list.Managed(*Type_AST),
+        // TODO: generic params?
+        _type: *Type_AST,
+        _symbol: ?*Symbol = null,
+        _scope: ?*Scope = null,
     },
     type_param_decl: struct {
         common: AST_Common,
@@ -1040,6 +1056,22 @@ pub const AST = union(enum) {
         );
     }
 
+    pub fn create_with(
+        _token: Token,
+        contexts: std.array_list.Managed(*AST),
+        _body_block: *AST,
+        allocator: std.mem.Allocator,
+    ) *AST {
+        return AST.box(
+            AST{ .with = .{
+                .common = AST_Common{ ._token = _token },
+                .contexts = contexts,
+                ._body_block = _body_block,
+            } },
+            allocator,
+        );
+    }
+
     pub fn create_block(
         _token: Token,
         statements: std.array_list.Managed(*AST),
@@ -1147,6 +1179,7 @@ pub const AST = union(enum) {
         _generic_params: std.array_list.Managed(*AST),
         params: std.array_list.Managed(*AST),
         ret_type: *Type_AST,
+        uses: std.array_list.Managed(*Type_AST),
         refinement: ?*AST,
         init: *AST,
         allocator: std.mem.Allocator,
@@ -1158,9 +1191,24 @@ pub const AST = union(enum) {
             ._params = params,
             ._param_symbols = std.array_list.Managed(*Symbol).init(allocator),
             .ret_type = ret_type,
+            .uses = uses,
             .refinement = refinement,
             .init = init,
             .infer_error = false,
+        } }, allocator);
+    }
+
+    pub fn create_context_decl(
+        _token: Token,
+        name: *AST,
+        fields: std.array_list.Managed(*Type_AST),
+        allocator: std.mem.Allocator,
+    ) *AST {
+        return AST.box(AST{ .context_decl = .{
+            .common = AST_Common{ ._token = _token },
+            .name = name,
+            .fields = fields,
+            ._type = Type_AST.create_context_type(_token, fields, allocator),
         } }, allocator);
     }
 
@@ -1554,6 +1602,16 @@ pub const AST = union(enum) {
                     allocator,
                 );
             },
+            .context_decl => {
+                const cloned_terms = Type_AST.clone_types(self.context_decl.fields, substs, allocator);
+                const retval = create_context_decl(
+                    self.token(),
+                    self.struct_decl.name.clone(substs, allocator),
+                    cloned_terms,
+                    allocator,
+                );
+                return retval;
+            },
             .struct_decl => {
                 const cloned_terms = Type_AST.clone_types(self.struct_decl.fields, substs, allocator);
                 const cloned_generic_params = clone_children(self.struct_decl._generic_params, substs, allocator);
@@ -1659,6 +1717,15 @@ pub const AST = union(enum) {
                 allocator,
             ),
             .@"for" => unreachable, // TODO
+            .with => {
+                const cloned_contexts = clone_children(self.with.contexts, substs, allocator);
+                return create_with(
+                    self.token(),
+                    cloned_contexts,
+                    self.with._body_block.clone(substs, allocator),
+                    allocator,
+                );
+            },
             .block => {
                 const cloned_statements = clone_children(self.children().*, substs, allocator);
                 return create_block(
@@ -1704,6 +1771,7 @@ pub const AST = union(enum) {
             },
             .fn_decl => {
                 const cloned_generic_params = clone_children(self.fn_decl._generic_params, substs, allocator);
+                const cloned_used_contexts = Type_AST.clone_types(self.fn_decl.uses, substs, allocator);
                 const cloned_params = clone_children(self.children().*, substs, allocator);
                 var retval = create_fn_decl(
                     self.token(),
@@ -1711,6 +1779,7 @@ pub const AST = union(enum) {
                     cloned_generic_params,
                     cloned_params,
                     self.fn_decl.ret_type.clone(substs, allocator),
+                    cloned_used_contexts,
                     if (self.fn_decl.refinement) |refinement| refinement.clone(substs, allocator) else null,
                     self.fn_decl.init.clone(substs, allocator),
                     allocator,
@@ -1899,6 +1968,7 @@ pub const AST = union(enum) {
 
     pub fn decl_typedef(self: *AST) ?*Type_AST {
         return switch (self.*) {
+            .context_decl => self.context_decl._type,
             .struct_decl => self.struct_decl._type,
             .enum_decl => self.enum_decl._type,
             .type_alias => self.type_alias.init,
@@ -2275,6 +2345,12 @@ pub const AST = union(enum) {
             .enum_value => {
                 try out.print("enum_value(.name={s}, .init={?f}, .tag={?})", .{ self.enum_value.get_name(), self.enum_value.init, self.enum_value._pos });
             },
+            .context_decl => {
+                try out.print("context_decl(\n", .{});
+                try out.print("\t.name = {f}\n", .{self.context_decl.name});
+                try out.print("\t.fields = {f}\n", .{fmt_.List_Printer(Type_AST){ .list = &self.context_decl.fields }});
+                try out.print(")", .{});
+            },
             .type_param_decl => try out.print("type_param_decl({s})", .{self.type_param_decl.common._token.data}),
             .struct_decl => {
                 try out.print("struct_decl(\n", .{});
@@ -2331,6 +2407,7 @@ pub const AST = union(enum) {
             .mapping => try out.print("mapping()", .{}),
             .@"while" => try out.print("while()", .{}),
             .@"for" => try out.print("for()", .{}),
+            .with => try out.print("with()", .{}),
             .block => {
                 try out.print("block(", .{});
                 for (self.block._statements.items, 0..) |item, i| {

@@ -25,6 +25,7 @@ pub const Kind = enum(u32) {
     cinclude,
     @"comptime",
     @"const",
+    context,
     @"continue",
     @"defer",
     dyn,
@@ -56,6 +57,7 @@ pub const Kind = enum(u32) {
     self,
     @"struct",
     undefined,
+    uses,
     variadic,
     virtual,
 
@@ -149,6 +151,7 @@ pub const Kind = enum(u32) {
             .cinclude => "cinclude",
             .@"comptime" => "comptime",
             .@"const" => "const",
+            .context => "context",
             .@"continue" => "continue",
             .@"defer" => "defer",
             .dyn => "dyn",
@@ -182,6 +185,7 @@ pub const Kind = enum(u32) {
             .self => "self",
             .@"struct" => "struct",
             .undefined => "undefined",
+            .uses => "uses",
             .variadic => "variadic",
             .virtual => "virtual",
 

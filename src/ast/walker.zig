@@ -90,6 +90,8 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .import,
         => {},
 
+        .context_decl => try walk_type(ast.decl_typedef(), new_context),
+
         .struct_decl,
         .enum_decl,
         .type_alias,
@@ -209,6 +211,10 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             try walk_ast(ast.body_block(), new_context);
             try walk_ast(ast.else_block(), new_context);
         },
+        .with => {
+            try walk_asts(&ast.with.contexts, new_context);
+            try walk_ast(ast.with._body_block, new_context);
+        },
         .block => {
             try walk_asts(ast.children(), new_context);
             if (ast.block.final) |final| {
@@ -325,6 +331,7 @@ pub fn walk_type(maybe_type: ?*Type_AST, context: anytype) Error!void {
             try walk_type(_type.rhs(), new_context);
         },
 
+        .context_type,
         .enum_type,
         .struct_type,
         .tuple_type,

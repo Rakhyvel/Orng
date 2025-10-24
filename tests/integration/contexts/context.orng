@@ -1,0 +1,14 @@
+// 360
+context My_Context {
+    x: Int
+}
+
+fn main() -> Int {
+    with My_Context(.x = 356) {
+        add_four()
+    }
+}
+
+fn add_four() -> Int uses My_Context {
+    My_Context.x + 4
+}
