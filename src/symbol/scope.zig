@@ -97,6 +97,19 @@ pub fn lookup(self: *Self, name: []const u8, flags: Lookup_Flags) Lookup_Result 
     }
 }
 
+pub fn context_lookup(self: *Self, context_name: []const u8) ?*Symbol {
+    for (self.symbols.keys()) |symbol_name| {
+        const symbol = self.symbols.get(symbol_name).?;
+        if (symbol.kind == .let and symbol.type().* == .identifier and std.mem.eql(u8, symbol.type().token().data, context_name)) {
+            return symbol;
+        }
+    } else if (self.parent) |parent| {
+        return parent.context_lookup(context_name);
+    } else {
+        return null;
+    }
+}
+
 const Impl_Trait_Lookup_Result = struct { count: u8, ast: ?*ast_.AST };
 
 /// Returns the number of impls found for a given type-trait pair, and the impl ast. The impl is unique if count == 1.

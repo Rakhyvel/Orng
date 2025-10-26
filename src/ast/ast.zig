@@ -362,6 +362,7 @@ pub const AST = union(enum) {
     },
     context_param_decl: struct {
         common: AST_Common,
+        _type: *Type_AST,
         _symbol: ?*Symbol = null,
     },
     context_decl: struct {
@@ -1175,6 +1176,7 @@ pub const AST = union(enum) {
     pub fn create_context_param_decl(_token: Token, allocator: std.mem.Allocator) *AST {
         return AST.box(AST{ .context_param_decl = .{
             .common = AST_Common{ ._token = _token },
+            ._type = Type_AST.create_type_identifier(_token, allocator),
         } }, allocator);
     }
 
@@ -1914,6 +1916,7 @@ pub const AST = union(enum) {
             .@"test" => core_.test_type,
             .module, .trait => prelude_.unit_type,
             .receiver => self.receiver._type.?,
+            .context_param_decl => self.context_param_decl._type,
             else => std.debug.panic("compiler error: cannot call `.decl_type()` on the AST `{s}`", .{@tagName(self.*)}),
         };
     }
@@ -1925,7 +1928,7 @@ pub const AST = union(enum) {
             .method_decl => self.method_decl.init,
             .@"test" => self.@"test".init,
             .module, .trait => self,
-            .struct_decl, .enum_decl, .type_alias, .receiver, .type_param_decl, .context_decl => null,
+            .struct_decl, .enum_decl, .type_alias, .receiver, .type_param_decl, .context_decl, .context_param_decl => null,
             else => std.debug.panic("compiler error: cannot call `.decl_init()` on the AST `{s}`", .{@tagName(self.*)}),
         };
     }

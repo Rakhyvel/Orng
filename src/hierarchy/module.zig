@@ -226,9 +226,7 @@ pub const Module = struct {
         });
 
         // Perform checks and collections on the module
-        std.debug.print("gonna validate\n", .{});
         try compiler.validate_module.validate_module(module);
-        std.debug.print("done validating\n", .{});
         compiler.module_scope(module.absolute_path).?.collect_traits_and_impls(&module.traits, &module.impls);
         try module.add_all_cfgs(entry_name, compiler);
         if (module.entry) |entry| {

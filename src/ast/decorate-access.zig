@@ -37,6 +37,12 @@ fn decorate_access_prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
     switch (ast.*) {
         else => return self,
 
+        .@"if", .match, .mapping, .@"while", .@"for", .block, .impl, .trait, .struct_decl, .enum_decl, .type_alias, .fn_decl => {
+            var new_context = self;
+            new_context.scope = ast.scope().?;
+            return new_context;
+        },
+
         .access => {
             _ = try self.resolve_symbol_from_ast(ast);
             return null;
@@ -68,18 +74,34 @@ fn decorate_access_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
 
         .index => {
             var child = ast.lhs();
-            // child points to a generic function
             if (child.* != .identifier and child.* != .access) return;
 
             const sym = child.symbol() orelse return;
             const decl = sym.decl orelse return;
 
+            // child points to a generic function
             if (decl.* == .fn_decl and decl.generic_params().items.len > 0) {
                 var types = std.array_list.Managed(*Type_AST).init(self.compiler.allocator());
                 for (ast.children().items) |arg| {
                     try types.append(Type_AST.from_ast(arg, self.compiler.allocator()));
                 }
                 ast.* = ast_.AST.create_generic_apply(ast.token(), child, types, self.compiler.allocator()).*;
+            }
+        },
+
+        .select => {
+            var child = ast.lhs();
+            // child points to a generic function
+            if (child.* != .identifier and child.* != .access) return;
+
+            const sym = child.symbol() orelse return;
+            const decl = sym.decl orelse return;
+
+            if (decl.* == .context_decl) {
+                const context_val_symbol = self.scope.context_lookup(child.token().data).?;
+                const context_val_ident = ast_.AST.create_identifier(token_.init_simple(context_val_symbol.name), self.compiler.allocator());
+                context_val_ident.set_symbol(context_val_symbol);
+                ast.set_lhs(context_val_ident);
             }
         },
     }
