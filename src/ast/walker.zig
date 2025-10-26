@@ -84,8 +84,8 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .poison,
         .pattern_symbol,
         .receiver,
-        .template,
         .identifier,
+        .context_param_decl,
         .type_param_decl,
         .import,
         => {},
@@ -230,6 +230,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             }
         },
         .fn_decl => {
+            try walk_asts(&ast.fn_decl.uses_decls, new_context);
             try walk_asts(ast.generic_params(), new_context);
             try walk_ast(ast.fn_decl.init, new_context);
             try walk_asts(ast.children(), new_context);

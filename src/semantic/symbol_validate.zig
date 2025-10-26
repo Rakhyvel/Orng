@@ -40,7 +40,7 @@ pub fn validate_symbol(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
     // std.debug.print("expanded type for: {s}: {?}\n", .{ symbol.name, symbol.expanded_type });
     const expected: ?*Type_AST = switch (symbol.kind) {
         .@"fn", .@"test" => symbol.type().rhs(),
-        .type => null,
+        .type, .context => null,
         else => symbol.type(),
     };
     if (expected) |expected_type| {
@@ -91,7 +91,7 @@ pub fn validate_symbol(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
     }
 
     // Symbol's name must be capitalized iff its type is Type
-    if (symbol.is_type() or symbol.kind == .trait) {
+    if (symbol.is_type() or symbol.kind == .trait or symbol.kind == .context) {
         if (!is_capitalized(symbol.name)) {
             self.ctx.errors.add_error(errs_.Error{ .symbol_error = .{
                 .problem = "must start with an uppercase letter",

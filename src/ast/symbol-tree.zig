@@ -130,6 +130,43 @@ fn symbol_tree_prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             return new_self;
         },
 
+        .context_decl => {
+            if (ast.symbol() != null) {
+                // Do not re-do symbol if already declared
+                return null;
+            }
+
+            var new_self = self;
+            new_self.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
+
+            const symbol = Symbol.init(
+                self.scope,
+                ast.decl_name().token().data,
+                ast,
+                .context,
+                ast.decl_name().pattern_symbol.storage,
+                self.allocator,
+            );
+            try self.register_symbol(ast, symbol);
+
+            ast.set_scope(new_self.scope);
+            return new_self;
+        },
+
+        .context_param_decl => {
+            // Create an anonymous parameter with the type of the name of the context param decl
+            const symbol = Symbol.init(
+                self.scope,
+                next_anon_name("context_param", self.allocator),
+                ast,
+                .let,
+                .local,
+                self.allocator,
+            );
+            try self.register_symbol(ast, symbol);
+            self.scope.pprint();
+        },
+
         .type_param_decl => {
             const symbol = Symbol.init(
                 self.scope,
@@ -149,7 +186,6 @@ fn symbol_tree_prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         },
 
         // Create a symbol for this function
-        // Transform into template if templated
         .fn_decl => {
             if (ast.symbol() != null) {
                 // this can happen sometimes with: decl(fn_decl())
@@ -420,11 +456,17 @@ pub fn create_function_symbol(ast: *ast_.AST, allocator: std.mem.Allocator) *Sym
     // Calculate the domain type from the function paramter types
     const domain = extract_domain(ast.children().*, allocator);
 
+    const context_type = if (ast.fn_decl.uses_decls.items.len != 0)
+        Type_AST.create_type_identifier(ast.fn_decl.uses_decls.items[0].token(), allocator)
+    else
+        null;
+
     // Create the function type
     const _type = Type_AST.create_function(
         ast.fn_decl.ret_type.token(),
         domain,
         ast.fn_decl.ret_type,
+        context_type,
         allocator,
     );
     ast.fn_decl._decl_type = _type;
@@ -549,17 +591,6 @@ fn create_receiver_annot(receiver_addr: *Type_AST, receiver: *ast_.AST, allocato
     );
 }
 
-/// Creates the comptime context symbol for `const` initializers
-fn create_comptime_init(
-    old_init: *ast_.AST,
-    scope: *Scope,
-    allocator: std.mem.Allocator,
-) Error!*ast_.AST {
-    const retval = ast_.AST.create_comptime(old_init.token(), old_init, allocator);
-    retval.set_scope(scope);
-    return retval;
-}
-
 /// Creates a symbol which represents the comptime function to be ran.
 pub fn create_temp_comptime_symbol(
     ast: *ast_.AST,
@@ -570,7 +601,7 @@ pub fn create_temp_comptime_symbol(
     // Create the function type. The rhs is a typeof node, since type expansion is done in a later time
     const lhs = prelude_.unit_type;
     const rhs = Type_AST.create_type_of(ast.token(), ast, allocator);
-    const _type = Type_AST.create_function(ast.token(), lhs, rhs_type_hint orelse rhs, allocator);
+    const _type = Type_AST.create_function(ast.token(), lhs, rhs_type_hint orelse rhs, null, allocator);
 
     // Create the comptime scope
     // This is to prevent `comptime` expressions from using runtime variables
@@ -643,6 +674,7 @@ fn create_method_type(ast: *ast_.AST, allocator: std.mem.Allocator) *Type_AST {
         ast.method_decl.ret_type.token(),
         ast.method_decl.domain.?,
         ast.method_decl.ret_type,
+        null,
         allocator,
     );
     return _type;
@@ -732,30 +764,5 @@ fn create_method_symbol(
     fn_scope.inner_function = retval;
 
     try walk_.walk_ast(ast.method_decl.init, symbol_walk);
-    return retval;
-}
-
-fn create_template_symbol(
-    ast: *ast_.AST,
-    scope: *Scope,
-    allocator: std.mem.Allocator,
-) Error!*Symbol {
-    var buf: []const u8 = undefined;
-    if (ast.template.decl.fn_decl.name) |name| {
-        buf = name.token().data;
-    } else {
-        buf = next_anon_name("", allocator);
-    }
-    const retval = Symbol.init(
-        scope,
-        buf,
-        ast.template.decl.fn_decl.name.?.token().span,
-        prelude_.unit_type,
-        prelude_.unit_value,
-        ast,
-        .template,
-        allocator,
-    );
-    retval.defined = true;
     return retval;
 }

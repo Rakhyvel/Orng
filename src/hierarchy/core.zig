@@ -84,6 +84,7 @@ fn create_core(compiler: *Compiler_Context) !void {
         test_result_type.token(),
         prelude_.unit_type,
         test_result_type,
+        null,
         compiler.allocator(),
     );
 

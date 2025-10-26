@@ -61,6 +61,7 @@ pub const Type_AST = union(enum) {
         common: Type_AST_Common,
         _lhs: *Type_AST,
         _rhs: *Type_AST,
+        context: ?*Type_AST,
         variadic: bool = false,
     },
     annotation: struct {
@@ -253,12 +254,13 @@ pub const Type_AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn create_function(_token: Token, _lhs: *Type_AST, _rhs: *Type_AST, allocator: std.mem.Allocator) *Type_AST {
+    pub fn create_function(_token: Token, _lhs: *Type_AST, _rhs: *Type_AST, context: ?*Type_AST, allocator: std.mem.Allocator) *Type_AST {
         const _common: Type_AST_Common = .{ ._token = _token };
         return Type_AST.box(Type_AST{ .function = .{
             .common = _common,
             ._lhs = _lhs,
             ._rhs = _rhs,
+            .context = context,
         } }, allocator);
     }
 
@@ -1094,7 +1096,8 @@ pub const Type_AST = union(enum) {
             .function => {
                 const _lhs = clone(self.lhs(), substs, allocator);
                 const _rhs = clone(self.rhs(), substs, allocator);
-                return create_function(self.token(), _lhs, _rhs, allocator);
+                const context: ?*Type_AST = if (self.function.context) |context| clone(context, substs, allocator) else null;
+                return create_function(self.token(), _lhs, _rhs, context, allocator);
             },
             .enum_type => {
                 var new_children = std.array_list.Managed(*Type_AST).init(allocator);

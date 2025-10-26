@@ -85,10 +85,6 @@ pub const AST = union(enum) {
     identifier: struct {
         common: AST_Common,
         _symbol: ?*Symbol = null,
-
-        pub inline fn refers_to_template(self: @This()) bool {
-            return self._symbol.?.kind == .template;
-        }
     },
 
     not: struct { common: AST_Common, _expr: *AST },
@@ -356,33 +352,17 @@ pub const AST = union(enum) {
         _params: std.array_list.Managed(*AST), // Parameters' decl ASTs
         _param_symbols: std.array_list.Managed(*Symbol), // Parameters' symbols
         ret_type: *Type_AST,
-        uses: std.array_list.Managed(*Type_AST),
+        uses_decls: std.array_list.Managed(*AST),
         _decl_type: ?*Type_AST = null,
         refinement: ?*AST,
         init: *AST,
         _symbol: ?*Symbol = null,
         _scope: ?*Scope = null,
         infer_error: bool,
-
-        pub fn is_templated(self: *@This()) bool {
-            for (self._params.items) |param| {
-                if (param.binding.pattern.pattern_symbol.kind == .@"const") {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        pub fn remove_const_params(self: *@This()) void {
-            var i: usize = 0;
-            while (i < self._params.items.len) : (i +%= 1) {
-                const param = self._params.items[i];
-                if (param.decl.name.pattern_symbol.kind == .@"const") {
-                    _ = self._params.orderedRemove(i);
-                    i -%= 1;
-                }
-            }
-        }
+    },
+    context_param_decl: struct {
+        common: AST_Common,
+        _symbol: ?*Symbol = null,
     },
     context_decl: struct {
         common: AST_Common,
@@ -457,12 +437,6 @@ pub const AST = union(enum) {
     cinclude: struct {
         common: AST_Common,
         _expr: *AST,
-    },
-    template: struct {
-        common: AST_Common,
-        decl: *AST, // The decl of the symbol(s) that is being templated
-        memo: Monomorph_Map(*Symbol),
-        _symbol: ?*Symbol = null, // The symbol for this template
     },
     @"defer": struct { common: AST_Common, _statement: *AST },
     @"errdefer": struct { common: AST_Common, _statement: *AST },
@@ -1179,7 +1153,7 @@ pub const AST = union(enum) {
         _generic_params: std.array_list.Managed(*AST),
         params: std.array_list.Managed(*AST),
         ret_type: *Type_AST,
-        uses: std.array_list.Managed(*Type_AST),
+        uses_decls: std.array_list.Managed(*AST),
         refinement: ?*AST,
         init: *AST,
         allocator: std.mem.Allocator,
@@ -1191,10 +1165,16 @@ pub const AST = union(enum) {
             ._params = params,
             ._param_symbols = std.array_list.Managed(*Symbol).init(allocator),
             .ret_type = ret_type,
-            .uses = uses,
+            .uses_decls = uses_decls,
             .refinement = refinement,
             .init = init,
             .infer_error = false,
+        } }, allocator);
+    }
+
+    pub fn create_context_param_decl(_token: Token, allocator: std.mem.Allocator) *AST {
+        return AST.box(AST{ .context_param_decl = .{
+            .common = AST_Common{ ._token = _token },
         } }, allocator);
     }
 
@@ -1212,10 +1192,7 @@ pub const AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn create_type_param_decl(
-        _token: Token,
-        allocator: std.mem.Allocator,
-    ) *AST {
+    pub fn create_type_param_decl(_token: Token, allocator: std.mem.Allocator) *AST {
         return AST.box(AST{ .type_param_decl = .{
             .common = AST_Common{ ._token = _token },
         } }, allocator);
@@ -1373,8 +1350,6 @@ pub const AST = union(enum) {
             .@"unreachable" => return create_unreachable(self.token(), allocator),
             .true => return create_true(self.token(), allocator),
             .false => return create_false(self.token(), allocator),
-
-            .template => unreachable, // TODO: You probably want this...
 
             .not => return create_not(self.token(), self.expr().clone(substs, allocator), allocator),
             .negate => return create_negate(self.token(), self.expr().clone(substs, allocator), allocator),
@@ -1602,6 +1577,7 @@ pub const AST = union(enum) {
                     allocator,
                 );
             },
+            .context_param_decl => return create_context_param_decl(self.token(), allocator),
             .context_decl => {
                 const cloned_terms = Type_AST.clone_types(self.context_decl.fields, substs, allocator);
                 const retval = create_context_decl(
@@ -1771,7 +1747,7 @@ pub const AST = union(enum) {
             },
             .fn_decl => {
                 const cloned_generic_params = clone_children(self.fn_decl._generic_params, substs, allocator);
-                const cloned_used_contexts = Type_AST.clone_types(self.fn_decl.uses, substs, allocator);
+                const cloned_used_contexts = clone_children(self.fn_decl.uses_decls, substs, allocator);
                 const cloned_params = clone_children(self.children().*, substs, allocator);
                 var retval = create_fn_decl(
                     self.token(),
@@ -1949,7 +1925,7 @@ pub const AST = union(enum) {
             .method_decl => self.method_decl.init,
             .@"test" => self.@"test".init,
             .module, .trait => self,
-            .struct_decl, .enum_decl, .type_alias, .receiver, .type_param_decl => null,
+            .struct_decl, .enum_decl, .type_alias, .receiver, .type_param_decl, .context_decl => null,
             else => std.debug.panic("compiler error: cannot call `.decl_init()` on the AST `{s}`", .{@tagName(self.*)}),
         };
     }
@@ -1982,6 +1958,7 @@ pub const AST = union(enum) {
             .struct_decl => self.struct_decl.name,
             .enum_decl => self.enum_decl.name,
             .type_alias => self.type_alias.name,
+            .context_decl => self.context_decl.name,
             else => std.debug.panic("compiler error: cannot call `.decl_name()` on the AST `{s}`", .{@tagName(self.*)}),
         };
     }
@@ -1992,6 +1969,7 @@ pub const AST = union(enum) {
             .enum_decl => self.enum_decl.name = name,
             .type_alias => self.type_alias.name = name,
             .fn_decl => self.fn_decl.name = name,
+            .context_decl => self.context_decl.name = name,
             else => std.debug.panic("compiler error: cannot call `.decl_name()` on the AST `{s}`", .{@tagName(self.*)}),
         }
     }
@@ -2345,6 +2323,7 @@ pub const AST = union(enum) {
             .enum_value => {
                 try out.print("enum_value(.name={s}, .init={?f}, .tag={?})", .{ self.enum_value.get_name(), self.enum_value.init, self.enum_value._pos });
             },
+            .context_param_decl => try out.print("context_param_decl({s})", .{self.type_param_decl.common._token.data}),
             .context_decl => {
                 try out.print("context_decl(\n", .{});
                 try out.print("\t.name = {f}\n", .{self.context_decl.name});
@@ -2461,7 +2440,6 @@ pub const AST = union(enum) {
             .module => try out.print("module()", .{}),
             .import => try out.print("import({f})", .{self.import.pattern}),
             .cinclude => try out.print("cinclude({f})", .{self.cinclude._expr}),
-            .template => try out.print("template()", .{}),
             .method_decl => {
                 try out.print("method_decl(.name={f}, .receiver={?f}, . .params=[", .{
                     self.method_decl.name,

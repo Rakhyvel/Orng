@@ -7,7 +7,6 @@ const Const_Eval = @import("../semantic/const_eval.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const defaults_ = @import("defaults.zig");
 const errs_ = @import("../util/errors.zig");
-const interpret = @import("interpret.zig").interpret;
 const poison_ = @import("../ast/poison.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const typing_ = @import("typing.zig");
@@ -149,7 +148,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 return error.CompileError;
             }
             try self.ctx.validate_symbol.validate_symbol(symbol);
-            if (symbol.is_type()) {
+            if (symbol.is_type() or symbol.kind == .context) {
                 if (expected != null) {
                     self.ctx.errors.add_error(errs_.Error{ .unexpected_type_type = .{ .expected = expected, .span = ast.token().span } });
                     return error.CompileError;
@@ -764,6 +763,9 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             }
 
             return prelude_.unit_type;
+        },
+        .with => {
+            return self.typecheck_AST(ast.with._body_block, expected);
         },
         .block => {
             var last_type: ?*Type_AST = null;

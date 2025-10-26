@@ -101,7 +101,7 @@ fn lower_AST_inner(
 ) Lower_Errors!?*lval_.L_Value {
     switch (ast.*) {
         // Unit-values
-        .enum_decl, .struct_decl, .unit_value, .template, .trait, .impl, .type_alias => return self.lval_from_unit_value(ast),
+        .enum_decl, .struct_decl, .unit_value, .trait, .impl, .type_alias => return self.lval_from_unit_value(ast),
         // Literals
         .int => return self.lval_from_int(ast.int.data, self.ctx.typecheck.typeof(ast), ast.token().span),
         .char => {

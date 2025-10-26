@@ -296,7 +296,11 @@ fn function_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
             _ = try self.expect(.skinny_arrow);
             variadic = true;
         }
-        exp = Type_AST.create_function(token, exp, try self.error_type_expr(), self.allocator);
+        var context: ?*Type_AST = null;
+        if (self.accept(.uses) != null) {
+            context = try self.type_expr();
+        }
+        exp = Type_AST.create_function(token, exp, try self.error_type_expr(), context, self.allocator);
         exp.function.variadic = variadic;
     }
     return exp;
@@ -1437,15 +1441,15 @@ fn type_alias_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     return ast_.AST.create_type_alias(identifier, name, _init, gen_params, self.allocator);
 }
 
-fn used_contexts_list(self: *Self) Parser_Error_Enum!std.array_list.Managed(*Type_AST) {
-    var used_contexts = std.array_list.Managed(*Type_AST).init(self.allocator);
+fn used_contexts_list(self: *Self) Parser_Error_Enum!std.array_list.Managed(*ast_.AST) {
+    var used_contexts = std.array_list.Managed(*ast_.AST).init(self.allocator);
 
     if (self.accept(.uses) != null) {
         if (self.accept(.left_parenthesis) != null) {
             while (!self.peek_kind(.right_square)) {
                 const param_token = try self.expect(.identifier);
-                const param_ident = Type_AST.create_type_identifier(param_token, self.allocator);
-                used_contexts.append(param_ident) catch unreachable;
+                const context_decl = ast_.AST.create_context_param_decl(param_token, self.allocator);
+                used_contexts.append(context_decl) catch unreachable;
                 if (self.accept(.comma) == null) {
                     break;
                 }
@@ -1453,8 +1457,8 @@ fn used_contexts_list(self: *Self) Parser_Error_Enum!std.array_list.Managed(*Typ
             _ = try self.expect(.right_parenthesis);
         } else {
             const param_token = try self.expect(.identifier);
-            const param_ident = Type_AST.create_type_identifier(param_token, self.allocator);
-            used_contexts.append(param_ident) catch unreachable;
+            const context_decl = ast_.AST.create_context_param_decl(param_token, self.allocator);
+            used_contexts.append(context_decl) catch unreachable;
         }
     }
 

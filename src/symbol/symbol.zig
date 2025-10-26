@@ -20,7 +20,6 @@ pub const Kind = union(enum) {
     mut,
     type,
     trait,
-    template,
     import: struct { // Refers indirectly to modules, or to refinements on modules.
         // Real name of the module, as oposed to the `as` name
         real_name: []const u8,
@@ -29,6 +28,7 @@ pub const Kind = union(enum) {
     import_inner, // Created from the inner expressions of qualified import statements, similar to consts
     module, // Refers to modules. The init is the `module` AST, which refers to the module and to the scope. `Module`s have their symbol
     @"test",
+    context,
 };
 
 pub const Storage = union(enum) {
@@ -38,15 +38,8 @@ pub const Storage = union(enum) {
 
 pub const Symbol_Validation_State = validation_state_.Validation_State;
 
-var number_of_comptime: usize = 0;
-
-// TODO: Much like AST, create a symbol-create.zig, and usingnamespace it here with `create_comptime_init`, `create_symbol`, `create_method_type`, `create_temp_comptime_symbol`, `create_template_symbol`, `create_function_symbol`, and any other supporting infra
 scope: *Scope, // Enclosing parent scope
 name: []const u8,
-// span: Span,
-// _type: *Type_AST,
-// expanded_type: ?*Type_AST,
-// init_value: ?*ast_.AST,
 kind: Kind,
 cfg: ?*CFG,
 decl: ?*ast_.AST,
