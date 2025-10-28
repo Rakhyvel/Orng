@@ -324,7 +324,7 @@ fn symbol_tree_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
                 symbol.defined = true;
                 symbol.param = true;
             }
-            for (ast.fn_decl.uses_decls.items) |uses_binding| {
+            for (ast.fn_decl.context_decls.items) |uses_binding| {
                 const symbol = uses_binding.binding.decls.items[0].decl.name.symbol().?;
                 ast.context_param_symbols().?.append(symbol) catch unreachable;
                 symbol.defined = true;
@@ -448,8 +448,8 @@ pub fn create_function_symbol(ast: *ast_.AST, allocator: std.mem.Allocator) *Sym
     // Calculate the domain type from the function paramter types
     const domain = extract_domain(ast.children().*, allocator);
 
-    const context_type = if (ast.fn_decl.uses_decls.items.len != 0)
-        Type_AST.create_type_identifier(ast.fn_decl.uses_decls.items[0].token(), allocator)
+    const context_type = if (ast.fn_decl.context_decls.items.len != 0)
+        Type_AST.create_type_identifier(ast.fn_decl.context_decls.items[0].token(), allocator)
     else
         null;
 

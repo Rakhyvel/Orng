@@ -230,7 +230,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             }
         },
         .fn_decl => {
-            try walk_asts(&ast.fn_decl.uses_decls, new_context);
+            try walk_asts(&ast.fn_decl.context_decls, new_context);
             try walk_asts(ast.generic_params(), new_context);
             try walk_type(ast.fn_decl._decl_type, new_context);
             try walk_ast(ast.fn_decl.init, new_context);

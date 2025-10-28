@@ -1,0 +1,18 @@
+// 361
+context My_Context {
+    x: Int
+}
+
+fn main() -> Int {
+    with My_Context(357) {
+        add_four()
+    }
+}
+
+fn add_four() -> Int uses My_Context {
+    add_three() + 1
+}
+
+fn add_three() -> Int uses My_Context {
+    My_Context.x + 3
+}

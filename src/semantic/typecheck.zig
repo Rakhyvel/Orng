@@ -331,7 +331,13 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             // If lhs is function type and has context(s), try and find them. Error if you can't.
             if (expanded_lhs_type.* == .function and expanded_lhs_type.function.context != null) {
                 const fn_ctx = expanded_lhs_type.function.context.?;
-                const symbol = ast.scope().?.context_lookup(fn_ctx) orelse std.debug.panic("TODO: Add error here about required context", .{});
+                const symbol = ast.scope().?.context_lookup(fn_ctx) orelse {
+                    self.ctx.errors.add_error(errs_.Error{ .missing_context = .{
+                        .span = ast.token().span,
+                        .context = fn_ctx,
+                    } });
+                    return error.CompileError;
+                };
                 try ast.call.context_args.append(symbol);
             }
 

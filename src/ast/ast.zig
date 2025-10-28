@@ -364,7 +364,7 @@ pub const AST = union(enum) {
         _param_symbols: std.array_list.Managed(*Symbol), // Parameters' symbols
         context_param_symbols: std.array_list.Managed(*Symbol), // Context parameters' symbols
         ret_type: *Type_AST,
-        uses_decls: std.array_list.Managed(*AST),
+        context_decls: std.array_list.Managed(*AST),
         _decl_type: ?*Type_AST = null,
         refinement: ?*AST,
         init: *AST,
@@ -1170,7 +1170,7 @@ pub const AST = union(enum) {
         _generic_params: std.array_list.Managed(*AST),
         params: std.array_list.Managed(*AST),
         ret_type: *Type_AST,
-        uses_decls: std.array_list.Managed(*AST),
+        context_decls: std.array_list.Managed(*AST),
         refinement: ?*AST,
         init: *AST,
         allocator: std.mem.Allocator,
@@ -1183,7 +1183,7 @@ pub const AST = union(enum) {
             ._param_symbols = std.array_list.Managed(*Symbol).init(allocator),
             .context_param_symbols = std.array_list.Managed(*Symbol).init(allocator),
             .ret_type = ret_type,
-            .uses_decls = uses_decls,
+            .context_decls = context_decls,
             .refinement = refinement,
             .init = init,
             .infer_error = false,
@@ -1764,7 +1764,7 @@ pub const AST = union(enum) {
             },
             .fn_decl => {
                 const cloned_generic_params = clone_children(self.fn_decl._generic_params, substs, allocator);
-                const cloned_used_contexts = clone_children(self.fn_decl.uses_decls, substs, allocator);
+                const cloned_contexts = clone_children(self.fn_decl.context_decls, substs, allocator);
                 const cloned_params = clone_children(self.children().*, substs, allocator);
                 var retval = create_fn_decl(
                     self.token(),
@@ -1772,7 +1772,7 @@ pub const AST = union(enum) {
                     cloned_generic_params,
                     cloned_params,
                     self.fn_decl.ret_type.clone(substs, allocator),
-                    cloned_used_contexts,
+                    cloned_contexts,
                     if (self.fn_decl.refinement) |refinement| refinement.clone(substs, allocator) else null,
                     self.fn_decl.init.clone(substs, allocator),
                     allocator,

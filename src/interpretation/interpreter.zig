@@ -340,7 +340,7 @@ inline fn execute_instruction(self: *Self, instr: *Instruction) Error!void { // 
                 return self.package_find(instr);
             }
 
-            try self.call(symbol, instr.dest.?, instr.data.lval_list);
+            try self.call(symbol, instr.dest.?, instr.data.call.arg_lval_list);
         },
         .invoke => {
             const symbol_loc = try self.effective_address(instr.data.invoke.method_decl_lval.?);

@@ -105,10 +105,15 @@ pub fn output_function_prototype(
     try self.output_symbol(cfg.symbol);
 
     // Output function parameters
-    var num_non_unit_params: i64 = 0;
-    try self.writer.print("(", .{});
     const decl = cfg.symbol.decl.?;
     const param_symbols = decl.param_symbols();
+    const context_param_symbols = decl.context_param_symbols();
+
+    const has_params = param_symbols != null and param_symbols.?.items.len > 0;
+    const has_contexts = context_param_symbols != null and context_param_symbols.?.items.len > 0;
+
+    var num_non_unit_params: i64 = 0;
+    try self.writer.print("(", .{});
     if (param_symbols != null) {
         for (param_symbols.?.items, 0..) |term, i| {
             if (!term.expanded_type().is_c_void_type()) {
@@ -127,8 +132,10 @@ pub fn output_function_prototype(
             }
         }
     }
-    const context_param_symbols = decl.context_param_symbols();
     if (context_param_symbols != null) {
+        if (has_contexts and has_params) {
+            try self.writer.print(", ", .{});
+        }
         for (context_param_symbols.?.items, 0..) |term, i| {
             try self.output_var_decl(term, true);
             if (i + 1 < context_param_symbols.?.items.len and !context_param_symbols.?.items[i + 1].expanded_type().is_c_void_type()) {
