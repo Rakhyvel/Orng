@@ -42,6 +42,7 @@ fn output_dependencies(self: *Self) CodeGen_Error!void {
     for (self.dep.dependencies.items) |depen| {
         switch (depen.base.*) {
             .struct_type,
+            .context_type,
             .tuple_type,
             .array_of,
             .enum_type,
@@ -68,9 +69,13 @@ fn output_include_guard_end(self: *Self) CodeGen_Error!void {
 /// Outputs a typedef declaration based on the provided `DAG`.
 fn output_typedef(self: *Self) CodeGen_Error!void {
     if (self.dep.base.* == .function) {
+        const has_contexts = self.dep.base.function.context != null;
+        const has_params = self.dep.base.lhs().* != .unit_type;
+
         try self.writer.print("typedef ", .{});
         try self.emitter.output_type(self.dep.base.rhs());
         try self.writer.print("(*{f})(", .{Canonical_Type_Fmt{ .type = self.dep.base }});
+
         if (self.dep.base.lhs().* == .tuple_type) {
             // Function pointer takes more than one argument
             const product = self.dep.base.lhs();
@@ -85,10 +90,21 @@ fn output_typedef(self: *Self) CodeGen_Error!void {
             }
         } else {
             // Function pointer takes one argument
-            try self.emitter.output_type(self.dep.base.lhs());
+            if (!has_contexts or has_params) {
+                try self.emitter.output_type(self.dep.base.lhs());
+            }
+        }
+
+        if (has_contexts) {
+            if (has_params) {
+                try self.writer.print(", ", .{});
+            }
+            const fn_ctx = self.dep.base.function.context.?;
+            try self.emitter.output_type(fn_ctx);
+            try self.writer.print(" *", .{});
         }
         try self.writer.print(");\n\n", .{});
-    } else if (self.dep.base.* == .struct_type or self.dep.base.* == .tuple_type) {
+    } else if (self.dep.base.* == .struct_type or self.dep.base.* == .tuple_type or self.dep.base.* == .context_type) {
         try self.writer.print("struct {f} {{\n", .{Canonical_Type_Fmt{ .type = self.dep.base }});
         try self.output_field_list(self.dep.base.children(), 4);
         try self.writer.print("}};\n\n", .{});
@@ -120,6 +136,8 @@ fn output_typedef(self: *Self) CodeGen_Error!void {
             trait_symbol.scope.uid,
             trait_symbol.name,
         });
+    } else {
+        std.debug.panic("cannot output typedef for typekind {t}", .{self.dep.base.*});
     }
 }
 

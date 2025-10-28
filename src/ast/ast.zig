@@ -121,7 +121,13 @@ pub const AST = union(enum) {
     lesser_equal: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
     @"catch": struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
     @"orelse": struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
-    call: struct { common: AST_Common, _lhs: *AST, _args: std.array_list.Managed(*AST) },
+    call: struct {
+        common: AST_Common,
+        _lhs: *AST,
+        _args: std.array_list.Managed(*AST),
+        context_args: std.array_list.Managed(*Symbol),
+        _scope: ?*Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
+    },
     bit_and: struct { common: AST_Common, _args: std.array_list.Managed(*AST) },
     bit_or: struct { common: AST_Common, _args: std.array_list.Managed(*AST) },
     bit_xor: struct { common: AST_Common, _args: std.array_list.Managed(*AST) },
@@ -356,6 +362,7 @@ pub const AST = union(enum) {
         name: ?*AST, //
         _params: std.array_list.Managed(*AST), // Parameters' decl ASTs
         _param_symbols: std.array_list.Managed(*Symbol), // Parameters' symbols
+        context_param_symbols: std.array_list.Managed(*Symbol), // Context parameters' symbols
         ret_type: *Type_AST,
         uses_decls: std.array_list.Managed(*AST),
         _decl_type: ?*Type_AST = null,
@@ -699,6 +706,7 @@ pub const AST = union(enum) {
             .common = AST_Common{ ._token = _token },
             ._lhs = _lhs,
             ._args = args,
+            .context_args = std.array_list.Managed(*Symbol).init(allocator),
         } }, allocator);
     }
 
@@ -1173,6 +1181,7 @@ pub const AST = union(enum) {
             ._generic_params = _generic_params,
             ._params = params,
             ._param_symbols = std.array_list.Managed(*Symbol).init(allocator),
+            .context_param_symbols = std.array_list.Managed(*Symbol).init(allocator),
             .ret_type = ret_type,
             .uses_decls = uses_decls,
             .refinement = refinement,
@@ -1990,6 +1999,15 @@ pub const AST = union(enum) {
             .method_decl => &self.method_decl._param_symbols,
             .@"test" => null,
             else => std.debug.panic("compiler error: cannot call `.param_symbols()` on the AST `{s}`", .{@tagName(self.*)}),
+        };
+    }
+
+    pub fn context_param_symbols(self: *AST) ?*std.array_list.Managed(*Symbol) {
+        return switch (self.*) {
+            .fn_decl => &self.fn_decl.context_param_symbols,
+            .method_decl => null,
+            .@"test" => null,
+            else => std.debug.panic("compiler error: cannot call `.context_param_symbols()` on the AST `{s}`", .{@tagName(self.*)}),
         };
     }
 

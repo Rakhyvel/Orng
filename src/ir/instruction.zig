@@ -123,7 +123,10 @@ pub fn init_branch_addr(
 
 pub fn init_call(dest: *lval_.L_Value, src1: *lval_.L_Value, span: Span, allocator: std.mem.Allocator) *Self {
     var retval = Self.init(.call, dest, src1, null, span, allocator);
-    retval.data = Data{ .lval_list = std.array_list.Managed(*lval_.L_Value).init(allocator) };
+    retval.data = Data{ .call = .{
+        .arg_lval_list = std.array_list.Managed(*lval_.L_Value).init(allocator),
+        .context_arg_lval_list = std.array_list.Managed(*lval_.L_Value).init(allocator),
+    } };
     return retval;
 }
 
@@ -687,6 +690,10 @@ pub const Data = union(enum) {
     string: []const u8,
     symbol: *Symbol,
     lval_list: std.array_list.Managed(*lval_.L_Value),
+    call: struct {
+        arg_lval_list: std.array_list.Managed(*lval_.L_Value),
+        context_arg_lval_list: std.array_list.Managed(*lval_.L_Value),
+    },
     invoke: struct {
         method_decl: *ast_.AST, // AST of method decl. Either trait's definition if dyn, or impl's declaration if static
         method_decl_lval: ?*lval_.L_Value, // L-value of the method; non-null when statically known (ie not dyn)

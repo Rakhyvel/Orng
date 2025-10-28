@@ -439,11 +439,11 @@ fn output_instruction_post_check(self: *Self, instr: *Instruction) CodeGen_Error
             try self.output_call_prefix(instr);
             try self.output_rvalue(instr.src1.?, instr.kind.precedence());
             try self.writer.print("(", .{});
-            for (instr.data.lval_list.items, 0..) |term, i| {
+            for (instr.data.call.arg_lval_list.items, 0..) |term, i| {
                 if (!term.get_expanded_type().is_c_void_type()) {
                     // Do not output `void` arguments
                     try self.output_rvalue(term, HIGHEST_PRECEDENCE);
-                    if (i + 1 < instr.data.lval_list.items.len and !instr.data.lval_list.items[i + 1].get_expanded_type().is_c_void_type()) {
+                    if (i + 1 < instr.data.call.arg_lval_list.items.len and !instr.data.call.arg_lval_list.items[i + 1].get_expanded_type().is_c_void_type()) {
                         try self.writer.print(", ", .{});
                     }
                 }

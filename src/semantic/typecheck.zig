@@ -328,6 +328,13 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             // since enum_values are always compiler constructed, and their type is always a sum-type, this should always hold
             std.debug.assert(ast.lhs().* != .enum_value or expanded_lhs_type.* == .enum_type); // (an `implies` operator would be cool btw...)
 
+            // If lhs is function type and has context(s), try and find them. Error if you can't.
+            if (expanded_lhs_type.* == .function and expanded_lhs_type.function.context != null) {
+                const fn_ctx = expanded_lhs_type.function.context.?;
+                const symbol = ast.scope().?.context_lookup(fn_ctx) orelse std.debug.panic("TODO: Add error here about required context", .{});
+                try ast.call.context_args.append(symbol);
+            }
+
             const domain = if (expanded_lhs_type.* == .function) expanded_lhs_type.lhs() else ast.lhs().enum_value.domain.?;
             const codomain = if (expanded_lhs_type.* == .function) expanded_lhs_type.rhs() else ast.lhs().enum_value.base.?;
             const variadic = expanded_lhs_type.* == .function and expanded_lhs_type.function.variadic;
@@ -911,7 +918,7 @@ pub fn validate_args_type(
 
 fn validate_L_Value(self: *Self, ast: *ast_.AST) Validate_Error_Enum!void {
     switch (ast.*) {
-        .select, .identifier, .array_value => {},
+        .select, .identifier, .array_value, .context_value => {},
 
         .dereference => if (ast.expr().* != .addr_of) {
             try self.validate_L_Value(ast.expr());
@@ -924,6 +931,7 @@ fn validate_L_Value(self: *Self, ast: *ast_.AST) Validate_Error_Enum!void {
         },
 
         else => {
+            std.debug.print("{t}\n", .{ast.*});
             self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "not an l-value" } });
             return error.CompileError;
         },

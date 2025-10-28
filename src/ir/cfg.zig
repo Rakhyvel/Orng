@@ -265,6 +265,14 @@ pub fn calculate_usage(self: *Self) void {
                     lval.increment_usage();
                 }
             }
+            if (instr.data == .call) {
+                for (instr.data.call.arg_lval_list.items) |lval| {
+                    lval.increment_usage();
+                }
+                for (instr.data.call.context_arg_lval_list.items) |lval| {
+                    lval.increment_usage();
+                }
+            }
             if (instr.data == .invoke) {
                 if (instr.data.invoke.dyn_value != null) {
                     instr.data.invoke.dyn_value.?.increment_usage();

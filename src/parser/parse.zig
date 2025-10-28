@@ -1210,7 +1210,6 @@ fn with_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
     const token = try self.expect(.with);
     var context_list = std.array_list.Managed(*ast_.AST).init(self.allocator);
 
-    // TODO: Create decls (or bindings?) of context type with context value
     try context_list.append(try self.context_param());
     while (self.accept(.comma) != null) {
         try context_list.append(try self.context_param());
@@ -1358,17 +1357,24 @@ fn context_param(self: *Self) Parser_Error_Enum!*ast_.AST {
     const identifier = try self.expect(.identifier);
     const name = anon_name_.next_anon_name("context_value", self.allocator);
     const ident = ast_.AST.create_pattern_symbol(identifier, .let, .local, name, self.allocator);
-    const _type = Type_AST.create_type_identifier(identifier, self.allocator);
+    const context_type = Type_AST.create_type_identifier(identifier, self.allocator);
+    const addr_context_type = Type_AST.create_addr_of_type(
+        identifier,
+        context_type,
+        false,
+        false,
+        self.allocator,
+    );
 
     var _init: ?*ast_.AST = null;
     if (self.peek_kind(.left_parenthesis)) {
-        _init = try self.context_value(_type);
+        _init = ast_.AST.create_addr_of(identifier, try self.context_value(context_type), false, false, self.allocator);
     }
 
     return ast_.AST.create_binding(
         ident.token(),
         ident,
-        _type,
+        addr_context_type,
         _init,
         self.allocator,
     );

@@ -98,6 +98,10 @@ fn hash_type_internal(
             try writer.print("tuple{}", .{non_unit_len(real_type)});
             try append_fields(real_type, seen_map, next_id, writer);
         },
+        .context_type => {
+            try writer.print("context{}", .{non_unit_len(real_type)});
+            try append_fields(real_type, seen_map, next_id, writer);
+        },
         .array_of => {
             try writer.print("array{}_", .{real_type.array_of.len.int.data});
             try hash_type_internal(real_type.child(), seen_map, next_id, writer);

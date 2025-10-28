@@ -97,14 +97,20 @@ pub fn lookup(self: *Self, name: []const u8, flags: Lookup_Flags) Lookup_Result 
     }
 }
 
-pub fn context_lookup(self: *Self, context_name: []const u8) ?*Symbol {
+pub fn context_lookup(self: *Self, context_type: *Type_AST) ?*Symbol {
     for (self.symbols.keys()) |symbol_name| {
         const symbol = self.symbols.get(symbol_name).?;
-        if (symbol.kind == .let and symbol.type().* == .identifier and std.mem.eql(u8, symbol.type().token().data, context_name)) {
-            return symbol;
+        if (symbol.kind == .let) {
+            var symbol_type = symbol.type();
+            if (symbol.type().* == .addr_of and context_type.* != .addr_of) {
+                symbol_type = symbol_type.child();
+            }
+            if (context_type.types_match(symbol_type)) {
+                return symbol;
+            }
         }
     } else if (self.parent) |parent| {
-        return parent.context_lookup(context_name);
+        return parent.context_lookup(context_type);
     } else {
         return null;
     }

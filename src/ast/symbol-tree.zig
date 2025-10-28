@@ -47,7 +47,7 @@ fn symbol_tree_prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         else => {},
 
         // Capture scope
-        .@"comptime", .access, .invoke, .addr_of => ast.set_scope(self.scope),
+        .@"comptime", .access, .call, .invoke, .addr_of => ast.set_scope(self.scope),
 
         // Check that AST is inside a loop
         .@"break", .@"continue" => try self.in_loop_check(ast, self.errors),
@@ -326,7 +326,7 @@ fn symbol_tree_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
             }
             for (ast.fn_decl.uses_decls.items) |uses_binding| {
                 const symbol = uses_binding.binding.decls.items[0].decl.name.symbol().?;
-                ast.param_symbols().?.append(symbol) catch unreachable;
+                ast.context_param_symbols().?.append(symbol) catch unreachable;
                 symbol.defined = true;
                 symbol.param = true;
             }

@@ -98,7 +98,7 @@ fn decorate_access_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
             const decl = sym.decl orelse return;
 
             if (decl.* == .context_decl) {
-                const context_val_symbol = self.scope.context_lookup(child.token().data).?;
+                const context_val_symbol = self.scope.context_lookup(decl.decl_typedef().?) orelse std.debug.panic("TODO: add error here about the context not being visible", .{});
                 const context_val_ident = ast_.AST.create_identifier(token_.init_simple(context_val_symbol.name), self.compiler.allocator());
                 context_val_ident.set_symbol(context_val_symbol);
                 ast.set_lhs(context_val_ident);

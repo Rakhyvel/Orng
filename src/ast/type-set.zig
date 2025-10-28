@@ -38,7 +38,7 @@ fn add_internal(self: *Self, oldast_: *Type_AST, from_function: bool) ?*Dependen
     // Type wasn't in the set, so we'll need to create a Dependency_Node for it and its children
     switch (ast.*) {
         .function => return self.add_function(ast),
-        .struct_type, .tuple_type, .enum_type, .untagged_sum_type => return self.add_aggregate(ast),
+        .struct_type, .tuple_type, .enum_type, .untagged_sum_type, .context_type => return self.add_aggregate(ast),
         .dyn_type => return self.add_dependency_node(ast),
         .annotation => return self.add_type(ast.child()),
         .addr_of => {
@@ -51,7 +51,7 @@ fn add_internal(self: *Self, oldast_: *Type_AST, from_function: bool) ?*Dependen
         },
         .array_of => return self.add_array(ast),
         .identifier, .unit_type, .anyptr_type => return null, // Do not add to Dependency_Node
-        else => std.debug.panic("unknown: {f}", .{ast}),
+        else => std.debug.panic("error: cannot add unknown typekind `{t}` to set", .{ast.*}),
     }
 }
 

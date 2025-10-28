@@ -709,7 +709,7 @@ pub const Type_AST = union(enum) {
                 try out.print("->", .{});
                 try self.rhs().print_type(out);
             },
-            .struct_type, .tuple_type => {
+            .struct_type, .tuple_type, .context_type => {
                 try out.print("(", .{});
                 for (self.children().items, 0..) |term, i| {
                     try term.print_type(out);
@@ -781,7 +781,7 @@ pub const Type_AST = union(enum) {
                 return primitive_info.size;
             },
 
-            .struct_type, .tuple_type => {
+            .struct_type, .tuple_type, .context_type => {
                 var total_size: i64 = 0;
                 for (self.children().items) |_child| {
                     total_size = alignment_.next_alignment(total_size, _child.alignof());
@@ -840,7 +840,7 @@ pub const Type_AST = union(enum) {
                 return primitive_info._align;
             },
 
-            .struct_type, .tuple_type => {
+            .struct_type, .tuple_type, .context_type => {
                 var max_align: i64 = 0;
                 for (self.children().items) |_child| {
                     max_align = @max(max_align, _child.alignof());
@@ -958,7 +958,7 @@ pub const Type_AST = union(enum) {
             .array_of => return types_match(A.child(), B.child()) and A.array_of.len.int.data == B.array_of.len.int.data,
             .anyptr_type => return B.* == .anyptr_type,
             .unit_type => return true,
-            .struct_type, .tuple_type => {
+            .struct_type, .tuple_type, .context_type => {
                 if (B.children().items.len != A.children().items.len) {
                     return false;
                 }
@@ -1043,7 +1043,7 @@ pub const Type_AST = union(enum) {
             .unit_type => return other.* == .unit_type,
             .anyptr_type => return other.* == .anyptr_type,
             .dyn_type => return self.child().symbol() == other.child().symbol(),
-            .struct_type, .tuple_type, .enum_type, .untagged_sum_type => {
+            .struct_type, .tuple_type, .enum_type, .untagged_sum_type, .context_type => {
                 if (other.children().items.len != self.children().items.len) {
                     return false;
                 }

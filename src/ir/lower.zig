@@ -60,7 +60,7 @@ pub fn lower_AST_into_cfg(self: *Self) Lower_Errors!void {
     }
     self.instructions.append(Instruction.init_jump(null, self.cfg.symbol.span(), self.ctx.allocator())) catch unreachable;
 
-    if (true) {
+    if (false) {
         // Print symbol Instruction after lowering, before breaking up into basic blocks
         std.debug.print("CFG {s}:\n", .{self.cfg.symbol.name});
         for (self.instructions.items) |instr| {
@@ -255,7 +255,10 @@ fn lower_AST_inner(
 
             var instr = Instruction.init_call(temp, lhs, ast.token().span, self.ctx.allocator());
             for (ast.children().items) |term| {
-                instr.data.lval_list.append((try self.lower_AST(term, labels)) orelse continue) catch unreachable;
+                instr.data.call.arg_lval_list.append((try self.lower_AST(term, labels)) orelse continue) catch unreachable;
+            }
+            for (ast.call.context_args.items) |context_arg| {
+                instr.data.call.arg_lval_list.append(lval_.L_Value.create_unversioned_symbver(context_arg, self.ctx.allocator())) catch unreachable;
             }
             self.instructions.append(Instruction.init_stack_push(ast.token().span, self.ctx.allocator())) catch unreachable;
             self.instructions.append(instr) catch unreachable;
