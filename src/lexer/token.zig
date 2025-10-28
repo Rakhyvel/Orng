@@ -57,7 +57,6 @@ pub const Kind = enum(u32) {
     self,
     @"struct",
     undefined,
-    uses,
     variadic,
     virtual,
 
@@ -185,7 +184,6 @@ pub const Kind = enum(u32) {
             .self => "self",
             .@"struct" => "struct",
             .undefined => "undefined",
-            .uses => "uses",
             .variadic => "variadic",
             .virtual => "virtual",
 

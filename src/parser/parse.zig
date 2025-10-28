@@ -298,7 +298,7 @@ fn function_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
             variadic = true;
         }
         var context: ?*Type_AST = null;
-        if (self.accept(.uses) != null) {
+        if (self.accept(.with) != null) {
             context = try self.type_expr();
         }
         exp = Type_AST.create_function(token, exp, try self.error_type_expr(), context, self.allocator);
@@ -1336,7 +1336,7 @@ fn param(self: *Self) Parser_Error_Enum!*ast_.AST {
 
 fn context_paramlist(self: *Self) Parser_Error_Enum!std.array_list.Managed(*ast_.AST) {
     var retval = std.array_list.Managed(*ast_.AST).init(self.allocator);
-    if (self.accept(.uses)) |_| {
+    if (self.accept(.with)) |_| {
         if (self.accept(.left_parenthesis) != null) {
             while (!self.peek_kind(.right_parenthesis)) {
                 try retval.append(try self.context_param());

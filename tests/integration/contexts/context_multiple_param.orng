@@ -9,6 +9,6 @@ fn main() -> Int {
     }
 }
 
-fn add(n: Int) -> Int uses My_Context {
+fn add(n: Int) -> Int with My_Context {
     My_Context.x + n
 }

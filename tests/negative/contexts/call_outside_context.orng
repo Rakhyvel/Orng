@@ -10,6 +10,6 @@ fn main() -> Int {
     get_four()
 }
 
-fn get_four() -> Int uses My_Context {
+fn get_four() -> Int with My_Context {
     My_Context.x
 }
