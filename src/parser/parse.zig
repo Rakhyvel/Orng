@@ -1,4 +1,5 @@
 const std = @import("std");
+const anon_name_ = @import("../util/anon_name.zig");
 const ast_ = @import("../ast/ast.zig");
 const errs_ = @import("../util/errors.zig");
 const Symbol = @import("../symbol/symbol.zig");
@@ -1208,13 +1209,32 @@ fn while_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
 fn with_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
     const token = try self.expect(.with);
     var context_list = std.array_list.Managed(*ast_.AST).init(self.allocator);
-    try context_list.append(try self.assignment_expr());
+
+    // TODO: Create decls (or bindings?) of context type with context value
+    try context_list.append(try self.context_param());
     while (self.accept(.comma) != null) {
-        try context_list.append(try self.assignment_expr());
+        try context_list.append(try self.context_param());
     }
+
     const body_block = try self.block_expr();
 
     return ast_.AST.create_with(token, context_list, body_block, self.allocator);
+}
+
+fn context_value(self: *Self, context_name: *Type_AST) Parser_Error_Enum!*ast_.AST {
+    var arg_list: std.array_list.Managed(*ast_.AST) = std.array_list.Managed(*ast_.AST).init(self.allocator);
+
+    const token = try self.expect(.left_parenthesis);
+    while (!self.peek_kind(.right_parenthesis)) {
+        const context_decl = try self.assignment_expr();
+        arg_list.append(context_decl) catch unreachable;
+        if (self.accept(.comma) == null) {
+            break;
+        }
+    }
+    _ = try self.expect(.right_parenthesis);
+
+    return ast_.AST.create_context_value(token, context_name, arg_list, self.allocator);
 }
 
 fn for_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
@@ -1247,7 +1267,7 @@ fn fn_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     _ = try self.expect(.skinny_arrow);
     const ret_type = try self.type_expr();
     const refinement: ?*ast_.AST = null;
-    const used_contexts = try self.used_contexts_list();
+    const used_contexts = try self.context_paramlist();
 
     const _init = try self.block_expr();
 
@@ -1304,6 +1324,45 @@ fn param(self: *Self) Parser_Error_Enum!*ast_.AST {
     if (self.peek_kind(.single_equals)) {
         const token = try self.expect(.single_equals);
         _init = ast_.AST.create_comptime(token, try self.bool_expr(), self.allocator);
+    }
+
+    return ast_.AST.create_binding(
+        ident.token(),
+        ident,
+        _type,
+        _init,
+        self.allocator,
+    );
+}
+
+fn context_paramlist(self: *Self) Parser_Error_Enum!std.array_list.Managed(*ast_.AST) {
+    var retval = std.array_list.Managed(*ast_.AST).init(self.allocator);
+    if (self.accept(.uses)) |_| {
+        if (self.accept(.left_parenthesis) != null) {
+            while (!self.peek_kind(.right_parenthesis)) {
+                try retval.append(try self.context_param());
+                if (self.accept(.comma) == null) {
+                    break;
+                }
+            }
+            _ = try self.expect(.right_parenthesis);
+        } else {
+            try retval.append(try self.context_param());
+        }
+    }
+    return retval;
+}
+
+fn context_param(self: *Self) Parser_Error_Enum!*ast_.AST {
+    // TODO: Should be able to accept an access context
+    const identifier = try self.expect(.identifier);
+    const name = anon_name_.next_anon_name("context_value", self.allocator);
+    const ident = ast_.AST.create_pattern_symbol(identifier, .let, .local, name, self.allocator);
+    const _type = Type_AST.create_type_identifier(identifier, self.allocator);
+
+    var _init: ?*ast_.AST = null;
+    if (self.peek_kind(.left_parenthesis)) {
+        _init = try self.context_value(_type);
     }
 
     return ast_.AST.create_binding(
@@ -1439,30 +1498,6 @@ fn type_alias_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     }
 
     return ast_.AST.create_type_alias(identifier, name, _init, gen_params, self.allocator);
-}
-
-fn used_contexts_list(self: *Self) Parser_Error_Enum!std.array_list.Managed(*ast_.AST) {
-    var used_contexts = std.array_list.Managed(*ast_.AST).init(self.allocator);
-
-    if (self.accept(.uses) != null) {
-        if (self.accept(.left_parenthesis) != null) {
-            while (!self.peek_kind(.right_square)) {
-                const param_token = try self.expect(.identifier);
-                const context_decl = ast_.AST.create_context_param_decl(param_token, self.allocator);
-                used_contexts.append(context_decl) catch unreachable;
-                if (self.accept(.comma) == null) {
-                    break;
-                }
-            }
-            _ = try self.expect(.right_parenthesis);
-        } else {
-            const param_token = try self.expect(.identifier);
-            const context_decl = ast_.AST.create_context_param_decl(param_token, self.allocator);
-            used_contexts.append(context_decl) catch unreachable;
-        }
-    }
-
-    return used_contexts;
 }
 
 fn generic_params_list(self: *Self) Parser_Error_Enum!std.array_list.Managed(*ast_.AST) {

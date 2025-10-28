@@ -89,7 +89,6 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .import,
         => {},
 
-        .context_param_decl => try walk_type(ast.context_param_decl._type, new_context),
         .context_decl => try walk_type(ast.decl_typedef(), new_context),
 
         .struct_decl,
@@ -158,6 +157,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             try walk_ast(ast.lhs(), new_context);
             try walk_types(&ast.generic_apply._children, new_context);
         },
+        .context_value,
         .struct_value,
         .tuple_value,
         .array_value,

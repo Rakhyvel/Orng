@@ -4,7 +4,7 @@ context My_Context {
 }
 
 fn main() -> Int {
-    with My_Context(.x = 356) {
+    with My_Context(356) {
         add_four()
     }
 }

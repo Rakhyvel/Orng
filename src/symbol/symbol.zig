@@ -153,6 +153,7 @@ pub fn err_if_undefined(self: *Self, errors: *errs_.Errors) error{CompileError}!
 /// Throws an `error.CompileError` if a symbol is not used.
 pub fn err_if_unused(self: *Self, errors: *errs_.Errors) error{CompileError}!void {
     if (self.kind != .@"const" and self.uses == 0) {
+        // TODO: Add a better error for contexts, say `context My_Context is unused` or something
         errors.add_error(errs_.Error{ .symbol_error = .{
             .span = self.span(),
             .context_span = null,

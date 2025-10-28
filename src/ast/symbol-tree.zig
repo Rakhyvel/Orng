@@ -153,20 +153,6 @@ fn symbol_tree_prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             return new_self;
         },
 
-        .context_param_decl => {
-            // Create an anonymous parameter with the type of the name of the context param decl
-            const symbol = Symbol.init(
-                self.scope,
-                next_anon_name("context_param", self.allocator),
-                ast,
-                .let,
-                .local,
-                self.allocator,
-            );
-            try self.register_symbol(ast, symbol);
-            self.scope.pprint();
-        },
-
         .type_param_decl => {
             const symbol = Symbol.init(
                 self.scope,
@@ -334,6 +320,12 @@ fn symbol_tree_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
         .fn_decl => {
             for (ast.children().items) |param_binding| {
                 const symbol = param_binding.binding.decls.items[0].decl.name.symbol().?;
+                ast.param_symbols().?.append(symbol) catch unreachable;
+                symbol.defined = true;
+                symbol.param = true;
+            }
+            for (ast.fn_decl.uses_decls.items) |uses_binding| {
+                const symbol = uses_binding.binding.decls.items[0].decl.name.symbol().?;
                 ast.param_symbols().?.append(symbol) catch unreachable;
                 symbol.defined = true;
                 symbol.param = true;

@@ -507,6 +507,27 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
 
             return ast.dyn_value.dyn_type;
         },
+        .context_value => {
+            try self.ctx.validate_type.validate_type(ast.context_value.parent);
+            const expanded_expected: *Type_AST = if (expected == null) ast.context_value.parent.expand_identifier() else expected.?.expand_identifier();
+            if (expanded_expected.* == .context_type) {
+                // Expecting ast to be a product value of some product type
+                ast.set_children(try args_.default_args(.context, ast.children().*, ast.token().span, expanded_expected, &self.ctx.errors, self.ctx.allocator()));
+                try args_.validate_args_arity(.context, ast.children(), expanded_expected, false, ast.token().span, &self.ctx.errors);
+                _ = try self.validate_args_type(ast.children(), expanded_expected, false);
+                return ast.context_value.parent;
+            } else if (ast.context_value.parent.expand_identifier().* != .context_type) {
+                // Parent wasn't even a context type!
+                return typing_.throw_wrong_from("context", "context value", ast.context_value.parent, ast.token().span, &self.ctx.errors);
+            } else if (!prelude_.unit_type.types_match(expanded_expected)) {
+                // It's ok to assign this to a unit type, something like `_ = (1, 2, 3)`
+                // expecting something that is not a type nor a product is not ok!
+                // poison `got`, so that it doesn't print anything for the `got` section, wouldn't make sense anyway
+                return typing_.throw_unexpected_type(ast.token().span, expanded_expected, ast.context_value.parent, &self.ctx.errors);
+            } else {
+                return prelude_.unit_type;
+            }
+        },
         .struct_value => {
             try self.ctx.validate_type.validate_type(ast.struct_value.parent);
             const expanded_expected: *Type_AST = if (expected == null) ast.struct_value.parent.expand_identifier() else expected.?.expand_identifier();
@@ -765,6 +786,9 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             return prelude_.unit_type;
         },
         .with => {
+            for (ast.with.contexts.items) |child| {
+                _ = try self.typecheck_AST(child, null);
+            }
             return self.typecheck_AST(ast.with._body_block, expected);
         },
         .block => {
@@ -867,12 +891,12 @@ pub fn validate_args_type(
     expected: *Type_AST,
     variadic: bool,
 ) Validate_Error_Enum!std.array_list.Managed(*Type_AST) {
-    const expected_length = if (expected.* == .unit_type) 0 else if (expected.* == .struct_type or expected.* == .tuple_type) expected.children().items.len else 1;
+    const expected_length = if (expected.* == .unit_type) 0 else if (expected.* == .struct_type or expected.* == .tuple_type or expected.* == .context_type) expected.children().items.len else 1;
 
     var terms = std.array_list.Managed(*Type_AST).init(self.ctx.allocator());
     errdefer terms.deinit();
     for (0..expected_length) |i| {
-        const param_type = if (expected.* == .struct_type or expected.* == .tuple_type) expected.children().items[i] else expected;
+        const param_type = if (expected.* == .struct_type or expected.* == .tuple_type or expected.* == .context_type) expected.children().items[i] else expected;
         const term_type = self.typecheck_AST(args.items[i], param_type) catch return error.CompileError;
         terms.append(term_type) catch unreachable;
     }

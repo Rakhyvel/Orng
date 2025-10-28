@@ -60,7 +60,7 @@ pub fn lower_AST_into_cfg(self: *Self) Lower_Errors!void {
     }
     self.instructions.append(Instruction.init_jump(null, self.cfg.symbol.span(), self.ctx.allocator())) catch unreachable;
 
-    if (false) {
+    if (true) {
         // Print symbol Instruction after lowering, before breaking up into basic blocks
         std.debug.print("CFG {s}:\n", .{self.cfg.symbol.name});
         for (self.instructions.items) |instr| {
@@ -354,7 +354,7 @@ fn lower_AST_inner(
             const expanded_type = self.ctx.typecheck.typeof(ast).expand_identifier();
             return ast_lval.?.create_select_lval(field, offset, expanded_type, tag, self.ctx.allocator());
         },
-        .struct_value, .tuple_value, .array_value => {
+        .struct_value, .tuple_value, .array_value, .context_value => {
             _ = self.ctx.typecheck.typeof(ast).expand_identifier();
             const temp = self.create_temp_lvalue(self.ctx.typecheck.typeof(ast));
             var instr = Instruction.init_load_struct(temp, ast.token().span, self.ctx.allocator());
@@ -502,6 +502,12 @@ fn lower_AST_inner(
 
             self.instructions.append(end_label) catch unreachable;
             return lval_.L_Value.create_unversioned_symbver(symbol, self.ctx.allocator());
+        },
+        .with => {
+            for (ast.with.contexts.items) |ctx| {
+                _ = try self.lower_AST(ctx, labels);
+            }
+            return self.lower_AST(ast.with._body_block, labels);
         },
         .block => { // TODO: TOO LONG
             if (ast.children().items.len == 0 and ast.block.final == null) {

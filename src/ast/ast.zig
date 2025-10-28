@@ -208,6 +208,11 @@ pub const AST = union(enum) {
             return self.common._token.data;
         }
     },
+    context_value: struct {
+        common: AST_Common,
+        parent: *Type_AST,
+        _terms: std.array_list.Managed(*AST),
+    },
     struct_value: struct {
         common: AST_Common,
         parent: *Type_AST,
@@ -359,11 +364,6 @@ pub const AST = union(enum) {
         _symbol: ?*Symbol = null,
         _scope: ?*Scope = null,
         infer_error: bool,
-    },
-    context_param_decl: struct {
-        common: AST_Common,
-        _type: *Type_AST,
-        _symbol: ?*Symbol = null,
     },
     context_decl: struct {
         common: AST_Common,
@@ -856,6 +856,14 @@ pub const AST = union(enum) {
         } }, allocator);
     }
 
+    pub fn create_context_value(_token: Token, parent: *Type_AST, terms: std.array_list.Managed(*AST), allocator: std.mem.Allocator) *AST {
+        return AST.box(AST{ .context_value = .{
+            .common = AST_Common{ ._token = _token },
+            .parent = parent,
+            ._terms = terms,
+        } }, allocator);
+    }
+
     pub fn create_struct_value(_token: Token, parent: *Type_AST, terms: std.array_list.Managed(*AST), allocator: std.mem.Allocator) *AST {
         return AST.box(AST{ .struct_value = .{
             .common = AST_Common{ ._token = _token },
@@ -1170,13 +1178,6 @@ pub const AST = union(enum) {
             .refinement = refinement,
             .init = init,
             .infer_error = false,
-        } }, allocator);
-    }
-
-    pub fn create_context_param_decl(_token: Token, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .context_param_decl = .{
-            .common = AST_Common{ ._token = _token },
-            ._type = Type_AST.create_type_identifier(_token, allocator),
         } }, allocator);
     }
 
@@ -1579,7 +1580,12 @@ pub const AST = union(enum) {
                     allocator,
                 );
             },
-            .context_param_decl => return create_context_param_decl(self.token(), allocator),
+            .context_value => return create_context_value(
+                self.token(),
+                self.context_value.parent.clone(substs, allocator),
+                clone_children(self.context_value._terms, substs, allocator),
+                allocator,
+            ),
             .context_decl => {
                 const cloned_terms = Type_AST.clone_types(self.context_decl.fields, substs, allocator);
                 const retval = create_context_decl(
@@ -1873,6 +1879,7 @@ pub const AST = union(enum) {
         return switch (self.*) {
             .call => &self.call._args,
             .index => &self.index._children,
+            .context_value => &self.context_value._terms,
             .struct_value => &self.struct_value._terms,
             .tuple_value => &self.tuple_value._terms,
             .array_value => &self.array_value._terms,
@@ -1892,6 +1899,7 @@ pub const AST = union(enum) {
     pub fn set_children(self: *AST, val: std.array_list.Managed(*AST)) void {
         switch (self.*) {
             .call => self.call._args = val,
+            .context_value => self.context_value._terms = val,
             .struct_value => self.struct_value._terms = val,
             .tuple_value => self.tuple_value._terms = val,
             .array_value => self.array_value._terms = val,
@@ -1916,7 +1924,6 @@ pub const AST = union(enum) {
             .@"test" => core_.test_type,
             .module, .trait => prelude_.unit_type,
             .receiver => self.receiver._type.?,
-            .context_param_decl => self.context_param_decl._type,
             else => std.debug.panic("compiler error: cannot call `.decl_type()` on the AST `{s}`", .{@tagName(self.*)}),
         };
     }
@@ -1928,7 +1935,7 @@ pub const AST = union(enum) {
             .method_decl => self.method_decl.init,
             .@"test" => self.@"test".init,
             .module, .trait => self,
-            .struct_decl, .enum_decl, .type_alias, .receiver, .type_param_decl, .context_decl, .context_param_decl => null,
+            .struct_decl, .enum_decl, .type_alias, .receiver, .type_param_decl, .context_decl, .context_value => null,
             else => std.debug.panic("compiler error: cannot call `.decl_init()` on the AST `{s}`", .{@tagName(self.*)}),
         };
     }
@@ -2326,7 +2333,7 @@ pub const AST = union(enum) {
             .enum_value => {
                 try out.print("enum_value(.name={s}, .init={?f}, .tag={?})", .{ self.enum_value.get_name(), self.enum_value.init, self.enum_value._pos });
             },
-            .context_param_decl => try out.print("context_param_decl({s})", .{self.type_param_decl.common._token.data}),
+            .context_value => try out.print("context_value({s})", .{self.context_value.common._token.data}),
             .context_decl => {
                 try out.print("context_decl(\n", .{});
                 try out.print("\t.name = {f}\n", .{self.context_decl.name});
