@@ -436,8 +436,12 @@ pub const AST = union(enum) {
     @"test": struct {
         common: AST_Common,
         name: ?*AST,
+        context_decls: std.array_list.Managed(*AST),
         init: *AST,
+        _decl_type: ?*Type_AST = null,
+        context_param_symbols: std.array_list.Managed(*Symbol), // Context parameters' symbols
         _symbol: ?*Symbol = null,
+        _scope: ?*Scope = null,
     },
     module: struct {
         common: AST_Common,
@@ -1303,13 +1307,16 @@ pub const AST = union(enum) {
     pub fn create_test(
         _token: Token,
         name: ?*AST,
+        context_decls: std.array_list.Managed(*AST),
         init: *AST,
         allocator: std.mem.Allocator,
     ) *AST {
         return AST.box(AST{ .@"test" = .{
             .common = AST_Common{ ._token = _token },
             .name = name,
+            .context_decls = context_decls,
             .init = init,
+            .context_param_symbols = std.array_list.Managed(*Symbol).init(allocator),
         } }, allocator);
     }
 
@@ -1826,6 +1833,7 @@ pub const AST = union(enum) {
             .@"test" => return create_test(
                 self.token(),
                 self.@"test".name,
+                clone_children(self.@"test".context_decls, substs, allocator),
                 self.@"test".init,
                 allocator,
             ),
@@ -1955,7 +1963,7 @@ pub const AST = union(enum) {
             .decl => self.decl.type,
             .fn_decl => self.fn_decl._decl_type.?,
             .method_decl => self.method_decl._decl_type.?,
-            .@"test" => core_.test_type,
+            .@"test" => self.@"test"._decl_type.?,
             .module, .trait => prelude_.unit_type,
             .receiver => self.receiver._type.?,
             .context_value_decl => self.context_value_decl.parent,
@@ -2032,8 +2040,8 @@ pub const AST = union(enum) {
     pub fn context_param_symbols(self: *AST) ?*std.array_list.Managed(*Symbol) {
         return switch (self.*) {
             .fn_decl => &self.fn_decl.context_param_symbols,
+            .@"test" => &self.@"test".context_param_symbols,
             .method_decl => null,
-            .@"test" => null,
             else => std.debug.panic("compiler error: cannot call `.context_param_symbols()` on the AST `{s}`", .{@tagName(self.*)}),
         };
     }

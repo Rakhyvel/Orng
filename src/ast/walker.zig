@@ -242,6 +242,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             try walk_type(ast.fn_decl.ret_type, new_context);
         },
         .@"test" => {
+            try walk_asts(&ast.@"test".context_decls, new_context);
             try walk_ast(ast.@"test".name, new_context);
             try walk_ast(ast.@"test".init, new_context);
         },

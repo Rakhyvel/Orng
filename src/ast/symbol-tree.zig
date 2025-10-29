@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
+const core_ = @import("../hierarchy/core.zig");
 const errs_ = @import("../util/errors.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const String = @import("../zig-string/zig-string.zig").String;
@@ -184,9 +185,16 @@ fn symbol_tree_prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         },
 
         .@"test" => {
-            const symbol = try create_test_symbol(ast, self.scope, self.errors, self.allocator);
+            var new_self = self;
+            new_self.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
+
+            ast.set_scope(new_self.scope);
+            new_self.scope.function_depth = self.scope.function_depth + 1;
+
+            const symbol = try create_test_symbol(ast, self.errors, self.allocator);
             try self.register_symbol(ast, symbol);
-            return null;
+
+            return new_self;
         },
 
         // Create a symbol for this function
@@ -349,6 +357,15 @@ fn symbol_tree_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
                 symbol.param = true;
             }
         },
+
+        .@"test" => {
+            for (ast.@"test".context_decls.items) |context_param| {
+                const symbol = context_param.symbol().?;
+                ast.context_param_symbols().?.append(symbol) catch unreachable;
+                symbol.defined = true;
+                symbol.param = true;
+            }
+        },
     }
 }
 
@@ -502,29 +519,34 @@ pub fn create_function_symbol(ast: *ast_.AST, allocator: std.mem.Allocator) *Sym
     return retval;
 }
 
-pub fn create_test_symbol(
-    ast: *ast_.AST,
-    scope: *Scope,
-    errors: *errs_.Errors,
-    allocator: std.mem.Allocator,
-) Error!*Symbol {
-    // Create the function scope
-    var fn_scope = Scope.init(scope, scope.uid_gen, allocator);
-    fn_scope.function_depth = scope.function_depth + 1;
+pub fn create_test_symbol(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) Error!*Symbol {
+    const context_type = if (ast.@"test".context_decls.items.len != 0)
+        ast.@"test".context_decls.items[0].context_value_decl.parent
+    else
+        null;
+
+    const _type = Type_AST.create_function(
+        ast.token(),
+        prelude_.unit_type,
+        core_.test_result_type,
+        context_type,
+        allocator,
+    );
+    ast.@"test"._decl_type = _type;
 
     // Choose name (maybe anon)
     const buf: []const u8 = next_anon_name("test", allocator);
     const retval = Symbol.init(
-        fn_scope,
+        ast.scope().?,
         buf,
         ast,
         .@"test",
         .local,
         allocator,
     );
-    fn_scope.inner_function = retval;
+    ast.scope().?.inner_function = retval;
 
-    const symbol_walk = Self.new(fn_scope, errors, allocator);
+    const symbol_walk = Self.new(ast.scope().?, errors, allocator);
     try walk_.walk_ast(ast.@"test".init, symbol_walk);
     return retval;
 }

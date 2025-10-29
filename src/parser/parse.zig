@@ -1266,7 +1266,7 @@ fn fn_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     _ = try self.expect(.skinny_arrow);
     const ret_type = try self.type_expr();
     const refinement: ?*ast_.AST = null;
-    const used_contexts = try self.context_paramlist();
+    const contexts_decls = try self.context_paramlist();
 
     const _init = try self.block_expr();
 
@@ -1276,7 +1276,7 @@ fn fn_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
         gen_params,
         params,
         ret_type,
-        used_contexts,
+        contexts_decls,
         refinement,
         _init,
         self.allocator,
@@ -1592,10 +1592,12 @@ fn impl_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
 fn test_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     const token = try self.expect(.@"test");
     const name = try self.bool_expr();
+    const context_decls = try self.context_paramlist();
     const body = try self.block_expr();
     return ast_.AST.create_test(
         token,
         name,
+        context_decls,
         body,
         self.allocator,
     );

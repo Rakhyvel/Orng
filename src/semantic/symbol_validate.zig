@@ -90,6 +90,19 @@ pub fn validate_symbol(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
         // unreachable;
     }
 
+    // Check that tests are requesting good contexts
+    if (symbol.kind == .@"test") {
+        if (symbol.type().function.context) |ctx| {
+            if (!ctx.child().types_match(self.ctx.get_core_type("Allocating"))) {
+                self.ctx.errors.add_error(errs_.Error{ .basic = .{
+                    .span = ctx.token().span,
+                    .msg = "test can't request this context",
+                } });
+                return error.CompileError;
+            }
+        }
+    }
+
     // Symbol's name must be capitalized iff its type is Type
     if (symbol.is_type() or symbol.kind == .trait or symbol.kind == .context) {
         if (!is_capitalized(symbol.name)) {
@@ -118,6 +131,7 @@ pub fn validate_symbol(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
             symbol.storage.@"extern".c_name = ast_.AST.create_string(Token.init_simple(symbol.name), symbol.name, self.ctx.allocator());
         }
     }
+
     _ = symbol.assert_init_valid();
 }
 
