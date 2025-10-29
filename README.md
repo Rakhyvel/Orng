@@ -33,7 +33,7 @@ zig build orng
 
 A fancy hello-world example:
 ```rs
-fn main() uses core.System {
+fn main() with core.System {
     @print("Enter your name here: ")
 
     let name_buf = core.String_Buffer.new()
@@ -43,7 +43,7 @@ fn main() uses core.System {
     greet(name_buf.str())
 }
 
-fn greet(recipient: String) uses .. {
+fn greet(recipient: String) with .. {
     @println("Hello, {recipient}")
 }
 ```
@@ -55,6 +55,28 @@ orng run
 
 ## Standout Features
 Orange comes with a wide range of features that make it a powerful and flexible programming language, including:
+
+### Implicit User-Defined Contexts
+This is probably Orange's largest standout feature. Orange allows the user to define contexts that can be passed around implicitly. This is how side-effects like allocation, IO, file operations, and networking are tracked in Orange.
+
+```rs
+context Allocating {
+    alloc: &mut dyn Allocator
+}
+
+// Declare that a function uses a context
+fn main() with Allocating {
+    // A caller function must be able to provide a callee's context
+    let x = alloc_something()
+    x^ = 100
+}
+
+// Contexts can be inferred
+fn alloc_something() -> &mut Int with .. {
+    let retval: &mut Int = Allocating.alloc.new[Int]()
+    retval
+}
+```
 
 ### Algebraic Data Types & Pattern Matching
 Algebraic Data Types (ADTs) allow you to define types that can be one of several variants with zero runtime overhead. Pattern matching in Orange lets you elagantly deconstruct those ADTs with a single, readable expression.
@@ -93,7 +115,7 @@ impl Ord for Int {
     fn lt(self, other: Int) -> Bool { self < other }
 }
 
-fn main() uses core.System {
+fn main() with core.System {
     let x = max(10, 20)
     @println("max is {x}")
 }
@@ -114,7 +136,7 @@ fn compile_regex(pattern: String) -> Regex {
 
 const number_regex = compile_regex("[0-9]+") // regex compiled at compile-time
 
-fn main() uses core.System {
+fn main() with core.System {
     if number_regex.matches("12345") {
         @println("Matched a number!")
     }
