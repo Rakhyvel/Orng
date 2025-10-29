@@ -1353,31 +1353,42 @@ fn context_paramlist(self: *Self) Parser_Error_Enum!std.array_list.Managed(*ast_
 }
 
 fn context_param(self: *Self) Parser_Error_Enum!*ast_.AST {
-    // TODO: Should be able to accept an access context
-    const identifier = try self.expect(.identifier);
-    const name = anon_name_.next_anon_name("context_value", self.allocator);
-    const ident = ast_.AST.create_pattern_symbol(identifier, .let, .local, name, self.allocator);
-    const context_type = Type_AST.create_type_identifier(identifier, self.allocator);
+    const parent = try self.type_expr();
+
     const addr_context_type = Type_AST.create_addr_of_type(
-        identifier,
-        context_type,
+        parent.token(),
+        parent,
         false,
         false,
         self.allocator,
     );
-
     var _init: ?*ast_.AST = null;
     if (self.peek_kind(.left_parenthesis)) {
-        _init = ast_.AST.create_addr_of(identifier, try self.context_value(context_type), false, false, self.allocator);
+        _init = ast_.AST.create_addr_of(parent.token(), try self.context_value(parent), false, false, self.allocator);
     }
 
-    return ast_.AST.create_binding(
-        ident.token(),
-        ident,
+    return ast_.AST.create_context_value_decl(
+        parent.token(),
         addr_context_type,
         _init,
         self.allocator,
     );
+}
+
+fn identifier_or_access(self: *Self) Parser_Error_Enum!*ast_.AST {
+    var exp = if (self.next_is_control_flow()) try self.control_flow() else try self.factor();
+    while (true) {
+        if (self.accept(.double_colon)) |token| {
+            exp = ast_.AST.create_access(
+                token,
+                exp,
+                ast_.AST.create_field(try self.expect(.identifier), self.allocator),
+                self.allocator,
+            );
+        } else {
+            return exp;
+        }
+    }
 }
 
 fn context_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {

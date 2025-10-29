@@ -372,6 +372,12 @@ pub const AST = union(enum) {
         _scope: ?*Scope = null,
         infer_error: bool,
     },
+    context_value_decl: struct {
+        common: AST_Common,
+        parent: *Type_AST,
+        init: ?*AST,
+        _symbol: ?*Symbol = null,
+    },
     context_decl: struct {
         common: AST_Common,
         name: *AST,
@@ -1190,6 +1196,19 @@ pub const AST = union(enum) {
         } }, allocator);
     }
 
+    pub fn create_context_value_decl(
+        _token: Token,
+        parent: *Type_AST,
+        init: ?*AST,
+        allocator: std.mem.Allocator,
+    ) *AST {
+        return AST.box(AST{ .context_value_decl = .{
+            .common = AST_Common{ ._token = _token },
+            .parent = parent,
+            .init = init,
+        } }, allocator);
+    }
+
     pub fn create_context_decl(
         _token: Token,
         name: *AST,
@@ -1595,11 +1614,17 @@ pub const AST = union(enum) {
                 clone_children(self.context_value._terms, substs, allocator),
                 allocator,
             ),
+            .context_value_decl => return create_context_value_decl(
+                self.token(),
+                self.context_value_decl.parent.clone(substs, allocator),
+                if (self.context_value_decl.init) |init| init.clone(substs, allocator) else null,
+                allocator,
+            ),
             .context_decl => {
                 const cloned_terms = Type_AST.clone_types(self.context_decl.fields, substs, allocator);
                 const retval = create_context_decl(
                     self.token(),
-                    self.struct_decl.name.clone(substs, allocator),
+                    self.context_decl.name.clone(substs, allocator),
                     cloned_terms,
                     allocator,
                 );
@@ -1933,6 +1958,7 @@ pub const AST = union(enum) {
             .@"test" => core_.test_type,
             .module, .trait => prelude_.unit_type,
             .receiver => self.receiver._type.?,
+            .context_value_decl => self.context_value_decl.parent,
             else => std.debug.panic("compiler error: cannot call `.decl_type()` on the AST `{s}`", .{@tagName(self.*)}),
         };
     }
@@ -1945,6 +1971,7 @@ pub const AST = union(enum) {
             .@"test" => self.@"test".init,
             .module, .trait => self,
             .struct_decl, .enum_decl, .type_alias, .receiver, .type_param_decl, .context_decl, .context_value => null,
+            .context_value_decl => self.context_value_decl.init,
             else => std.debug.panic("compiler error: cannot call `.decl_init()` on the AST `{s}`", .{@tagName(self.*)}),
         };
     }
@@ -2035,7 +2062,7 @@ pub const AST = union(enum) {
 
     pub fn top_level(self: *AST) bool {
         return switch (self.*) {
-            .decl => false,
+            .decl, .context_value_decl => false,
             .fn_decl, .method_decl, .@"test" => true,
             else => std.debug.panic("compiler error: cannot call `.top_level()` on the AST `{s}`", .{@tagName(self.*)}),
         };
@@ -2352,6 +2379,7 @@ pub const AST = union(enum) {
                 try out.print("enum_value(.name={s}, .init={?f}, .tag={?})", .{ self.enum_value.get_name(), self.enum_value.init, self.enum_value._pos });
             },
             .context_value => try out.print("context_value({s})", .{self.context_value.common._token.data}),
+            .context_value_decl => try out.print("context_value_decl()", .{}),
             .context_decl => {
                 try out.print("context_decl(\n", .{});
                 try out.print("\t.name = {f}\n", .{self.context_decl.name});

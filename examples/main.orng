@@ -9,6 +9,12 @@ fn main() -> () {
     externs::println("Hello, World f!")
 }
 
+fn make_int_ptr() -> &mut Int with core::Allocating {
+    let res = mem::new[Int](core::Allocating.alloc) catch unreachable
+    res^ = 1024
+    res
+}
+
 test "allocator works" {
     let mut alloc = mem::Heap_Allocator()
     let res = try mem::new[Int](&mut alloc)

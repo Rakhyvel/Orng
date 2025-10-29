@@ -708,6 +708,10 @@ pub const Type_AST = union(enum) {
                 try self.lhs().print_type(out);
                 try out.print("->", .{});
                 try self.rhs().print_type(out);
+                if (self.function.context) |ctx| {
+                    try out.print(" with ", .{});
+                    try ctx.print_type(out);
+                }
             },
             .struct_type, .tuple_type, .context_type => {
                 try out.print("(", .{});
@@ -899,6 +903,7 @@ pub const Type_AST = union(enum) {
     pub fn types_match(A: *Type_AST, B: *Type_AST) bool {
         // FIXME: High Cyclo
         // std.debug.print("{t} == {t}\n", .{ A.*, B.* });
+        // std.debug.print("{f} == {f}\n\n", .{ A, B });
         if (A.* == .annotation) {
             return types_match(A.child(), B);
         } else if (B.* == .annotation) {

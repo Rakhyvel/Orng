@@ -130,6 +130,24 @@ fn symbol_tree_prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             return new_self;
         },
 
+        .context_value_decl => {
+            if (ast.symbol() != null) {
+                // Do not re-do symbol if already declared
+                return null;
+            }
+            const symbol = Symbol.init(
+                self.scope,
+                next_anon_name("context_value", self.allocator),
+                ast,
+                .let,
+                .local,
+                self.allocator,
+            );
+            try self.register_symbol(ast, symbol);
+
+            return self;
+        },
+
         .context_decl => {
             if (ast.symbol() != null) {
                 // Do not re-do symbol if already declared
@@ -324,8 +342,8 @@ fn symbol_tree_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
                 symbol.defined = true;
                 symbol.param = true;
             }
-            for (ast.fn_decl.context_decls.items) |uses_binding| {
-                const symbol = uses_binding.binding.decls.items[0].decl.name.symbol().?;
+            for (ast.fn_decl.context_decls.items) |context_param| {
+                const symbol = context_param.symbol().?;
                 ast.context_param_symbols().?.append(symbol) catch unreachable;
                 symbol.defined = true;
                 symbol.param = true;
@@ -449,7 +467,7 @@ pub fn create_function_symbol(ast: *ast_.AST, allocator: std.mem.Allocator) *Sym
     const domain = extract_domain(ast.children().*, allocator);
 
     const context_type = if (ast.fn_decl.context_decls.items.len != 0)
-        Type_AST.create_type_identifier(ast.fn_decl.context_decls.items[0].token(), allocator)
+        ast.fn_decl.context_decls.items[0].context_value_decl.parent
     else
         null;
 

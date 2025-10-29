@@ -589,9 +589,19 @@ fn lower_AST_inner(
             }
             return self.lval_from_unit_value(ast);
         },
-        .decl => {
+        .context_value_decl => {
+            if (ast.context_value_decl.init) |_init| {
+                const def: ?*lval_.L_Value = try self.lower_AST(_init, labels);
+                if (def == null) {
+                    return null;
+                }
+
+                const symbver = lval_.L_Value.create_unversioned_symbver(ast.symbol().?, self.ctx.allocator());
+                self.instructions.append(Instruction.init_simple_copy(symbver, def.?, ast.token().span, self.ctx.allocator())) catch unreachable;
+            }
             return self.lval_from_unit_value(ast);
         },
+        .decl => return self.lval_from_unit_value(ast),
         .fn_decl => return try self.lval_from_symbol_cfg(ast.symbol().?, ast.token().span),
         .@"errdefer", .@"defer" => return self.lval_from_unit_value(ast),
         .@"continue" => {

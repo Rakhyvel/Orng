@@ -363,7 +363,7 @@ inline fn execute_instruction(self: *Self, instr: *Instruction) Error!void { // 
 }
 
 fn package_find(self: *Self, instr: *Instruction) !void {
-    const arg: *lval_.L_Value = instr.data.lval_list.items[@as(usize, @intCast(0))];
+    const arg: *lval_.L_Value = instr.data.call.arg_lval_list.items[@as(usize, @intCast(0))];
     const interned_strings = self.ctx.lookup_interned_string_set(self.modules.get(1).?.uid).?;
     const src_ast = try self.extract_ast(try self.effective_address(arg), core_.package_source_type.expand_identifier(), instr.span);
     const current_module_path = (self.curr_module() catch unreachable).absolute_path;

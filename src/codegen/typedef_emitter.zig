@@ -101,7 +101,6 @@ fn output_typedef(self: *Self) CodeGen_Error!void {
             }
             const fn_ctx = self.dep.base.function.context.?;
             try self.emitter.output_type(fn_ctx);
-            try self.writer.print(" *", .{});
         }
         try self.writer.print(");\n\n", .{});
     } else if (self.dep.base.* == .struct_type or self.dep.base.* == .tuple_type or self.dep.base.* == .context_type) {

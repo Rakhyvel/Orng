@@ -330,8 +330,11 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
 
             // If lhs is function type and has context(s), try and find them. Error if you can't.
             if (expanded_lhs_type.* == .function and expanded_lhs_type.function.context != null) {
-                const fn_ctx = expanded_lhs_type.function.context.?;
+                var fn_ctx = expanded_lhs_type.function.context.?;
                 const symbol = ast.scope().?.context_lookup(fn_ctx) orelse {
+                    if (fn_ctx.* == .addr_of) {
+                        fn_ctx = fn_ctx.child();
+                    }
                     self.ctx.errors.add_error(errs_.Error{ .missing_context = .{
                         .span = ast.token().span,
                         .context = fn_ctx,
@@ -863,6 +866,14 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 _ = self.typecheck_AST(_init, ast.decl.type) catch return error.CompileError;
             }
             try self.ctx.validate_symbol.validate_symbol(ast.decl.name.symbol().?);
+            return prelude_.unit_type;
+        },
+        .context_value_decl => {
+            try self.ctx.validate_type.validate_type(ast.context_value_decl.parent);
+            if (ast.context_value_decl.init) |_init| {
+                _ = self.typecheck_AST(_init, ast.context_value_decl.parent) catch return error.CompileError;
+            }
+            try self.ctx.validate_symbol.validate_symbol(ast.symbol().?);
             return prelude_.unit_type;
         },
         .binding => {
