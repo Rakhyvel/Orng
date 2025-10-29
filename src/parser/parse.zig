@@ -297,11 +297,13 @@ fn function_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
             _ = try self.expect(.skinny_arrow);
             variadic = true;
         }
+        const codomain = try self.error_type_expr();
         var context: ?*Type_AST = null;
         if (self.accept(.with) != null) {
             context = try self.type_expr();
+            context = Type_AST.create_addr_of_type(context.?.token(), context.?, false, false, self.allocator);
         }
-        exp = Type_AST.create_function(token, exp, try self.error_type_expr(), context, self.allocator);
+        exp = Type_AST.create_function(token, exp, codomain, context, self.allocator);
         exp.function.variadic = variadic;
     }
     return exp;
