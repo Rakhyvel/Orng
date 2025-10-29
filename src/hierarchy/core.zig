@@ -14,10 +14,12 @@ const UID_Gen = @import("../util/uid_gen.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 
 // TODO: Think about how to remove these public variables. They're only variable because they need to be constructed later.
+// Maybe a map?
 pub var package_type: *Type_AST = undefined;
 pub var package_source_type: *Type_AST = undefined;
 pub var test_result_type: *Type_AST = undefined;
 pub var test_type: *Type_AST = undefined;
+pub var allocating_context: *Type_AST = undefined;
 
 var core: ?*Scope = null;
 pub var core_symbol: ?*Symbol = null;
@@ -87,6 +89,7 @@ fn create_core(compiler: *Compiler_Context) !void {
         null,
         compiler.allocator(),
     );
+    allocating_context = module_scope.lookup("Allocating", .{}).found.init_typedef().?;
 
     _ = module_scope.lookup("Requirement", .{}).found.init_typedef().?;
 }

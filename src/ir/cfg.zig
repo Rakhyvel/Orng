@@ -158,6 +158,12 @@ pub fn collect_cfg_types(self: *Self, type_set: *Type_Set) void {
             _ = type_set.add_type(param.expanded_type());
         }
     }
+    const context_param_symbols = decl.context_param_symbols();
+    if (context_param_symbols != null) {
+        for (context_param_symbols.?.items) |context_param| {
+            _ = type_set.add_type(context_param.expanded_type());
+        }
+    }
     _ = type_set.add_type(self.return_symbol.expanded_type());
 
     // For all basic blocks in the cfg...

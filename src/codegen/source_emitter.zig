@@ -4,6 +4,7 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const Basic_Block = @import("../ir/basic-block.zig");
+const core_ = @import("../hierarchy/core.zig");
 const CFG = @import("../ir/cfg.zig");
 const Emitter = @import("emitter.zig");
 const Interned_String_Set = @import("../ir/interned_string_set.zig");
@@ -169,8 +170,19 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
 
     try self.writer.print(
         \\int main(int argc, char *argv[]) {{
-        \\  
+        \\    
     , .{});
+
+    // TOOD: This won't fly in a standalone context
+    const requires_context = symbol.type().function.context != null;
+    if (requires_context) {
+        try self.emitter.output_type(core_.allocating_context);
+        try self.writer.print(
+            \\ allocator_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &std__mem_2__vtable}}}};
+            \\    
+        , .{});
+    }
+
     if (specifier != null) {
         try self.writer.print("printf(\"%{s}{s}\", ", .{ if (codomain.sizeof() == 8) "l" else "", specifier.? });
         try self.emitter.output_symbol(symbol);
@@ -178,24 +190,31 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
     } else {
         if (codomain.* == .enum_type and codomain.enum_type.from == .@"error") {
             try self.emitter.output_type(codomain);
-            try self.writer.print(" retcode = ", .{});
+            try self.writer.print("   retcode = ", .{});
         }
         try self.emitter.output_symbol(symbol);
-        try self.writer.print(
-            \\();
-            \\
-        , .{});
+        if (requires_context) {
+            try self.writer.print(
+                \\(&allocator_context);
+                \\
+            , .{});
+        } else {
+            try self.writer.print(
+                \\();
+                \\
+            , .{});
+        }
     }
 
     if (codomain.* == .enum_type and codomain.enum_type.from == .@"error") {
         try self.writer.print(
-            \\  return retcode.tag;
+            \\    return retcode.tag;
             \\}}
             \\
         , .{});
     } else {
         try self.writer.print(
-            \\  return 0;
+            \\    return 0;
             \\}}
             \\
         , .{});

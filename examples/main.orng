@@ -4,9 +4,10 @@ import std::testing
 import std::mem
 import externs
 
-fn main() -> () {
+fn main() -> () with core::Allocating {
     debug::println("Hello, World!")
     externs::println("Hello, World f!")
+    _ = make_int_ptr()
 }
 
 fn make_int_ptr() -> &mut Int with core::Allocating {
