@@ -305,19 +305,23 @@ fn symbol_tree_prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             if (ast.symbol() != null) {
                 // Do not re-do symbol if already declared
                 return null;
-            } else if (ast.method_decl.init == null) {
+            }
+
+            var new_self = self;
+            new_self.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
+            ast.set_scope(new_self.scope);
+            new_self.scope.function_depth = new_self.scope.function_depth + 1;
+
+            if (ast.method_decl.init == null) {
                 // Trait method decl
-                var new_self = self;
-                new_self.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
-                new_self.scope.function_depth = new_self.scope.function_depth + 1;
                 ast.method_decl._decl_type = create_method_type(ast, self.allocator);
-                return new_self;
             } else {
                 // Impl method decl
-                const symbol = try create_method_symbol(ast, self.scope, self.errors, self.allocator);
+                const symbol = try create_method_symbol(ast, self.errors, self.allocator);
                 try self.register_symbol(ast, symbol);
-                return null; // NOTE: DO NOT WALK CHILDREN!
             }
+
+            return new_self;
         },
     }
 
@@ -360,6 +364,21 @@ fn symbol_tree_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
 
         .@"test" => {
             for (ast.@"test".context_decls.items) |context_param| {
+                const symbol = context_param.symbol().?;
+                ast.context_param_symbols().?.append(symbol) catch unreachable;
+                symbol.defined = true;
+                symbol.param = true;
+            }
+        },
+
+        .method_decl => {
+            for (ast.children().items) |param_binding| {
+                const symbol = param_binding.binding.decls.items[0].decl.name.symbol().?;
+                ast.param_symbols().?.append(symbol) catch unreachable;
+                symbol.defined = true;
+                symbol.param = true;
+            }
+            for (ast.method_decl.context_decls.items) |context_param| {
                 const symbol = context_param.symbol().?;
                 ast.context_param_symbols().?.append(symbol) catch unreachable;
                 symbol.defined = true;
@@ -695,18 +714,24 @@ fn create_method_type(ast: *ast_.AST, allocator: std.mem.Allocator) *Type_AST {
         ast.method_decl.impl.?.impl._type
     else
         Type_AST.create_anyptr_type(ast.token(), allocator);
+
     // Calculate the domain type from the function paramter types
     ast.method_decl.domain = if (ast.method_decl.receiver) |receiver|
         extract_domain_with_receiver(receiver_base_type, receiver, ast.children().*, allocator)
     else
         extract_domain(ast.children().*, allocator);
 
+    const context_type = if (ast.method_decl.context_decls.items.len != 0)
+        ast.method_decl.context_decls.items[0].context_value_decl.parent
+    else
+        null;
+
     // Create the function type
     const _type = Type_AST.create_function(
         ast.method_decl.ret_type.token(),
         ast.method_decl.domain.?,
         ast.method_decl.ret_type,
-        null,
+        context_type,
         allocator,
     );
     return _type;
@@ -714,7 +739,6 @@ fn create_method_type(ast: *ast_.AST, allocator: std.mem.Allocator) *Type_AST {
 
 fn create_method_symbol(
     ast: *ast_.AST,
-    scope: *Scope,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Error!*Symbol {
@@ -723,13 +747,9 @@ fn create_method_symbol(
     // Create the function type
     ast.method_decl._decl_type = create_method_type(ast, allocator);
 
-    // Create the function scope
-    var fn_scope = Scope.init(scope, scope.uid_gen, allocator);
-    fn_scope.function_depth = scope.function_depth + 1;
-
     // Recurse parameters and init
-    const symbol_walk = Self.new(fn_scope, errors, allocator);
-    try walk_.walk_asts(ast.children(), symbol_walk);
+    // const symbol_walk = Self.new(ast.scope().?, errors, allocator);
+    // try walk_.walk_asts(ast.children(), symbol_walk);
     // try walk_.walk_ast(ast.method_decl.ret_type, symbol_walk); // TODO: walk types
 
     if (ast.method_decl.receiver != null) {
@@ -738,14 +758,15 @@ fn create_method_symbol(
         recv_type.addr_of.anytptr = true;
         // value receiver, prepend a void* self_ptr parameter
         const receiver_symbol = Symbol.init(
-            fn_scope,
+            ast.scope().?,
             if (ast.method_decl.receiver.?.receiver.kind == .value) "self__ptr" else "self",
             ast.method_decl.receiver,
             .let,
             .local,
             allocator,
         );
-        try fn_scope.put_symbol(receiver_symbol, errors);
+        receiver_symbol.param = true;
+        try ast.scope().?.put_symbol(receiver_symbol, errors);
         ast.param_symbols().?.append(receiver_symbol) catch unreachable;
 
         if (ast.method_decl.receiver.?.receiver.kind == .value) {
@@ -771,30 +792,30 @@ fn create_method_symbol(
         }
     }
 
-    // Put the param symbols in the param symbols list
-    for (ast.children().items) |param_binding| {
-        const symbol = param_binding.binding.decls.items[0].decl.name.symbol().?;
-        ast.param_symbols().?.append(symbol) catch unreachable;
-    }
+    // // Put the param symbols in the param symbols list
+    // for (ast.children().items) |param_binding| {
+    //     const symbol = param_binding.binding.decls.items[0].decl.name.symbol().?;
+    //     ast.param_symbols().?.append(symbol) catch unreachable;
+    // }
 
-    const key_set = fn_scope.symbols.keys();
-    for (0..key_set.len) |i| {
-        const key = key_set[i];
-        var symbol = fn_scope.symbols.get(key).?;
-        symbol.defined = true;
-        symbol.param = true;
-    }
+    // const key_set = ast.scope().?.symbols.keys();
+    // for (0..key_set.len) |i| {
+    //     const key = key_set[i];
+    //     var symbol = ast.scope().?.symbols.get(key).?;
+    //     symbol.defined = true;
+    //     symbol.param = true;
+    // }
 
     const retval = Symbol.init(
-        fn_scope,
+        ast.scope().?,
         ast.method_decl.name.token().data,
         ast,
         .@"fn",
         .local,
         allocator,
     );
-    fn_scope.inner_function = retval;
+    ast.scope().?.inner_function = retval;
 
-    try walk_.walk_ast(ast.method_decl.init, symbol_walk);
+    // try walk_.walk_ast(ast.method_decl.init, symbol_walk);
     return retval;
 }

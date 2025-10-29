@@ -37,7 +37,7 @@ fn decorate_access_prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
     switch (ast.*) {
         else => return self,
 
-        .@"if", .match, .mapping, .@"while", .@"for", .block, .impl, .trait, .struct_decl, .enum_decl, .type_alias, .fn_decl, .@"test", .context_decl => {
+        .@"if", .match, .mapping, .@"while", .@"for", .block, .impl, .trait, .struct_decl, .enum_decl, .type_alias, .fn_decl, .@"test", .context_decl, .method_decl => {
             var new_context = self;
             new_context.scope = ast.scope().?;
             return new_context;

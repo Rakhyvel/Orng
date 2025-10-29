@@ -286,7 +286,10 @@ pub fn calculate_usage(self: *Self) void {
                 if (instr.data.invoke.method_decl_lval != null and !instr.data.invoke.method_decl.method_decl.is_virtual) {
                     instr.data.invoke.method_decl_lval.?.increment_usage();
                 }
-                for (instr.data.invoke.lval_list.items) |lval| {
+                for (instr.data.invoke.arg_lval_list.items) |lval| {
+                    lval.increment_usage();
+                }
+                for (instr.data.invoke.context_arg_lval_list.items) |lval| {
                     lval.increment_usage();
                 }
             }
@@ -316,7 +319,10 @@ pub fn calculate_definitions(self: *Self) void {
             if (instr.data == .invoke) {
                 reset_defs(instr.data.invoke.dyn_value);
                 reset_defs(instr.data.invoke.method_decl_lval);
-                for (instr.data.invoke.lval_list.items) |lval| {
+                for (instr.data.invoke.arg_lval_list.items) |lval| {
+                    reset_defs(lval);
+                }
+                for (instr.data.invoke.context_arg_lval_list.items) |lval| {
                     reset_defs(lval);
                 }
             }

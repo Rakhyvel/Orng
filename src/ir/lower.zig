@@ -296,6 +296,9 @@ fn lower_AST_inner(
                 }
             }
             const instr = Instruction.init_invoke(temp, ast.invoke.method_decl.?, lval_list, dyn_value, ast.token().span, self.ctx.allocator());
+            for (ast.invoke.context_args.items) |context_arg| {
+                instr.data.invoke.arg_lval_list.append(lval_.L_Value.create_unversioned_symbver(context_arg, self.ctx.allocator())) catch unreachable;
+            }
             if (ast.invoke.method_decl.?.symbol() != null) {
                 // Fine if symbol is null, for invokes on trait objects.
                 instr.data.invoke.method_decl_lval = try self.lval_from_symbol_cfg(ast.invoke.method_decl.?.symbol().?, ast.token().span);

@@ -469,7 +469,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 });
                 return error.CompileError;
             }
-            _ = self.typecheck_AST(method_decl.?, null) catch return error.CompileError;
+            const method_decl_type = self.typecheck_AST(method_decl.?, null) catch return error.CompileError;
             ast.invoke.method_decl = method_decl.?;
             const domain: *Type_AST = method_decl.?.method_decl.domain.?;
             const expanded_true_lhs_type = true_lhs_type.expand_identifier();
@@ -500,6 +500,22 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             } else if (ast.invoke.prepended) {
                 ast.set_lhs(ast.children().items[0]);
             }
+
+            if (method_decl_type.function.context != null) {
+                var fn_ctx = method_decl_type.function.context.?;
+                const symbol = ast.scope().?.context_lookup(fn_ctx) orelse {
+                    if (fn_ctx.* == .addr_of) {
+                        fn_ctx = fn_ctx.child();
+                    }
+                    self.ctx.errors.add_error(errs_.Error{ .missing_context = .{
+                        .span = ast.token().span,
+                        .context = fn_ctx,
+                    } });
+                    return error.CompileError;
+                };
+                try ast.invoke.context_args.append(symbol);
+            }
+
             ast.set_children(try args_.default_args(.method, ast.children().*, ast.token().span, domain, &self.ctx.errors, self.ctx.allocator()));
             try args_.validate_args_arity(.method, ast.children(), domain, false, ast.token().span, &self.ctx.errors);
             _ = try self.validate_args_type(ast.children(), domain, false);

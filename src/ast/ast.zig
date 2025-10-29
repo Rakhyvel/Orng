@@ -190,6 +190,7 @@ pub const AST = union(enum) {
         _lhs: *AST,
         _rhs: *AST,
         _args: std.array_list.Managed(*AST),
+        context_args: std.array_list.Managed(*Symbol),
         _scope: ?*Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
         method_decl: ?*AST = null,
         prepended: bool = false,
@@ -424,14 +425,17 @@ pub const AST = union(enum) {
         receiver: ?*AST,
         _params: std.array_list.Managed(*AST), // Parameters' decl ASTs
         _param_symbols: std.array_list.Managed(*Symbol), // Parameters' symbols
+        context_param_symbols: std.array_list.Managed(*Symbol), // Context parameters' symbols
         c_type: ?*Type_AST = null,
         domain: ?*Type_AST = null, // Domain type when calling. Filled in at symbol-tree creation for impls and traits.
         ret_type: *Type_AST,
+        context_decls: std.array_list.Managed(*AST),
         _decl_type: ?*Type_AST = null,
         refinement: ?*AST,
         init: ?*AST,
         impl: ?*AST = null, // The surrounding `impl`. Null for method_decls in traits.
         _symbol: ?*Symbol = null,
+        _scope: ?*Scope = null,
     },
     @"test": struct {
         common: AST_Common,
@@ -853,6 +857,7 @@ pub const AST = union(enum) {
             ._lhs = _lhs,
             ._rhs = _rhs,
             ._args = args,
+            .context_args = std.array_list.Managed(*Symbol).init(allocator),
         } }, allocator);
     }
 
@@ -1287,6 +1292,7 @@ pub const AST = union(enum) {
         receiver: ?*AST,
         params: std.array_list.Managed(*AST),
         ret_type: *Type_AST,
+        context_decls: std.array_list.Managed(*AST),
         refinement: ?*AST,
         init: ?*AST,
         allocator: std.mem.Allocator,
@@ -1299,8 +1305,10 @@ pub const AST = union(enum) {
             ._params = params,
             ._param_symbols = std.array_list.Managed(*Symbol).init(allocator),
             .ret_type = ret_type,
+            .context_decls = context_decls,
             .refinement = refinement,
             .init = init,
+            .context_param_symbols = std.array_list.Managed(*Symbol).init(allocator),
         } }, allocator);
     }
 
@@ -1814,6 +1822,7 @@ pub const AST = union(enum) {
             },
             .method_decl => {
                 const cloned_params = clone_children(self.children().*, substs, allocator);
+                const cloned_contexts = clone_children(self.method_decl.context_decls, substs, allocator);
                 var retval = create_method_decl(
                     self.token(),
                     self.method_decl.name.clone(substs, allocator),
@@ -1821,6 +1830,7 @@ pub const AST = union(enum) {
                     if (self.method_decl.receiver) |receiver| receiver.clone(substs, allocator) else null,
                     cloned_params,
                     self.method_decl.ret_type.clone(substs, allocator),
+                    cloned_contexts,
                     if (self.method_decl.refinement) |refinement| refinement.clone(substs, allocator) else null,
                     if (self.method_decl.init) |init| init.clone(substs, allocator) else null,
                     allocator,
@@ -2041,7 +2051,7 @@ pub const AST = union(enum) {
         return switch (self.*) {
             .fn_decl => &self.fn_decl.context_param_symbols,
             .@"test" => &self.@"test".context_param_symbols,
-            .method_decl => null,
+            .method_decl => &self.method_decl.context_param_symbols,
             else => std.debug.panic("compiler error: cannot call `.context_param_symbols()` on the AST `{s}`", .{@tagName(self.*)}),
         };
     }

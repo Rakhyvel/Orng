@@ -147,7 +147,7 @@ fn output_traits(self: *Self) CodeGen_Error!void {
     // FIXME: High Cyclo
     if (self.module.traits.items.len > 0) {
         // Do not output header comment if there are no traits!
-        try self.writer.print("/* Trait vtable type definitions */\n", .{});
+        try self.writer.print("\n/* Trait vtable type definitions */\n", .{});
     }
 
     for (self.module.traits.items) |trait| {
@@ -167,6 +167,8 @@ fn output_traits(self: *Self) CodeGen_Error!void {
             }
             const method_decl_has_receiver = decl.method_decl.receiver != null;
             const num_method_params = decl.children().items.len;
+            const has_params = num_method_params + @intFromBool(method_decl_has_receiver) == 0;
+            const has_contexts = decl.method_decl.context_decls.items.len > 0;
 
             try self.writer.print("    ", .{});
             try self.emitter.output_type(decl.method_decl.ret_type);
@@ -175,7 +177,7 @@ fn output_traits(self: *Self) CodeGen_Error!void {
             // Output receiver parameter
             if (method_decl_has_receiver) {
                 try self.writer.print("void *", .{});
-                if (decl.children().items.len > 0 and !decl.children().items[0].binding.type.is_c_void_type()) {
+                if ((decl.children().items.len > 0 and !decl.children().items[0].binding.type.is_c_void_type()) or has_contexts) {
                     try self.writer.print(", ", .{});
                 }
             }
@@ -185,12 +187,22 @@ fn output_traits(self: *Self) CodeGen_Error!void {
                 if (!param_decl.binding.type.is_c_void_type()) {
                     // Do not output `void` parameters
                     try self.emitter.output_type(param_decl.binding.type);
-                    if (i + 1 < num_method_params and !decl.children().items[i + 1].binding.type.is_c_void_type()) {
+                    if ((i + 1 < num_method_params and !decl.children().items[i + 1].binding.type.is_c_void_type()) or has_contexts) {
                         try self.writer.print(", ", .{});
                     }
                 }
             }
-            if (num_method_params + @intFromBool(method_decl_has_receiver) == 0) {
+
+            // Output context parameters
+            for (decl.method_decl.context_decls.items) |param_decl| {
+                if (has_params) {
+                    try self.writer.print(", ", .{});
+                }
+                // Do not output `void` parameters
+                try self.emitter.output_type(param_decl.context_value_decl.parent);
+            }
+
+            if (has_params) {
                 // If there are no parameters and no receiver, mark parameter list as void
                 try self.writer.print("void", .{});
             }

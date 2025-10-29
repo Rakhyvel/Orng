@@ -1621,6 +1621,7 @@ fn method_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     if (self.accept(.where)) |_| {
         _ = try self.bool_expr();
     }
+    const contexts_decls = try self.context_paramlist();
 
     return ast_.AST.create_method_decl(
         introducer,
@@ -1629,6 +1630,7 @@ fn method_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
         _receiver,
         params,
         ret_type,
+        contexts_decls,
         refinement,
         null, // Won't have an init!
         self.allocator,
@@ -1651,6 +1653,7 @@ fn method_definition(self: *Self) Parser_Error_Enum!*ast_.AST {
     if (self.accept(.where)) |_| {
         _ = try self.bool_expr();
     }
+    const contexts_decls = try self.context_paramlist();
 
     const _init = try self.block_expr();
 
@@ -1661,6 +1664,7 @@ fn method_definition(self: *Self) Parser_Error_Enum!*ast_.AST {
         _receiver,
         params,
         ret_type,
+        contexts_decls,
         refinement,
         _init,
         self.allocator,

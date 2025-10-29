@@ -488,19 +488,20 @@ fn output_instruction_post_check(self: *Self, instr: *Instruction) CodeGen_Error
                 try self.output_vtable_impl(instr.data.invoke.method_decl.method_decl.impl.?);
                 try self.writer.print(".{s}(", .{instr.data.invoke.method_decl.method_decl.name.token().data});
             }
-            const num_invoke_args = instr.data.invoke.lval_list.items.len;
-            for (instr.data.invoke.lval_list.items, 0..) |term, i| {
+            const num_invoke_args = instr.data.invoke.arg_lval_list.items.len;
+            for (instr.data.invoke.arg_lval_list.items, 0..) |term, i| {
                 if (!term.get_expanded_type().is_c_void_type()) {
                     // Do not output `void` arguments
                     try self.output_rvalue(term, HIGHEST_PRECEDENCE);
                     if (instr.data.invoke.dyn_value != null and instr.data.invoke.dyn_value == term and i == 0) {
                         try self.writer.print(".data_ptr", .{});
                     }
-                    if (i + 1 < num_invoke_args and !instr.data.invoke.lval_list.items[i + 1].get_expanded_type().is_c_void_type()) {
+                    if (i + 1 < num_invoke_args and !instr.data.invoke.arg_lval_list.items[i + 1].get_expanded_type().is_c_void_type()) {
                         try self.writer.print(", ", .{});
                     }
                 }
             }
+            // TODO: context args
             try self.writer.print(");\n", .{});
         },
         .label,
