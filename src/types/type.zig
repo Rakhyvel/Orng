@@ -61,6 +61,7 @@ pub const Type_AST = union(enum) {
         common: Type_AST_Common,
         _lhs: *Type_AST,
         _rhs: *Type_AST,
+        context: ?*Type_AST,
         variadic: bool = false,
     },
     annotation: struct {
@@ -100,6 +101,10 @@ pub const Type_AST = union(enum) {
     untagged_sum_type: struct {
         common: Type_AST_Common,
         _child: *Type_AST,
+    },
+    context_type: struct {
+        common: Type_AST_Common,
+        _terms: std.array_list.Managed(*Type_AST),
     },
     struct_type: struct {
         common: Type_AST_Common,
@@ -249,12 +254,13 @@ pub const Type_AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn create_function(_token: Token, _lhs: *Type_AST, _rhs: *Type_AST, allocator: std.mem.Allocator) *Type_AST {
+    pub fn create_function(_token: Token, _lhs: *Type_AST, _rhs: *Type_AST, context: ?*Type_AST, allocator: std.mem.Allocator) *Type_AST {
         const _common: Type_AST_Common = .{ ._token = _token };
         return Type_AST.box(Type_AST{ .function = .{
             .common = _common,
             ._lhs = _lhs,
             ._rhs = _rhs,
+            .context = context,
         } }, allocator);
     }
 
@@ -275,6 +281,13 @@ pub const Type_AST = union(enum) {
             } },
             allocator,
         );
+    }
+
+    pub fn create_context_type(_token: Token, terms: std.array_list.Managed(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
+        return Type_AST.box(Type_AST{ .context_type = .{
+            .common = Type_AST_Common{ ._token = _token },
+            ._terms = terms,
+        } }, allocator);
     }
 
     pub fn create_struct_type(_token: Token, terms: std.array_list.Managed(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
@@ -575,6 +588,7 @@ pub const Type_AST = union(enum) {
             .generic_apply => &self.generic_apply.args,
             .enum_type => &self.enum_type._terms,
             .untagged_sum_type => self.child().expand_identifier().children(),
+            .context_type => &self.context_type._terms,
             .struct_type => &self.struct_type._terms,
             .tuple_type => &self.tuple_type._terms,
             else => std.debug.panic("compiler error: cannot call `.children()` on the Type_AST `{f}`", .{self}),
@@ -628,19 +642,20 @@ pub const Type_AST = union(enum) {
 
     /// Expands an ast one level if it is an identifier
     pub fn expand_identifier(self: *Type_AST) *Type_AST {
-        if (self.* == .annotation) {
-            return self.child().expand_identifier();
-        }
-        if (self.* == .generic_apply) {
-            return self.generic_apply._symbol.?.init_typedef().?;
-        }
         var res = self;
-        while ((res.* == .identifier or res.* == .access) and res.symbol().?.init_typedef() != null) {
-            const new = res.symbol().?.init_typedef().?;
-            new.set_unexpanded_type(res);
-            res = new;
+        while (true) {
+            if ((res.* == .identifier or res.* == .access) and res.symbol().?.init_typedef() != null) {
+                const new = res.symbol().?.init_typedef().?;
+                new.set_unexpanded_type(res);
+                res = new;
+            } else if (res.* == .generic_apply) {
+                res = res.generic_apply._symbol.?.init_typedef().?;
+            } else if (res.* == .annotation) {
+                res = res.child();
+            } else {
+                return res;
+            }
         }
-        return res;
     }
 
     pub fn unexpand_type(self: *Type_AST) *Type_AST {
@@ -694,8 +709,12 @@ pub const Type_AST = union(enum) {
                 try self.lhs().print_type(out);
                 try out.print("->", .{});
                 try self.rhs().print_type(out);
+                if (self.function.context) |ctx| {
+                    try out.print(" with ", .{});
+                    try ctx.print_type(out);
+                }
             },
-            .struct_type, .tuple_type => {
+            .struct_type, .tuple_type, .context_type => {
                 try out.print("(", .{});
                 for (self.children().items, 0..) |term, i| {
                     try term.print_type(out);
@@ -767,7 +786,7 @@ pub const Type_AST = union(enum) {
                 return primitive_info.size;
             },
 
-            .struct_type, .tuple_type => {
+            .struct_type, .tuple_type, .context_type => {
                 var total_size: i64 = 0;
                 for (self.children().items) |_child| {
                     total_size = alignment_.next_alignment(total_size, _child.alignof());
@@ -826,7 +845,7 @@ pub const Type_AST = union(enum) {
                 return primitive_info._align;
             },
 
-            .struct_type, .tuple_type => {
+            .struct_type, .tuple_type, .context_type => {
                 var max_align: i64 = 0;
                 for (self.children().items) |_child| {
                     max_align = @max(max_align, _child.alignof());
@@ -885,6 +904,7 @@ pub const Type_AST = union(enum) {
     pub fn types_match(A: *Type_AST, B: *Type_AST) bool {
         // FIXME: High Cyclo
         // std.debug.print("{t} == {t}\n", .{ A.*, B.* });
+        // std.debug.print("{f} == {f}\n\n", .{ A, B });
         if (A.* == .annotation) {
             return types_match(A.child(), B);
         } else if (B.* == .annotation) {
@@ -944,7 +964,7 @@ pub const Type_AST = union(enum) {
             .array_of => return types_match(A.child(), B.child()) and A.array_of.len.int.data == B.array_of.len.int.data,
             .anyptr_type => return B.* == .anyptr_type,
             .unit_type => return true,
-            .struct_type, .tuple_type => {
+            .struct_type, .tuple_type, .context_type => {
                 if (B.children().items.len != A.children().items.len) {
                     return false;
                 }
@@ -1029,7 +1049,7 @@ pub const Type_AST = union(enum) {
             .unit_type => return other.* == .unit_type,
             .anyptr_type => return other.* == .anyptr_type,
             .dyn_type => return self.child().symbol() == other.child().symbol(),
-            .struct_type, .tuple_type, .enum_type, .untagged_sum_type => {
+            .struct_type, .tuple_type, .enum_type, .untagged_sum_type, .context_type => {
                 if (other.children().items.len != self.children().items.len) {
                     return false;
                 }
@@ -1063,6 +1083,7 @@ pub const Type_AST = union(enum) {
             } else {
                 return self;
             },
+            .access => return create_type_access(self.token(), self.access.inner_access.clone(substs, allocator), allocator),
             .type_of => {
                 const _expr = self.expr().clone(substs, allocator);
                 return create_type_of(self.token(), _expr, allocator);
@@ -1082,7 +1103,8 @@ pub const Type_AST = union(enum) {
             .function => {
                 const _lhs = clone(self.lhs(), substs, allocator);
                 const _rhs = clone(self.rhs(), substs, allocator);
-                return create_function(self.token(), _lhs, _rhs, allocator);
+                const context: ?*Type_AST = if (self.function.context) |context| clone(context, substs, allocator) else null;
+                return create_function(self.token(), _lhs, _rhs, context, allocator);
             },
             .enum_type => {
                 var new_children = std.array_list.Managed(*Type_AST).init(allocator);

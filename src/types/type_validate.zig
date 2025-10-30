@@ -50,7 +50,8 @@ pub fn validate_type(self: *Self, @"type": *Type_AST) Validate_Error_Enum!void {
         },
 
         .identifier => {
-            if (!@"type".symbol().?.is_type()) {
+            const type_symbol = @"type".symbol().?;
+            if (!(type_symbol.is_type() or type_symbol.kind == .context)) {
                 self.ctx.errors.add_error(errs_.Error{ .basic = .{ .msg = "expected a type", .span = @"type".token().span } });
                 return error.CompileError;
             }

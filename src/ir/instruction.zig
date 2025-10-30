@@ -123,7 +123,10 @@ pub fn init_branch_addr(
 
 pub fn init_call(dest: *lval_.L_Value, src1: *lval_.L_Value, span: Span, allocator: std.mem.Allocator) *Self {
     var retval = Self.init(.call, dest, src1, null, span, allocator);
-    retval.data = Data{ .lval_list = std.array_list.Managed(*lval_.L_Value).init(allocator) };
+    retval.data = Data{ .call = .{
+        .arg_lval_list = std.array_list.Managed(*lval_.L_Value).init(allocator),
+        .context_arg_lval_list = std.array_list.Managed(*lval_.L_Value).init(allocator),
+    } };
     return retval;
 }
 
@@ -132,7 +135,8 @@ pub fn init_invoke(dest: *lval_.L_Value, method_decl: *ast_.AST, lval_list: std.
     retval.data = Data{
         .invoke = .{
             .method_decl = method_decl,
-            .lval_list = lval_list,
+            .arg_lval_list = lval_list,
+            .context_arg_lval_list = std.array_list.Managed(*lval_.L_Value).init(allocator),
             .dyn_value = dyn_value,
             .method_decl_lval = null, // Filled in later
         },
@@ -344,12 +348,12 @@ pub fn pprint(self: Self, allocator: std.mem.Allocator) ![]const u8 {
         },
         .call => {
             try out.print("    {f} := {f}(", .{ self.dest.?, self.src1.? });
-            try print_lval_list(self.data.lval_list, &out);
+            try print_lval_list(self.data.call.arg_lval_list, &out); // TODO: print context args, too
             try out.print(")\n", .{});
         },
         .invoke => {
             try out.print("    {f} := ::{s}(", .{ self.dest.?, self.data.invoke.method_decl.method_decl.name.token().data });
-            try print_lval_list(self.data.invoke.lval_list, &out);
+            try print_lval_list(self.data.invoke.arg_lval_list, &out); // TODO: print context args, too
             try out.print(")\n", .{});
         },
         .push_stack_trace => {
@@ -687,10 +691,15 @@ pub const Data = union(enum) {
     string: []const u8,
     symbol: *Symbol,
     lval_list: std.array_list.Managed(*lval_.L_Value),
+    call: struct {
+        arg_lval_list: std.array_list.Managed(*lval_.L_Value),
+        context_arg_lval_list: std.array_list.Managed(*lval_.L_Value),
+    },
     invoke: struct {
         method_decl: *ast_.AST, // AST of method decl. Either trait's definition if dyn, or impl's declaration if static
         method_decl_lval: ?*lval_.L_Value, // L-value of the method; non-null when statically known (ie not dyn)
-        lval_list: std.array_list.Managed(*lval_.L_Value), // List of args. Receiver will always be prepended
+        arg_lval_list: std.array_list.Managed(*lval_.L_Value), // List of args. Receiver will always be prepended
+        context_arg_lval_list: std.array_list.Managed(*lval_.L_Value), // List of args. Receiver will always be prepended
         dyn_value: ?*lval_.L_Value, // L-value of the vtable-data-ptr pair; non-null when the call is through a vtable, regardless of if the method uses the receiver
     },
     dyn: struct { impl: *ast_.AST },

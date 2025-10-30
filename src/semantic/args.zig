@@ -12,6 +12,7 @@ const Validate_Error_Enum = error{CompileError};
 pub const Validate_Args_Thing = enum {
     function,
     method,
+    context,
     @"struct",
     tuple,
     array,
@@ -22,7 +23,7 @@ pub const Validate_Args_Thing = enum {
 
     fn takes_name(self: @This()) []const u8 {
         return switch (self) {
-            .function, .method => "parameter",
+            .context, .function, .method => "parameter",
             .@"struct" => "field",
             .tuple, .array => "element",
         };
@@ -30,7 +31,7 @@ pub const Validate_Args_Thing = enum {
 
     fn given_name(self: @This()) []const u8 {
         return switch (self) {
-            .function, .method => "argument",
+            .context, .function, .method => "argument",
             .@"struct" => "value",
             .tuple, .array => "element",
         };

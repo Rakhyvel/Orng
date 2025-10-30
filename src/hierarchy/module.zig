@@ -254,6 +254,17 @@ pub const Module = struct {
             if (need_entry and std.mem.eql(u8, key, entry_name.?)) {
                 self.entry = cfg;
                 found_entry = true;
+
+                // Check for entry context requirements
+                if (cfg.symbol.type().function.context) |ctx| {
+                    if (!ctx.child().types_match(compiler.get_core_type("Allocating"))) {
+                        compiler.errors.add_error(errs_.Error{ .basic = .{
+                            .span = ctx.token().span,
+                            .msg = "entry point can't request this context",
+                        } });
+                        return error.CompileError;
+                    }
+                }
             }
         }
         if (need_entry and !found_entry) {
@@ -270,6 +281,9 @@ pub const Module = struct {
     fn collect_cfgs(self: *Module, cfg: *CFG) void {
         var cfg_dfs_iter = Cfg_Iterator.init(cfg, self.allocator);
         while (cfg_dfs_iter.next()) |next_cfg| {
+            if (next_cfg.symbol.decl.?.* == .method_decl and next_cfg.symbol.decl.?.method_decl.impl.?.generic_params().items.len > 0) {
+                continue;
+            }
             next_cfg.collect_generated_symbvers();
             _ = next_cfg.emplace_cfg(&self.cfgs, &self.instructions);
         }

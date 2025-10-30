@@ -7,7 +7,6 @@ const Const_Eval = @import("../semantic/const_eval.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const defaults_ = @import("defaults.zig");
 const errs_ = @import("../util/errors.zig");
-const interpret = @import("interpret.zig").interpret;
 const poison_ = @import("../ast/poison.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const typing_ = @import("typing.zig");
@@ -149,7 +148,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 return error.CompileError;
             }
             try self.ctx.validate_symbol.validate_symbol(symbol);
-            if (symbol.is_type()) {
+            if (symbol.is_type() or symbol.kind == .context) {
                 if (expected != null) {
                     self.ctx.errors.add_error(errs_.Error{ .unexpected_type_type = .{ .expected = expected, .span = ast.token().span } });
                     return error.CompileError;
@@ -329,6 +328,22 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             // since enum_values are always compiler constructed, and their type is always a sum-type, this should always hold
             std.debug.assert(ast.lhs().* != .enum_value or expanded_lhs_type.* == .enum_type); // (an `implies` operator would be cool btw...)
 
+            // If lhs is function type and has context(s), try and find them. Error if you can't.
+            if (expanded_lhs_type.* == .function and expanded_lhs_type.function.context != null) {
+                var fn_ctx = expanded_lhs_type.function.context.?;
+                const symbol = ast.scope().?.context_lookup(fn_ctx) orelse {
+                    if (fn_ctx.* == .addr_of) {
+                        fn_ctx = fn_ctx.child();
+                    }
+                    self.ctx.errors.add_error(errs_.Error{ .missing_context = .{
+                        .span = ast.token().span,
+                        .context = fn_ctx,
+                    } });
+                    return error.CompileError;
+                };
+                try ast.call.context_args.append(symbol);
+            }
+
             const domain = if (expanded_lhs_type.* == .function) expanded_lhs_type.lhs() else ast.lhs().enum_value.domain.?;
             const codomain = if (expanded_lhs_type.* == .function) expanded_lhs_type.rhs() else ast.lhs().enum_value.base.?;
             const variadic = expanded_lhs_type.* == .function and expanded_lhs_type.function.variadic;
@@ -454,7 +469,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 });
                 return error.CompileError;
             }
-            _ = self.typecheck_AST(method_decl.?, null) catch return error.CompileError;
+            const method_decl_type = self.typecheck_AST(method_decl.?, null) catch return error.CompileError;
             ast.invoke.method_decl = method_decl.?;
             const domain: *Type_AST = method_decl.?.method_decl.domain.?;
             const expanded_true_lhs_type = true_lhs_type.expand_identifier();
@@ -485,6 +500,22 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             } else if (ast.invoke.prepended) {
                 ast.set_lhs(ast.children().items[0]);
             }
+
+            if (method_decl_type.function.context != null) {
+                var fn_ctx = method_decl_type.function.context.?;
+                const symbol = ast.scope().?.context_lookup(fn_ctx) orelse {
+                    if (fn_ctx.* == .addr_of) {
+                        fn_ctx = fn_ctx.child();
+                    }
+                    self.ctx.errors.add_error(errs_.Error{ .missing_context = .{
+                        .span = ast.token().span,
+                        .context = fn_ctx,
+                    } });
+                    return error.CompileError;
+                };
+                try ast.invoke.context_args.append(symbol);
+            }
+
             ast.set_children(try args_.default_args(.method, ast.children().*, ast.token().span, domain, &self.ctx.errors, self.ctx.allocator()));
             try args_.validate_args_arity(.method, ast.children(), domain, false, ast.token().span, &self.ctx.errors);
             _ = try self.validate_args_type(ast.children(), domain, false);
@@ -508,6 +539,27 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
 
             return ast.dyn_value.dyn_type;
         },
+        .context_value => {
+            try self.ctx.validate_type.validate_type(ast.context_value.parent);
+            const expanded_expected: *Type_AST = if (expected == null) ast.context_value.parent.expand_identifier() else expected.?.expand_identifier();
+            if (expanded_expected.* == .context_type) {
+                // Expecting ast to be a product value of some product type
+                ast.set_children(try args_.default_args(.context, ast.children().*, ast.token().span, expanded_expected, &self.ctx.errors, self.ctx.allocator()));
+                try args_.validate_args_arity(.context, ast.children(), expanded_expected, false, ast.token().span, &self.ctx.errors);
+                _ = try self.validate_args_type(ast.children(), expanded_expected, false);
+                return ast.context_value.parent;
+            } else if (ast.context_value.parent.expand_identifier().* != .context_type) {
+                // Parent wasn't even a context type!
+                return typing_.throw_wrong_from("context", "context value", ast.context_value.parent, ast.token().span, &self.ctx.errors);
+            } else if (!prelude_.unit_type.types_match(expanded_expected)) {
+                // It's ok to assign this to a unit type, something like `_ = (1, 2, 3)`
+                // expecting something that is not a type nor a product is not ok!
+                // poison `got`, so that it doesn't print anything for the `got` section, wouldn't make sense anyway
+                return typing_.throw_unexpected_type(ast.token().span, expanded_expected, ast.context_value.parent, &self.ctx.errors);
+            } else {
+                return prelude_.unit_type;
+            }
+        },
         .struct_value => {
             try self.ctx.validate_type.validate_type(ast.struct_value.parent);
             const expanded_expected: *Type_AST = if (expected == null) ast.struct_value.parent.expand_identifier() else expected.?.expand_identifier();
@@ -519,6 +571,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 return ast.struct_value.parent;
             } else if (ast.struct_value.parent.expand_identifier().* != .struct_type) {
                 // Parent wasn't even a struct type!
+                std.debug.print("{t}\n", .{ast.struct_value.parent.symbol().?.init_typedef().?.*});
                 return typing_.throw_wrong_from("struct", "struct value", ast.struct_value.parent, ast.token().span, &self.ctx.errors);
             } else if (!prelude_.unit_type.types_match(expanded_expected)) {
                 // It's ok to assign this to a unit type, something like `_ = (1, 2, 3)`
@@ -559,11 +612,18 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 return typing_.throw_wrong_from("array", "array value", expanded_expanded.?, ast.token().span, &self.ctx.errors);
             }
             const elem_type = if (expanded_expanded == null) null else expanded_expanded.?.array_of._child;
-            const first_type = self.typecheck_AST(ast.children().items[0], elem_type) catch return error.CompileError;
-            for (ast.children().items[1..]) |child| {
-                _ = self.typecheck_AST(child, first_type) catch return error.CompileError;
+            if (ast.children().items.len != 0) {
+                const first_type = self.typecheck_AST(ast.children().items[0], elem_type) catch return error.CompileError;
+                for (ast.children().items[1..]) |child| {
+                    _ = self.typecheck_AST(child, first_type) catch return error.CompileError;
+                }
+                return Type_AST.create_array_of(ast.token(), first_type, ast_.AST.create_int(ast.token(), ast.children().items.len, self.ctx.allocator()), self.ctx.allocator());
+            } else if (expanded_expanded != null) {
+                return expanded_expanded.?;
+            } else {
+                self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "cannot infer type for empty array" } });
+                return error.CompileError;
             }
-            return Type_AST.create_array_of(ast.token(), first_type, ast_.AST.create_int(ast.token(), ast.children().items.len, self.ctx.allocator()), self.ctx.allocator());
         },
         .as => {
             const child_type = self.typecheck_AST(ast.expr(), null) catch return error.CompileError;
@@ -765,6 +825,12 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
 
             return prelude_.unit_type;
         },
+        .with => {
+            for (ast.with.contexts.items) |child| {
+                _ = try self.typecheck_AST(child, null);
+            }
+            return self.typecheck_AST(ast.with._body_block, expected);
+        },
         .block => {
             var last_type: ?*Type_AST = null;
             for (0..ast.children().items.len) |i| {
@@ -826,6 +892,14 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             try self.ctx.validate_symbol.validate_symbol(ast.decl.name.symbol().?);
             return prelude_.unit_type;
         },
+        .context_value_decl => {
+            try self.ctx.validate_type.validate_type(ast.context_value_decl.parent);
+            if (ast.context_value_decl.init) |_init| {
+                _ = self.typecheck_AST(_init, ast.context_value_decl.parent) catch return error.CompileError;
+            }
+            try self.ctx.validate_symbol.validate_symbol(ast.symbol().?);
+            return prelude_.unit_type;
+        },
         .binding => {
             try self.ctx.validate_type.validate_type(ast.binding.type);
             if (ast.binding.init) |_init| {
@@ -865,12 +939,12 @@ pub fn validate_args_type(
     expected: *Type_AST,
     variadic: bool,
 ) Validate_Error_Enum!std.array_list.Managed(*Type_AST) {
-    const expected_length = if (expected.* == .unit_type) 0 else if (expected.* == .struct_type or expected.* == .tuple_type) expected.children().items.len else 1;
+    const expected_length = if (expected.* == .unit_type) 0 else if (expected.* == .struct_type or expected.* == .tuple_type or expected.* == .context_type) expected.children().items.len else 1;
 
     var terms = std.array_list.Managed(*Type_AST).init(self.ctx.allocator());
     errdefer terms.deinit();
     for (0..expected_length) |i| {
-        const param_type = if (expected.* == .struct_type or expected.* == .tuple_type) expected.children().items[i] else expected;
+        const param_type = if (expected.* == .struct_type or expected.* == .tuple_type or expected.* == .context_type) expected.children().items[i] else expected;
         const term_type = self.typecheck_AST(args.items[i], param_type) catch return error.CompileError;
         terms.append(term_type) catch unreachable;
     }
@@ -885,7 +959,7 @@ pub fn validate_args_type(
 
 fn validate_L_Value(self: *Self, ast: *ast_.AST) Validate_Error_Enum!void {
     switch (ast.*) {
-        .select, .identifier, .array_value => {},
+        .select, .identifier, .array_value, .context_value => {},
 
         .dereference => if (ast.expr().* != .addr_of) {
             try self.validate_L_Value(ast.expr());
@@ -898,6 +972,7 @@ fn validate_L_Value(self: *Self, ast: *ast_.AST) Validate_Error_Enum!void {
         },
 
         else => {
+            std.debug.print("{t}\n", .{ast.*});
             self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "not an l-value" } });
             return error.CompileError;
         },

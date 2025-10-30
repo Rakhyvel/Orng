@@ -224,62 +224,83 @@ fn output_testrunner(
     buf.print(
         \\ test_result;
         \\
-        \\typedef test_result(*test_fn)(void);
-        \\
-        \\struct test_entry {{
-        \\    const char* filename;
-        \\    const char* name;
-        \\    test_fn run;
-        \\}};
-        \\
-        \\struct test_entry tests[] = {{
-        \\
     , .{}) catch return error.CompileError;
 
-    var num_tests: usize = 0;
-    for (modules.items) |module| {
-        var emitter = Emitter.init(&buf);
-        for (module.tests.items) |@"test"| {
-            buf.print("    {{\"{s}\", \"{s}\", (test_fn)", .{ @"test".symbol.scope.module.?.name(), @"test".symbol.decl.?.@"test".name.?.string.data }) catch return error.CompileError;
-            emitter.output_symbol(@"test".symbol) catch return error.CompileError;
-            buf.print("}},\n", .{}) catch return error.CompileError;
-            num_tests += 1;
-        }
-    }
-
     buf.print(
-        \\}};
-        \\const size_t num_tests = {};
         \\
-        \\int main(int argc, char* argv[]) {{
+        \\int main(int argc, char *argv[])
+        \\{{
         \\    const char *substr = NULL;
-        \\    if (argc >= 2) {{
+        \\    const char *prev_filename = NULL;
+        \\    test_result res;
+        \\    
+    , .{}) catch return error.CompileError;
+    mod_0_emitter.output_type(core_.allocating_context) catch return error.CompileError;
+    buf.print(
+        \\ allocator_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &std__mem_2__vtable}}}};
+        \\    
+        \\    if (argc >= 2)
+        \\    {{
         \\        substr = argv[1];
         \\    }}
         \\
         \\    printf("[============]\n");
-        \\    const char *prev_filename = NULL;
-        \\    for (int i = 0; i < num_tests; i += 1) {{
-        \\        if (substr == NULL || strstr(tests[i].name, substr)) {{
-        \\            if (prev_filename == NULL) {{
-        \\                prev_filename = tests[i].filename;
-        \\            }} else if (strcmp(prev_filename, tests[i].filename)) {{
-        \\                prev_filename = tests[i].filename;
-        \\                printf("[------------]\n");
-        \\            }}
-        \\            printf("[ RUN        ] %s.orng: %s\n", tests[i].filename, tests[i].name);
-        \\            test_result res = tests[i].run();
-        \\            if (res.tag == 0) {{
-        \\                printf("[         OK ]\n");
-        \\            }} else {{
-        \\                printf("[     FAILED ]\n");
-        \\            }}
-        \\        }}
-        \\    }}
+        \\
+    , .{}) catch return error.CompileError;
+
+    for (modules.items) |module| {
+        var emitter = Emitter.init(&buf);
+        for (module.tests.items) |@"test"| {
+            const test_filename = @"test".symbol.scope.module.?.name();
+            const test_name = @"test".symbol.decl.?.@"test".name.?.string.data;
+            const requires_context = @"test".symbol.type().function.context != null;
+
+            buf.print(
+                \\    if (substr == NULL || strstr("{1s}", substr))
+                \\    {{
+                \\        if (prev_filename == NULL)
+                \\        {{
+                \\            prev_filename = "{0s}";
+                \\        }}
+                \\        else if (strcmp(prev_filename, "{0s}"))
+                \\        {{
+                \\            prev_filename = "{0s}";
+                \\            printf("[------------]\n");
+                \\        }}
+                \\        printf("[ RUN        ] %s.orng: %s\n", "{0s}", "{1s}");
+                \\        res = 
+            , .{ test_filename, test_name }) catch return error.CompileError;
+            emitter.output_symbol(@"test".symbol) catch return error.CompileError;
+            if (requires_context) {
+                buf.print(
+                    \\(&allocator_context);
+                    \\
+                , .{}) catch return error.CompileError;
+            } else {
+                buf.print(
+                    \\();
+                    \\
+                , .{}) catch return error.CompileError;
+            }
+            buf.print(
+                \\        if (res.tag == 0)
+                \\        {{
+                \\            printf("[         OK ]\n");
+                \\        }}
+                \\        else
+                \\        {{
+                \\            printf("[     FAILED ]\n");
+                \\        }}
+                \\    }}
+                \\
+            , .{}) catch return error.CompileError;
+        }
+    }
+    buf.print(
         \\    printf("[============]\n");
         \\}}
         \\
-    , .{num_tests}) catch return error.CompileError;
+    , .{}) catch return error.CompileError;
 
     testrunner_file.writeAll(buf.items) catch unreachable;
 }

@@ -154,6 +154,12 @@ pub const Error = union(enum) {
         trait_name: []const u8,
     },
 
+    // Contexts
+    missing_context: struct {
+        span: Span,
+        context: *Type_AST,
+    },
+
     // Typecheck
     unexpected_type: struct {
         span: Span,
@@ -290,6 +296,8 @@ pub const Error = union(enum) {
             .mismatch_method_type => return self.mismatch_method_type.span,
             .mismatch_method_virtuality => return self.mismatch_method_virtuality.span,
             .trait_virtual_refers_to_self => return self.trait_virtual_refers_to_self.span,
+
+            .missing_context => return self.missing_context.span,
 
             .unexpected_type => return self.unexpected_type.span,
             .non_convertible => return self.non_convertible.span,
@@ -452,6 +460,13 @@ pub const Error = union(enum) {
                 writer.print("virtual method `{s}` of trait `{s}` refers to `Self` type\n", .{
                     err.trait_virtual_refers_to_self.method_name,
                     err.trait_virtual_refers_to_self.trait_name,
+                }) catch unreachable;
+            },
+
+            // Contexts
+            .missing_context => {
+                writer.print("missing context `{f}`\n", .{
+                    err.missing_context.context,
                 }) catch unreachable;
             },
 

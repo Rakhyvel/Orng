@@ -340,14 +340,14 @@ inline fn execute_instruction(self: *Self, instr: *Instruction) Error!void { // 
                 return self.package_find(instr);
             }
 
-            try self.call(symbol, instr.dest.?, instr.data.lval_list);
+            try self.call(symbol, instr.dest.?, instr.data.call.arg_lval_list); // TODO: Comptime contexts
         },
         .invoke => {
             const symbol_loc = try self.effective_address(instr.data.invoke.method_decl_lval.?);
             const symbol_int = @as(usize, @intCast(self.memory.load_int(symbol_loc, 8)));
             const symbol: *Symbol = @ptrFromInt(symbol_int);
 
-            try self.call(symbol, instr.dest.?, instr.data.invoke.lval_list);
+            try self.call(symbol, instr.dest.?, instr.data.invoke.arg_lval_list); // TODO: Comptime contexts
         },
         .push_stack_trace => { // Pushes a static span/code to the lines array if debug mode is on
             self.debug_call_stack.append(instr.span) catch unreachable;
@@ -363,7 +363,7 @@ inline fn execute_instruction(self: *Self, instr: *Instruction) Error!void { // 
 }
 
 fn package_find(self: *Self, instr: *Instruction) !void {
-    const arg: *lval_.L_Value = instr.data.lval_list.items[@as(usize, @intCast(0))];
+    const arg: *lval_.L_Value = instr.data.call.arg_lval_list.items[@as(usize, @intCast(0))];
     const interned_strings = self.ctx.lookup_interned_string_set(self.modules.get(1).?.uid).?;
     const src_ast = try self.extract_ast(try self.effective_address(arg), core_.package_source_type.expand_identifier(), instr.span);
     const current_module_path = (self.curr_module() catch unreachable).absolute_path;

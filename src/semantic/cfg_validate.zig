@@ -40,9 +40,20 @@ pub fn validate_cfg(cfg: *CFG, errors: *errs_.Errors) error{CompileError}!void {
                     try err_if_chain_undefd(lval, errors, cfg.return_symbol, instr.span);
                 }
             }
+            if (instr.data == .call) {
+                for (instr.data.call.arg_lval_list.items) |lval| {
+                    try err_if_chain_undefd(lval, errors, cfg.return_symbol, instr.span);
+                }
+                for (instr.data.call.context_arg_lval_list.items) |lval| {
+                    try err_if_chain_undefd(lval, errors, cfg.return_symbol, instr.span);
+                }
+            }
             if (instr.data == .invoke) {
                 try err_if_chain_undefd(instr.data.invoke.dyn_value, errors, cfg.return_symbol, instr.span);
-                for (instr.data.invoke.lval_list.items) |lval| {
+                for (instr.data.invoke.arg_lval_list.items) |lval| {
+                    try err_if_chain_undefd(lval, errors, cfg.return_symbol, instr.span);
+                }
+                for (instr.data.invoke.context_arg_lval_list.items) |lval| {
                     try err_if_chain_undefd(lval, errors, cfg.return_symbol, instr.span);
                 }
             }

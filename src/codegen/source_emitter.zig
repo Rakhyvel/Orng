@@ -4,6 +4,7 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const Basic_Block = @import("../ir/basic-block.zig");
+const core_ = @import("../hierarchy/core.zig");
 const CFG = @import("../ir/cfg.zig");
 const Emitter = @import("emitter.zig");
 const Interned_String_Set = @import("../ir/interned_string_set.zig");
@@ -169,8 +170,19 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
 
     try self.writer.print(
         \\int main(int argc, char *argv[]) {{
-        \\  
+        \\    
     , .{});
+
+    // TOOD: This won't fly in a standalone context
+    const requires_context = symbol.type().function.context != null;
+    if (requires_context) {
+        try self.emitter.output_type(core_.allocating_context);
+        try self.writer.print(
+            \\ allocator_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &std__mem_2__vtable}}}};
+            \\    
+        , .{});
+    }
+
     if (specifier != null) {
         try self.writer.print("printf(\"%{s}{s}\", ", .{ if (codomain.sizeof() == 8) "l" else "", specifier.? });
         try self.emitter.output_symbol(symbol);
@@ -178,24 +190,31 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
     } else {
         if (codomain.* == .enum_type and codomain.enum_type.from == .@"error") {
             try self.emitter.output_type(codomain);
-            try self.writer.print(" retcode = ", .{});
+            try self.writer.print("   retcode = ", .{});
         }
         try self.emitter.output_symbol(symbol);
-        try self.writer.print(
-            \\();
-            \\
-        , .{});
+        if (requires_context) {
+            try self.writer.print(
+                \\(&allocator_context);
+                \\
+            , .{});
+        } else {
+            try self.writer.print(
+                \\();
+                \\
+            , .{});
+        }
     }
 
     if (codomain.* == .enum_type and codomain.enum_type.from == .@"error") {
         try self.writer.print(
-            \\  return retcode.tag;
+            \\    return retcode.tag;
             \\}}
             \\
         , .{});
     } else {
         try self.writer.print(
-            \\  return 0;
+            \\    return 0;
             \\}}
             \\
         , .{});
@@ -439,11 +458,11 @@ fn output_instruction_post_check(self: *Self, instr: *Instruction) CodeGen_Error
             try self.output_call_prefix(instr);
             try self.output_rvalue(instr.src1.?, instr.kind.precedence());
             try self.writer.print("(", .{});
-            for (instr.data.lval_list.items, 0..) |term, i| {
+            for (instr.data.call.arg_lval_list.items, 0..) |term, i| {
                 if (!term.get_expanded_type().is_c_void_type()) {
                     // Do not output `void` arguments
                     try self.output_rvalue(term, HIGHEST_PRECEDENCE);
-                    if (i + 1 < instr.data.lval_list.items.len and !instr.data.lval_list.items[i + 1].get_expanded_type().is_c_void_type()) {
+                    if (i + 1 < instr.data.call.arg_lval_list.items.len and !instr.data.call.arg_lval_list.items[i + 1].get_expanded_type().is_c_void_type()) {
                         try self.writer.print(", ", .{});
                     }
                 }
@@ -469,19 +488,20 @@ fn output_instruction_post_check(self: *Self, instr: *Instruction) CodeGen_Error
                 try self.output_vtable_impl(instr.data.invoke.method_decl.method_decl.impl.?);
                 try self.writer.print(".{s}(", .{instr.data.invoke.method_decl.method_decl.name.token().data});
             }
-            const num_invoke_args = instr.data.invoke.lval_list.items.len;
-            for (instr.data.invoke.lval_list.items, 0..) |term, i| {
+            const num_invoke_args = instr.data.invoke.arg_lval_list.items.len;
+            for (instr.data.invoke.arg_lval_list.items, 0..) |term, i| {
                 if (!term.get_expanded_type().is_c_void_type()) {
                     // Do not output `void` arguments
                     try self.output_rvalue(term, HIGHEST_PRECEDENCE);
                     if (instr.data.invoke.dyn_value != null and instr.data.invoke.dyn_value == term and i == 0) {
                         try self.writer.print(".data_ptr", .{});
                     }
-                    if (i + 1 < num_invoke_args and !instr.data.invoke.lval_list.items[i + 1].get_expanded_type().is_c_void_type()) {
+                    if (i + 1 < num_invoke_args and !instr.data.invoke.arg_lval_list.items[i + 1].get_expanded_type().is_c_void_type()) {
                         try self.writer.print(", ", .{});
                     }
                 }
             }
+            // TODO: context args
             try self.writer.print(");\n", .{});
         },
         .label,

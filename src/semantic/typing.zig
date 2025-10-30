@@ -156,7 +156,7 @@ fn put_many_annot_map(
 }
 
 pub fn find_select_pos(_type: *Type_AST, field: []const u8, span: Span, errors: *errs_.Errors) Validate_Error_Enum!usize {
-    if (_type.* != .struct_type and _type.* != .enum_type and _type.* != .untagged_sum_type) {
+    if (_type.* != .struct_type and _type.* != .enum_type and _type.* != .untagged_sum_type and _type.* != .context_type) {
         return throw_not_selectable(_type, span, errors);
     }
     for (_type.children().items, 0..) |term, i| {

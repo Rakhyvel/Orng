@@ -84,11 +84,16 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .poison,
         .pattern_symbol,
         .receiver,
-        .template,
         .identifier,
         .type_param_decl,
         .import,
         => {},
+
+        .context_value_decl => {
+            try walk_ast(ast.context_value_decl.init, new_context);
+            try walk_type(ast.context_value_decl.parent, new_context);
+        },
+        .context_decl => try walk_type(ast.decl_typedef(), new_context),
 
         .struct_decl,
         .enum_decl,
@@ -156,6 +161,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             try walk_ast(ast.lhs(), new_context);
             try walk_types(&ast.generic_apply._children, new_context);
         },
+        .context_value,
         .struct_value,
         .tuple_value,
         .array_value,
@@ -209,6 +215,10 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             try walk_ast(ast.body_block(), new_context);
             try walk_ast(ast.else_block(), new_context);
         },
+        .with => {
+            try walk_asts(&ast.with.contexts, new_context);
+            try walk_ast(ast.with._body_block, new_context);
+        },
         .block => {
             try walk_asts(ast.children(), new_context);
             if (ast.block.final) |final| {
@@ -224,12 +234,15 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             }
         },
         .fn_decl => {
+            try walk_asts(&ast.fn_decl.context_decls, new_context);
             try walk_asts(ast.generic_params(), new_context);
+            try walk_type(ast.fn_decl._decl_type, new_context);
             try walk_ast(ast.fn_decl.init, new_context);
             try walk_asts(ast.children(), new_context);
             try walk_type(ast.fn_decl.ret_type, new_context);
         },
         .@"test" => {
+            try walk_asts(&ast.@"test".context_decls, new_context);
             try walk_ast(ast.@"test".name, new_context);
             try walk_ast(ast.@"test".init, new_context);
         },
@@ -245,6 +258,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             try walk_asts(&ast.impl.const_defs, new_context);
         },
         .method_decl => {
+            try walk_asts(&ast.method_decl.context_decls, new_context);
             try walk_ast(ast.method_decl.init, new_context);
             try walk_asts(ast.children(), new_context);
             try walk_type(ast.method_decl._decl_type, new_context);
@@ -323,8 +337,10 @@ pub fn walk_type(maybe_type: ?*Type_AST, context: anytype) Error!void {
         .function => {
             try walk_type(_type.lhs(), new_context);
             try walk_type(_type.rhs(), new_context);
+            try walk_type(_type.function.context, new_context);
         },
 
+        .context_type,
         .enum_type,
         .struct_type,
         .tuple_type,

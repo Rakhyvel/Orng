@@ -2,16 +2,16 @@ import std::debug
 import std::ffi
 import std::testing
 import std::mem
+import std::list
 import externs
 
-fn main() -> () {
+fn main() -> () with core::Allocating {
     debug::println("Hello, World!")
     externs::println("Hello, World f!")
 }
 
-test "allocator works" {
-    let mut alloc = mem::Heap_Allocator()
-    let res = try mem::new[Int](&mut alloc)
+test "allocator works" with core::Allocating {
+    let res = try mem::new[Int](core::Allocating.alloc)
     res^ = 1024
 
     try testing::expect(res^ == 1024)

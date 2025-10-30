@@ -73,12 +73,6 @@ pub fn generate_default(_type: *Type_AST, span: Span, errors: *errs_.Errors, all
         } else {
             return generate_default(_type.child(), span, errors, allocator);
         },
-        // .slice_of => {
-        //     var value_terms = std.array_list.Managed(*ast_.AST).init(allocator);
-        //     value_terms.append(ast_.AST.create_int(_type.token(), 0, allocator)) catch unreachable;
-        //     value_terms.append(ast_.AST.create_int(_type.token(), 0, allocator)) catch unreachable;
-        //     return ast_.AST.create_product(_type.token(), value_terms, allocator);
-        // },
         .array_of => {
             var value_terms = std.array_list.Managed(*ast_.AST).init(allocator);
             const child = try generate_default(_type.child(), span, errors, allocator);
@@ -96,6 +90,7 @@ pub fn generate_default(_type: *Type_AST, span: Span, errors: *errs_.Errors, all
         .type_of,
         .domain_of,
         .index,
+        .context_type,
         => std.debug.panic("compiler error: unimplemented generate_default() for: AST.{s}", .{@tagName(_type.*)}),
     }
 }

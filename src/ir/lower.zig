@@ -101,7 +101,7 @@ fn lower_AST_inner(
 ) Lower_Errors!?*lval_.L_Value {
     switch (ast.*) {
         // Unit-values
-        .enum_decl, .struct_decl, .unit_value, .template, .trait, .impl, .type_alias => return self.lval_from_unit_value(ast),
+        .enum_decl, .struct_decl, .unit_value, .trait, .impl, .type_alias => return self.lval_from_unit_value(ast),
         // Literals
         .int => return self.lval_from_int(ast.int.data, self.ctx.typecheck.typeof(ast), ast.token().span),
         .char => {
@@ -255,7 +255,10 @@ fn lower_AST_inner(
 
             var instr = Instruction.init_call(temp, lhs, ast.token().span, self.ctx.allocator());
             for (ast.children().items) |term| {
-                instr.data.lval_list.append((try self.lower_AST(term, labels)) orelse continue) catch unreachable;
+                instr.data.call.arg_lval_list.append((try self.lower_AST(term, labels)) orelse continue) catch unreachable;
+            }
+            for (ast.call.context_args.items) |context_arg| {
+                instr.data.call.arg_lval_list.append(lval_.L_Value.create_unversioned_symbver(context_arg, self.ctx.allocator())) catch unreachable;
             }
             self.instructions.append(Instruction.init_stack_push(ast.token().span, self.ctx.allocator())) catch unreachable;
             self.instructions.append(instr) catch unreachable;
@@ -293,6 +296,9 @@ fn lower_AST_inner(
                 }
             }
             const instr = Instruction.init_invoke(temp, ast.invoke.method_decl.?, lval_list, dyn_value, ast.token().span, self.ctx.allocator());
+            for (ast.invoke.context_args.items) |context_arg| {
+                instr.data.invoke.arg_lval_list.append(lval_.L_Value.create_unversioned_symbver(context_arg, self.ctx.allocator())) catch unreachable;
+            }
             if (ast.invoke.method_decl.?.symbol() != null) {
                 // Fine if symbol is null, for invokes on trait objects.
                 instr.data.invoke.method_decl_lval = try self.lval_from_symbol_cfg(ast.invoke.method_decl.?.symbol().?, ast.token().span);
@@ -354,7 +360,7 @@ fn lower_AST_inner(
             const expanded_type = self.ctx.typecheck.typeof(ast).expand_identifier();
             return ast_lval.?.create_select_lval(field, offset, expanded_type, tag, self.ctx.allocator());
         },
-        .struct_value, .tuple_value, .array_value => {
+        .struct_value, .tuple_value, .array_value, .context_value => {
             _ = self.ctx.typecheck.typeof(ast).expand_identifier();
             const temp = self.create_temp_lvalue(self.ctx.typecheck.typeof(ast));
             var instr = Instruction.init_load_struct(temp, ast.token().span, self.ctx.allocator());
@@ -503,6 +509,12 @@ fn lower_AST_inner(
             self.instructions.append(end_label) catch unreachable;
             return lval_.L_Value.create_unversioned_symbver(symbol, self.ctx.allocator());
         },
+        .with => {
+            for (ast.with.contexts.items) |ctx| {
+                _ = try self.lower_AST(ctx, labels);
+            }
+            return self.lower_AST(ast.with._body_block, labels);
+        },
         .block => { // TODO: TOO LONG
             if (ast.children().items.len == 0 and ast.block.final == null) {
                 return self.lval_from_unit_value(ast);
@@ -580,9 +592,19 @@ fn lower_AST_inner(
             }
             return self.lval_from_unit_value(ast);
         },
-        .decl => {
+        .context_value_decl => {
+            if (ast.context_value_decl.init) |_init| {
+                const def: ?*lval_.L_Value = try self.lower_AST(_init, labels);
+                if (def == null) {
+                    return null;
+                }
+
+                const symbver = lval_.L_Value.create_unversioned_symbver(ast.symbol().?, self.ctx.allocator());
+                self.instructions.append(Instruction.init_simple_copy(symbver, def.?, ast.token().span, self.ctx.allocator())) catch unreachable;
+            }
             return self.lval_from_unit_value(ast);
         },
+        .decl => return self.lval_from_unit_value(ast),
         .fn_decl => return try self.lval_from_symbol_cfg(ast.symbol().?, ast.token().span),
         .@"errdefer", .@"defer" => return self.lval_from_unit_value(ast),
         .@"continue" => {
