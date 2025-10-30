@@ -642,19 +642,20 @@ pub const Type_AST = union(enum) {
 
     /// Expands an ast one level if it is an identifier
     pub fn expand_identifier(self: *Type_AST) *Type_AST {
-        if (self.* == .annotation) {
-            return self.child().expand_identifier();
-        }
-        if (self.* == .generic_apply) {
-            return self.generic_apply._symbol.?.init_typedef().?;
-        }
         var res = self;
-        while ((res.* == .identifier or res.* == .access) and res.symbol().?.init_typedef() != null) {
-            const new = res.symbol().?.init_typedef().?;
-            new.set_unexpanded_type(res);
-            res = new;
+        while (true) {
+            if ((res.* == .identifier or res.* == .access) and res.symbol().?.init_typedef() != null) {
+                const new = res.symbol().?.init_typedef().?;
+                new.set_unexpanded_type(res);
+                res = new;
+            } else if (res.* == .generic_apply) {
+                res = res.generic_apply._symbol.?.init_typedef().?;
+            } else if (res.* == .annotation) {
+                res = res.child();
+            } else {
+                return res;
+            }
         }
-        return res;
     }
 
     pub fn unexpand_type(self: *Type_AST) *Type_AST {
@@ -1082,6 +1083,7 @@ pub const Type_AST = union(enum) {
             } else {
                 return self;
             },
+            .access => return create_type_access(self.token(), self.access.inner_access.clone(substs, allocator), allocator),
             .type_of => {
                 const _expr = self.expr().clone(substs, allocator);
                 return create_type_of(self.token(), _expr, allocator);

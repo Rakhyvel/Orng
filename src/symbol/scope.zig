@@ -183,11 +183,6 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
         try compiler.validate_type.validate_type(impl.impl._type);
         unification_.unify(impl.impl._type, for_type, impl.impl._generic_params, &subst) catch continue;
 
-        // TODO:
-        // - attempt to unify for_type and impl._type given impl's `with` list that defines type parameters (nop for concrete impl), or continue
-        // - check types/constraints (nop for concrete impl), or continue
-        // - let TheImpl = the instantiation given the unification parameters (nop for concrete impl), create if doesnt exist (Q: Where are these stored? In the impl? How is lookup based on unification parameters done?)
-        // - perform normal method lookup on TheImpl
         var the_impl = impl;
         if (impl.impl._generic_params.items.len > 0) {
             const with_list = unification_.type_param_list_from_subst_map(&subst, impl.impl._generic_params, std.heap.page_allocator);
@@ -197,25 +192,10 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
 
                 new_impl.set_scope(new_scope);
 
-                // Define each parameter in the new scope
-                // var const_decls = std.array_list.Managed(*ast_.AST).init(compiler.allocator());
-                // for (impl.impl._generic_params.items) |type_param| {
-                //     const decl_init = subst.get(type_param.token().data);
-                //     const decl = ast_.AST.create_type_alias(
-                //         type_param.token(),
-                //         ast_.AST.create_pattern_symbol(type_param.token(), .type, .local, name, compiler.allocator()),
-                //         decl_init,
-                //         std.array_list.Managed(*ast_.AST).init(compiler.allocator()),
-                //         compiler.allocator(),
-                //     );
-                //     const_decls.append(decl) catch unreachable;
-                // }
-
                 try walker_.walk_ast(new_impl, Symbol_Tree.new(new_scope, &compiler.errors, compiler.allocator()));
 
                 if (new_impl.impl.trait == null or new_impl.impl.impls_anon_trait) {
                     // impl'd for an anon trait, create an anon trait for it
-                    // TODO: if there is a withlist, define the withs in the traits scope (?)
                     var token = new_impl.token();
                     token.kind = .identifier;
                     token.data = Symbol_Tree.next_anon_name("Trait", compiler.allocator());
@@ -233,10 +213,6 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
                 // Decorate identifiers, validate
                 const decorate_context = Decorate.new(new_scope, &compiler.errors, compiler.allocator());
                 const decorate_access_context = Decorate_Access.new(new_scope, &compiler.errors, compiler);
-                // for (const_decls.items) |decl| {
-                //     try walker_.walk_ast(decl, decorate_context);
-                //     try walker_.walk_ast(decl, decorate_access_context);
-                // }
                 try walker_.walk_ast(new_impl, decorate_context); // this doesn't know about the anonymous trait
                 try walker_.walk_ast(new_impl, decorate_access_context);
                 try compiler.validate_scope.validate_scope(new_scope);

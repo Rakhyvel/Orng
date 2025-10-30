@@ -571,6 +571,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 return ast.struct_value.parent;
             } else if (ast.struct_value.parent.expand_identifier().* != .struct_type) {
                 // Parent wasn't even a struct type!
+                std.debug.print("{t}\n", .{ast.struct_value.parent.symbol().?.init_typedef().?.*});
                 return typing_.throw_wrong_from("struct", "struct value", ast.struct_value.parent, ast.token().span, &self.ctx.errors);
             } else if (!prelude_.unit_type.types_match(expanded_expected)) {
                 // It's ok to assign this to a unit type, something like `_ = (1, 2, 3)`
@@ -611,11 +612,18 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 return typing_.throw_wrong_from("array", "array value", expanded_expanded.?, ast.token().span, &self.ctx.errors);
             }
             const elem_type = if (expanded_expanded == null) null else expanded_expanded.?.array_of._child;
-            const first_type = self.typecheck_AST(ast.children().items[0], elem_type) catch return error.CompileError;
-            for (ast.children().items[1..]) |child| {
-                _ = self.typecheck_AST(child, first_type) catch return error.CompileError;
+            if (ast.children().items.len != 0) {
+                const first_type = self.typecheck_AST(ast.children().items[0], elem_type) catch return error.CompileError;
+                for (ast.children().items[1..]) |child| {
+                    _ = self.typecheck_AST(child, first_type) catch return error.CompileError;
+                }
+                return Type_AST.create_array_of(ast.token(), first_type, ast_.AST.create_int(ast.token(), ast.children().items.len, self.ctx.allocator()), self.ctx.allocator());
+            } else if (expanded_expanded != null) {
+                return expanded_expanded.?;
+            } else {
+                self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "cannot infer type for empty array" } });
+                return error.CompileError;
             }
-            return Type_AST.create_array_of(ast.token(), first_type, ast_.AST.create_int(ast.token(), ast.children().items.len, self.ctx.allocator()), self.ctx.allocator());
         },
         .as => {
             const child_type = self.typecheck_AST(ast.expr(), null) catch return error.CompileError;

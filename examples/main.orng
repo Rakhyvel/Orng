@@ -2,6 +2,7 @@ import std::debug
 import std::ffi
 import std::testing
 import std::mem
+import std::list
 import externs
 
 fn main() -> () with core::Allocating {

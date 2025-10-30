@@ -26,3 +26,15 @@ fn new[T](alloc: &mut dyn core::Allocator) -> ()!&mut T {
         .none => .err
     }
 }
+
+fn make[T](length: Int) -> ()![mut]T with core::Allocating {
+    match core::Allocating.alloc.>alloc(@sizeof(T) * length) {
+        .some(bytes) => {
+            let mut retval: [mut]T = undefined
+            retval.data = bytes as [*mut]T
+            retval.length = length
+            .ok(retval)
+        }
+        .none => .err
+    }
+}

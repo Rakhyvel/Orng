@@ -912,16 +912,18 @@ fn prefix_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
 
         // Must be an array literal
         var terms = std.array_list.Managed(*ast_.AST).init(self.allocator);
-        terms.append(try self.bool_expr()) catch unreachable;
-        self.newlines();
-        while (self.accept(.comma)) |_| {
-            self.newlines();
-            if (self.peek_kind(.right_square)) {
-                // Trailing comma, break out
-                break;
-            }
+        if (self.accept(.comma) == null) {
             terms.append(try self.bool_expr()) catch unreachable;
             self.newlines();
+            while (self.accept(.comma)) |_| {
+                self.newlines();
+                if (self.peek_kind(.right_square)) {
+                    // Trailing comma, break out
+                    break;
+                }
+                terms.append(try self.bool_expr()) catch unreachable;
+                self.newlines();
+            }
         }
         _ = try self.expect(.right_square);
         return ast_.AST.create_array_value(token, terms, self.allocator);

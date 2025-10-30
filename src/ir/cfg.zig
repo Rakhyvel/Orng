@@ -149,6 +149,9 @@ pub fn collect_cfg_types(self: *Self, type_set: *Type_Set) void {
     if (self.symbol.decl.?.* == .fn_decl and self.symbol.decl.?.generic_params().items.len > 0) {
         return;
     }
+    if (self.symbol.decl.?.* == .method_decl and self.symbol.decl.?.method_decl.impl.?.generic_params().items.len > 0) {
+        return;
+    }
 
     // Add parameter types to type set
     const decl = self.symbol.decl.?;

@@ -1,0 +1,17 @@
+struct List[T] {
+    items: [mut]T
+    length: Int
+    alloc: &mut dyn core::Allocator
+}
+
+impl[T] for List[T] {
+    fn init() -> Self with core::Allocating {
+        let mut data: [0]T = [,]
+        Self([mut]data, 0, core::Allocating.alloc)
+    }
+
+    fn append(&mut self, t: T) -> () {
+        _ = (self, t)
+        unreachable // TODO
+    }
+}

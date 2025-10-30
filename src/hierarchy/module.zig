@@ -281,6 +281,9 @@ pub const Module = struct {
     fn collect_cfgs(self: *Module, cfg: *CFG) void {
         var cfg_dfs_iter = Cfg_Iterator.init(cfg, self.allocator);
         while (cfg_dfs_iter.next()) |next_cfg| {
+            if (next_cfg.symbol.decl.?.* == .method_decl and next_cfg.symbol.decl.?.method_decl.impl.?.generic_params().items.len > 0) {
+                continue;
+            }
             next_cfg.collect_generated_symbvers();
             _ = next_cfg.emplace_cfg(&self.cfgs, &self.instructions);
         }

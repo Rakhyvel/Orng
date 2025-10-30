@@ -25,9 +25,7 @@ pub fn add_type(self: *Self, oldast_: *Type_AST) ?*Dependency_Node {
 
 fn add_internal(self: *Self, oldast_: *Type_AST, from_function: bool) ?*Dependency_Node {
     const ast = oldast_.expand_identifier();
-    // if (ast.* == .identifier and ast.symbol().?.decl.?.* == .type_param_decl) {
-    //     return null;
-    // }
+    // std.debug.print("{f}\n", .{ast});
     std.debug.assert(ast.* != .identifier or ast.symbol().?.decl.?.* != .type_param_decl);
 
     if (self.get_node(ast)) |dag| {
