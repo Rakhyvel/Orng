@@ -166,7 +166,7 @@ pub fn err_if_unused(self: *Self, errors: *errs_.Errors) error{CompileError}!voi
 }
 
 pub fn err_if_undefd(self: *Self, errors: *errs_.Errors, use: Span) error{CompileError}!void {
-    // std.debug.print("{s} uses:{} defs:{}\n", .{ symbol.name, symbol.uses, symbol.defs });
+    // std.debug.print("{s} uses:{} defs:{}\n", .{ self.name, self.uses, self.defs });
     if (self.uses != 0 and // symbol has been used somewhere
         self.defs == 0 and // symbol hasn't been defined anywhere
         !self.param and // symbol isn't a parameter (these don't have defs!)

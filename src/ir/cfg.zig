@@ -319,6 +319,14 @@ pub fn calculate_definitions(self: *Self) void {
                     reset_defs(lval);
                 }
             }
+            if (instr.data == .call) {
+                for (instr.data.call.arg_lval_list.items) |lval| {
+                    reset_defs(lval);
+                }
+                for (instr.data.call.context_arg_lval_list.items) |lval| {
+                    reset_defs(lval);
+                }
+            }
             if (instr.data == .invoke) {
                 reset_defs(instr.data.invoke.dyn_value);
                 reset_defs(instr.data.invoke.method_decl_lval);
