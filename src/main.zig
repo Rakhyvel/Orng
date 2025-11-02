@@ -340,7 +340,7 @@ pub fn init_project(name: []const u8, args: *std.process.ArgIterator, allocator:
     const main_content =
         \\import std::debug
         \\
-        \\fn main() -> () {
+        \\fn main() {
         \\    debug::println("Hello, World!")
         \\}
     ;

@@ -17,7 +17,7 @@ impl for String_Buffer {
 
     fn init_with_contents(contents: String) -> Error!String_Buffer with core::Allocating {}
 
-    fn deinit(&mut self) -> () {}
+    fn deinit(&mut self) {}
 
     fn capacity(&self) -> Int {}
     
@@ -37,17 +37,17 @@ impl for String_Buffer {
 
     fn is_empty(&self) -> Bool {}
 
-    fn concat(&mut self, other: &String_Buffer) -> () {}
+    fn concat(&mut self, other: &String_Buffer) {}
 
-    fn insert(&mut self, literal: String, index: Int) -> () {}
+    fn insert(&mut self, literal: String, index: Int) {}
 
-    fn remove(&mut self) -> () {}
+    fn remove(&mut self) {}
 
-    fn clear(&mut self) -> () {}
+    fn clear(&mut self) {}
 
-    fn to_lowercase(&mut self) -> () {}
+    fn to_lowercase(&mut self) {}
 
-    fn to_uppercase(&mut self) -> () {}
+    fn to_uppercase(&mut self) {}
 
-    fn replace(&mut self, needle: String, replacement: String) -> () {}
+    fn replace(&mut self, needle: String, replacement: String) {}
 }

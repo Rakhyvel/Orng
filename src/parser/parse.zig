@@ -1284,8 +1284,10 @@ fn fn_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     const gen_params = try self.generic_params_list();
 
     const params = try self.paramlist();
-    _ = try self.expect(.skinny_arrow);
-    const ret_type = try self.type_expr();
+    var ret_type: ?*Type_AST = null;
+    if (self.accept(.skinny_arrow) != null) {
+        ret_type = try self.type_expr();
+    }
     const refinement: ?*ast_.AST = null;
     const contexts_decls = try self.context_paramlist();
 
@@ -1296,7 +1298,7 @@ fn fn_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
         maybe_ident,
         gen_params,
         params,
-        ret_type,
+        ret_type orelse Type_AST.create_unit_type(introducer, self.allocator),
         contexts_decls,
         refinement,
         _init,
@@ -1632,9 +1634,10 @@ fn method_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
     const params_and_receiver = try self.method_paramlist();
     const params = params_and_receiver.params;
     const _receiver = params_and_receiver.receiver;
-
-    _ = try self.expect(.skinny_arrow);
-    const ret_type = try self.type_expr();
+    var ret_type: ?*Type_AST = null;
+    if (self.accept(.skinny_arrow) != null) {
+        ret_type = try self.type_expr();
+    }
 
     const refinement: ?*ast_.AST = null;
     if (self.accept(.where)) |_| {
@@ -1648,7 +1651,7 @@ fn method_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {
         virtual != null,
         _receiver,
         params,
-        ret_type,
+        ret_type orelse Type_AST.create_unit_type(introducer, self.allocator),
         contexts_decls,
         refinement,
         null, // Won't have an init!
@@ -1664,9 +1667,10 @@ fn method_definition(self: *Self) Parser_Error_Enum!*ast_.AST {
     const params_and_receiver = try self.method_paramlist();
     const params = params_and_receiver.params;
     const _receiver = params_and_receiver.receiver;
-
-    _ = try self.expect(.skinny_arrow);
-    const ret_type = try self.type_expr();
+    var ret_type: ?*Type_AST = null;
+    if (self.accept(.skinny_arrow) != null) {
+        ret_type = try self.type_expr();
+    }
 
     const refinement: ?*ast_.AST = null;
     if (self.accept(.where)) |_| {
@@ -1682,7 +1686,7 @@ fn method_definition(self: *Self) Parser_Error_Enum!*ast_.AST {
         virtual != null,
         _receiver,
         params,
-        ret_type,
+        ret_type orelse Type_AST.create_unit_type(introducer, self.allocator),
         contexts_decls,
         refinement,
         _init,

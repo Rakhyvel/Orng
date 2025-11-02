@@ -1,0 +1,16 @@
+// 362
+trait Adjustable {
+    fn adjust(&mut self)
+}
+
+impl Adjustable for Int {
+    fn adjust(&mut self) {
+        self^ = 362
+    }
+}
+
+fn main() -> Int {
+    let mut x: Int = 263
+    x.>adjust()
+    x
+}

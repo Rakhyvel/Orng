@@ -10,7 +10,7 @@ impl[T] for List[T] {
         Self([mut]data, 0, core::Allocating.alloc)
     }
 
-    fn append(&mut self, t: T) -> () {
+    fn append(&mut self, t: T) {
         _ = (self, t)
         unreachable // TODO
     }

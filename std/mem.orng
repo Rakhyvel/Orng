@@ -8,7 +8,7 @@ impl core::Allocator for Heap_Allocator {
         .some(malloc(nbytes))
     }
 
-    virtual fn free(&mut self, allocation: [*]Byte) -> () {
+    virtual fn free(&mut self, allocation: [*]Byte) {
         _ = self
         extern("free") const c_free: [*]Byte -> ()
         c_free(allocation)

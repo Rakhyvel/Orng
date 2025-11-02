@@ -84,12 +84,12 @@ impl for Package {
     fn find(src: Package_Source) -> &Self { _ = src; unreachable }
 
     /// Adds a package to the list of required packages
-    fn requires(&mut self, name: String, other: &Package) -> () {
+    fn requires(&mut self, name: String, other: &Package) {
         self.requirements[self.num_requirements] = .some(Requirement(name, other))
         self.num_requirements += 1
     }
 
-    fn add_include_directory(&mut self, include_directory: String) -> () {
+    fn add_include_directory(&mut self, include_directory: String) {
         while let mut i = 0; i < 8; i += 1 {
             if self.include_dirs[i] == .none {
                 self.include_dirs[i] = .some(include_directory)
@@ -99,7 +99,7 @@ impl for Package {
         unreachable // no more space!
     }
 
-    fn add_library(&mut self, library: String) -> () {
+    fn add_library(&mut self, library: String) {
         // TODO: assert not static library
         while let mut i = 0; i < 8; i += 1 {
             if self.libs[i] == .none {
@@ -110,7 +110,7 @@ impl for Package {
         unreachable // no more space!
     }
 
-    fn add_library_directory(&mut self, library_directory: String) -> () {
+    fn add_library_directory(&mut self, library_directory: String) {
         // TODO: assert not static library
         while let mut i = 0; i < 8; i += 1 {
             if self.lib_dirs[i] == .none {
@@ -126,12 +126,12 @@ type Test_Result = ()!()
 
 trait Allocator {
     virtual fn alloc(&mut self, nbytes: Int) -> ?[*mut]Byte
-    virtual fn free(&mut self, allocation: [*]Byte) -> ()
+    virtual fn free(&mut self, allocation: [*]Byte)
     virtual fn resize(&mut self, allocation: [*mut]Byte, newsize: Int) -> ?[*mut]Byte
 }
 
 trait Writer {
-    virtual fn write(&mut self, bytes: []Byte) -> ()
+    virtual fn write(&mut self, bytes: []Byte)
 }
 
 trait Reader {

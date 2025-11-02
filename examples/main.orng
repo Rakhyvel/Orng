@@ -5,7 +5,7 @@ import std::mem
 import std::list
 import externs
 
-fn main() -> () with core::Allocating {
+fn main() with core::Allocating {
     debug::println("Hello, World!")
     externs::println("Hello, World f!")
 }
