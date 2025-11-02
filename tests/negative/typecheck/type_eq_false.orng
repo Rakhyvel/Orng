@@ -1,6 +1,6 @@
 // 
 fn main() -> Int {
-    if Int == Char {
+    if Int == Bool {
         unreachable
     } else {
         252

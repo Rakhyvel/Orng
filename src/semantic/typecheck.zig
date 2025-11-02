@@ -137,7 +137,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
 
         .float => return try typing_.type_check_float(ast, expected, &self.ctx.errors),
 
-        .char => return prelude_.char_type,
+        // .char => return prelude_.char_type,
 
         .string => return prelude_.string_type,
 
@@ -571,7 +571,6 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 return ast.struct_value.parent;
             } else if (ast.struct_value.parent.expand_identifier().* != .struct_type) {
                 // Parent wasn't even a struct type!
-                std.debug.print("{t}\n", .{ast.struct_value.parent.symbol().?.init_typedef().?.*});
                 return typing_.throw_wrong_from("struct", "struct value", ast.struct_value.parent, ast.token().span, &self.ctx.errors);
             } else if (!prelude_.unit_type.types_match(expanded_expected)) {
                 // It's ok to assign this to a unit type, something like `_ = (1, 2, 3)`
@@ -972,7 +971,6 @@ fn validate_L_Value(self: *Self, ast: *ast_.AST) Validate_Error_Enum!void {
         },
 
         else => {
-            std.debug.print("{t}\n", .{ast.*});
             self.ctx.errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "not an l-value" } });
             return error.CompileError;
         },

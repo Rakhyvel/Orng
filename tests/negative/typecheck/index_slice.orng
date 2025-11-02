@@ -1,9 +1,9 @@
-// index_slice.orng:8:7: error: expected a value of type `Int`, got a value of type `Char`
+// index_slice.orng:8:7: error: expected a value of type `Int`, got a value of type `Bool`
 //     y[1]
 //      ^
 // 
 fn main() -> Int {
-    let x = ['1', '2', '3']
+    let x = [true, false, true]
     let y = []x
     y[1]
 }

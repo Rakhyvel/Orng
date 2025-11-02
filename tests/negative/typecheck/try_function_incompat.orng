@@ -1,4 +1,4 @@
-// try_function_incompat.orng:10:19: error: expected a value of type `(ok: Int | err: ())`, got a value of type `(ok: Int | err: Char)`
+// try_function_incompat.orng:10:19: error: expected a value of type `(ok: Int | err: ())`, got a value of type `(ok: Int | err: Bool)`
 //     let x = try g()
 //                  ^
 // 
@@ -6,7 +6,7 @@ fn main() -> Int {
     f() catch 0
 }
 
-fn f() -> Char!Int {
+fn f() -> Bool!Int {
     let x = try g()
     .ok(x)
 }

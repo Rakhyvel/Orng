@@ -890,9 +890,9 @@ pub const Type_AST = union(enum) {
     ///
     /// Thus, we have the following type map:
     /// ```txt
-    ///     Bool  Byte  Char  Float  Int  String  ...
-    ///       \     \     \     |    /      /     /
-    ///                       Void
+    ///     Bool  Byte  Word16  Float  Int  String  ...
+    ///       \     \     \      |     /      /     /
+    ///                        Void
     /// ```
     ///
     /// Also, `&mut T <: &T`, because for every `t: &mut T`, `t: &T`. Thus, `let x: &T = mut_expression` is

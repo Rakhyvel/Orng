@@ -1,9 +1,9 @@
-// sliceof.orng:7:23: error: expected a value of type `(data: [*]Int, length: Int)`, got a value of type `(data: [*]Char, length: Int)`
+// sliceof.orng:7:23: error: expected a value of type `(data: [*]Int, length: Int)`, got a value of type `(data: [*]Bool, length: Int)`
 //     let y: []Int = []x
 //                      ^
 // 
 fn main() -> Int {
-    let x: [3]Char = ['a', 'b', 'c']
+    let x: [3]Bool = [true, false, true]
     let y: []Int = []x
     0
 }

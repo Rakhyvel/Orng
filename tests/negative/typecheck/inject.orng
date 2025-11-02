@@ -1,10 +1,10 @@
-// inject.orng:8:20: error: expected a value of type `Char`, got a value of type `Int`
+// inject.orng:8:20: error: expected a value of type `Bool`, got a value of type `Int`
 //     let x:T = S.b(3)
 //                   ^
 // 
 fn main() -> Int {
     enum T { a(Int), b(Int) }
-    enum S { a(Int), b(Char) }
+    enum S { a(Int), b(Bool) }
     let x:T = S.b(3)
     0
 }

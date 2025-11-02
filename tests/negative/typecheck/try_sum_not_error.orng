@@ -4,7 +4,7 @@
 // 
 enum My_Error {
     ok(Int)
-    err(Char)
+    err(Bool)
 }
 
 fn main() -> Int {
@@ -12,5 +12,5 @@ fn main() -> Int {
 }
 
 fn f() -> My_Error {
-    return .err('d')
+    return .err(false)
 }

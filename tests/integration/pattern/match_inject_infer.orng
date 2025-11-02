@@ -1,5 +1,5 @@
 // 172
-enum The_Type { a(Int), b(Bool), c(Char) }
+enum The_Type { a(Int), b(Bool), c(Byte) }
 
 fn main() -> Int {
     let x: The_Type = The_Type.a(172)

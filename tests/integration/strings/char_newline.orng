@@ -1,2 +1,2 @@
 // 10
-fn main() -> Char {'\n'}
+fn main() -> Byte {'\n'}

@@ -17,7 +17,7 @@ pub var anyptr_type: *Type_AST = undefined;
 pub var bool_type: *Type_AST = undefined;
 pub var byte_type: *Type_AST = undefined;
 pub var byte_slice_type: *Type_AST = undefined;
-pub var char_type: *Type_AST = undefined;
+// pub var char_type: *Type_AST = undefined;
 pub var float_type: *Type_AST = undefined;
 pub var float32_type: *Type_AST = undefined;
 pub var float64_type: *Type_AST = undefined;
@@ -112,7 +112,7 @@ fn create_prelude(compiler: *Compiler_Context) !void {
     anyptr_type = create_anyptr_type_primitive(compiler.allocator());
     bool_type = create_primitive_identifier("Bool", compiler.allocator());
     byte_type = create_primitive_identifier("Byte", compiler.allocator());
-    char_type = create_primitive_identifier("Char", compiler.allocator());
+    // char_type = create_primitive_identifier("Char", compiler.allocator());
     float_type = create_primitive_identifier("Float", compiler.allocator());
     float32_type = create_primitive_identifier("Float32", compiler.allocator());
     float64_type = create_primitive_identifier("Float64", compiler.allocator());
@@ -146,7 +146,7 @@ fn create_prelude(compiler: *Compiler_Context) !void {
     const default_float64 = ast_.AST.create_float(Token.init_simple("0.0"), 0.0, compiler.allocator());
     // TODO: De-duplicate the following
     const default_bool = ast_.AST.create_false(Token.init_simple("false"), compiler.allocator());
-    const default_char = ast_.AST.create_char(Token.init_simple("'\\\\0'"), compiler.allocator());
+    // const default_char = ast_.AST.create_char(Token.init_simple("'\\\\0'"), compiler.allocator());
     const default_int8 = ast_.AST.create_int(Token.init_simple("0"), 0, compiler.allocator());
     const default_int16 = ast_.AST.create_int(Token.init_simple("0"), 0, compiler.allocator());
     const default_int32 = ast_.AST.create_int(Token.init_simple("0"), 0, compiler.allocator());
@@ -170,18 +170,18 @@ fn create_prelude(compiler: *Compiler_Context) !void {
         1,
         compiler.allocator(),
     );
-    create_info(
-        "Char",
-        null,
-        "uint32_t",
-        "u32",
-        char_type,
-        .ord,
-        .unsigned_integer,
-        default_char,
-        4,
-        compiler.allocator(),
-    );
+    // create_info(
+    //     "Char",
+    //     null,
+    //     "uint32_t",
+    //     "u32",
+    //     char_type,
+    //     .ord,
+    //     .unsigned_integer,
+    //     default_char,
+    //     4,
+    //     compiler.allocator(),
+    // );
     create_info(
         "Float32",
         null,

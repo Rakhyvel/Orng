@@ -1,5 +1,5 @@
 // 118
 fn main() -> Int {
-    let x: Char!Int = .err('d')
+    let x: Byte!Int = .err('d')
     x catch 118
 }

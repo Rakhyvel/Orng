@@ -1103,7 +1103,24 @@ fn literal(self: *Self) Parser_Error_Enum!*ast_.AST {
     } else if (self.accept(.float)) |token| {
         return ast_.AST.create_float(token, std.fmt.parseFloat(f64, token.data) catch return error.ParseError, self.allocator);
     } else if (self.accept(.char)) |token| {
-        return ast_.AST.create_char(token, self.allocator);
+        // Convert the character inside to a codepoint
+        var codepoint: u21 = undefined;
+        switch (token.data[1]) {
+            '\\' => switch (token.data[2]) {
+                'n' => codepoint = 0x0A,
+                'r' => codepoint = 0x0D,
+                't' => codepoint = 0x09,
+                '\\' => codepoint = 0x5C,
+                '\'' => codepoint = 0x27,
+                '"' => codepoint = 0x22,
+                else => return error.ParseError,
+            },
+            else => {
+                const num_bytes = std.unicode.utf8ByteSequenceLength(token.data[1]) catch return error.ParseError;
+                codepoint = std.unicode.utf8Decode(token.data[1 .. num_bytes + 1]) catch return error.ParseError;
+            },
+        }
+        return ast_.AST.create_int(token, codepoint, self.allocator); // TODO: Replace with create_int
     } else if (self.accept(.string)) |token| {
         return ast_.AST.create_string(token, resolve_escapes(token.data[1 .. token.data.len - 1], self.allocator), self.allocator);
     } else if (self.accept(.multi_line_string)) |token| {

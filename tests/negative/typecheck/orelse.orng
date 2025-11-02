@@ -1,8 +1,8 @@
-// orelse.orng:7:13: error: expected a value of type `Int`, got a value of type `Char`
-//     x orelse 4
-//            ^
+// orelse.orng:6:29: error: expected a value of type `Bool`, got a value of type `Int`
+//     let x: ?Bool = .some('4')
+//                            ^
 // 
 fn main() -> Int {
-    let x: ?Char = .some('4')
+    let x: ?Bool = .some('4')
     x orelse 4
 }
