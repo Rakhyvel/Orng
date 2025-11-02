@@ -301,16 +301,14 @@ fn compile_executable_entry_point(self: *Package, obj_files: *std.StringArrayHas
     }) catch unreachable;
     obj_files.put(start_o_file.items, void{}) catch unreachable;
 
-    if (!file_exists(start_o_file.items)) {
-        var c_file = std.array_list.Managed(u8).init(allocator);
-        c_file.print("{s}{c}build{c}start.c", .{
-            self.absolute_path,
-            std.fs.path.sep,
-            std.fs.path.sep,
-        }) catch unreachable;
+    var c_file = std.array_list.Managed(u8).init(allocator);
+    c_file.print("{s}{c}build{c}start.c", .{
+        self.absolute_path,
+        std.fs.path.sep,
+        std.fs.path.sep,
+    }) catch unreachable;
 
-        try self.cc(c_file.items, start_o_file.items, packages, allocator);
-    }
+    try self.cc(c_file.items, start_o_file.items, packages, allocator);
 }
 
 /// Compiles the test-runner C file to an object file
@@ -323,16 +321,14 @@ fn compile_test_runner_entry_point(self: *Package, obj_files: *std.StringArrayHa
     }) catch unreachable;
     obj_files.put(test_runner_o_file.items, void{}) catch unreachable;
 
-    if (!file_exists(test_runner_o_file.items)) {
-        var c_file = std.array_list.Managed(u8).init(allocator);
-        c_file.print("{s}{c}build{c}test-runner.c", .{
-            self.absolute_path,
-            std.fs.path.sep,
-            std.fs.path.sep,
-        }) catch unreachable;
+    var c_file = std.array_list.Managed(u8).init(allocator);
+    c_file.print("{s}{c}build{c}test-runner.c", .{
+        self.absolute_path,
+        std.fs.path.sep,
+        std.fs.path.sep,
+    }) catch unreachable;
 
-        try self.cc(c_file.items, test_runner_o_file.items, packages, allocator);
-    }
+    try self.cc(c_file.items, test_runner_o_file.items, packages, allocator);
 }
 
 pub fn append_include_dir(self: *Package, packages: std.StringArrayHashMap(*Package), include_dirs: *std.StringArrayHashMap(void)) void {
@@ -548,27 +544,25 @@ fn link_executable(self: *Package, obj_files: std.StringArrayHashMap(void), pack
     var cwd_string = std.array_list.Managed(u8).init(allocator);
     cwd_string.print("{s}{c}build", .{ self.absolute_path, std.fs.path.sep }) catch unreachable;
 
-    if (!file_exists(self.output_absolute_path)) {
-        print_cmd(&cmd);
-        const run_res = std.process.Child.run(.{
-            .allocator = allocator,
-            .argv = cmd.items,
-            .cwd = cwd_string.items,
-        }) catch unreachable;
+    print_cmd(&cmd);
+    const run_res = std.process.Child.run(.{
+        .allocator = allocator,
+        .argv = cmd.items,
+        .cwd = cwd_string.items,
+    }) catch unreachable;
 
-        var retcode: u8 = 0;
-        switch (run_res.term) {
-            .Exited => |c| {
-                retcode = c;
-            },
-            else => {
-                std.debug.panic("{s}\n", .{run_res.stderr});
-            },
-        }
+    var retcode: u8 = 0;
+    switch (run_res.term) {
+        .Exited => |c| {
+            retcode = c;
+        },
+        else => {
+            std.debug.panic("{s}\n", .{run_res.stderr});
+        },
+    }
 
-        if (retcode != 0) {
-            std.debug.panic("err:{s}\n", .{run_res.stderr});
-        }
+    if (retcode != 0) {
+        std.debug.panic("err:{s}\n", .{run_res.stderr});
     }
 }
 

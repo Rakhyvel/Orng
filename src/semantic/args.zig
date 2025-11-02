@@ -278,6 +278,24 @@ pub fn put_ast_map(
     }
 }
 
+/// Checks to see if an argument is meant for a method with a value receiver, and if so, implicitly takes the
+/// address of the argument.
+pub fn implicit_ref(
+    args: *std.array_list.Managed(*ast_.AST),
+    expected: *Type_AST,
+    allocator: std.mem.Allocator,
+) void {
+    const param_type = if (expected.* == .struct_type or expected.* == .tuple_type or expected.* == .context_type) expected.children().items[0] else expected;
+    if (param_type.* == .annotation and
+        param_type.annotation.pattern.* == .receiver and
+        param_type.child().* == .addr_of and
+        param_type.annotation.pattern.receiver.kind == .value)
+    {
+        const old_arg = args.items[0];
+        args.items[0] = ast_.AST.create_addr_of(old_arg.token(), old_arg, false, false, allocator);
+    }
+}
+
 /// Validates that the number of arguments matches the number of parameters
 pub fn validate_args_arity(
     thing: Validate_Args_Thing,

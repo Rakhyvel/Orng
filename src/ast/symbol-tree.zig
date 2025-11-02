@@ -635,7 +635,7 @@ fn create_receiver_addr(impl_type: *Type_AST, receiver: *ast_.AST, allocator: st
 fn create_receiver_annot(receiver_addr: *Type_AST, receiver: *ast_.AST, allocator: std.mem.Allocator) *Type_AST {
     return Type_AST.create_annotation(
         receiver.token(),
-        ast_.AST.create_identifier(receiver.token(), allocator),
+        receiver,
         receiver_addr,
         null,
         allocator,
@@ -747,11 +747,6 @@ fn create_method_symbol(
     // Create the function type
     ast.method_decl._decl_type = create_method_type(ast, allocator);
 
-    // Recurse parameters and init
-    // const symbol_walk = Self.new(ast.scope().?, errors, allocator);
-    // try walk_.walk_asts(ast.children(), symbol_walk);
-    // try walk_.walk_ast(ast.method_decl.ret_type, symbol_walk); // TODO: walk types
-
     if (ast.method_decl.receiver != null) {
         // addr-of receiver, prepend receiver to parameters as normal
         const recv_type = create_receiver_addr(receiver_base_type, ast.method_decl.receiver.?, allocator);
@@ -792,20 +787,6 @@ fn create_method_symbol(
         }
     }
 
-    // // Put the param symbols in the param symbols list
-    // for (ast.children().items) |param_binding| {
-    //     const symbol = param_binding.binding.decls.items[0].decl.name.symbol().?;
-    //     ast.param_symbols().?.append(symbol) catch unreachable;
-    // }
-
-    // const key_set = ast.scope().?.symbols.keys();
-    // for (0..key_set.len) |i| {
-    //     const key = key_set[i];
-    //     var symbol = ast.scope().?.symbols.get(key).?;
-    //     symbol.defined = true;
-    //     symbol.param = true;
-    // }
-
     const retval = Symbol.init(
         ast.scope().?,
         ast.method_decl.name.token().data,
@@ -816,6 +797,5 @@ fn create_method_symbol(
     );
     ast.scope().?.inner_function = retval;
 
-    // try walk_.walk_ast(ast.method_decl.init, symbol_walk);
     return retval;
 }

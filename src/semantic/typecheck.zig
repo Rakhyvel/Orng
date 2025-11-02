@@ -348,6 +348,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             const codomain = if (expanded_lhs_type.* == .function) expanded_lhs_type.rhs() else ast.lhs().enum_value.base.?;
             const variadic = expanded_lhs_type.* == .function and expanded_lhs_type.function.variadic;
             ast.set_children(try args_.default_args(.function, ast.children().*, ast.token().span, domain, &self.ctx.errors, self.ctx.allocator()));
+            args_.implicit_ref(ast.children(), domain, self.ctx.allocator());
             try args_.validate_args_arity(.function, ast.children(), domain, variadic, ast.token().span, &self.ctx.errors);
             _ = try self.validate_args_type(ast.children(), domain, variadic);
             return codomain;
@@ -661,12 +662,6 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
 
                 // Everythings Ok.
                 const child_type = self.typecheck_AST(ast.expr(), expanded_expected.child()) catch return error.CompileError;
-                if (ast.expr().* != .tuple_value) {
-                    // Validate that expr is an L-value *only if* expr is not a tuple
-                    // It is possible to take a addr of a tuple. The address is the address of the temporary
-                    // This is mirrored with a slice_of an array.
-                    try self.validate_L_Value(ast.expr());
-                }
                 if (ast.addr_of.mut) {
                     try self.assert_mutable(ast.expr());
                 }
@@ -685,12 +680,6 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 return error.CompileError;
             }
 
-            if (ast.expr().* != .array_value) {
-                // Validate that expr is an L-value *only if* expr is not a array
-                // It is possible to take a slice of a array. The slice is the sliceof the temporary
-                // This is mirrored with addr_of a tuple.
-                try self.validate_L_Value(ast.expr());
-            }
             if (ast.slice_of.mut) {
                 try self.assert_mutable(ast.expr());
             }

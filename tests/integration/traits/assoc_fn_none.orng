@@ -1,7 +1,7 @@
 // 344
 
 impl for Int {
-    fn add(self, other: Int) -> Int { self + other }
+    fn add(me: Int, other: Int) -> Int { me + other }
 }
 
 fn main() -> Int {

@@ -180,7 +180,6 @@ fn make_package(
     compiler: *Compiler_Context,
     interpreter: *Interpreter_Context,
     package_absolute_path: []const u8,
-    entry_name: ?[]const u8,
 ) Command_Error!*Symbol {
     var package_kind: Package_Kind = undefined;
     switch (package.get_field(core_.package_type, "kind").pos().?) {
@@ -189,6 +188,8 @@ fn make_package(
         else => std.debug.panic("unimplemented", .{}),
     }
     compiler.register_package(package_absolute_path, package_kind);
+
+    const entry_name: ?[]const u8 = if (package_kind == .executable) "main" else null;
 
     for (package.get_field(core_.package_type, "requirements").children().items) |maybe_requirement_addr| {
         if (maybe_requirement_addr.enum_value._pos != 0) {
@@ -202,7 +203,7 @@ fn make_package(
 
         const new_working_directory_buffer = compiler.allocator().alloc(u8, std.fs.max_path_bytes) catch unreachable;
         const new_working_directory = std.fs.cwd().realpath(required_package_dir, new_working_directory_buffer) catch unreachable;
-        _ = try make_package(required_package, compiler, interpreter, new_working_directory, null);
+        _ = try make_package(required_package, compiler, interpreter, new_working_directory);
 
         compiler.make_package_requirement_link(package_absolute_path, required_package_name, required_package_dir);
     }
@@ -393,7 +394,7 @@ fn construct_package_dag(compiler: *Compiler_Context) Command_Error![]const u8 {
 
     const cwd_buffer = compiler.allocator().alloc(u8, std.fs.max_path_bytes) catch unreachable;
     const package_abs_path = std.fs.cwd().realpath(".", cwd_buffer) catch unreachable;
-    _ = try make_package(package_dag, compiler, &interpreter, package_abs_path, "main");
+    _ = try make_package(package_dag, compiler, &interpreter, package_abs_path);
 
     return package_abs_path;
 }
