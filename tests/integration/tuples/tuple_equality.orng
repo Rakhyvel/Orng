@@ -9,6 +9,6 @@ fn main() -> Int {
     }
 }
 
-fn f(x: (Int, (Int, Float), Char), y: (Int, (Int, Float), Char)) -> Bool {
+fn f(x: (Int, (Int, Float), Int), y: (Int, (Int, Float), Int)) -> Bool {
     x == y // 40 lines of C in one operator (no side-effects though!)
 }

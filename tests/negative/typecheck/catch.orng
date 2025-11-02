@@ -1,8 +1,8 @@
-// catch.orng:7:12: error: expected a value of type `Int`, got a value of type `Char`
+// catch.orng:7:12: error: expected a value of type `Int`, got a value of type `Bool`
 //     x catch 4
 //           ^
 // 
 fn main() -> Int {
-    let x: ()!Char = .ok('4')
+    let x: ()!Bool = .ok(true)
     x catch 4
 }

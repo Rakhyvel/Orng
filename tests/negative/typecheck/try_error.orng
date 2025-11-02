@@ -1,4 +1,4 @@
-// try_error.orng:10:11: error: expected a value of type `(ok: Int | err: ())`, got a value of type `(ok: Int | err: Char)`
+// try_error.orng:10:11: error: expected a value of type `(ok: Int | err: ())`, got a value of type `(ok: Int | err: Bool)`
 //     try g()
 //          ^
 // 
@@ -6,7 +6,7 @@ fn main() -> Int {
     f() catch 0
 }
 
-fn f() -> Char!Int {
+fn f() -> Bool!Int {
     try g()
 }
 

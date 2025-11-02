@@ -1,8 +1,8 @@
-// array.orng:7:7: error: expected a value of type `Int`, got a value of type `Char`
-//     x[1]
-//      ^
+// array.orng:6:26: error: expected a value of type `Bool`, got a value of type `Int`
+//     let x: [3]Bool = ['1', '2', '3']
+//                         ^
 // 
 fn main() -> Int {
-    let x: [3]Char = ['1', '2', '3']
+    let x: [3]Bool = ['1', '2', '3']
     x[1]
 }

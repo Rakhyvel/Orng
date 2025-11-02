@@ -3,7 +3,7 @@
 //      ^
 // 
 fn main() -> Int {
-    let x: (Int, Char, Bool, Int)
+    let x: (Int, Bool, Bool, Int)
     x[f()]
 }
 

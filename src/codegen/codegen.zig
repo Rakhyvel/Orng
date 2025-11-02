@@ -215,6 +215,13 @@ fn output_testrunner(
         buf.print("#include \"{s}-{s}-tests.h\"\n", .{ module.package_name, module.name() }) catch unreachable;
     }
 
+    var any_require_context = false;
+    for (modules.items) |module| {
+        for (module.tests.items) |@"test"| {
+            any_require_context = @"test".symbol.type().function.context != null or any_require_context;
+        }
+    }
+
     buf.print(
         \\
         \\typedef 
@@ -235,10 +242,14 @@ fn output_testrunner(
         \\    test_result res;
         \\    
     , .{}) catch return error.CompileError;
-    mod_0_emitter.output_type(core_.allocating_context) catch return error.CompileError;
+    if (any_require_context) {
+        mod_0_emitter.output_type(core_.allocating_context) catch return error.CompileError;
+        buf.print(
+            \\ allocator_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &std__mem_2__vtable}}}};
+            \\    
+        , .{}) catch return error.CompileError;
+    }
     buf.print(
-        \\ allocator_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &std__mem_2__vtable}}}};
-        \\    
         \\    if (argc >= 2)
         \\    {{
         \\        substr = argv[1];

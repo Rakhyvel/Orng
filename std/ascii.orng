@@ -1,0 +1,169 @@
+import testing
+
+impl for Byte {
+    fn is_alphanumeric(self) -> Bool {
+        self.>is_alphabetic() or self.>is_digit()
+    }
+
+    fn is_alphabetic(self) -> Bool {
+        self.>is_lower() or self.>is_upper()
+    }
+
+    fn is_digit(self) -> Bool {
+        self >= '0' and self <= '9'
+    }
+
+    fn is_lower(self) -> Bool {
+        self >= 'a' and self <= 'z'
+    }
+
+    fn is_upper(self) -> Bool {
+        self >= 'A' and self <= 'Z'
+    }
+
+    fn is_print(self) -> Bool {
+        self.>is_ascii() and not self.>is_control()
+    }
+
+    fn is_ascii(self) -> Bool {
+        self < 128
+    }
+
+    fn is_control(self) -> Bool {
+        self <= 0x1F or self == 0x7f
+    }
+
+    fn is_whitespace(self) -> Bool {
+        self == ' ' or (self >= '\t' and self <= '\r')
+    }
+
+    fn is_hex(self) -> Bool {
+        self.>is_digit() or (self >= 'A' and self <= 'F') or (self >= 'a' and self <= 'f')
+    }
+
+    fn to_upper(self) -> Byte {
+        let mask: Byte = @left_shift(if self.>is_lower() {1} else {0}, 5)
+        @bit_xor(self, mask)
+    }
+
+    fn to_lower(self) -> Byte {
+        let mask: Byte = @left_shift(if self.>is_upper() {1} else {0}, 5)
+        @bit_or(self, mask)
+    }
+}
+
+const whitespace: [6]Byte = [' ', '\t', '\n', '\r', 0x0B, 0x0C]
+
+test "whitespace" {
+    while let mut i = 0; i < 6; i += 1 {
+        let char = whitespace[i]
+        try testing::expect(char.>is_whitespace())
+    }
+
+    .ok
+}
+
+test "is_control" {
+    try testing::expect(not Byte::is_control('a'))
+    try testing::expect(not Byte::is_control('z'))
+    try testing::expect(not Byte::is_control(' '))
+    try testing::expect(Byte::is_control(0x00))
+    try testing::expect(Byte::is_control(0x0C))
+    try testing::expect(Byte::is_control(0x1F))
+    try testing::expect(Byte::is_control(0x7F))
+    try testing::expect(not Byte::is_control(0x80))
+    try testing::expect(not Byte::is_control(0xff))
+
+    .ok
+}
+
+test "upper" {
+    try testing::expect(Byte::to_upper('c') == 'C')
+    try testing::expect(Byte::to_upper(':') == ':')
+    try testing::expect(Byte::to_upper(0xAB) == 0xAB)
+    try testing::expect(not Byte::is_upper(0xAB))
+    try testing::expect(not Byte::is_upper(0x80))
+    try testing::expect(not Byte::is_upper(0xFF))
+
+    .ok
+}
+
+test "lower" {
+    try testing::expect(Byte::to_lower('C') == 'c')
+    try testing::expect(Byte::to_lower(':') == ':')
+    try testing::expect(Byte::to_lower(0xAB) == 0xAB)
+    try testing::expect(not Byte::is_lower('Z'))
+    try testing::expect(not Byte::is_lower(0x80))
+    try testing::expect(not Byte::is_lower(0xFF))
+
+    .ok
+}
+
+test "is_alphanumeric" {
+    try testing::expect(Byte::is_alphanumeric('Z'))
+    try testing::expect(Byte::is_alphanumeric('z'))
+    try testing::expect(Byte::is_alphanumeric('5'))
+    try testing::expect(Byte::is_alphanumeric('a'))
+    try testing::expect(not Byte::is_alphanumeric('!'))
+    try testing::expect(not Byte::is_alphanumeric(0x80))
+    try testing::expect(not Byte::is_alphanumeric(0xFF))
+
+    .ok
+}
+
+test "is_alphabetic" {
+    try testing::expect(not Byte::is_alphabetic('5'))
+    try testing::expect(Byte::is_alphabetic('c'))
+    try testing::expect(not Byte::is_alphabetic('@'))
+    try testing::expect(Byte::is_alphabetic('Z'))
+    try testing::expect(not Byte::is_alphabetic(0x80))
+    try testing::expect(not Byte::is_alphabetic(0xFF))
+
+    .ok
+}
+
+test "is_whitespace" {
+    try testing::expect(Byte::is_whitespace(' '))
+    try testing::expect(Byte::is_whitespace('\t'))
+    try testing::expect(Byte::is_whitespace('\r'))
+    try testing::expect(Byte::is_whitespace('\n'))
+    try testing::expect(Byte::is_whitespace(0x0C))
+    try testing::expect(not Byte::is_whitespace('.'))
+    try testing::expect(not Byte::is_whitespace(0x1F))
+    try testing::expect(not Byte::is_whitespace(0x80))
+    try testing::expect(not Byte::is_whitespace(0xFF))
+
+    .ok
+}
+
+test "is_hex" {
+    try testing::expect(not Byte::is_hex('g'))
+    try testing::expect(Byte::is_hex('b'))
+    try testing::expect(Byte::is_hex('F'))
+    try testing::expect(Byte::is_hex('9'))
+    try testing::expect(not Byte::is_hex(0x80))
+    try testing::expect(not Byte::is_hex(0xFF))
+
+    .ok
+}
+
+test "is_digit" {
+    try testing::expect(not Byte::is_digit('~'))
+    try testing::expect(Byte::is_digit('0'))
+    try testing::expect(Byte::is_digit('9'))
+    try testing::expect(not Byte::is_digit(0x80))
+    try testing::expect(not Byte::is_digit(0xFF))
+
+    .ok
+}
+
+test "is_print" {
+    try testing::expect(Byte::is_print(' '))
+    try testing::expect(Byte::is_print('@'))
+    try testing::expect(Byte::is_print('~'))
+    try testing::expect(not Byte::is_print(0x1B))
+    try testing::expect(not Byte::is_print(0x80))
+    try testing::expect(not Byte::is_print(0xFF))
+
+    .ok
+}

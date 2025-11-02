@@ -72,7 +72,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
     switch (ast.*) {
         .unit_value,
         .int,
-        .char,
+        // .char,
         .float,
         .string,
         .field,

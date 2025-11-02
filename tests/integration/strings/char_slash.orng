@@ -1,2 +1,2 @@
 // 92
-fn main() -> Char {'\\'}
+fn main() -> Byte {'\\'}

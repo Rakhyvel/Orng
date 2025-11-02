@@ -6,6 +6,6 @@ fn main() -> Int {
     try f()
 }
 
-fn f() -> Char!Int {
-    return .err('d')
+fn f() -> Bool!Int {
+    return .err(false)
 }

@@ -1,5 +1,5 @@
-// negate.orng:5:20: error: expected a value of type `Char`, got a value of type `Int`
-// fn main()->Char {-3}
-//                   ^
+// negate.orng:5:22: error: expected a value of type `Bool`, got a value of type `Int`
+// fn main() -> Bool {-3}
+//                     ^
 // 
-fn main()->Char {-3}
+fn main() -> Bool {-3}

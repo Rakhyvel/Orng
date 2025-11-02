@@ -1,9 +1,9 @@
-// addr_val.orng:7:22: error: expected a value of type `Char`, got a value of type `Int`
-//     let y: &Char = &x
+// addr_val.orng:7:22: error: expected a value of type `Bool`, got a value of type `Int`
+//     let y: &Bool = &x
 //                     ^
 // 
 fn main() -> Int {
     let x = 0
-    let y: &Char = &x
+    let y: &Bool = &x
     0
 }

@@ -1,7 +1,7 @@
-// typeclass_arithmetic.orng:6:6: error: expected a value of a(n) arithmetic type, got `Char`
+// typeclass_arithmetic.orng:6:9: error: expected a value of type `Bool`, got a value of type `Int`
 //     -'d'
-//     ^
+//        ^
 // 
-fn main() -> Char {
+fn main() -> Bool {
     -'d'
 }

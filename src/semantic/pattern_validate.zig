@@ -31,7 +31,7 @@ pub fn assert_pattern_matches(
     switch (pattern.*) {
         .unit_value,
         .int,
-        .char,
+        // .char,
         .string,
         .float,
         .true,
