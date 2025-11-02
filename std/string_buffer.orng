@@ -1,0 +1,53 @@
+struct String_Buffer {
+    // The internal character buffer
+    buffer: ?[mut]Byte
+    // The total size of the string
+    size: Int
+    // The allocator used for managing the buffer
+    allocator: &mut dyn core::Allocator
+}
+
+enum Error {
+    out_of_memory
+    invalid_range
+}
+
+impl for String_Buffer {
+    fn init() -> String_Buffer with core::Allocating {}
+
+    fn init_with_contents(contents: String) -> Error!String_Buffer with core::Allocating {}
+
+    fn deinit(&mut self) -> () {}
+
+    fn capacity(&self) -> Int {}
+    
+    fn cmp(&self, literal: String) -> Bool {}
+
+    fn str(&self) -> String {}
+
+    fn toOwned(&self) -> Error!?[mut]Byte {}
+
+    fn char_at(&self, index: Int) -> ?String {}
+
+    fn len(&self) -> Int {}
+
+    fn find(&self, literal: String) -> ?Int {}
+
+    fn clone(&self) -> Error!String_Buffer {}
+
+    fn is_empty(&self) -> Bool {}
+
+    fn concat(&mut self, other: &String_Buffer) -> () {}
+
+    fn insert(&mut self, literal: String, index: Int) -> () {}
+
+    fn remove(&mut self) -> () {}
+
+    fn clear(&mut self) -> () {}
+
+    fn to_lowercase(&mut self) -> () {}
+
+    fn to_uppercase(&mut self) -> () {}
+
+    fn replace(&mut self, needle: String, replacement: String) -> () {}
+}
