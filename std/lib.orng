@@ -3,6 +3,7 @@ import debug
 import ffi
 import list
 import mem
+import string_buffer
 import testing
 
 const println = debug::println
