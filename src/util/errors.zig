@@ -85,6 +85,11 @@ pub const Error = union(enum) {
         span: Span,
         filename: []const u8,
     },
+    unapplied_generic: struct {
+        span: Span,
+        symbol_name: []const u8,
+        num_generics: usize,
+    },
 
     // Traits
     reimpl: struct {
@@ -284,6 +289,7 @@ pub const Error = union(enum) {
             .not_inside_loop => return self.not_inside_loop.span,
             .not_inside_function => return self.not_inside_function.span,
             .import_file_not_found => return self.import_file_not_found.span,
+            .unapplied_generic => return self.unapplied_generic.span,
 
             .reimpl => return self.reimpl.redefined_span,
             .type_not_impl_method => return self.type_not_impl_method.span,
@@ -375,6 +381,7 @@ pub const Error = union(enum) {
             .not_inside_loop => writer.print("`{s}` is not inside a loop\n", .{err.not_inside_loop.name}) catch unreachable,
             .not_inside_function => writer.print("`{s}` is not inside a function\n", .{err.not_inside_function.name}) catch unreachable,
             .import_file_not_found => writer.print("file `{s}.orng` not found\n", .{err.import_file_not_found.filename}) catch unreachable,
+            .unapplied_generic => writer.print("symbol `{s}` requires {} generic arguments\n", .{ err.unapplied_generic.symbol_name, err.unapplied_generic.num_generics }) catch unreachable,
 
             // Traits
             .reimpl => if (err.reimpl.name != null) {

@@ -276,7 +276,9 @@ pub fn pprint(self: *Self) void {
     std.debug.print("scope_{}:\n", .{self.uid});
     for (self.symbols.keys()) |name| {
         const symbol = self.symbols.get(name).?;
-        if (symbol.kind == .type) {
+        if (symbol.kind == .import) {
+            std.debug.print("  {s} {s} ({s})\n", .{ @tagName(symbol.kind), name, symbol.kind.import.real_name });
+        } else if (symbol.kind == .type) {
             std.debug.print("  {s} {s} = {?f}\n", .{ @tagName(symbol.kind), name, symbol.init_typedef() });
         } else {
             std.debug.print("  {s} {s}\n", .{ @tagName(symbol.kind), name });

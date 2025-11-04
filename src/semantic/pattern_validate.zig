@@ -3,6 +3,7 @@
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
+const defaults_ = @import("defaults.zig");
 const errs_ = @import("../util/errors.zig");
 const Span = @import("../util/span.zig");
 const typing_ = @import("typing.zig");
@@ -31,15 +32,41 @@ pub fn assert_pattern_matches(
     switch (pattern.*) {
         .unit_value,
         .int,
-        // .char,
         .string,
         .float,
         .true,
         .false,
         .block,
         .select,
-        .enum_value,
         => _ = self.ctx.typecheck.typecheck_AST(pattern, expr_type) catch return error.CompileError,
+
+        .enum_value => {
+            if (pattern.enum_value.base == null) {
+                // Infer that the base type is `expected`
+                pattern.enum_value.base = expr_type;
+            }
+
+            const expanded_base: *Type_AST = pattern.enum_value.base.?.expand_identifier();
+            if (expanded_base.* != .enum_type) {
+                return typing_.throw_wrong_from("enum", "enum value", expanded_base, pattern.token().span, &self.ctx.errors);
+            }
+
+            const pos = expanded_base.get_pos(pattern.token().data);
+            if (pos == null and expanded_base.* == .enum_type) {
+                self.ctx.errors.add_error(errs_.Error{ .member_not_in_type = .{ .span = pattern.token().span, .identifier = pattern.token().data, .name = "enum", .type = expanded_base } });
+                return error.CompileError;
+            }
+            pattern.set_pos(expanded_base.get_pos(pattern.token().data));
+
+            pattern.enum_value.domain = expanded_base.children().items[pattern.pos().?];
+            if (pattern.enum_value.init == null) {
+                // This may be usurped by a .call node
+                pattern.enum_value.init = pattern.enum_value.domain.?.annotation.init orelse
+                    try defaults_.generate_default(pattern.enum_value.domain.?.child(), pattern.token().span, &self.ctx.errors, self.ctx.allocator());
+            }
+            _ = self.assert_pattern_matches(pattern.enum_value.init.?, pattern.enum_value.domain.?.child()) catch return error.CompileError;
+        },
+
         .tuple_value => {
             const expanded_expr_type = expr_type.expand_identifier();
             if (expanded_expr_type.* != .tuple_type or expanded_expr_type.children().items.len != pattern.children().items.len) {
@@ -50,6 +77,7 @@ pub fn assert_pattern_matches(
                 try self.assert_pattern_matches(term, expanded_term);
             }
         },
+
         .array_value => {
             const expanded_expr_type = expr_type.expand_identifier();
             if (expanded_expr_type.* != .array_of or expanded_expr_type.array_of.len.int.data != pattern.children().items.len) {
@@ -61,7 +89,9 @@ pub fn assert_pattern_matches(
                 try self.assert_pattern_matches(term, elem_type);
             }
         },
+
         .pattern_symbol => {},
+
         else => std.debug.panic("compiler error: unimplemented assert_pattern_matches() for {s}", .{@tagName(pattern.*)}),
     }
     self.ctx.typecheck.assert_typeof(pattern, expr_type);

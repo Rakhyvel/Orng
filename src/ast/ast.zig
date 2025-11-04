@@ -483,15 +483,6 @@ pub const AST = union(enum) {
         } }, allocator);
     }
 
-    // pub fn create_char(
-    //     _token: Token, // `token.data` should of course encompass the `'` used for character delimination. This is unlike strings.
-    //     allocator: std.mem.Allocator,
-    // ) *AST {
-    //     return AST.box(AST{ .char = .{ .common = AST_Common{
-    //         ._token = _token,
-    //     } } }, allocator);
-    // }
-
     pub fn create_float(_token: Token, data: f64, allocator: std.mem.Allocator) *AST {
         const _common: AST_Common = .{ ._token = _token };
         return AST.box(AST{ .float = .{
@@ -1388,7 +1379,6 @@ pub const AST = union(enum) {
             .poison => unreachable,
             .unit_value => return create_unit_value(self.token(), allocator),
             .int => return create_int(self.token(), self.int.data, allocator),
-            // .char => return create_char(self.token(), allocator),
             .float => return create_float(self.token(), self.float.data, allocator),
             .string => return create_string(self.token(), self.string.data, allocator),
             .field => return create_field(self.token(), allocator),
@@ -2056,6 +2046,13 @@ pub const AST = union(enum) {
         };
     }
 
+    pub fn num_generic_params(self: *AST) usize {
+        return switch (self.*) {
+            .struct_decl, .enum_decl, .type_alias, .impl, .fn_decl => self.generic_params().items.len,
+            else => 0,
+        };
+    }
+
     pub fn generic_params(self: *AST) *std.array_list.Managed(*AST) {
         return switch (self.*) {
             .struct_decl => &self.struct_decl._generic_params,
@@ -2274,7 +2271,6 @@ pub const AST = union(enum) {
             .poison => try out.print("poison", .{}),
             .unit_value => try out.print("unit_value", .{}),
             .int => try out.print("int({})", .{self.int.data}),
-            // .char => try out.print("char()", .{}),
             .float => try out.print("float()", .{}),
             .string => try out.print("string()", .{}),
             .field => try out.print("field(\"{s}\")", .{self.field.common._token.data}),

@@ -1,0 +1,33 @@
+// 362
+
+struct Thingy {
+    x: ?Int
+}
+
+fn maybe_get_362() -> ?Int {
+    .some(362)
+}
+
+impl for Thingy {
+    fn set(&mut self) -> ()!() {
+        match self.x {
+            .some(y) => {
+                _ = y
+                self.x = .some(maybe_get_362() orelse {
+                    return .err
+                })
+            }
+
+            .none => {}
+        }
+        
+        .ok
+    }
+}
+
+fn main() -> Int {
+    let mut my_thingy: Thingy
+    my_thingy.x = .some(4)
+    my_thingy.>set() catch unreachable
+    my_thingy.x.some
+}

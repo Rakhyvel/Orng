@@ -365,7 +365,6 @@ fn clean(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     _ = name;
     _ = args;
 
-    // TODO: Find the package's `build/` and just delete it
     var compiler = try Compiler_Context.init(errs_.get_std_err(), allocator);
     defer compiler.deinit();
     const package_abs_path = try construct_package_dag(compiler);

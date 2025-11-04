@@ -90,7 +90,7 @@ fn unwrap_access_imports(self: Self, ast: *ast_.AST, asts: *std.array_list.Manag
                 terms.items[i],
                 self.compiler.allocator(),
             );
-            const const_decl = ast_.AST.create_decl(
+            const const_decl = ast_.AST.create_binding(
                 ast.import.pattern.token(),
                 ast_.AST.create_pattern_symbol(
                     ast.token(),

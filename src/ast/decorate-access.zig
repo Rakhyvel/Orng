@@ -80,7 +80,7 @@ fn decorate_access_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
             const decl = sym.decl orelse return;
 
             // child points to a generic function
-            if (decl.* == .fn_decl and decl.generic_params().items.len > 0) {
+            if (decl.* == .fn_decl and decl.num_generic_params() > 0) {
                 var types = std.array_list.Managed(*Type_AST).init(self.compiler.allocator());
                 for (ast.children().items) |arg| {
                     try types.append(Type_AST.from_ast(arg, self.compiler.allocator()));

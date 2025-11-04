@@ -137,8 +137,6 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
 
         .float => return try typing_.type_check_float(ast, expected, &self.ctx.errors),
 
-        // .char => return prelude_.char_type,
-
         .string => return prelude_.string_type,
 
         .identifier => {
@@ -155,6 +153,14 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 }
                 return error.UnexpectedTypeType;
             }
+            if (symbol.decl.?.num_generic_params() > 0) {
+                self.ctx.errors.add_error(errs_.Error{ .unapplied_generic = .{
+                    .span = ast.token().span,
+                    .symbol_name = symbol.name,
+                    .num_generics = symbol.decl.?.num_generic_params(),
+                } });
+                return error.CompileError;
+            }
             return symbol.type();
         },
         .access => {
@@ -169,6 +175,16 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 return error.CompileError;
             }
             try self.ctx.validate_symbol.validate_symbol(symbol);
+
+            if (symbol.decl.?.num_generic_params() > 0) {
+                self.ctx.errors.add_error(errs_.Error{ .unapplied_generic = .{
+                    .span = ast.token().span,
+                    .symbol_name = symbol.name,
+                    .num_generics = symbol.decl.?.num_generic_params(),
+                } });
+                return error.CompileError;
+            }
+
             if (symbol.is_type()) {
                 if (expected != null) {
                     self.ctx.errors.add_error(errs_.Error{ .unexpected_type_type = .{ .expected = expected, .span = ast.token().span } });
@@ -849,7 +865,10 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             if (ast.@"return"._ret_expr) |expr| {
                 _ = self.typecheck_AST(expr, ast.symbol().?.type().rhs()) catch return error.CompileError;
             } else if (expected != null and (expected.?.expand_identifier()).* != .unit_type) {
-                return typing_.throw_unexpected_type(ast.token().span, expected.?, prelude_.void_type, &self.ctx.errors);
+                const inner_fn_ret_type = ast.symbol().?.type().rhs();
+                if (inner_fn_ret_type.expand_identifier().* != .unit_type) {
+                    return typing_.throw_unexpected_type(ast.token().span, expected.?, prelude_.void_type, &self.ctx.errors);
+                }
             }
             return prelude_.void_type;
         },

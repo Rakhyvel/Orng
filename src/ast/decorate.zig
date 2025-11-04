@@ -40,7 +40,7 @@ fn decorate_prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         .identifier => {
             if (ast.symbol() != null) return self;
 
-            const res = self.scope.lookup(ast.token().data, .{ .allow_modules = true });
+            const res = self.scope.lookup(ast.token().data, .{ .allow_modules = false });
             switch (res) {
                 // Found the symbol, decorate the identifier AST with it
                 .found => ast.set_symbol(res.found),
