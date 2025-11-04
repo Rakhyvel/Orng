@@ -38,8 +38,13 @@ impl for String_Buffer {
         }
     }
 
-//    fn capacity(&self) -> Int {}
-//    
+    fn capacity(&self) -> Int {
+        match self.buffer {
+            .some(buffer) => buffer.length
+            .none => 0
+        }
+    }
+  
 //    fn cmp(&self, literal: String) -> Bool {}
 //
 //    fn str(&self) -> String {}
