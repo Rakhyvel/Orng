@@ -45,3 +45,46 @@ fn slice_from_parts[T](data: [*mut ]T, length: Int) -> [mut]T {
     retval.length = length
     retval
 }
+
+fn eql(a: String, b: String) -> Bool {
+    if a.length != b.length {return false}
+
+    while let mut i = 0; i < a.length; i += 1 {
+        if a[i] != b[i] {return false}
+    }
+
+    true
+}
+
+fn copy(dest: [mut]Byte, src: []Byte) {
+    while let mut i = 0; i < src.length; i += 1 {
+        dest[i] = src[i]
+    }
+}
+
+fn index_of(haystack: []Byte, needle: []Byte) -> ?Int {
+    if needle.length == 0 {
+        return .some(0)
+    }
+
+    if needle.length > haystack.length {
+        return .none
+    }
+
+    while let mut i = 0; i <= haystack.length - needle.length; i += 1 {
+        let mut found = true
+
+        while let mut j = 0; j < needle.length; j += 1 {
+            if haystack[i + j] != needle[j] {
+                found = false
+                break
+            }
+        }
+
+        if found {
+            return .some(i)
+        }
+    }
+
+    .none
+}

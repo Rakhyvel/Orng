@@ -226,6 +226,10 @@ pub const Error = union(enum) {
         span: Span,
         _type: *Type_AST,
     },
+    not_subsliceable: struct {
+        span: Span,
+        _type: *Type_AST,
+    },
     bad_index: struct {
         span: Span,
         _type: *Type_AST,
@@ -318,6 +322,7 @@ pub const Error = union(enum) {
             .use_before_def => return self.use_before_def.identifier.span,
             .modify_immutable => return self.modify_immutable.identifier.span,
             .not_indexable => return self.not_indexable.span,
+            .not_subsliceable => return self.not_subsliceable.span,
             .bad_index => return self.bad_index.span,
             .not_selectable => return self.not_selectable.span,
             .non_exhaustive_sum => return self.non_exhaustive_sum.span,
@@ -528,6 +533,11 @@ pub const Error = union(enum) {
                 writer.print("the type `", .{}) catch unreachable;
                 err.not_indexable._type.print_type(writer) catch unreachable;
                 writer.print("` is not indexable\n", .{}) catch unreachable;
+            },
+            .not_subsliceable => {
+                writer.print("cannot take a sub-slice of the type `", .{}) catch unreachable;
+                err.not_subsliceable._type.print_type(writer) catch unreachable;
+                writer.print("`\n", .{}) catch unreachable;
             },
             .bad_index => {
                 writer.print("cannot index the type `{f}`, which has length {}, with index {}\n", .{ err.bad_index._type, err.bad_index.length, err.bad_index.index }) catch unreachable;

@@ -706,16 +706,17 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
         },
         .sub_slice => {
             const super_type = self.typecheck_AST(ast.sub_slice.super, null) catch return error.CompileError;
+            const expanded_super_type = super_type.expand_identifier();
             _ = self.typecheck_AST(ast.sub_slice.lower.?, null) catch return error.CompileError; // lower and upper should exist
             _ = self.typecheck_AST(ast.sub_slice.upper.?, null) catch return error.CompileError; // they are set in expand phase
-            if (super_type.* != .struct_type or !super_type.struct_type.was_slice) {
-                self.ctx.errors.add_error(errs_.Error{ .basic = .{
+            if (expanded_super_type.* != .struct_type or !expanded_super_type.struct_type.was_slice) {
+                self.ctx.errors.add_error(errs_.Error{ .not_subsliceable = .{
                     .span = ast.token().span,
-                    .msg = "cannot take a sub-slice of something that is not a slice",
+                    ._type = expanded_super_type,
                 } });
                 return error.CompileError;
             }
-            return super_type;
+            return expanded_super_type;
         },
 
         .enum_value => {

@@ -208,8 +208,8 @@ fn lookup_import_module(self: Self, pattern_ast: *ast_.AST, import_name: []const
                 } });
                 return error.CompileError;
             },
-            error.CompileError, error.ParseError => {
-                // This is possible if the user does `import Int` or something
+            error.CompileError, error.ParseError, error.LexerError => {
+                // This is possible if the user does `import Int` or something, or if there's lexer errors
                 return error.CompileError;
             },
             else => std.debug.panic("compiler error: this shouldn't be reachable\n", .{}),

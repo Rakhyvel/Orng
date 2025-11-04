@@ -45,13 +45,53 @@ impl for String_Buffer {
         }
     }
   
-//    fn cmp(&self, literal: String) -> Bool {}
-//
-//    fn str(&self) -> String {}
-//
-//    fn toOwned(&self) -> Error!?[mut]Byte {}
-//
-//    fn char_at(&self, index: Int) -> ?String {}
+    fn cmp(&self, literal: String) -> Bool {
+        match self.buffer {
+            .some(buffer) => mem::eql(buffer[..self.size], literal)
+            .none         => false
+        }
+    }
+
+    fn str(&self) -> String {
+        match self.buffer {
+            .some(buffer) => buffer[..self.size]
+            .none         => ""
+        }
+    }
+
+    fn to_owned(&self) -> Error!?[mut]Byte {
+        match self.buffer {
+            .some(_) => {
+                let string = self.>str()
+                match self.allocator.>alloc(string.length) {
+                    .some(bytes) => {
+                        let new_str = mem::slice_from_parts[Byte](bytes, string.length)
+                        mem::copy(new_str, string)
+                        .ok(.some(new_str))
+                    }
+                    .none => .err(.out_of_memory)
+                }
+            }
+
+            .none => .ok(.none)
+        }
+    }
+
+    fn char_at(&self, index: Int) -> ?String {
+        match self.buffer {
+            .some(buffer) => {
+                match get_index(buffer, index, true) {
+                    .some(i) => {
+                        let size = utf8_byte_sequence_length(buffer[i])
+                        .some(buffer[i..(i + size)])
+                    }
+                    .none => .none
+                }
+            }
+
+            .none => .none
+        }
+    }
 
     fn length(&self) -> Int {
         match self.buffer {
@@ -68,11 +108,31 @@ impl for String_Buffer {
         }
     }
 
-//    fn find(&self, literal: String) -> ?Int {}
-//
-//    fn clone(&self) -> Error!String_Buffer {}
-//
-//    fn is_empty(&self) -> Bool {}
+    fn find(&self, literal: String) -> ?Int {
+        match self.buffer {
+            .some(buffer) => {
+                let index = mem::index_of(buffer[0..self.size], literal)
+                match index {
+                    .some(i) => get_index(buffer, i, false)
+                    .none => .none
+                }
+            }
+
+            .none => .none
+        }
+    }
+
+    fn clone(&self) -> Error!String_Buffer {
+        with core::Allocating(self.allocator) {
+            let mut new_string = String_Buffer::init()
+            try new_string.>concat(self.>str())
+            .ok(new_string)
+        }
+    }
+
+    fn is_empty(&self) -> Bool {
+        self.size == 0
+    }
 
     fn allocate(&mut self, bytes: Int) -> Error!() {
         match self.buffer {
@@ -157,6 +217,90 @@ impl for String_Buffer {
 //    fn to_uppercase(&mut self) {}
 //
 //    fn replace(&mut self, needle: String, replacement: String) {}
+}
+
+test "capacity" with core::Allocating {
+    let mut str = String_Buffer::init()
+    defer str.>deinit()
+
+    str.>allocate(16) catch {return .err}
+    try testing::expect(str.>capacity() == 16)
+    try testing::expect(str.size == 0)
+
+    .ok
+}
+
+test "cmp" with core::Allocating {
+    let mut str = String_Buffer::init_with_contents("Hello, World!") catch {return .err}
+    defer str.>deinit()
+
+    try testing::expect(str.>cmp("Hello, World!"))
+
+    .ok
+}
+
+test "cmp2" with core::Allocating {
+    let mut str1 = String_Buffer::init_with_contents("Hello, World!") catch {return .err}
+    defer str1.>deinit()
+
+    let mut str2 = String_Buffer::init_with_contents("Hello, World!") catch {return .err}
+    defer str2.>deinit()
+
+    try testing::expect(str1.>cmp(str2.>str()))
+
+    .ok
+}
+
+test "to_owned" with core::Allocating {
+    let mut str = String_Buffer::init_with_contents("Hello, World!") catch {return .err}
+    defer str.>deinit()
+
+    let slice = str.>to_owned().ok.some
+    try testing::expect(str.>cmp(slice))
+
+    .ok
+}
+
+test "char_at" with core::Allocating {
+    let mut str = String_Buffer::init_with_contents("Hello, 🌍!") catch {return .err}
+    defer str.>deinit()
+
+    try testing::expect(mem::eql(str.>char_at(2).some, "l"))
+    try testing::expect(mem::eql(str.>char_at(7).some, "🌍"))
+
+    .ok
+}
+
+test "find" with core::Allocating {
+    let mut str = String_Buffer::init_with_contents("👋 Hello, 🌍 World!") catch {return .err}
+    defer str.>deinit()
+
+    try testing::expect(str.>find("👋").some == 0)
+    try testing::expect(str.>find("Hello").some == 2)
+    try testing::expect(str.>find("🌍 World!").some == 9)
+
+    .ok
+}
+
+test "clone" with core::Allocating {
+    let mut str = String_Buffer::init_with_contents("Hello, World!") catch {return .err}
+    defer str.>deinit()
+    
+    let mut cloned_str = str.>clone() catch {return .err}
+    defer cloned_str.>deinit()
+
+    try testing::expect(cloned_str.>cmp(str.>str()))
+
+    .ok
+}
+
+test "is_empty" with core::Allocating {
+    let mut str = String_Buffer::init_with_contents("Hello, World!") catch {return .err}
+    defer str.>deinit()
+
+    try testing::expect(not str.>is_empty())
+
+    .ok
 }
 
 test "length.ascii" with core::Allocating {
