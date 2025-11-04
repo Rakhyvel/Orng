@@ -82,8 +82,14 @@ fn symbol_tree_prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         .block => {
             var new_self = self;
             new_self.scope = Scope.init(self.scope, self.scope.uid_gen, self.allocator);
-            new_self.defers = &ast.block.defers;
-            new_self.errdefers = &ast.block.errdefers;
+            if (ast.block.defers.items.len == 0) {
+                // Only register defers list to be appended if the list is empty
+                new_self.defers = &ast.block.defers;
+            }
+            if (ast.block.errdefers.items.len == 0) {
+                // Only register errdefers list to be appended if the list is empty
+                new_self.errdefers = &ast.block.errdefers;
+            }
             new_self.in_loop = new_self.in_loop or ast.* == .@"while" or ast.* == .@"for";
             ast.set_scope(new_self.scope);
             return new_self;

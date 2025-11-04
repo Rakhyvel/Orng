@@ -1,3 +1,4 @@
+import ascii
 import mem
 import testing
 
@@ -208,15 +209,102 @@ impl for String_Buffer {
         .ok
     }
 
-//    fn remove(&mut self) {}
-//
-//    fn clear(&mut self) {}
-//
-//    fn to_lowercase(&mut self) {}
-//
-//    fn to_uppercase(&mut self) {}
-//
-//    fn replace(&mut self, needle: String, replacement: String) {}
+    fn remove(&mut self, index: Int) -> Error!() {
+        self.>remove_range(index, index + 1)
+    }
+
+    fn remove_range(&mut self, start: Int, end: Int) -> Error!() {
+        let len = self.>length()
+        if end < start or end > len {return .err(.invalid_range)}
+
+        match self.buffer {
+            .some(mut buffer) => {
+                let rstart = get_index(buffer, start, true).some
+                let rend = get_index(buffer, end, true).some
+                let difference = rend - rstart
+
+                while let mut i = rend; i < self.size; i += 1 {
+                    buffer[i - difference] = buffer[i]
+                }
+
+                self.size -= difference
+            }
+
+            .none => {}
+        }
+
+        .ok
+    }
+
+    fn clear(&mut self) {
+        match self.buffer {
+            .some(mut buffer) => {
+                while let mut i = 0; i < buffer.length; i += 1 {
+                    buffer[i] = 0
+                }
+
+                self.size = 0
+            }
+
+            .none => {}
+        }
+    }
+
+    fn to_lowercase(&mut self) {
+        match self.buffer {
+            .some(mut buffer) => {
+                while let mut i = 0; i < self.size {
+                    let size = utf8_byte_sequence_length(buffer[i])
+                    if size == 1 { // implies ascii
+                        buffer[i] = Byte::to_lower(buffer[i])
+                    }
+                    i += size
+                }
+            }
+
+            .none => {}
+        }
+    }
+
+    fn to_uppercase(&mut self) {
+        match self.buffer {
+            .some(mut buffer) => {
+                while let mut i = 0; i < self.size {
+                    let size = utf8_byte_sequence_length(buffer[i])
+                    if size == 1 { // implies ascii
+                        buffer[i] = Byte::to_upper(buffer[i])
+                    }
+                    i += size
+                }
+            }
+
+            .none => {}
+        }
+    }
+
+    fn replace(&mut self, needle: String, replacement: String) -> Error!Bool {
+        match self.buffer {
+            .some(mut buffer) => {
+                let free_me = buffer.data
+                defer self.allocator.>free(free_me)
+
+                let input_size = self.size
+                let size = mem::replacement_size(buffer[0..input_size], needle, replacement)
+
+                let alloc = self.allocator.>alloc(size) orelse {
+                    return .err(.out_of_memory)
+                }
+                let slice = mem::slice_from_parts[Byte](alloc, size)
+                self.buffer = .some(slice)
+                self.size = size
+
+                let changes = mem::replace(buffer[0..input_size], needle, replacement, self.buffer.some)
+                .ok(changes > 0)
+            }
+
+            .none => .ok(false)
+        }
+    }
 }
 
 test "capacity" with core::Allocating {
@@ -271,6 +359,26 @@ test "char_at" with core::Allocating {
     .ok
 }
 
+test "length.ascii" with core::Allocating {
+    let mut str = String_Buffer::init_with_contents("Hello, World!") catch {return .err}
+    defer str.>deinit()
+
+    try testing::expect(str.>length() == 13)
+    try testing::expect(str.size == 13)
+
+    .ok
+}
+
+test "length.unicode" with core::Allocating {
+    let mut str = String_Buffer::init_with_contents("Hello, 🌍!") catch {return .err}
+    defer str.>deinit()
+
+    try testing::expect(str.>length() == 9)
+    try testing::expect(str.size == 12)
+
+    .ok
+}
+
 test "find" with core::Allocating {
     let mut str = String_Buffer::init_with_contents("👋 Hello, 🌍 World!") catch {return .err}
     defer str.>deinit()
@@ -303,22 +411,70 @@ test "is_empty" with core::Allocating {
     .ok
 }
 
-test "length.ascii" with core::Allocating {
+test "remove" with core::Allocating {
     let mut str = String_Buffer::init_with_contents("Hello, World!") catch {return .err}
     defer str.>deinit()
 
-    try testing::expect(str.>length() == 13)
-    try testing::expect(str.size == 13)
+    str.>remove(5) catch {return .err}
+
+    try testing::expect(str.>cmp("Hello World!"))
 
     .ok
 }
 
-test "length.unicode" with core::Allocating {
+test "remove_range" with core::Allocating {
     let mut str = String_Buffer::init_with_contents("Hello, 🌍!") catch {return .err}
     defer str.>deinit()
 
-    try testing::expect(str.>length() == 9)
-    try testing::expect(str.size == 12)
+    str.>remove_range(5, 8) catch {return .err}
+
+    try testing::expect(str.>cmp("Hello!"))
+
+    .ok
+}
+
+test "clear" with core::Allocating {
+    let mut str = String_Buffer::init_with_contents("Hello, World!") catch {return .err}
+    defer str.>deinit()
+
+    str.>clear()
+
+    try testing::expect(str.>length() == 0)
+    try testing::expect(str.size == 0)
+
+    .ok
+}
+
+test "to_lowercase" with core::Allocating {
+    let mut str = String_Buffer::init_with_contents("HELLO, WORLD 🌎!") catch {return .err}
+    defer str.>deinit()
+
+    str.>to_lowercase()
+
+    try testing::expect(str.>cmp("hello, world 🌎!"))
+
+    .ok
+}
+
+test "to_uppercase" with core::Allocating {
+    let mut str = String_Buffer::init_with_contents("Hello, World 🌎!") catch {return .err}
+    defer str.>deinit()
+
+    str.>to_uppercase()
+
+    try testing::expect(str.>cmp("HELLO, WORLD 🌎!"))
+
+    .ok
+}
+
+test "replace" with core::Allocating {
+    let mut str = String_Buffer::init_with_contents("Hello, World 🌎!") catch {return .err}
+    defer str.>deinit()
+
+    let mut replaced = str.>replace("Hello", "Hi") catch {return .err}
+
+    try testing::expect(str.>cmp("Hi, World 🌎!"))
+    try testing::expect(replaced)
 
     .ok
 }
