@@ -145,11 +145,16 @@ fn resolve_symbol_from_access(self: Self, access_ast: *ast_.AST) walk_.Error!*Sy
 }
 
 /// Takes in a identifier-like AST (such as an identifier or a pattern symbol) and returns the symbol it refers to
-fn resolve_symbol_from_identlike(self: Self, identlike_ast: *ast_.AST) *Symbol {
-    return if (identlike_ast.symbol().?.kind == .import)
-        self.resolve_symbol_from_import_identlike(identlike_ast)
-    else
-        identlike_ast.symbol().?;
+fn resolve_symbol_from_identlike(self: Self, identlike_ast: *ast_.AST) walk_.Error!*Symbol {
+    switch (identlike_ast.symbol().?.kind) {
+        .module => {
+            // We found it as a module _because_ it wasn't imported
+            self.errors.add_error(errs_.Error{ .undeclared_identifier = .{ .identifier = identlike_ast.token(), .expected = null } });
+            return error.CompileError;
+        },
+        .import => return self.resolve_symbol_from_import_identlike(identlike_ast),
+        else => return identlike_ast.symbol().?,
+    }
 }
 
 /// Takes in an identlike AST that refers to an import symbol, and returns the module symbol that it imports

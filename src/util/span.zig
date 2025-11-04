@@ -64,7 +64,7 @@ pub fn pprint(self: Self, allocator: std.mem.Allocator) ![]const u8 {
     // TODO: Generic pprinter that makes the arena and string and passes the writer to a pprint method
     try out.print("{s}:{}:{}", .{ self.filename, self.line_number, self.col });
 
-    return (try out.toOwned()).?;
+    return out.toOwnedSlice();
 }
 
 pub fn format(self: Self, writer: *std.io.Writer) !void {
