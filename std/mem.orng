@@ -10,8 +10,9 @@ impl core::Allocator for Heap_Allocator {
     }
 
     virtual fn realloc(&mut self, allocation: [*mut]Byte, newsize: Int) -> ?[*mut]Byte {
-        _ = (self, allocation, newsize)
-        unreachable
+        _ = self
+        extern("realloc") const c_realloc: ([*]Byte, Int) -> [*mut]Byte
+        .some(c_realloc(allocation, newsize))
     }
 
     virtual fn free(&mut self, allocation: [*]Byte) {

@@ -1,6 +1,7 @@
 import ascii
 import mem
 import testing
+import debug
 
 struct String_Buffer {
     // The internal character buffer
@@ -196,7 +197,7 @@ impl for String_Buffer {
                     }
 
                     while let mut i = 0; i < literal.length; i += 1 {
-                        buffer[index + i] = literal[i]
+                        buffer[k + i] = literal[i]
                     }
                 }
 
@@ -407,6 +408,33 @@ test "is_empty" with core::Allocating {
     defer str.>deinit()
 
     try testing::expect(not str.>is_empty())
+
+    .ok
+}
+
+test "concat" with core::Allocating {
+    let mut str = String_Buffer::init_with_contents("Hello") catch {return .err}
+    defer str.>deinit()
+
+    str.>concat(", World!") catch {return .err}
+
+    try testing::expect(str.>cmp("Hello, World!"))
+
+    .ok
+}
+
+test "insert" with core::Allocating {
+    let mut str = String_Buffer::init_with_contents("Hello World!") catch {return .err}
+    defer str.>deinit()
+
+    str.>insert(",", 5) catch {return .err}
+    try testing::expect(str.>cmp("Hello, World!"))
+
+    str.>insert("👋", 5) catch {return .err}
+    try testing::expect(str.>cmp("Hello👋, World!"))
+
+    str.>insert("🌎", 13) catch {return .err}
+    try testing::expect(str.>cmp("Hello👋, World🌎!"))
 
     .ok
 }
