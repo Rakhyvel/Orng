@@ -22,8 +22,8 @@ impl core::Allocator for Heap_Allocator {
     }
 }
 
-fn new[T](alloc: &mut dyn core::Allocator) -> ()!&mut T {
-    match alloc.>alloc(@sizeof(T)) {
+fn new[T]() -> ()!&mut T with core::Allocating {
+    match core::Allocating.alloc.>alloc(@sizeof(T)) {
         .some(bytes) => ffi::ref_from_ptr_mut[T](bytes as [*mut]T)
         .none => .err
     }
@@ -31,17 +31,12 @@ fn new[T](alloc: &mut dyn core::Allocator) -> ()!&mut T {
 
 fn make[T](length: Int) -> ()![mut]T with core::Allocating {
     match core::Allocating.alloc.>alloc(@sizeof(T) * length) {
-        .some(bytes) => {
-            let mut retval: [mut]T = undefined
-            retval.data = bytes as [*mut]T
-            retval.length = length
-            .ok(retval)
-        }
+        .some(bytes) => .ok(slice_from_parts[T](bytes, length))
         .none => .err
     }
 }
 
-fn slice_from_parts[T](data: [*mut ]T, length: Int) -> [mut]T {
+fn slice_from_parts[T](data: [*mut]T, length: Int) -> [mut]T {
     let mut retval: [mut]T = undefined
     retval.data = data
     retval.length = length
