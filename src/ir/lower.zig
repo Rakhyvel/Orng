@@ -516,10 +516,6 @@ fn lower_AST_inner(
             }
             const end_label = Instruction.init_label("block.end", ast.token().span, self.ctx.allocator());
 
-            if (ast.block.defers.items.len > 0) {
-                std.debug.print("{f}: {}\n", .{ ast.token().span, ast.block.defers.items.len });
-            }
-
             // These are the labels to go to on each final statement.
             // These are updated to point to different places in the defer chain at the end of this block.
             var current_labels: Labels = labels;

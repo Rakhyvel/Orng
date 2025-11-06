@@ -408,33 +408,20 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             }
         },
         .generic_apply => {
-            const sym = ast.lhs().symbol().?;
-            const params = sym.decl.?.generic_params();
-            if (params.items.len != ast.generic_apply._children.items.len) {
-                self.ctx.errors.add_error(errs_.Error{ .mismatch_arity = .{
-                    .span = ast.token().span,
-                    .takes = params.items.len,
-                    .given = ast.generic_apply._children.items.len,
-                    .thing_name = sym.name,
-                    .takes_name = "type parameter",
-                    .given_name = "argument",
-                } });
+            // look up symbol, that's the type
+            const symbol = ast.symbol().?;
+            if (symbol.validation_state == .invalid) {
                 return error.CompileError;
             }
-
-            for (ast.generic_apply._children.items) |child| {
-                try self.ctx.validate_type.validate_type(child);
+            try self.ctx.validate_symbol.validate_symbol(symbol);
+            if (symbol.is_type() or symbol.kind == .context) {
+                if (expected != null) {
+                    self.ctx.errors.add_error(errs_.Error{ .unexpected_type_type = .{ .expected = expected, .span = ast.token().span } });
+                    return error.CompileError;
+                }
+                return error.UnexpectedTypeType;
             }
-
-            if (ast.generic_apply.state == .unmorphed) {
-                ast.generic_apply.state = .morphing;
-                ast.generic_apply._symbol = try sym.monomorphize(ast.generic_apply._children, self.ctx);
-                ast.generic_apply.state = .morphed;
-            }
-
-            try self.ctx.validate_symbol.validate_symbol(ast.symbol().?);
-
-            return ast.symbol().?.type();
+            return symbol.type();
         },
         .select => {
             const lhs_type = self.typecheck_AST(ast.lhs(), null) catch return error.CompileError;

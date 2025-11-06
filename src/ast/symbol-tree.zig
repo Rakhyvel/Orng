@@ -144,7 +144,7 @@ fn symbol_tree_prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             }
             const symbol = Symbol.init(
                 self.scope,
-                next_anon_name("context_value", self.allocator),
+                "context_value",
                 ast,
                 .let,
                 .local,
@@ -302,6 +302,8 @@ fn symbol_tree_prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 ast.impl.trait.?.set_symbol(anon_trait.symbol().?);
                 ast.impl.impls_anon_trait = true;
             }
+
+            self.scope.impls.append(ast) catch unreachable;
 
             return new_self;
         },

@@ -2381,11 +2381,15 @@ pub const AST = union(enum) {
             },
             .trait => try out.print("trait({*})", .{if (self.symbol() != null) self.symbol() else null}),
             .impl => {
-                try out.print("impl(.trait={?f}, .type={f}\n", .{ self.impl.trait, self.impl._type });
+                try out.print("impl(\n    .trait={?f},\n    .type={f}\n    .method_defs=[\n", .{ self.impl.trait, self.impl._type });
                 for (self.impl.method_defs.items) |method| {
-                    try out.print("    {f}\n", .{method});
+                    try out.print("        {f}\n", .{method});
                 }
-                try out.print(")", .{});
+                try out.print("    ],\n    .generic_params=[\n", .{});
+                for (self.impl._generic_params.items) |gen_param| {
+                    try out.print("        {f}\n", .{gen_param});
+                }
+                try out.print("    ],\n)", .{});
             },
             .invoke => try out.print("invoke()", .{}),
             .dyn_value => try out.print("dyn_value()", .{}),

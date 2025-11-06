@@ -11,7 +11,7 @@ fn main() with core::Allocating {
 }
 
 test "allocator works" with core::Allocating {
-    let res = try mem::new[Int](core::Allocating.alloc)
+    let res = try mem::new[Int]()
     res^ = 1024
 
     try testing::expect(res^ == 1024)

@@ -30,7 +30,7 @@ const Import = @import("../ast/import.zig");
 const Cinclude = @import("../ast/cinclude.zig");
 const Symbol_Tree = @import("../ast/symbol-tree.zig");
 const Decorate = @import("../ast/decorate.zig");
-const Decorate_Access = @import("../ast/decorate-access.zig");
+// const Decorate_Access = @import("../ast/decorate-access.zig");
 const Type_Decorate = @import("../ast/type_decorate.zig");
 
 pub const Module_Errors = error{ OutOfMemory, LexerError, ParseError, CompileError, FileNotFound };
@@ -220,8 +220,7 @@ pub const Module = struct {
             Apply_Flat_Ast_Walk(Import).init(Import.new(compiler, module.get_package_abs_path(), &module.local_imported_modules)),
             Apply_Flat_Ast_Walk(Cinclude).init(Cinclude.new(&module.cincludes)),
             Apply_Ast_Walk(Symbol_Tree).init(Symbol_Tree.new(file_root, &compiler.errors, compiler.allocator())),
-            Apply_Ast_Walk(Decorate).init(Decorate.new(file_root, &compiler.errors, compiler.allocator())),
-            Apply_Ast_Walk(Decorate_Access).init(Decorate_Access.new(file_root, &compiler.errors, compiler)),
+            Apply_Ast_Walk(Decorate).init(Decorate.new(file_root, compiler)),
             Apply_Ast_Walk(Type_Decorate).init(Type_Decorate.new(compiler)),
         });
 

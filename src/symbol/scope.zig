@@ -2,7 +2,7 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const Decorate = @import("../ast/decorate.zig");
-const Decorate_Access = @import("../ast/decorate-access.zig");
+// const Decorate_Access = @import("../ast/decorate-access.zig");
 const errs_ = @import("../util/errors.zig");
 const Symbol = @import("symbol.zig");
 const Symbol_Tree = @import("../ast/symbol-tree.zig");
@@ -173,18 +173,21 @@ pub fn impl_trait_lookup(self: *Self, for_type: *Type_AST, trait: *Symbol) Impl_
 
 /// Looks up the impl's decl/method_decl ast for a given type, with a given name
 pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, compiler: *Compiler_Context) !?*ast_.AST {
-    if (false) {
-        std.debug.print("searching for {f}::{s}\n", .{ for_type, name });
+    if (true) {
+        std.debug.print("searching {} impls for {f}::{s}\n", .{ self.impls.items.len, for_type.*, name });
+        self.pprint();
     }
     // Go through the list of implementations, check to see if the types and traits match
     for (self.impls.items) |impl| {
         var subst = unification_.Substitutions.init(std.heap.page_allocator);
         defer subst.deinit();
         try compiler.validate_type.validate_type(impl.impl._type);
+        std.debug.print("unifying {f} with {f}\n", .{ impl.impl._type, for_type });
         unification_.unify(impl.impl._type, for_type, impl.impl._generic_params, &subst) catch continue;
+        unification_.print_substitutions(&subst);
 
         var the_impl = impl;
-        if (impl.impl._generic_params.items.len > 0) {
+        if (!unification_.substitution_contains_generics(&subst) and impl.impl._generic_params.items.len > 0) {
             const with_list = unification_.type_param_list_from_subst_map(&subst, impl.impl._generic_params, std.heap.page_allocator);
             if (impl.impl.instantiations.get(with_list) == null) {
                 const new_impl: *ast_.AST = impl.clone(&subst, std.heap.page_allocator);
@@ -211,10 +214,8 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
                 }
 
                 // Decorate identifiers, validate
-                const decorate_context = Decorate.new(new_scope, &compiler.errors, compiler.allocator());
-                const decorate_access_context = Decorate_Access.new(new_scope, &compiler.errors, compiler);
+                const decorate_context = Decorate.new(new_scope, compiler);
                 try walker_.walk_ast(new_impl, decorate_context); // this doesn't know about the anonymous trait
-                try walker_.walk_ast(new_impl, decorate_access_context);
                 try compiler.validate_scope.validate_scope(new_scope);
 
                 impl.impl.instantiations.put(with_list, new_impl) catch unreachable;

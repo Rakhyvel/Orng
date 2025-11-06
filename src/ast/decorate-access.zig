@@ -53,64 +53,6 @@ fn decorate_access_prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
 fn decorate_access_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
     switch (ast.*) {
         else => {},
-
-        .call => {
-            if (ast.lhs().* == .enum_value) {
-                // Enum value
-                ast.lhs().enum_value.init = ast.children().items[0];
-                ast.* = ast.lhs().*;
-            } else if (ast.lhs().refers_to_type()) {
-                // Struct value construction
-                const struct_type = Type_AST.from_ast(ast.lhs(), self.compiler.allocator());
-                const struct_value = ast_.AST.create_struct_value(
-                    ast.lhs().token(),
-                    struct_type,
-                    ast.children().*,
-                    self.compiler.allocator(),
-                );
-                ast.* = struct_value.*;
-            }
-        },
-
-        .index => {
-            var child = ast.lhs();
-            if (child.* != .identifier and child.* != .access) return;
-
-            const sym = child.symbol() orelse return;
-            const decl = sym.decl orelse return;
-
-            // child points to a generic function
-            if (decl.* == .fn_decl and decl.num_generic_params() > 0) {
-                var types = std.array_list.Managed(*Type_AST).init(self.compiler.allocator());
-                for (ast.children().items) |arg| {
-                    try types.append(Type_AST.from_ast(arg, self.compiler.allocator()));
-                }
-                ast.* = ast_.AST.create_generic_apply(ast.token(), child, types, self.compiler.allocator()).*;
-            }
-        },
-
-        .select => {
-            var child = ast.lhs();
-            // child points to a generic function
-            if (child.* != .identifier and child.* != .access) return;
-
-            const sym = child.symbol() orelse return;
-            const decl = sym.decl orelse return;
-
-            if (decl.* == .context_decl) {
-                const fn_ctx = decl.decl_typedef().?;
-                const context_val_symbol = self.scope.context_lookup(fn_ctx) orelse {
-                    self.compiler.errors.add_error(errs_.Error{ .missing_context = .{
-                        .span = ast.token().span,
-                        .context = Type_AST.create_type_identifier(decl.token(), self.compiler.allocator()),
-                    } });
-                    return error.CompileError;
-                };
-                const context_val_ident = ast_.AST.create_identifier(token_.init_simple(context_val_symbol.name), self.compiler.allocator());
-                context_val_ident.set_symbol(context_val_symbol);
-                ast.set_lhs(context_val_ident);
-            }
-        },
     }
 }
 
@@ -131,6 +73,7 @@ fn resolve_symbol_from_ast(self: Self, ast: *ast_.AST) walk_.Error!*Symbol {
     switch (ast.*) {
         .access => return self.resolve_symbol_from_access(ast),
         .identifier, .pattern_symbol => return self.resolve_symbol_from_identlike(ast),
+        .generic_apply => return ast.symbol().?,
         else => std.debug.panic("compiler error: fell through {f}", .{ast}),
     }
 }

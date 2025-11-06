@@ -1390,6 +1390,8 @@ fn context_param(self: *Self) Parser_Error_Enum!*ast_.AST {
         _init = ast_.AST.create_addr_of(parent.token(), try self.context_value(parent), false, false, self.allocator);
     }
 
+    std.debug.print("{f}\n", .{parent.token().span});
+
     return ast_.AST.create_context_value_decl(
         parent.token(),
         addr_context_type,

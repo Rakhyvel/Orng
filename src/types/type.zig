@@ -466,6 +466,12 @@ pub const Type_AST = union(enum) {
                 }
                 break :blk Type_AST.create_generic_apply_type(ast.token(), base, args, allocator);
             },
+            .generic_apply => blk: {
+                const _lhs = from_ast(ast.lhs(), allocator);
+                const gen_apply = Type_AST.create_generic_apply_type(ast.token(), _lhs, ast.generic_apply._children, allocator);
+                gen_apply.set_symbol(ast.symbol());
+                break :blk gen_apply;
+            },
             else => std.debug.panic("unable to construct type from {t}", .{ast.*}),
         };
     }
@@ -667,11 +673,11 @@ pub const Type_AST = union(enum) {
     }
 
     pub fn print_type(self: *const Type_AST, out: *std.Io.Writer) !void {
-        if (self.common()._unexpanded_type) |unexpanded| {
-            if (unexpanded != self) {
-                return try unexpanded.print_type(out);
-            }
-        }
+        // if (self.common()._unexpanded_type) |unexpanded| {
+        //     if (unexpanded != self) {
+        //         return try unexpanded.print_type(out);
+        //     }
+        // }
 
         switch (self.*) {
             .poison => try out.print("???", .{}),

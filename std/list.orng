@@ -1,7 +1,11 @@
 struct List[T] {
     items: [mut]T
-    length: Int
+    capacity: Int
     alloc: &mut dyn core::Allocator
+}
+
+enum Error {
+    out_of_memory
 }
 
 impl[T] for List[T] {
@@ -10,8 +14,25 @@ impl[T] for List[T] {
         Self([mut]data, 0, core::Allocating.alloc)
     }
 
-    fn append(&mut self, t: T) {
-        _ = (self, t)
-        unreachable // TODO
+    fn append(&mut self, t: T) -> Error!() {
+        try self.>allocate(self.items.length + 1)
+        self.items[self.items.length] = t
+        self.items.length += 1
+        .ok
+    }
+
+    fn allocate(&mut self, new_cap: Int) -> Error!() {
+        if @sizeof(T) == 0 {
+            return
+        }
+
+        if new_cap > self.capacity {
+            self.capacity = new_cap * 2
+            self.items.data = self.alloc.>realloc(self.items.data as [*mut]Byte, self.capacity) orelse {
+                return .err(.out_of_memory)
+            }
+        }
+
+        .ok
     }
 }
