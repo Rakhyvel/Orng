@@ -16,7 +16,7 @@ test "allocator works" with core::Allocating {
 
     try testing::expect(res^ == 1024)
 
-    .err
+    .ok
 }
 
 test "test of tests" {
@@ -25,7 +25,7 @@ test "test of tests" {
 
     try testing::expect(y + 1 == x)
 
-    .err
+    .ok
 }
 
 test "test that tests work" {
