@@ -1,0 +1,8 @@
+// 366
+fn main() -> Int {
+    let a = 4
+    
+    if a == 0 {0}
+    else if a == 1 {1}
+    else {366}
+}

@@ -56,10 +56,10 @@ pub fn output_type(self: *Self, old_type: *Type_AST) CodeGen_Error!void {
         .tuple_type,
         .struct_type,
         .array_of,
-        .untagged_sum_type,
         .dyn_type,
         .context_type,
         => try self.writer.print("struct {f}", .{Canonical_Type_Fmt{ .type = _type }}),
+        .untagged_sum_type => try self.writer.print("union {f}", .{Canonical_Type_Fmt{ .type = _type }}),
         else => std.debug.panic("compiler error: unimplemented output_type() for {f}", .{_type.*}),
     }
 }

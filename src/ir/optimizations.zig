@@ -395,8 +395,7 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
         },
 
         .div_float => {
-            try divide_by_zero_check(src2_def, errors); // Static check; divide by zero
-            if (src1_def != null and src2_def != null and src1_def.?.kind == .load_float and src2_def.?.kind == .load_float) {
+            if (src1_def != null and src2_def != null and src1_def.?.kind == .load_float and src2_def.?.kind == .load_float and src2_def.?.data.float != 0.0) {
                 log("div_float; known float value");
                 try instr.convert_to_load(.load_float, .{ .float = src1_def.?.data.float / src2_def.?.data.float }, errors);
                 retval = true;
@@ -439,19 +438,13 @@ fn propagate_instruction(instr: *Instruction, src1_def: ?*Instruction, src2_def:
     return retval;
 }
 
-/// Checks if a div_int, div_float, or mod Instruction divides by zero
+/// Checks if a div_int or mod Instruction divides by zero
 fn divide_by_zero_check(instr: ?*Instruction, errors: *errs_.Errors) error{CompileError}!void {
     if (instr != null) {
         if (instr.?.kind == .load_int and instr.?.data.int == 0) {
             errors.add_error(errs_.Error{ .basic = .{
                 .span = instr.?.span,
                 .msg = "divide by 0",
-            } });
-            return error.CompileError;
-        } else if (instr.?.kind == .load_float and instr.?.data.float == 0.0) {
-            errors.add_error(errs_.Error{ .basic = .{
-                .span = instr.?.span,
-                .msg = "divide by 0.0",
             } });
             return error.CompileError;
         }

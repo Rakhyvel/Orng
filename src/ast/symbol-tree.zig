@@ -197,7 +197,7 @@ fn symbol_tree_prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             ast.set_scope(new_self.scope);
             new_self.scope.function_depth = self.scope.function_depth + 1;
 
-            const symbol = try create_test_symbol(ast, self.errors, self.allocator);
+            const symbol = try create_test_symbol(ast, self.allocator);
             try self.register_symbol(ast, symbol);
 
             return new_self;
@@ -555,7 +555,7 @@ pub fn create_function_symbol(ast: *ast_.AST, allocator: std.mem.Allocator) *Sym
     return retval;
 }
 
-pub fn create_test_symbol(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) Error!*Symbol {
+pub fn create_test_symbol(ast: *ast_.AST, allocator: std.mem.Allocator) Error!*Symbol {
     const context_type = if (ast.@"test".context_decls.items.len != 0)
         ast.@"test".context_decls.items[0].context_value_decl.parent
     else
@@ -582,8 +582,6 @@ pub fn create_test_symbol(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.
     );
     ast.scope().?.inner_function = retval;
 
-    const symbol_walk = Self.new(ast.scope().?, errors, allocator);
-    try walk_.walk_ast(ast.@"test".init, symbol_walk);
     return retval;
 }
 

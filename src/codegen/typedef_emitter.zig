@@ -46,11 +46,11 @@ fn output_dependencies(self: *Self) CodeGen_Error!void {
             .tuple_type,
             .array_of,
             .enum_type,
-            .untagged_sum_type,
             .dyn_type,
             => {
                 try self.writer.print("struct {f};\n", .{Canonical_Type_Fmt{ .type = depen.base }});
             },
+            .untagged_sum_type => try self.writer.print("union {f};\n", .{Canonical_Type_Fmt{ .type = depen.base }}),
             else => {},
         }
     }
@@ -121,7 +121,7 @@ fn output_typedef(self: *Self) CodeGen_Error!void {
         }
         try self.writer.print("}};\n\n", .{});
     } else if (self.dep.base.* == .untagged_sum_type) {
-        try self.writer.print("struct {f} {{\n", .{Canonical_Type_Fmt{ .type = self.dep.base }});
+        try self.writer.print("union {f} {{\n", .{Canonical_Type_Fmt{ .type = self.dep.base }});
         if (!self.dep.base.child().expand_identifier().enum_type.is_all_unit()) {
             try self.output_field_list(self.dep.base.children(), 4);
         }

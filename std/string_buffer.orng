@@ -308,6 +308,12 @@ impl for String_Buffer {
     }
 }
 
+impl core::Writer for String_Buffer {
+    virtual fn write(&mut self, bytes: String) {
+        self.>concat(bytes) catch {}
+    }
+}
+
 test "capacity" with core::Allocating {
     let mut str = String_Buffer::init()
     defer str.>deinit()
@@ -503,6 +509,22 @@ test "replace" with core::Allocating {
 
     try testing::expect(str.>cmp("Hi, World 🌎!"))
     try testing::expect(replaced)
+
+    .ok
+}
+
+test "write" with core::Allocating {
+    let mut str = String_Buffer::init()
+    defer str.>deinit()
+
+    fn write_stuff(writer: &mut dyn core::Writer) {
+        writer.>write("Hello")
+    }
+
+    write_stuff(&mut str)
+    str.>write(", World!")
+
+    try testing::expect(str.>cmp("Hello, World!"))
 
     .ok
 }

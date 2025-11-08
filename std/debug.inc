@@ -42,8 +42,8 @@ inline static int8_t orange_debug__negate_int8_t(const int8_t x, const char *res
     if (x == INT8_MIN)
     {
         orange_debug__lines[orange_debug__line_idx++] = line;
-        fprintf(stderr, "-%d", x);
-        orange_debug__panic("negation overflow");
+        fprintf(stderr, "-(%d)", x);
+        orange_debug__panic("Int8 negation overflow");
     }
     return -x;
 }
@@ -53,8 +53,8 @@ inline static int16_t orange_debug__negate_int16_t(const int16_t x, const char *
     if (x == INT16_MIN)
     {
         orange_debug__lines[orange_debug__line_idx++] = line;
-        fprintf(stderr, "-%d", x);
-        orange_debug__panic("negation overflow");
+        fprintf(stderr, "-(%d)", x);
+        orange_debug__panic("Int16 negation overflow");
     }
     return -x;
 }
@@ -64,8 +64,8 @@ inline static int32_t orange_debug__negate_int32_t(const int32_t x, const char *
     if (x == INT32_MIN)
     {
         orange_debug__lines[orange_debug__line_idx++] = line;
-        fprintf(stderr, "-%d", x);
-        orange_debug__panic("negation overflow");
+        fprintf(stderr, "-(%d)", x);
+        orange_debug__panic("Int32 negation overflow");
     }
     return -x;
 }
@@ -75,8 +75,8 @@ inline static int64_t orange_debug__negate_int64_t(const int64_t x, const char *
     if (x == INT64_MIN)
     {
         orange_debug__lines[orange_debug__line_idx++] = line;
-        fprintf(stderr, "-%ld\n", x);
-        orange_debug__panic("negation overflow");
+        fprintf(stderr, "-(%ld)\n", x);
+        orange_debug__panic("Int64 negation overflow");
     }
     return -x;
 }

@@ -273,6 +273,7 @@ pub const Kind = enum(u32) {
         .@"break",
         .@"continue",
         .@"return",
+        .@"else",
         .right_parenthesis,
         .right_square,
         .right_brace,

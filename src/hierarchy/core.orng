@@ -138,6 +138,10 @@ trait Reader {
     virtual fn read(&mut self) -> [mut]Byte
 }
 
+trait Format {
+    virtual fn format(&self, writer: &mut dyn Writer)
+}
+
 context Allocating {
     alloc: &mut dyn Allocator
 }

@@ -1,7 +1,9 @@
 import ascii
 import debug
 import ffi
+import fmt
 import list
+import math
 import mem
 import string_buffer
 import testing

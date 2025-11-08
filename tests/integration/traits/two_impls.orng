@@ -1,0 +1,27 @@
+// 365
+trait My_Trait {
+    fn incr(&mut self)
+}
+
+struct My_Type {
+    x: Int
+}
+
+impl for My_Type {
+    fn get(&mut self) -> Int {
+        My_Type::incr(self)
+        self.x
+    }
+}
+
+impl My_Trait for My_Type {
+    fn incr(&mut self) {
+        self.x += 100
+    }
+}
+
+fn main() -> Int {
+    let mut my_val = My_Type(165)
+    _ = my_val.>incr()
+    my_val.>get()
+}

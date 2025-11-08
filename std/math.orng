@@ -1,0 +1,63 @@
+cinclude "math.h"
+
+import testing
+
+impl for Float {
+    fn is_nan(self) -> Bool {
+        self != self
+    }
+
+    fn is_inf(self) -> Bool {
+        let bits = self.>as_bits()
+        let exp = @bit_and(@right_shift(bits, 52), 0x7FF)
+        let mant = @bit_and(bits, 0xFFFFFFFFFFFFF)
+
+        exp == 0x7FF and mant == 0
+    }
+
+    fn as_bits(self) -> Word64 {
+        enum Float_Or_Bits_Tagged {
+            float(Float)
+            bits(Word64)
+        }
+        type Float_Or_Bits = @Untagged(Float_Or_Bits_Tagged)
+        let mut retval: Float_Or_Bits = undefined
+        retval.float = self
+        retval.bits
+    }
+}
+
+fn truncate(x: Float) -> Int {
+    extern const truncate_float: Float -> Int
+    truncate_float(x)
+}
+
+fn as_float(x: Int) -> Float {
+    extern const as_float_helper: Int -> Float
+    as_float_helper(x)
+}
+
+test "as_bits" {
+    let x = 1.0
+
+    let bits = x.>as_bits()
+    try testing::expect(bits == 0x3FF0000000000000)
+
+    .ok
+}
+
+test "is_nan" {
+    let x = 0.0 / 0.0
+
+    try testing::expect(x.>is_nan())
+
+    .ok
+}
+
+test "is_inf" {
+    let x = 1.0 / 0.0
+
+    try testing::expect(x.>is_inf())
+
+    .ok
+}

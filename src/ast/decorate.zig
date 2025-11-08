@@ -225,6 +225,19 @@ fn decorate_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
                 }
             }
         },
+        .decl => {
+            if (ast.decl.init != null and ast.decl.init.?.* == .access and ast.decl.init.?.symbol().?.kind == .type) {
+                const init_symbol = ast.decl.init.?.symbol().?;
+                ast.* = ast_.AST.create_type_alias(
+                    ast.token(),
+                    ast.decl.name,
+                    Type_AST.from_ast(ast.decl.init.?, self.ctx.allocator()),
+                    std.array_list.Managed(*ast_.AST).init(self.ctx.allocator()),
+                    self.ctx.allocator(),
+                ).*;
+                ast.type_alias.init.?.set_symbol(init_symbol);
+            }
+        },
         .generic_apply => return self.monomorphize_generic_apply(ast),
         .trait => self.scope.traits.append(ast) catch unreachable,
         // .impl => ,
@@ -242,19 +255,27 @@ fn decorate_postfix_type(self: Self, ast: *Type_AST) walk_.Error!void {
 
 fn resolve_access_ast(self: Self, ast: *ast_.AST) walk_.Error!*Symbol {
     const stripped_lhs = if (ast.lhs().* == .addr_of) ast.lhs().expr() else ast.lhs();
-    const expanded_lhs = stripped_lhs.symbol().?;
+    const symbol = stripped_lhs.symbol().?;
 
-    switch (expanded_lhs.kind) {
-        .module => return try self.resolve_access_module(expanded_lhs, ast.rhs()),
+    return self.resolve_access_symbol(symbol, ast, stripped_lhs);
+}
+
+fn resolve_access_symbol(self: Self, symbol: *Symbol, ast: *ast_.AST, stripped_lhs: *ast_.AST) walk_.Error!*Symbol {
+    switch (symbol.kind) {
+        .module => return try self.resolve_access_module(symbol, ast.rhs()),
 
         .import => {
-            const module_symbol = expanded_lhs.kind.import.real_symbol.?; //expanded_lhs.scope.lookup(expanded_lhs.name, .{ .allow_modules = true, .look_for_kind = .module }).found;
+            const module_symbol = symbol.kind.import.real_symbol.?;
             return try self.resolve_access_module(module_symbol, ast.rhs());
         },
 
         .import_inner => {
-            const module_symbol = (try self.resolve_access_ast(expanded_lhs.init_value().?)).kind.import.real_symbol.?;
-            return try self.resolve_access_module(module_symbol, ast.rhs());
+            const new_symbol =
+                if (symbol.decl.?.* == .type_alias)
+                    try self.resolve_access_ast(symbol.init_typedef().?.access.inner_access)
+                else
+                    try self.resolve_access_ast(symbol.init_value().?);
+            return self.resolve_access_symbol(new_symbol, ast, stripped_lhs);
         },
 
         .type => return try self.resolve_access_const(Type_AST.from_ast(stripped_lhs, self.ctx.allocator()), ast.rhs(), ast.scope().?),
@@ -265,7 +286,7 @@ fn resolve_access_ast(self: Self, ast: *ast_.AST) walk_.Error!*Symbol {
                     .span = ast.rhs().token().span,
                     .identifier = ast.rhs().token().data,
                     .name = "symbol",
-                    .module_name = expanded_lhs.name,
+                    .module_name = symbol.name,
                 },
             });
             return error.CompileError;
