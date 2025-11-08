@@ -127,7 +127,7 @@ type Test_Result = ()!()
 trait Allocator {
     virtual fn alloc(&mut self, nbytes: Int) -> ?[*mut]Byte
     virtual fn realloc(&mut self, allocation: [*mut]Byte, newsize: Int) -> ?[*mut]Byte
-    virtual fn free(&mut self, allocation: [*]Byte)
+    virtual fn free(&mut self, allocation: [*mut]Byte)
 }
 
 trait Writer {

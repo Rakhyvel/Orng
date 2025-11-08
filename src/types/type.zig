@@ -1012,16 +1012,22 @@ pub const Type_AST = union(enum) {
     }
 
     /// Returns whether the term A is convertible to B
-    pub fn convertible_to(A: *Type_AST, B: *Type_AST) bool {
-        const A_expanded = A.expand_identifier();
-        const B_expanded = B.expand_identifier();
+    pub fn convertible_to(from: *Type_AST, to: *Type_AST) bool {
+        const from_expanded = from.expand_identifier();
+        const to_expanded = to.expand_identifier();
 
-        if (@intFromEnum(A_expanded.*) != @intFromEnum(B_expanded.*)) {
+        if (prelude_.info_from_ast(from_expanded)) |info| {
+            if (info.type_class == .int and to_expanded.* == .addr_of and to_expanded.addr_of.multiptr) {
+                return true;
+            }
+        }
+
+        if (@intFromEnum(from_expanded.*) != @intFromEnum(to_expanded.*)) {
             return false;
         }
 
-        return switch (A_expanded.*) {
-            .addr_of => A_expanded.addr_of.multiptr and B_expanded.addr_of.multiptr,
+        return switch (from_expanded.*) {
+            .addr_of => from_expanded.addr_of.multiptr and to_expanded.addr_of.multiptr,
             else => false,
         };
     }
