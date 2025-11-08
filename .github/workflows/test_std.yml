@@ -1,4 +1,4 @@
-name: Build example project
+name: Build and test std
 
 on:
   push:
@@ -35,7 +35,7 @@ jobs:
       with:
         zig-version: 0.15.1
     
-    - name: Build example project (Linux)
+    - name: Build and test example project (Linux)
       if: runner.os == 'Linux'
       shell: bash
       run: |
@@ -45,7 +45,7 @@ jobs:
         cd std
         ../zig-out/bin/orng test
     
-    - name: Build example project (Windows)
+    - name: Build and test example project (Windows)
       if: runner.os == 'Windows'
       shell: bash
       run: |
