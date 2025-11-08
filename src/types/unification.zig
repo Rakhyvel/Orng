@@ -25,18 +25,15 @@ pub fn unify(lhs: *Type_AST, rhs: *Type_AST, withs: std.array_list.Managed(*ast_
             }
 
             if (rhs.* != .identifier or !std.mem.eql(u8, lhs.token().data, rhs.token().data)) {
-                std.debug.print("{f} != {f}\n", .{ lhs, rhs });
                 return error.TypesMismatch;
             }
         },
 
         .struct_type => {
             if (rhs.* != .struct_type) {
-                std.debug.print("{f} != {f}\n", .{ lhs, rhs });
                 return error.TypesMismatch;
             }
             if (lhs.children().items.len != rhs.children().items.len) {
-                std.debug.print("{f} != {f}\n", .{ lhs, rhs });
                 return error.TypesMismatch;
             }
 
@@ -47,7 +44,6 @@ pub fn unify(lhs: *Type_AST, rhs: *Type_AST, withs: std.array_list.Managed(*ast_
 
         .annotation => {
             if (rhs.* != .annotation) {
-                std.debug.print("{f} != {f}\n", .{ lhs, rhs });
                 return error.TypesMismatch;
             }
 
@@ -56,24 +52,20 @@ pub fn unify(lhs: *Type_AST, rhs: *Type_AST, withs: std.array_list.Managed(*ast_
 
         .unit_type => {
             if (rhs.* != .unit_type) {
-                std.debug.print("{f} != {f}\n", .{ lhs, rhs });
                 return error.TypesMismatch;
             }
         },
 
         .generic_apply => {
             if (rhs.* != .generic_apply) {
-                std.debug.print("{f} != {f}\n", .{ lhs, rhs });
                 return error.TypesMismatch;
             }
             const lhs_constructor = lhs.lhs();
             const rhs_constructor = rhs.lhs();
             if (!std.mem.eql(u8, lhs_constructor.token().data, rhs_constructor.token().data)) {
-                std.debug.print("{f} != {f}\n", .{ lhs, rhs });
                 return error.TypesMismatch;
             }
             if (lhs.children().items.len != rhs.children().items.len) {
-                std.debug.print("{f} != {f}\n", .{ lhs, rhs });
                 return error.TypesMismatch;
             }
 
@@ -116,7 +108,7 @@ pub fn substitution_contains_generics(subst: *const Substitutions) bool {
 }
 
 pub fn print_substitutions(subst: *const Substitutions) void {
-    std.debug.print("{{\n", .{});
+    std.debug.print("{} substitutions: {{\n", .{subst.keys().len});
     for (subst.keys()) |key| {
         const ty = subst.get(key).?;
         const bad = ty.* == .identifier and ty.symbol().?.decl.?.* == .type_param_decl;

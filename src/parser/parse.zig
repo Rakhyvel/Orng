@@ -1390,30 +1390,12 @@ fn context_param(self: *Self) Parser_Error_Enum!*ast_.AST {
         _init = ast_.AST.create_addr_of(parent.token(), try self.context_value(parent), false, false, self.allocator);
     }
 
-    std.debug.print("{f}\n", .{parent.token().span});
-
     return ast_.AST.create_context_value_decl(
         parent.token(),
         addr_context_type,
         _init,
         self.allocator,
     );
-}
-
-fn identifier_or_access(self: *Self) Parser_Error_Enum!*ast_.AST {
-    var exp = if (self.next_is_control_flow()) try self.control_flow() else try self.factor();
-    while (true) {
-        if (self.accept(.double_colon)) |token| {
-            exp = ast_.AST.create_access(
-                token,
-                exp,
-                ast_.AST.create_field(try self.expect(.identifier), self.allocator),
-                self.allocator,
-            );
-        } else {
-            return exp;
-        }
-    }
 }
 
 fn context_declaration(self: *Self) Parser_Error_Enum!*ast_.AST {

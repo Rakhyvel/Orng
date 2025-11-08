@@ -673,11 +673,11 @@ pub const Type_AST = union(enum) {
     }
 
     pub fn print_type(self: *const Type_AST, out: *std.Io.Writer) !void {
-        // if (self.common()._unexpanded_type) |unexpanded| {
-        //     if (unexpanded != self) {
-        //         return try unexpanded.print_type(out);
-        //     }
-        // }
+        if (self.common()._unexpanded_type) |unexpanded| {
+            if (unexpanded != self) {
+                return try unexpanded.print_type(out);
+            }
+        }
 
         switch (self.*) {
             .poison => try out.print("???", .{}),
@@ -745,7 +745,7 @@ pub const Type_AST = union(enum) {
                 try out.print(")", .{});
             },
             .access => {
-                try out.print("{f}.{s}", .{ self.access.inner_access.lhs(), self.access.inner_access.rhs().token().data });
+                try out.print("{f}::{s}", .{ self.access.inner_access.lhs(), self.access.inner_access.rhs().token().data });
             },
             .generic_apply => {
                 try out.print("{f}[{f}", .{ self.generic_apply._lhs, self.generic_apply.args.items[0] });

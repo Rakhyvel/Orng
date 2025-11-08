@@ -9,6 +9,7 @@ const defaults_ = @import("defaults.zig");
 const errs_ = @import("../util/errors.zig");
 const poison_ = @import("../ast/poison.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
+const Tree_Writer = @import("../ast/tree_writer.zig");
 const typing_ = @import("typing.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 const walk_ = @import("../ast/walker.zig");
@@ -114,9 +115,11 @@ pub fn typecheck_AST(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Validate
     return actual_type;
 }
 
+var depth: usize = 0;
 fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Validate_Error_Enum!*Type_AST {
     // TODO: Ugh this function is too long
-    // std.debug.print("{f}: {?f}\n", .{ ast, expected });
+    depth += 1;
+    // std.debug.print("[{}] {f}: {?f}\n", .{ depth, ast, expected });
     switch (ast.*) {
         // Nop, always "valid"
         .poison => return poison_.poisoned_type,
@@ -473,6 +476,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 });
                 return error.CompileError;
             }
+            // std.debug.assert(method_decl.?.method_decl.impl.?.num_generic_params() == 0); // must be an instatiated impl
             const method_decl_type = self.typecheck_AST(method_decl.?, null) catch return error.CompileError;
             ast.invoke.method_decl = method_decl.?;
             const domain: *Type_AST = method_decl.?.method_decl.domain.?;

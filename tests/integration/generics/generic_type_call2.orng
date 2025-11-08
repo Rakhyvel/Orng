@@ -1,0 +1,19 @@
+// 365
+struct Wrapper[T] {
+    value: T
+}
+
+impl[A] for Wrapper[A] {
+    fn init(a: A) -> Self {
+        Self(a)
+    }
+
+    fn get(&self) -> A {
+        self.value
+    }
+}
+
+fn main() -> Int {
+    let x = Wrapper[Int]::init(365)
+    x.>get()
+}

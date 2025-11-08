@@ -167,9 +167,6 @@ pub fn collect_cfg_types(self: *Self, type_set: *Type_Set) void {
             _ = type_set.add_type(context_param.expanded_type());
         }
     }
-    if (self.symbol.decl.?.* == .method_decl) {
-        std.debug.print("gonna add {f}\n", .{self.symbol.decl.?.method_decl.impl.?});
-    }
     _ = type_set.add_type(self.return_symbol.expanded_type());
 
     // For all basic blocks in the cfg...

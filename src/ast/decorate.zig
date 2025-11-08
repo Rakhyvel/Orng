@@ -34,6 +34,9 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
 pub fn prefix_type(self: Self, _type: *Type_AST) walk_.Error!?Self {
     return self.decorate_prefix_type(_type);
 }
+pub fn postfix_type(self: Self, _type: *Type_AST) walk_.Error!void {
+    return self.decorate_postfix_type(_type);
+}
 
 fn decorate_prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
     switch (ast.*) {
@@ -143,36 +146,7 @@ fn decorate_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
     switch (ast.*) {
         else => {},
 
-        .access => {
-            const stripped_lhs = if (ast.lhs().* == .addr_of) ast.lhs().expr() else ast.lhs();
-            const expanded_lhs = stripped_lhs.symbol().?;
-
-            switch (expanded_lhs.kind) {
-                .module => ast.set_symbol(try self.resolve_access_module(expanded_lhs, ast.rhs())),
-
-                .import => {
-                    const module_symbol = expanded_lhs.scope.parent.?.lookup(expanded_lhs.kind.import.real_name, .{ .allow_modules = true }).found;
-                    ast.set_symbol(try self.resolve_access_module(module_symbol, ast.rhs()));
-                },
-
-                // .import_inner => ast.set_symbol(try self.resolve_access_symbol(try self.resolve_symbol_from_ast(expanded_lhs.init_value().?), ast.rhs(), ast.scope().?)),
-
-                .type => ast.set_symbol(try self.resolve_access_const(Type_AST.from_ast(stripped_lhs, self.ctx.allocator()), ast.rhs(), ast.scope().?)),
-
-                else => {
-                    std.debug.print("{t}\n", .{expanded_lhs.kind});
-                    self.ctx.errors.add_error(errs_.Error{
-                        .member_not_in_module = .{
-                            .span = ast.rhs().token().span,
-                            .identifier = ast.rhs().token().data,
-                            .name = "symbol",
-                            .module_name = expanded_lhs.name,
-                        },
-                    });
-                    return error.CompileError;
-                },
-            }
-        },
+        .access => ast.set_symbol(try self.resolve_access_ast(ast)),
 
         .call => {
             if (ast.lhs().* == .enum_value) {
@@ -254,6 +228,45 @@ fn decorate_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
         .trait => self.scope.traits.append(ast) catch unreachable,
         // .impl => ,
         .@"test" => self.scope.tests.append(ast) catch unreachable,
+    }
+}
+
+fn decorate_postfix_type(self: Self, ast: *Type_AST) walk_.Error!void {
+    switch (ast.*) {
+        .access => ast.set_symbol(try self.resolve_access_ast(ast.access.inner_access)),
+
+        else => {},
+    }
+}
+
+fn resolve_access_ast(self: Self, ast: *ast_.AST) walk_.Error!*Symbol {
+    const stripped_lhs = if (ast.lhs().* == .addr_of) ast.lhs().expr() else ast.lhs();
+    const expanded_lhs = stripped_lhs.symbol().?;
+
+    switch (expanded_lhs.kind) {
+        .module => return try self.resolve_access_module(expanded_lhs, ast.rhs()),
+
+        .import => {
+            const module_symbol = expanded_lhs.scope.parent.?.lookup(expanded_lhs.kind.import.real_name, .{ .allow_modules = true }).found;
+            return try self.resolve_access_module(module_symbol, ast.rhs());
+        },
+
+        // .import_inner => ast.set_symbol(try self.resolve_access_symbol(try self.resolve_symbol_from_ast(expanded_lhs.init_value().?), ast.rhs(), ast.scope().?)),
+
+        .type => return try self.resolve_access_const(Type_AST.from_ast(stripped_lhs, self.ctx.allocator()), ast.rhs(), ast.scope().?),
+
+        else => {
+            std.debug.print("{t}\n", .{expanded_lhs.kind});
+            self.ctx.errors.add_error(errs_.Error{
+                .member_not_in_module = .{
+                    .span = ast.rhs().token().span,
+                    .identifier = ast.rhs().token().data,
+                    .name = "symbol",
+                    .module_name = expanded_lhs.name,
+                },
+            });
+            return error.CompileError;
+        },
     }
 }
 

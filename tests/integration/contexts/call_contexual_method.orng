@@ -1,11 +1,16 @@
 // 365
 struct Thingy[T] {
     x: Int
+    y: Int
+}
+
+context My_Context {
+    x: Int
 }
 
 impl[T] for Thingy[T] {
-    fn init() -> Self with core::Allocating {
-        Self(0)
+    fn init() -> Self with My_Context {
+        Self(0, 0)
     }
 
     fn get_val(&mut self) -> Int {
@@ -18,8 +23,10 @@ impl[T] for Thingy[T] {
     }
 }
 
-fn main() -> Int with core::Allocating {
-    type My_Type = [91]Int
-    let mut my_thingy = Thingy[My_Type]::init()
-    my_thingy.>get_val()
+fn main() -> Int {
+    with My_Context(0) {
+        type My_Type = [45]Int
+        let mut my_thingy = Thingy[My_Type]::init()
+        my_thingy.>get_val() + 5
+    }
 }

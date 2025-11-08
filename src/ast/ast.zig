@@ -2289,7 +2289,7 @@ pub const AST = union(enum) {
                 try self.default._type.print_type(&writer);
                 try out.print(")", .{});
             },
-            .size_of => try out.print("size_of({f})", .{self.expr()}),
+            .size_of => try out.print("size_of({f})", .{self.type()}),
             .@"comptime" => try out.print("comptime({f})", .{self.expr()}),
 
             .assign => {
@@ -2322,9 +2322,9 @@ pub const AST = union(enum) {
             },
             .bit_and => {
                 try out.print("@bit_and(", .{});
-                for (self.call._args.items, 0..) |item, i| {
+                for (self.bit_and._args.items, 0..) |item, i| {
                     try out.print("{f}", .{item});
-                    if (i < self.call._args.items.len - 1) {
+                    if (i < self.bit_and._args.items.len - 1) {
                         try out.print(",", .{});
                     }
                 }
@@ -2332,9 +2332,9 @@ pub const AST = union(enum) {
             },
             .bit_or => {
                 try out.print("@bit_or(", .{});
-                for (self.call._args.items, 0..) |item, i| {
+                for (self.bit_or._args.items, 0..) |item, i| {
                     try out.print("{f}", .{item});
-                    if (i < self.call._args.items.len - 1) {
+                    if (i < self.bit_or._args.items.len - 1) {
                         try out.print(",", .{});
                     }
                 }
@@ -2342,9 +2342,9 @@ pub const AST = union(enum) {
             },
             .bit_xor => {
                 try out.print("@bit_xor(", .{});
-                for (self.call._args.items, 0..) |item, i| {
+                for (self.bit_xor._args.items, 0..) |item, i| {
                     try out.print("{f}", .{item});
-                    if (i < self.call._args.items.len - 1) {
+                    if (i < self.bit_xor._args.items.len - 1) {
                         try out.print(",", .{});
                     }
                 }

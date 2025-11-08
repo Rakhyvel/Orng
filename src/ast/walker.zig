@@ -160,7 +160,12 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             try walk_ast(ast.lhs(), new_context);
             try walk_types(&ast.generic_apply._children, new_context);
         },
-        .context_value,
+
+        .context_value => {
+            try walk_asts(ast.children(), new_context);
+            try walk_type(ast.context_value.parent, new_context);
+        },
+
         .struct_value,
         .tuple_value,
         .array_value,
