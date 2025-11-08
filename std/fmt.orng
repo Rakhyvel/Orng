@@ -1,0 +1,5 @@
+impl core::Format for Int {
+    virtual fn format(&self, writer: &mut dyn core::Writer) {
+        _ = (self, writer)
+    }
+}

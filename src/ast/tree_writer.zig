@@ -10,6 +10,7 @@ indent: usize,
 const Self = @This();
 
 pub fn new(indent: usize) Self {
+    std.debug.print("here\n", .{});
     return Self{ .indent = indent };
 }
 
