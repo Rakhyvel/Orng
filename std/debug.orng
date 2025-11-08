@@ -1,17 +1,17 @@
 extern const putchar: Byte -> Int32
 
-fn print(s: String) -> () {
+fn print(s: String) {
     while let mut i = 0; i < s.length; i += 1 {
         _ = putchar(s[i])
     }
 }
 
-fn println(s: String) -> () {
+fn println(s: String) {
     print(s)
     print("\n")
 }
 
-fn assert(cond: Bool, reason: ?String = .none) -> () {
+fn assert(cond: Bool, reason: ?String = .none) {
     if not cond {
         print("assertion failed")
         if reason != .none {

@@ -9,6 +9,7 @@ const defaults_ = @import("defaults.zig");
 const errs_ = @import("../util/errors.zig");
 const poison_ = @import("../ast/poison.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
+const Tree_Writer = @import("../ast/tree_writer.zig");
 const typing_ = @import("typing.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 const walk_ = @import("../ast/walker.zig");
@@ -114,9 +115,11 @@ pub fn typecheck_AST(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Validate
     return actual_type;
 }
 
+var depth: usize = 0;
 fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Validate_Error_Enum!*Type_AST {
     // TODO: Ugh this function is too long
-    // std.debug.print("{f}: {?f}\n", .{ ast, expected });
+    depth += 1;
+    // std.debug.print("[{}] {f}: {?f}\n", .{ depth, ast, expected });
     switch (ast.*) {
         // Nop, always "valid"
         .poison => return poison_.poisoned_type,
@@ -137,8 +140,6 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
 
         .float => return try typing_.type_check_float(ast, expected, &self.ctx.errors),
 
-        // .char => return prelude_.char_type,
-
         .string => return prelude_.string_type,
 
         .identifier => {
@@ -155,6 +156,14 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 }
                 return error.UnexpectedTypeType;
             }
+            if (symbol.decl.?.num_generic_params() > 0) {
+                self.ctx.errors.add_error(errs_.Error{ .unapplied_generic = .{
+                    .span = ast.token().span,
+                    .symbol_name = symbol.name,
+                    .num_generics = symbol.decl.?.num_generic_params(),
+                } });
+                return error.CompileError;
+            }
             return symbol.type();
         },
         .access => {
@@ -169,6 +178,16 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 return error.CompileError;
             }
             try self.ctx.validate_symbol.validate_symbol(symbol);
+
+            if (symbol.decl.?.num_generic_params() > 0) {
+                self.ctx.errors.add_error(errs_.Error{ .unapplied_generic = .{
+                    .span = ast.token().span,
+                    .symbol_name = symbol.name,
+                    .num_generics = symbol.decl.?.num_generic_params(),
+                } });
+                return error.CompileError;
+            }
+
             if (symbol.is_type()) {
                 if (expected != null) {
                     self.ctx.errors.add_error(errs_.Error{ .unexpected_type_type = .{ .expected = expected, .span = ast.token().span } });
@@ -392,33 +411,20 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             }
         },
         .generic_apply => {
-            const sym = ast.lhs().symbol().?;
-            const params = sym.decl.?.generic_params();
-            if (params.items.len != ast.generic_apply._children.items.len) {
-                self.ctx.errors.add_error(errs_.Error{ .mismatch_arity = .{
-                    .span = ast.token().span,
-                    .takes = params.items.len,
-                    .given = ast.generic_apply._children.items.len,
-                    .thing_name = sym.name,
-                    .takes_name = "type parameter",
-                    .given_name = "argument",
-                } });
+            // look up symbol, that's the type
+            const symbol = ast.symbol().?;
+            if (symbol.validation_state == .invalid) {
                 return error.CompileError;
             }
-
-            for (ast.generic_apply._children.items) |child| {
-                try self.ctx.validate_type.validate_type(child);
+            try self.ctx.validate_symbol.validate_symbol(symbol);
+            if (symbol.is_type() or symbol.kind == .context) {
+                if (expected != null) {
+                    self.ctx.errors.add_error(errs_.Error{ .unexpected_type_type = .{ .expected = expected, .span = ast.token().span } });
+                    return error.CompileError;
+                }
+                return error.UnexpectedTypeType;
             }
-
-            if (ast.generic_apply.state == .unmorphed) {
-                ast.generic_apply.state = .morphing;
-                ast.generic_apply._symbol = try sym.monomorphize(ast.generic_apply._children, self.ctx);
-                ast.generic_apply.state = .morphed;
-            }
-
-            try self.ctx.validate_symbol.validate_symbol(ast.symbol().?);
-
-            return ast.symbol().?.type();
+            return symbol.type();
         },
         .select => {
             const lhs_type = self.typecheck_AST(ast.lhs(), null) catch return error.CompileError;
@@ -470,6 +476,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 });
                 return error.CompileError;
             }
+            // std.debug.assert(method_decl.?.method_decl.impl.?.num_generic_params() == 0); // must be an instatiated impl
             const method_decl_type = self.typecheck_AST(method_decl.?, null) catch return error.CompileError;
             ast.invoke.method_decl = method_decl.?;
             const domain: *Type_AST = method_decl.?.method_decl.domain.?;
@@ -690,16 +697,17 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
         },
         .sub_slice => {
             const super_type = self.typecheck_AST(ast.sub_slice.super, null) catch return error.CompileError;
+            const expanded_super_type = super_type.expand_identifier();
             _ = self.typecheck_AST(ast.sub_slice.lower.?, null) catch return error.CompileError; // lower and upper should exist
             _ = self.typecheck_AST(ast.sub_slice.upper.?, null) catch return error.CompileError; // they are set in expand phase
-            if (super_type.* != .struct_type or !super_type.struct_type.was_slice) {
-                self.ctx.errors.add_error(errs_.Error{ .basic = .{
+            if (expanded_super_type.* != .struct_type or !expanded_super_type.struct_type.was_slice) {
+                self.ctx.errors.add_error(errs_.Error{ .not_subsliceable = .{
                     .span = ast.token().span,
-                    .msg = "cannot take a sub-slice of something that is not a slice",
+                    ._type = expanded_super_type,
                 } });
                 return error.CompileError;
             }
-            return super_type;
+            return expanded_super_type;
         },
 
         .enum_value => {
@@ -849,7 +857,10 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             if (ast.@"return"._ret_expr) |expr| {
                 _ = self.typecheck_AST(expr, ast.symbol().?.type().rhs()) catch return error.CompileError;
             } else if (expected != null and (expected.?.expand_identifier()).* != .unit_type) {
-                return typing_.throw_unexpected_type(ast.token().span, expected.?, prelude_.void_type, &self.ctx.errors);
+                const inner_fn_ret_type = ast.symbol().?.type().rhs();
+                if (inner_fn_ret_type.expand_identifier().* != .unit_type) {
+                    return typing_.throw_unexpected_type(ast.token().span, expected.?, prelude_.void_type, &self.ctx.errors);
+                }
             }
             return prelude_.void_type;
         },

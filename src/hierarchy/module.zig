@@ -30,7 +30,7 @@ const Import = @import("../ast/import.zig");
 const Cinclude = @import("../ast/cinclude.zig");
 const Symbol_Tree = @import("../ast/symbol-tree.zig");
 const Decorate = @import("../ast/decorate.zig");
-const Decorate_Access = @import("../ast/decorate-access.zig");
+// const Decorate_Access = @import("../ast/decorate-access.zig");
 const Type_Decorate = @import("../ast/type_decorate.zig");
 
 pub const Module_Errors = error{ OutOfMemory, LexerError, ParseError, CompileError, FileNotFound };
@@ -202,7 +202,7 @@ pub const Module = struct {
                     module,
                     compiler.allocator(),
                 ),
-                .{ .import = .{ .real_name = "core" } },
+                .{ .import = .{ .real_name = "core", .real_symbol = compiler.modules.get(compiler.core.?.module.?.absolute_path).? } },
                 .local,
                 compiler.allocator(),
             );
@@ -220,8 +220,7 @@ pub const Module = struct {
             Apply_Flat_Ast_Walk(Import).init(Import.new(compiler, module.get_package_abs_path(), &module.local_imported_modules)),
             Apply_Flat_Ast_Walk(Cinclude).init(Cinclude.new(&module.cincludes)),
             Apply_Ast_Walk(Symbol_Tree).init(Symbol_Tree.new(file_root, &compiler.errors, compiler.allocator())),
-            Apply_Ast_Walk(Decorate).init(Decorate.new(file_root, &compiler.errors, compiler.allocator())),
-            Apply_Ast_Walk(Decorate_Access).init(Decorate_Access.new(file_root, &compiler.errors, compiler)),
+            Apply_Ast_Walk(Decorate).init(Decorate.new(file_root, compiler)),
             Apply_Ast_Walk(Type_Decorate).init(Type_Decorate.new(compiler)),
         });
 
@@ -281,7 +280,7 @@ pub const Module = struct {
     fn collect_cfgs(self: *Module, cfg: *CFG) void {
         var cfg_dfs_iter = Cfg_Iterator.init(cfg, self.allocator);
         while (cfg_dfs_iter.next()) |next_cfg| {
-            if (next_cfg.symbol.decl.?.* == .method_decl and next_cfg.symbol.decl.?.method_decl.impl.?.generic_params().items.len > 0) {
+            if (next_cfg.symbol.decl.?.* == .method_decl and next_cfg.symbol.decl.?.method_decl.impl.?.num_generic_params() > 0) {
                 continue;
             }
             next_cfg.collect_generated_symbvers();

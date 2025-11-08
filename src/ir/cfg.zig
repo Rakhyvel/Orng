@@ -146,10 +146,10 @@ pub fn collect_generated_symbvers(self: *Self) void {
 
 pub fn collect_cfg_types(self: *Self, type_set: *Type_Set) void {
     // Don't collect types from generic CFGs
-    if (self.symbol.decl.?.* == .fn_decl and self.symbol.decl.?.generic_params().items.len > 0) {
+    if (self.symbol.decl.?.* == .fn_decl and self.symbol.decl.?.num_generic_params() > 0) {
         return;
     }
-    if (self.symbol.decl.?.* == .method_decl and self.symbol.decl.?.method_decl.impl.?.generic_params().items.len > 0) {
+    if (self.symbol.decl.?.* == .method_decl and self.symbol.decl.?.method_decl.impl.?.num_generic_params() > 0) {
         return;
     }
 

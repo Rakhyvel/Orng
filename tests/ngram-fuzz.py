@@ -166,6 +166,7 @@ def build_ngram_model():
             "tests/integration",
             "tests/negative",
             "examples",
+            "std",
         ]
     )
     models = {n: ngram.NGram(n) for n in range(3, 9)}

@@ -466,6 +466,12 @@ pub const Type_AST = union(enum) {
                 }
                 break :blk Type_AST.create_generic_apply_type(ast.token(), base, args, allocator);
             },
+            .generic_apply => blk: {
+                const _lhs = from_ast(ast.lhs(), allocator);
+                const gen_apply = Type_AST.create_generic_apply_type(ast.token(), _lhs, ast.generic_apply._children, allocator);
+                gen_apply.set_symbol(ast.symbol());
+                break :blk gen_apply;
+            },
             else => std.debug.panic("unable to construct type from {t}", .{ast.*}),
         };
     }
@@ -739,7 +745,7 @@ pub const Type_AST = union(enum) {
                 try out.print(")", .{});
             },
             .access => {
-                try out.print("{f}.{s}", .{ self.access.inner_access.lhs(), self.access.inner_access.rhs().token().data });
+                try out.print("{f}::{s}", .{ self.access.inner_access.lhs(), self.access.inner_access.rhs().token().data });
             },
             .generic_apply => {
                 try out.print("{f}[{f}", .{ self.generic_apply._lhs, self.generic_apply.args.items[0] });
@@ -1006,16 +1012,22 @@ pub const Type_AST = union(enum) {
     }
 
     /// Returns whether the term A is convertible to B
-    pub fn convertible_to(A: *Type_AST, B: *Type_AST) bool {
-        const A_expanded = A.expand_identifier();
-        const B_expanded = B.expand_identifier();
+    pub fn convertible_to(from: *Type_AST, to: *Type_AST) bool {
+        const from_expanded = from.expand_identifier();
+        const to_expanded = to.expand_identifier();
 
-        if (@intFromEnum(A_expanded.*) != @intFromEnum(B_expanded.*)) {
+        if (prelude_.info_from_ast(from_expanded)) |info| {
+            if (info.type_class == .int and to_expanded.* == .addr_of and to_expanded.addr_of.multiptr) {
+                return true;
+            }
+        }
+
+        if (@intFromEnum(from_expanded.*) != @intFromEnum(to_expanded.*)) {
             return false;
         }
 
-        return switch (A_expanded.*) {
-            .addr_of => A_expanded.addr_of.multiptr and B_expanded.addr_of.multiptr,
+        return switch (from_expanded.*) {
+            .addr_of => from_expanded.addr_of.multiptr and to_expanded.addr_of.multiptr,
             else => false,
         };
     }

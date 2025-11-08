@@ -184,7 +184,7 @@ fn integrate_test_file(filename: []const u8, mode: Test_Mode, debug_alloc: *Debu
     var output_name_writer = output_name.writer(output_name.buffer.?);
     const out_name_writer_intfc = &output_name_writer.interface;
     out_name_writer_intfc.print("{s}/build/{s}", .{ package_abs_path, module.package_name }) catch unreachable;
-    const res = exec(&[_][]const u8{output_name.str()}) catch |e| {
+    const res = exec(&[_][]const u8{output_name.str()}, .Pipe) catch |e| {
         writer.print("{}\n", .{e}) catch unreachable;
         writer.print("Execution interrupted!\n", .{}) catch unreachable;
         return false;

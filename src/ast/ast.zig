@@ -483,15 +483,6 @@ pub const AST = union(enum) {
         } }, allocator);
     }
 
-    // pub fn create_char(
-    //     _token: Token, // `token.data` should of course encompass the `'` used for character delimination. This is unlike strings.
-    //     allocator: std.mem.Allocator,
-    // ) *AST {
-    //     return AST.box(AST{ .char = .{ .common = AST_Common{
-    //         ._token = _token,
-    //     } } }, allocator);
-    // }
-
     pub fn create_float(_token: Token, data: f64, allocator: std.mem.Allocator) *AST {
         const _common: AST_Common = .{ ._token = _token };
         return AST.box(AST{ .float = .{
@@ -1388,7 +1379,6 @@ pub const AST = union(enum) {
             .poison => unreachable,
             .unit_value => return create_unit_value(self.token(), allocator),
             .int => return create_int(self.token(), self.int.data, allocator),
-            // .char => return create_char(self.token(), allocator),
             .float => return create_float(self.token(), self.float.data, allocator),
             .string => return create_string(self.token(), self.string.data, allocator),
             .field => return create_field(self.token(), allocator),
@@ -2056,6 +2046,13 @@ pub const AST = union(enum) {
         };
     }
 
+    pub fn num_generic_params(self: *AST) usize {
+        return switch (self.*) {
+            .struct_decl, .enum_decl, .type_alias, .impl, .fn_decl => self.generic_params().items.len,
+            else => 0,
+        };
+    }
+
     pub fn generic_params(self: *AST) *std.array_list.Managed(*AST) {
         return switch (self.*) {
             .struct_decl => &self.struct_decl._generic_params,
@@ -2274,7 +2271,6 @@ pub const AST = union(enum) {
             .poison => try out.print("poison", .{}),
             .unit_value => try out.print("unit_value", .{}),
             .int => try out.print("int({})", .{self.int.data}),
-            // .char => try out.print("char()", .{}),
             .float => try out.print("float()", .{}),
             .string => try out.print("string()", .{}),
             .field => try out.print("field(\"{s}\")", .{self.field.common._token.data}),
@@ -2293,7 +2289,7 @@ pub const AST = union(enum) {
                 try self.default._type.print_type(&writer);
                 try out.print(")", .{});
             },
-            .size_of => try out.print("size_of({f})", .{self.expr()}),
+            .size_of => try out.print("size_of({f})", .{self.type()}),
             .@"comptime" => try out.print("comptime({f})", .{self.expr()}),
 
             .assign => {
@@ -2326,9 +2322,9 @@ pub const AST = union(enum) {
             },
             .bit_and => {
                 try out.print("@bit_and(", .{});
-                for (self.call._args.items, 0..) |item, i| {
+                for (self.bit_and._args.items, 0..) |item, i| {
                     try out.print("{f}", .{item});
-                    if (i < self.call._args.items.len - 1) {
+                    if (i < self.bit_and._args.items.len - 1) {
                         try out.print(",", .{});
                     }
                 }
@@ -2336,9 +2332,9 @@ pub const AST = union(enum) {
             },
             .bit_or => {
                 try out.print("@bit_or(", .{});
-                for (self.call._args.items, 0..) |item, i| {
+                for (self.bit_or._args.items, 0..) |item, i| {
                     try out.print("{f}", .{item});
-                    if (i < self.call._args.items.len - 1) {
+                    if (i < self.bit_or._args.items.len - 1) {
                         try out.print(",", .{});
                     }
                 }
@@ -2346,9 +2342,9 @@ pub const AST = union(enum) {
             },
             .bit_xor => {
                 try out.print("@bit_xor(", .{});
-                for (self.call._args.items, 0..) |item, i| {
+                for (self.bit_xor._args.items, 0..) |item, i| {
                     try out.print("{f}", .{item});
-                    if (i < self.call._args.items.len - 1) {
+                    if (i < self.bit_xor._args.items.len - 1) {
                         try out.print(",", .{});
                     }
                 }
@@ -2385,11 +2381,15 @@ pub const AST = union(enum) {
             },
             .trait => try out.print("trait({*})", .{if (self.symbol() != null) self.symbol() else null}),
             .impl => {
-                try out.print("impl(.trait={?f}, .type={f}\n", .{ self.impl.trait, self.impl._type });
+                try out.print("impl(\n    .trait={?f},\n    .type={f}\n    .method_defs=[\n", .{ self.impl.trait, self.impl._type });
                 for (self.impl.method_defs.items) |method| {
-                    try out.print("    {f}\n", .{method});
+                    try out.print("        {f}\n", .{method});
                 }
-                try out.print(")", .{});
+                try out.print("    ],\n    .generic_params=[\n", .{});
+                for (self.impl._generic_params.items) |gen_param| {
+                    try out.print("        {f}\n", .{gen_param});
+                }
+                try out.print("    ],\n)", .{});
             },
             .invoke => try out.print("invoke()", .{}),
             .dyn_value => try out.print("dyn_value()", .{}),

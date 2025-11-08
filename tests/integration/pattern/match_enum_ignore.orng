@@ -1,0 +1,8 @@
+// 364
+fn main() -> Int {
+    let x: ?Int = .some(0)
+    match x {
+        .some(_) => 364
+        .none    => unreachable
+    }
+}

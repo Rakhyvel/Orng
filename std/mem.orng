@@ -1,3 +1,4 @@
+import debug
 import ffi
 
 struct Heap_Allocator {}
@@ -5,23 +6,38 @@ impl core::Allocator for Heap_Allocator {
     virtual fn alloc(&mut self, nbytes: Int) -> ?[*mut]Byte {
         _ = self
         extern const malloc: Int -> [*mut]Byte
-        .some(malloc(nbytes))
+        extern const ptr_is_null: [*mut]Byte -> Bool
+
+        let bytes = malloc(nbytes)
+        if ptr_is_null(bytes) {
+            .none
+        } else {
+            .some(bytes)
+        }
     }
 
-    virtual fn free(&mut self, allocation: [*]Byte) -> () {
+    virtual fn realloc(&mut self, allocation: [*mut]Byte, newsize: Int) -> ?[*mut]Byte {
+        _ = self
+        extern("realloc") const c_realloc: ([*]Byte, Int) -> [*mut]Byte
+        extern const ptr_is_null: [*mut]Byte -> Bool
+
+        let bytes = c_realloc(allocation, newsize)
+        if ptr_is_null(bytes) {
+            .none
+        } else {
+            .some(bytes)
+        }
+    }
+
+    virtual fn free(&mut self, allocation: [*mut]Byte) {
         _ = self
         extern("free") const c_free: [*]Byte -> ()
         c_free(allocation)
     }
-
-    virtual fn resize(&mut self, allocation: [*mut]Byte, newsize: Int) -> ?[*mut]Byte {
-        _ = (self, allocation, newsize)
-        unreachable
-    }
 }
 
-fn new[T](alloc: &mut dyn core::Allocator) -> ()!&mut T {
-    match alloc.>alloc(@sizeof(T)) {
+fn new[T]() -> ()!&mut T with core::Allocating {
+    match core::Allocating.alloc.>alloc(@sizeof(T)) {
         .some(bytes) => ffi::ref_from_ptr_mut[T](bytes as [*mut]T)
         .none => .err
     }
@@ -29,12 +45,102 @@ fn new[T](alloc: &mut dyn core::Allocator) -> ()!&mut T {
 
 fn make[T](length: Int) -> ()![mut]T with core::Allocating {
     match core::Allocating.alloc.>alloc(@sizeof(T) * length) {
-        .some(bytes) => {
-            let mut retval: [mut]T = undefined
-            retval.data = bytes as [*mut]T
-            retval.length = length
-            .ok(retval)
-        }
+        .some(bytes) => .ok(slice_from_parts[T](bytes, length))
         .none => .err
     }
+}
+
+fn slice_from_parts[T](data: [*mut]T, length: Int) -> [mut]T {
+    let mut retval: [mut]T = undefined
+    retval.data = data
+    retval.length = length
+    retval
+}
+
+fn eql(a: String, b: String) -> Bool {
+    if a.length != b.length {return false}
+
+    while let mut i = 0; i < a.length; i += 1 {
+        if a[i] != b[i] {return false}
+    }
+
+    true
+}
+
+fn starts_with(haystack: []Byte, needle: []Byte) -> Bool {
+    if needle.length > haystack.length {
+        false
+    } else {
+        eql(haystack[..needle.length], needle)
+    }
+}
+
+fn copy(dest: [mut]Byte, src: []Byte) {
+    while let mut i = 0; i < src.length; i += 1 {
+        dest[i] = src[i]
+    }
+}
+
+fn index_of(haystack: []Byte, needle: []Byte) -> ?Int {
+    if needle.length == 0 {
+        return .some(0)
+    }
+
+    if needle.length > haystack.length {
+        return .none
+    }
+
+    while let mut i = 0; i <= haystack.length - needle.length; i += 1 {
+        let mut found = true
+
+        while let mut j = 0; j < needle.length; j += 1 {
+            if haystack[i + j] != needle[j] {
+                found = false
+                break
+            }
+        }
+
+        if found {
+            return .some(i)
+        }
+    }
+
+    .none
+}
+
+fn replacement_size(input: []Byte, needle: []Byte, replacement: []Byte) -> Int {
+    debug::assert(needle.length > 0, .some("mem::replacement_size: empty needle"))
+
+    let mut size = input.length
+    while let mut i = 0; i < input.length {
+        if starts_with(input[i..], needle) {
+            size = size - needle.length + replacement.length
+            i += needle.length
+        } else {
+            i += 1
+        }
+    }
+
+    size
+}
+
+fn replace(input: []Byte, needle: []Byte, replacement: []Byte, output: [mut]Byte) -> Int {
+    debug::assert(needle.length > 0, .some("mem::replacement: empty needle"))
+    
+    let mut slide = 0
+    let mut replacements = 0
+    while let mut i = 0; slide < input.length {
+        if starts_with(input[slide..], needle) {
+            copy(output[i..][0..replacement.length], replacement)
+            i += replacement.length
+            slide += needle.length
+            replacements += 1
+        } else {
+            output[i] = input[slide]
+            i += 1
+            slide += 1
+        }
+    }
+
+    replacements
 }

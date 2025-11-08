@@ -1,0 +1,11 @@
+// call_generic.orng:6:15: error: symbol `generic_fn` requires 1 generic arguments
+//     generic_fn()
+//              ^
+// 
+fn main() -> Int {
+    generic_fn()
+}
+
+fn generic_fn[T]() -> Int {
+    400
+}

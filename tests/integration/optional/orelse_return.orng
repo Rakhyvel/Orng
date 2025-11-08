@@ -1,0 +1,11 @@
+// 363
+fn main() -> Int {
+    let mut x: Int
+    let y: ?Int = .some(363)
+    maybe_copy(&mut x, y)
+    x
+}
+
+fn maybe_copy(src: &mut Int, dst: ?Int) {
+    src^ = dst orelse {return}
+}

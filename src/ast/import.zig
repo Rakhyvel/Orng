@@ -58,7 +58,7 @@ fn import_flat(self: Self, ast: *ast_.AST, asts: *std.array_list.Managed(*ast_.A
             .init = null,
             .decls = std.array_list.Managed(*ast_.AST).init(self.compiler.allocator()),
         } };
-        _ = try self.resolve_import(ast.binding.pattern);
+        ast.binding.pattern.pattern_symbol.kind.import.real_symbol = try self.resolve_import(ast.binding.pattern);
         return 0;
     } else if (ast.import.pattern.* == .access) {
         return self.unwrap_access_imports(ast, asts, idx);
@@ -90,7 +90,7 @@ fn unwrap_access_imports(self: Self, ast: *ast_.AST, asts: *std.array_list.Manag
                 terms.items[i],
                 self.compiler.allocator(),
             );
-            const const_decl = ast_.AST.create_decl(
+            const const_decl = ast_.AST.create_binding(
                 ast.import.pattern.token(),
                 ast_.AST.create_pattern_symbol(
                     ast.token(),
@@ -208,8 +208,8 @@ fn lookup_import_module(self: Self, pattern_ast: *ast_.AST, import_name: []const
                 } });
                 return error.CompileError;
             },
-            error.CompileError, error.ParseError => {
-                // This is possible if the user does `import Int` or something
+            error.CompileError, error.ParseError, error.LexerError => {
+                // This is possible if the user does `import Int` or something, or if there's lexer errors
                 return error.CompileError;
             },
             else => std.debug.panic("compiler error: this shouldn't be reachable\n", .{}),

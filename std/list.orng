@@ -1,17 +1,59 @@
+import mem
+import testing
+
 struct List[T] {
     items: [mut]T
-    length: Int
+    capacity: Int
     alloc: &mut dyn core::Allocator
+}
+
+enum Error {
+    out_of_memory
 }
 
 impl[T] for List[T] {
     fn init() -> Self with core::Allocating {
-        let mut data: [0]T = [,]
-        Self([mut]data, 0, core::Allocating.alloc)
+        Self(mem::slice_from_parts[T](0 as [*mut]T, 0), 0, core::Allocating.alloc)
     }
 
-    fn append(&mut self, t: T) -> () {
-        _ = (self, t)
-        unreachable // TODO
+    fn deinit(&self) {
+        self.alloc.>free(self.items.data as [*mut]Byte)
     }
+
+    fn append(&mut self, t: T) -> Error!() {
+        try self.>allocate(self.items.length + 1)
+        self.items.length += 1
+        self.items[self.items.length - 1] = t
+        .ok
+    }
+
+    fn allocate(&mut self, new_cap: Int) -> Error!() {
+        if @sizeof(T) == 0 {
+            return
+        }
+
+        if new_cap > self.capacity {
+            self.capacity = new_cap * 2
+            self.items.data = (self.alloc.>realloc(self.items.data as [*mut]Byte, self.capacity) orelse {
+                return .err(.out_of_memory)
+            }) as [*mut]Int
+        }
+
+        .ok
+    }
+}
+
+test "append" with core::Allocating {
+    let mut list = List[Int]::init()
+    defer list.>deinit()
+
+    list.>append(1) catch {return .err}
+    list.>append(2) catch {return .err}
+    list.>append(3) catch {return .err}
+
+    try testing::expect(list.items[0] == 1)
+    try testing::expect(list.items[1] == 2)
+    try testing::expect(list.items[2] == 3)
+
+    .ok
 }

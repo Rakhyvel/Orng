@@ -104,28 +104,6 @@ fn lower_AST_inner(
         .enum_decl, .struct_decl, .unit_value, .trait, .impl, .type_alias => return self.lval_from_unit_value(ast),
         // Literals
         .int => return self.lval_from_int(ast.int.data, self.ctx.typecheck.typeof(ast), ast.token().span),
-        // .char => {
-        //     const temp = self.create_temp_lvalue(self.ctx.typecheck.typeof(ast));
-        //     // Convert the character inside to a codepoint
-        //     var codepoint: u21 = undefined;
-        //     switch (ast.token().data[1]) {
-        //         '\\' => switch (ast.token().data[2]) {
-        //             'n' => codepoint = 0x0A,
-        //             'r' => codepoint = 0x0D,
-        //             't' => codepoint = 0x09,
-        //             '\\' => codepoint = 0x5C,
-        //             '\'' => codepoint = 0x27,
-        //             '"' => codepoint = 0x22,
-        //             else => unreachable,
-        //         },
-        //         else => {
-        //             const num_bytes = std.unicode.utf8ByteSequenceLength(ast.token().data[1]) catch return error.CompileError;
-        //             codepoint = std.unicode.utf8Decode(ast.token().data[1 .. num_bytes + 1]) catch unreachable; // Checked by lexer
-        //         },
-        //     }
-        //     self.instructions.append(Instruction.init_int(temp, codepoint, ast.token().span, self.ctx.allocator())) catch unreachable;
-        //     return temp;
-        // },
         .float => {
             const temp = self.create_temp_lvalue(self.ctx.typecheck.typeof(ast));
             self.instructions.append(Instruction.init_float(temp, ast.float.data, ast.token().span, self.ctx.allocator())) catch unreachable;
@@ -1095,7 +1073,6 @@ fn generate_match_pattern_check(
         .float,
         .true,
         .false,
-        // .char,
         .string,
         .block,
         => {

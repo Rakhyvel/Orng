@@ -1,0 +1,10 @@
+// 361
+fn main() -> Int {
+    let mut x: Int = 163
+    adjust(&mut x)
+    x
+}
+
+fn adjust(x: &mut Int) {
+    x^ = 361
+}

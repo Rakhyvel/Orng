@@ -85,6 +85,11 @@ pub const Error = union(enum) {
         span: Span,
         filename: []const u8,
     },
+    unapplied_generic: struct {
+        span: Span,
+        symbol_name: []const u8,
+        num_generics: usize,
+    },
 
     // Traits
     reimpl: struct {
@@ -221,6 +226,10 @@ pub const Error = union(enum) {
         span: Span,
         _type: *Type_AST,
     },
+    not_subsliceable: struct {
+        span: Span,
+        _type: *Type_AST,
+    },
     bad_index: struct {
         span: Span,
         _type: *Type_AST,
@@ -284,6 +293,7 @@ pub const Error = union(enum) {
             .not_inside_loop => return self.not_inside_loop.span,
             .not_inside_function => return self.not_inside_function.span,
             .import_file_not_found => return self.import_file_not_found.span,
+            .unapplied_generic => return self.unapplied_generic.span,
 
             .reimpl => return self.reimpl.redefined_span,
             .type_not_impl_method => return self.type_not_impl_method.span,
@@ -312,6 +322,7 @@ pub const Error = union(enum) {
             .use_before_def => return self.use_before_def.identifier.span,
             .modify_immutable => return self.modify_immutable.identifier.span,
             .not_indexable => return self.not_indexable.span,
+            .not_subsliceable => return self.not_subsliceable.span,
             .bad_index => return self.bad_index.span,
             .not_selectable => return self.not_selectable.span,
             .non_exhaustive_sum => return self.non_exhaustive_sum.span,
@@ -375,6 +386,7 @@ pub const Error = union(enum) {
             .not_inside_loop => writer.print("`{s}` is not inside a loop\n", .{err.not_inside_loop.name}) catch unreachable,
             .not_inside_function => writer.print("`{s}` is not inside a function\n", .{err.not_inside_function.name}) catch unreachable,
             .import_file_not_found => writer.print("file `{s}.orng` not found\n", .{err.import_file_not_found.filename}) catch unreachable,
+            .unapplied_generic => writer.print("symbol `{s}` requires {} generic arguments\n", .{ err.unapplied_generic.symbol_name, err.unapplied_generic.num_generics }) catch unreachable,
 
             // Traits
             .reimpl => if (err.reimpl.name != null) {
@@ -521,6 +533,11 @@ pub const Error = union(enum) {
                 writer.print("the type `", .{}) catch unreachable;
                 err.not_indexable._type.print_type(writer) catch unreachable;
                 writer.print("` is not indexable\n", .{}) catch unreachable;
+            },
+            .not_subsliceable => {
+                writer.print("cannot take a sub-slice of the type `", .{}) catch unreachable;
+                err.not_subsliceable._type.print_type(writer) catch unreachable;
+                writer.print("`\n", .{}) catch unreachable;
             },
             .bad_index => {
                 writer.print("cannot index the type `{f}`, which has length {}, with index {}\n", .{ err.bad_index._type, err.bad_index.length, err.bad_index.index }) catch unreachable;

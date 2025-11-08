@@ -1,27 +1,31 @@
 const std = @import("std");
 
-pub fn exec(argv: []const []const u8) !struct { stdout: []u8, retcode: i64 } { // TODO: Uninfer error
+pub fn exec(argv: []const []const u8, behavior: std.process.Child.StdIo) !struct { stdout: []u8, retcode: i64 } { // TODO: Uninfer error
     const allocator = std.heap.page_allocator;
 
     var child_process = std.process.Child.init(argv, allocator);
+    child_process.stdin_behavior = behavior;
+    child_process.stdout_behavior = behavior;
+    child_process.stderr_behavior = behavior;
     defer _ = child_process.kill() catch unreachable;
 
-    child_process.stdout_behavior = .Pipe;
     child_process.spawn() catch |err| {
         return err;
     };
 
     // _SEVEN_ lines for something that should be 2 at most
     var buffer: [100 * 1024]u8 = undefined;
-    var child_stdout_reader = child_process.stdout.?.reader(&buffer);
-    const reader_intfc: *std.Io.Reader = &child_stdout_reader.interface;
     var writer_alloc = std.Io.Writer.Allocating.init(allocator);
     errdefer writer_alloc.deinit();
-    const writer = &writer_alloc.writer;
-    _ = reader_intfc.stream(writer, .unlimited) catch |e| switch (e) {
-        error.EndOfStream => {}, // this isn't a fucking error you retard
-        else => return e,
-    };
+    if (child_process.stdout) |stdout| {
+        var child_stdout_reader = stdout.reader(&buffer);
+        const reader_intfc: *std.Io.Reader = &child_stdout_reader.interface;
+        const writer = &writer_alloc.writer;
+        _ = reader_intfc.stream(writer, .unlimited) catch |e| switch (e) {
+            error.EndOfStream => {}, // this isn't a fucking error you retard
+            else => return e,
+        };
+    }
 
     var retcode: i64 = 0;
 

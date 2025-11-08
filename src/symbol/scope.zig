@@ -2,7 +2,7 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const Decorate = @import("../ast/decorate.zig");
-const Decorate_Access = @import("../ast/decorate-access.zig");
+// const Decorate_Access = @import("../ast/decorate-access.zig");
 const errs_ = @import("../util/errors.zig");
 const Symbol = @import("symbol.zig");
 const Symbol_Tree = @import("../ast/symbol-tree.zig");
@@ -55,6 +55,7 @@ pub fn init(parent: ?*Self, uid_gen: *UID_Gen, allocator: std.mem.Allocator) *Se
 pub const Lookup_Flags = struct {
     crossed_boundary: bool = false,
     allow_modules: bool = false,
+    look_for_kind: ?Symbol.Kind = null,
 };
 
 pub fn lookup(self: *Self, name: []const u8, flags: Lookup_Flags) Lookup_Result {
@@ -67,16 +68,10 @@ pub fn lookup(self: *Self, name: []const u8, flags: Lookup_Flags) Lookup_Result 
 
     if (self.symbols.get(name)) |symbol| {
         if (!flags.allow_modules and symbol.kind == .module) {
-            if (self.parent) |parent| {
-                var new_flags = flags;
-                new_flags.crossed_boundary = parent.function_depth < self.function_depth or flags.crossed_boundary;
-                return parent.lookup(name, new_flags);
-            } else {
-                return .not_found;
-            }
-        }
-
-        if (flags.crossed_boundary and (symbol.kind == .mut or symbol.kind == .let)) {
+            // search parents
+        } else if (flags.look_for_kind != null and @intFromEnum(flags.look_for_kind.?) != @intFromEnum(symbol.kind)) {
+            // search parents
+        } else if (flags.crossed_boundary and (symbol.kind == .mut or symbol.kind == .let)) {
             // Found the symbol, but it's non-const and we've crossed an inner-function boundary
             return .found_but_fn;
         } else {
@@ -86,7 +81,9 @@ pub fn lookup(self: *Self, name: []const u8, flags: Lookup_Flags) Lookup_Result 
             }
             return Lookup_Result{ .found = symbol };
         }
-    } else if (self.parent) |parent| {
+    }
+
+    if (self.parent) |parent| {
         var new_flags = flags;
         new_flags.crossed_boundary = parent.function_depth < self.function_depth or flags.crossed_boundary;
         const res = parent.lookup(name, new_flags);
@@ -174,7 +171,8 @@ pub fn impl_trait_lookup(self: *Self, for_type: *Type_AST, trait: *Symbol) Impl_
 /// Looks up the impl's decl/method_decl ast for a given type, with a given name
 pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, compiler: *Compiler_Context) !?*ast_.AST {
     if (false) {
-        std.debug.print("searching for {f}::{s}\n", .{ for_type, name });
+        std.debug.print("searching {} impls for {f}::{s}\n", .{ self.impls.items.len, for_type.*, name });
+        self.pprint();
     }
     // Go through the list of implementations, check to see if the types and traits match
     for (self.impls.items) |impl| {
@@ -182,12 +180,16 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
         defer subst.deinit();
         try compiler.validate_type.validate_type(impl.impl._type);
         unification_.unify(impl.impl._type, for_type, impl.impl._generic_params, &subst) catch continue;
+        const subst_contains_generics = unification_.substitution_contains_generics(&subst);
 
         var the_impl = impl;
-        if (impl.impl._generic_params.items.len > 0) {
+        if (impl.impl._generic_params.items.len > 0 and !subst_contains_generics) {
             const with_list = unification_.type_param_list_from_subst_map(&subst, impl.impl._generic_params, std.heap.page_allocator);
-            if (impl.impl.instantiations.get(with_list) == null) {
+            if (!subst_contains_generics and impl.impl.instantiations.get(with_list) == null) {
                 const new_impl: *ast_.AST = impl.clone(&subst, std.heap.page_allocator);
+                if (!subst_contains_generics) {
+                    new_impl.impl._generic_params.clearRetainingCapacity();
+                }
                 const new_scope = init(self, self.uid_gen, std.heap.page_allocator);
 
                 new_impl.set_scope(new_scope);
@@ -211,10 +213,9 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
                 }
 
                 // Decorate identifiers, validate
-                const decorate_context = Decorate.new(new_scope, &compiler.errors, compiler.allocator());
-                const decorate_access_context = Decorate_Access.new(new_scope, &compiler.errors, compiler);
+                const decorate_context = Decorate.new(new_scope, compiler);
                 try walker_.walk_ast(new_impl, decorate_context); // this doesn't know about the anonymous trait
-                try walker_.walk_ast(new_impl, decorate_access_context);
+
                 try compiler.validate_scope.validate_scope(new_scope);
 
                 impl.impl.instantiations.put(with_list, new_impl) catch unreachable;
@@ -276,7 +277,9 @@ pub fn pprint(self: *Self) void {
     std.debug.print("scope_{}:\n", .{self.uid});
     for (self.symbols.keys()) |name| {
         const symbol = self.symbols.get(name).?;
-        if (symbol.kind == .type) {
+        if (symbol.kind == .import) {
+            std.debug.print("  {s} {s} ({s})\n", .{ @tagName(symbol.kind), name, symbol.kind.import.real_name });
+        } else if (symbol.kind == .type) {
             std.debug.print("  {s} {s} = {?f}\n", .{ @tagName(symbol.kind), name, symbol.init_typedef() });
         } else {
             std.debug.print("  {s} {s}\n", .{ @tagName(symbol.kind), name });

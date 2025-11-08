@@ -18,6 +18,7 @@ pub fn unify(lhs: *Type_AST, rhs: *Type_AST, withs: std.array_list.Managed(*ast_
 
     switch (lhs.*) {
         .identifier => {
+            std.debug.assert(lhs.token().data.len > 0);
             if (identifier_is_type_param(lhs, withs)) |_| {
                 try subst.put(lhs.token().data, rhs);
                 return;
@@ -93,4 +94,25 @@ fn identifier_is_type_param(ident: *Type_AST, generic_params: std.array_list.Man
         }
     }
     return null;
+}
+
+pub fn substitution_contains_generics(subst: *const Substitutions) bool {
+    for (subst.keys()) |key| {
+        const ty = subst.get(key).?;
+        const bad = ty.* == .identifier and ty.symbol().?.decl.?.* == .type_param_decl;
+        if (bad) {
+            return true;
+        }
+    }
+    return false;
+}
+
+pub fn print_substitutions(subst: *const Substitutions) void {
+    std.debug.print("{} substitutions: {{\n", .{subst.keys().len});
+    for (subst.keys()) |key| {
+        const ty = subst.get(key).?;
+        const bad = ty.* == .identifier and ty.symbol().?.decl.?.* == .type_param_decl;
+        std.debug.print("    {s}: {?f} ({})\n", .{ key, subst.get(key), bad });
+    }
+    std.debug.print("}}\n", .{});
 }
