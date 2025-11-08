@@ -38,9 +38,6 @@ pub fn init(parent: ?*Self, uid_gen: *UID_Gen, allocator: std.mem.Allocator) *Se
     retval.impls = std.array_list.Managed(*ast_.AST).init(allocator);
     retval.tests = std.array_list.Managed(*ast_.AST).init(allocator);
     retval.uid = uid_gen.uid();
-    if (retval.uid == 531) {
-        unreachable;
-    }
     retval.uid_gen = uid_gen;
     if (parent) |_parent| {
         _parent.children.append(retval) catch unreachable;

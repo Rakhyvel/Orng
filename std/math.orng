@@ -46,6 +46,14 @@ test "as_bits" {
     .ok
 }
 
+test "is_nan" {
+    let x = 0.0 / 0.0
+
+    try testing::expect(x.>is_nan())
+
+    .ok
+}
+
 test "is_inf" {
     let x = 1.0 / 0.0
 
