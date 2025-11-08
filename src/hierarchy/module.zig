@@ -202,7 +202,7 @@ pub const Module = struct {
                     module,
                     compiler.allocator(),
                 ),
-                .{ .import = .{ .real_name = "core" } },
+                .{ .import = .{ .real_name = "core", .real_symbol = compiler.modules.get(compiler.core.?.module.?.absolute_path).? } },
                 .local,
                 compiler.allocator(),
             );

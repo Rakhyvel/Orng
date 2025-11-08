@@ -55,6 +55,7 @@ pub fn init(parent: ?*Self, uid_gen: *UID_Gen, allocator: std.mem.Allocator) *Se
 pub const Lookup_Flags = struct {
     crossed_boundary: bool = false,
     allow_modules: bool = false,
+    look_for_kind: ?Symbol.Kind = null,
 };
 
 pub fn lookup(self: *Self, name: []const u8, flags: Lookup_Flags) Lookup_Result {
@@ -67,16 +68,10 @@ pub fn lookup(self: *Self, name: []const u8, flags: Lookup_Flags) Lookup_Result 
 
     if (self.symbols.get(name)) |symbol| {
         if (!flags.allow_modules and symbol.kind == .module) {
-            if (self.parent) |parent| {
-                var new_flags = flags;
-                new_flags.crossed_boundary = parent.function_depth < self.function_depth or flags.crossed_boundary;
-                return parent.lookup(name, new_flags);
-            } else {
-                return .not_found;
-            }
-        }
-
-        if (flags.crossed_boundary and (symbol.kind == .mut or symbol.kind == .let)) {
+            // search parents
+        } else if (flags.look_for_kind != null and @intFromEnum(flags.look_for_kind.?) != @intFromEnum(symbol.kind)) {
+            // search parents
+        } else if (flags.crossed_boundary and (symbol.kind == .mut or symbol.kind == .let)) {
             // Found the symbol, but it's non-const and we've crossed an inner-function boundary
             return .found_but_fn;
         } else {
@@ -86,7 +81,9 @@ pub fn lookup(self: *Self, name: []const u8, flags: Lookup_Flags) Lookup_Result 
             }
             return Lookup_Result{ .found = symbol };
         }
-    } else if (self.parent) |parent| {
+    }
+
+    if (self.parent) |parent| {
         var new_flags = flags;
         new_flags.crossed_boundary = parent.function_depth < self.function_depth or flags.crossed_boundary;
         const res = parent.lookup(name, new_flags);

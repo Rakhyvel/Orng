@@ -225,6 +225,7 @@ fn decorate_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
                 }
             }
         },
+        .generic_apply => return self.monomorphize_generic_apply(ast),
         .trait => self.scope.traits.append(ast) catch unreachable,
         // .impl => ,
         .@"test" => self.scope.tests.append(ast) catch unreachable,
@@ -247,16 +248,18 @@ fn resolve_access_ast(self: Self, ast: *ast_.AST) walk_.Error!*Symbol {
         .module => return try self.resolve_access_module(expanded_lhs, ast.rhs()),
 
         .import => {
-            const module_symbol = expanded_lhs.scope.parent.?.lookup(expanded_lhs.kind.import.real_name, .{ .allow_modules = true }).found;
+            const module_symbol = expanded_lhs.kind.import.real_symbol.?; //expanded_lhs.scope.lookup(expanded_lhs.name, .{ .allow_modules = true, .look_for_kind = .module }).found;
             return try self.resolve_access_module(module_symbol, ast.rhs());
         },
 
-        // .import_inner => ast.set_symbol(try self.resolve_access_symbol(try self.resolve_symbol_from_ast(expanded_lhs.init_value().?), ast.rhs(), ast.scope().?)),
+        .import_inner => {
+            const module_symbol = (try self.resolve_access_ast(expanded_lhs.init_value().?)).kind.import.real_symbol.?;
+            return try self.resolve_access_module(module_symbol, ast.rhs());
+        },
 
         .type => return try self.resolve_access_const(Type_AST.from_ast(stripped_lhs, self.ctx.allocator()), ast.rhs(), ast.scope().?),
 
         else => {
-            std.debug.print("{t}\n", .{expanded_lhs.kind});
             self.ctx.errors.add_error(errs_.Error{
                 .member_not_in_module = .{
                     .span = ast.rhs().token().span,
@@ -358,6 +361,7 @@ fn resolve_symbol_from_import_identlike(self: Self, identlike_ast: *ast_.AST) *S
 
 /// Resolves a symbol access from a module
 fn resolve_access_module(self: Self, module_symbol: *Symbol, rhs: *ast_.AST) walk_.Error!*Symbol {
+    std.debug.assert(module_symbol.kind == .module);
     const module_lookup_res = module_symbol.init_value().?.scope().?.lookup(
         rhs.token().data,
         .{},

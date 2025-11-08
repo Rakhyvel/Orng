@@ -58,7 +58,7 @@ fn import_flat(self: Self, ast: *ast_.AST, asts: *std.array_list.Managed(*ast_.A
             .init = null,
             .decls = std.array_list.Managed(*ast_.AST).init(self.compiler.allocator()),
         } };
-        _ = try self.resolve_import(ast.binding.pattern);
+        ast.binding.pattern.pattern_symbol.kind.import.real_symbol = try self.resolve_import(ast.binding.pattern);
         return 0;
     } else if (ast.import.pattern.* == .access) {
         return self.unwrap_access_imports(ast, asts, idx);
