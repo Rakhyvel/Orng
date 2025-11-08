@@ -4,6 +4,7 @@ const core_ = @import("hierarchy/core.zig");
 const Compiler_Context = @import("hierarchy/compiler.zig");
 const Codegen_Context = @import("codegen/codegen.zig");
 const errs_ = @import("util/errors.zig");
+const exec = @import("util/exec.zig").exec;
 const Interpreter_Context = @import("interpretation/interpreter.zig");
 const Package_Kind = @import("hierarchy/package.zig").Package_Kind;
 const Span = @import("util/span.zig");
@@ -109,12 +110,8 @@ fn run(compiler: *Compiler_Context, package_abs_path: []const u8, allocator: std
     var output_name = std.array_list.Managed(u8).init(allocator);
     output_name.print("{s}", .{curr_package.output_absolute_path}) catch unreachable;
     const argv = &[_][]const u8{output_name.items};
-    var child = std.process.Child.init(argv, allocator);
-    child.stdin_behavior = .Inherit;
-    child.stdout_behavior = .Inherit;
-    child.stderr_behavior = .Inherit;
-
-    child.spawn() catch return error.CompileError;
+    const res = exec(argv, .Inherit) catch return error.CompileError;
+    std.process.exit(@intCast(res.retcode));
 }
 
 fn @"test"(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {

@@ -42,8 +42,8 @@ jobs:
         #!/bin/bash
         export ORNG_STD_PATH="$GITHUB_WORKSPACE/std"
         zig build orng
-        cd examples
-        ../zig-out/bin/orng build
+        cd std
+        ../zig-out/bin/orng test
     
     - name: Build example project (Windows)
       if: runner.os == 'Windows'
@@ -52,8 +52,8 @@ jobs:
         #!/bin/bash
         export ORNG_STD_PATH="$GITHUB_WORKSPACE/std"
         zig build orng
-        cd examples
-        ../zig-out/bin/orng build
+        cd std
+        ../zig-out/bin/orng test
 
     # Optional: Upload artifacts if build fails
     - uses: actions/upload-artifact@v4

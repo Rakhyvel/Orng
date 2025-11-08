@@ -240,13 +240,14 @@ fn output_testrunner(
         \\    const char *substr = NULL;
         \\    const char *prev_filename = NULL;
         \\    test_result res;
+        \\    int failed_tests = 0;
         \\    
     , .{}) catch return error.CompileError;
     if (any_require_context) {
         mod_0_emitter.output_type(core_.allocating_context) catch return error.CompileError;
         buf.print(
             \\ allocator_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &std__mem_2__vtable}}}};
-            \\    
+            \\
         , .{}) catch return error.CompileError;
     }
     buf.print(
@@ -301,6 +302,7 @@ fn output_testrunner(
                 \\        else
                 \\        {{
                 \\            printf("[     FAILED ]\n");
+                \\            failed_tests += 1;
                 \\        }}
                 \\    }}
                 \\
@@ -309,6 +311,7 @@ fn output_testrunner(
     }
     buf.print(
         \\    printf("[============]\n");
+        \\    return failed_tests;
         \\}}
         \\
     , .{}) catch return error.CompileError;
