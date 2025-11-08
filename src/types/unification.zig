@@ -6,6 +6,7 @@ pub const Substitutions = std.StringArrayHashMap(*Type_AST);
 
 // Attempt to match the rhs with the lhs
 pub fn unify(lhs: *Type_AST, rhs: *Type_AST, withs: std.array_list.Managed(*ast_.AST), subst: *Substitutions) !void {
+    // std.debug.print("{f} ~ {f}\n", .{ lhs, rhs });
     if (lhs.* == .identifier and lhs.symbol().?.init_typedef() != null) {
         return try unify(lhs.symbol().?.init_typedef().?, rhs, withs, subst);
     } else if (rhs.* == .identifier and rhs.symbol().?.init_typedef() != null) {

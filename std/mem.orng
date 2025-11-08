@@ -144,3 +144,12 @@ fn replace(input: []Byte, needle: []Byte, replacement: []Byte, output: [mut]Byte
 
     replacements
 }
+
+fn reverse(items: [mut]Byte) {
+    let end = items.length / 2
+    while let mut i = 0; i < end; i += 1 {
+        let tmp = items[i]
+        items[i] = items[items.length - i - 1]
+        items[items.length - i - 1] = tmp
+    }
+}

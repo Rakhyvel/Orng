@@ -117,6 +117,7 @@ fn trailing_comma_rules(tokens: *std.array_list.Managed(Token)) void {
 ///     6. jump keywords (`unreachable`, `break`, `continue`, or `return`)
 ///     7. closing delimiters (`)`, `]`, or `}`)
 ///     8. postfix operators (`^`)
+/// Or, if the newline is followed by an else keyword.
 /// Otherwise, the newline token is removed.
 fn newline_rules(tokens: *std.array_list.Managed(Token)) void {
     var stack = std.array_list.Managed(Token.Kind).init(tokens.allocator);
@@ -135,7 +136,7 @@ fn newline_rules(tokens: *std.array_list.Managed(Token)) void {
                 // Remove if stack is not empty and l paren is on top of stack
                 _ = tokens.orderedRemove(i);
                 i -|= 1;
-            } else if (i == 0 or !tokens.items[i - 1].kind.is_end_token()) {
+            } else if (i == 0 or !tokens.items[i - 1].kind.is_end_token() or tokens.items[i + 1].kind == .@"else") {
                 // Remove newline if previous token was not a line-ending token
                 _ = tokens.orderedRemove(i);
                 i -|= 1;

@@ -311,22 +311,22 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
         .bit_and, .bit_or, .bit_xor => {
             var retval: ?*Type_AST = null;
             for (0..ast.children().items.len) |i| {
-                const arg_type = self.typecheck_AST(ast.children().items[i], expected) catch return error.CompileError;
+                const arg_type = self.typecheck_AST(ast.children().items[i], expected orelse prelude_.word64_type) catch return error.CompileError;
                 if (retval == null) {
                     retval = arg_type;
                 }
-                try typing_.type_check_bits(ast.token().span, arg_type, &self.ctx.errors);
+                try typing_.type_check_bits(ast.children().items[i].token().span, arg_type, &self.ctx.errors);
             }
             return retval.?;
         },
         .bit_not => {
-            const expr_type = self.typecheck_AST(ast.expr(), expected) catch return error.CompileError;
+            const expr_type = self.typecheck_AST(ast.expr(), expected orelse prelude_.word64_type) catch return error.CompileError;
             try typing_.type_check_bits(ast.token().span, expr_type, &self.ctx.errors);
             return expr_type;
         },
         .left_shift, .right_shift => {
-            const lhs_type = self.typecheck_AST(ast.lhs(), expected) catch return error.CompileError;
-            _ = self.typecheck_AST(ast.rhs(), expected) catch return error.CompileError;
+            const lhs_type = self.typecheck_AST(ast.lhs(), expected orelse prelude_.word64_type) catch return error.CompileError;
+            _ = self.typecheck_AST(ast.rhs(), lhs_type) catch return error.CompileError;
             try typing_.type_check_bits(ast.token().span, lhs_type, &self.ctx.errors);
             return lhs_type;
         },

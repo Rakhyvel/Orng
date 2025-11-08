@@ -32,7 +32,7 @@ pub fn validate_symbol(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
     symbol.init_validation_state = .validating;
 
     // std.debug.assert(symbol.init.* != .poison);
-    // std.debug.print("validating type for: {s}\n", .{symbol.name});
+    // std.debug.print("validating type for: {s} ({t})\n", .{ symbol.name, symbol.kind });
     // symbol._type = try typecheck_AST(symbol._type, prelude_.type_type, compiler);
 
     _ = symbol.assert_symbol_valid();
@@ -41,6 +41,7 @@ pub fn validate_symbol(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
     const expected: ?*Type_AST = switch (symbol.kind) {
         .@"fn", .@"test" => symbol.type().rhs(),
         .type, .context => null,
+        .import_inner => if (symbol.decl.?.* == .type_alias) null else symbol.type(),
         else => symbol.type(),
     };
     if (expected) |expected_type| {

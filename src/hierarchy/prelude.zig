@@ -112,7 +112,6 @@ fn create_prelude(compiler: *Compiler_Context) !void {
     anyptr_type = create_anyptr_type_primitive(compiler.allocator());
     bool_type = create_primitive_identifier("Bool", compiler.allocator());
     byte_type = create_primitive_identifier("Byte", compiler.allocator());
-    // char_type = create_primitive_identifier("Char", compiler.allocator());
     float_type = create_primitive_identifier("Float", compiler.allocator());
     float32_type = create_primitive_identifier("Float32", compiler.allocator());
     float64_type = create_primitive_identifier("Float64", compiler.allocator());

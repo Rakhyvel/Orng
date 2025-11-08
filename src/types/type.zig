@@ -1016,9 +1016,16 @@ pub const Type_AST = union(enum) {
         const from_expanded = from.expand_identifier();
         const to_expanded = to.expand_identifier();
 
-        if (prelude_.info_from_ast(from_expanded)) |info| {
-            if (info.type_class == .int and to_expanded.* == .addr_of and to_expanded.addr_of.multiptr) {
+        const from_info = prelude_.info_from_ast(from_expanded);
+        const to_info = prelude_.info_from_ast(to_expanded);
+
+        if (from_info) |_from_info| {
+            if (_from_info.type_class == .int and to_expanded.* == .addr_of and to_expanded.addr_of.multiptr) {
                 return true;
+            } else if (to_info) |_to_info| {
+                if (_from_info.type_class == _to_info.type_class) {
+                    return true;
+                }
             }
         }
 
@@ -1082,7 +1089,7 @@ pub const Type_AST = union(enum) {
                 return retval;
             },
             .function => return self.lhs().c_types_match(other.lhs()) and self.rhs().c_types_match(other.rhs()),
-            .array_of => return self.child().c_types_match(other.child()),
+            .array_of => return self.child().c_types_match(other.child()) and self.array_of.len.int.data == other.array_of.len.int.data,
             else => std.debug.panic("compiler error: c_types_match(): unimplemented for {s}", .{@tagName(self.*)}),
         }
     }
@@ -1128,6 +1135,10 @@ pub const Type_AST = union(enum) {
                 retval.enum_type.from = self.enum_type.from;
                 // NOTE: Do NOT copy over the `all_unit` type, as Self could be unit. Leave it null to be re-evaluated.
                 return retval;
+            },
+            .untagged_sum_type => {
+                const _child = clone(self.child(), substs, allocator);
+                return create_untagged_sum_type(self.token(), _child, allocator);
             },
             .struct_type => {
                 var new_children = std.array_list.Managed(*Type_AST).init(allocator);

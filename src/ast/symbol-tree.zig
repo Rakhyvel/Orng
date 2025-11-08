@@ -220,9 +220,6 @@ fn symbol_tree_prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             const symbol = create_function_symbol(ast, self.allocator);
             try self.register_symbol(ast, symbol);
 
-            std.debug.print("creating function: {s}\n", .{symbol.name});
-            self.scope.pprint();
-
             return new_self;
         },
 
