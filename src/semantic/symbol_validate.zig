@@ -89,7 +89,7 @@ pub fn validate_symbol(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
 
     // Check that tests are requesting good contexts
     if (symbol.kind == .@"test") {
-        if (symbol.type().function.context) |ctx| {
+        for (symbol.type().function.contexts.items) |ctx| {
             if (!ctx.child().types_match(self.ctx.get_core_type("Allocating"))) {
                 self.ctx.errors.add_error(errs_.Error{ .basic = .{
                     .span = ctx.token().span,

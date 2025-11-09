@@ -8,6 +8,7 @@ const errs_ = @import("../util/errors.zig");
 const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const token_ = @import("../lexer/token.zig");
+const Tree_Writer = @import("../ast/tree_writer.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 const walk_ = @import("../ast/walker.zig");
 
@@ -186,7 +187,6 @@ fn decorate_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
 
         .select => {
             var child = ast.lhs();
-
             if (child.* == .identifier and child.symbol() != null and child.symbol().?.is_type()) {
                 const enum_value = ast_.AST.create_enum_value(ast.rhs().token(), self.ctx.allocator());
                 enum_value.enum_value.base = Type_AST.create_type_identifier(child.token(), self.ctx.allocator());
@@ -203,7 +203,7 @@ fn decorate_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
 
             if (decl.* == .context_decl) {
                 const fn_ctx = decl.decl_typedef().?;
-                const context_val_symbol = self.scope.context_lookup(fn_ctx) orelse {
+                const context_val_symbol = self.scope.parent.?.context_lookup(fn_ctx, self.ctx) orelse {
                     self.ctx.errors.add_error(errs_.Error{ .missing_context = .{
                         .span = ast.token().span,
                         .context = Type_AST.create_type_identifier(decl.token(), self.ctx.allocator()),

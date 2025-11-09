@@ -376,6 +376,7 @@ pub const AST = union(enum) {
     context_value_decl: struct {
         common: AST_Common,
         parent: *Type_AST,
+        order: usize,
         init: ?*AST,
         _symbol: ?*Symbol = null,
     },
@@ -1199,12 +1200,14 @@ pub const AST = union(enum) {
     pub fn create_context_value_decl(
         _token: Token,
         parent: *Type_AST,
+        order: usize,
         init: ?*AST,
         allocator: std.mem.Allocator,
     ) *AST {
         return AST.box(AST{ .context_value_decl = .{
             .common = AST_Common{ ._token = _token },
             .parent = parent,
+            .order = order,
             .init = init,
         } }, allocator);
     }
@@ -1622,6 +1625,7 @@ pub const AST = union(enum) {
             .context_value_decl => return create_context_value_decl(
                 self.token(),
                 self.context_value_decl.parent.clone(substs, allocator),
+                self.context_value_decl.order,
                 if (self.context_value_decl.init) |init| init.clone(substs, allocator) else null,
                 allocator,
             ),

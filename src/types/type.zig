@@ -61,7 +61,7 @@ pub const Type_AST = union(enum) {
         common: Type_AST_Common,
         _lhs: *Type_AST,
         _rhs: *Type_AST,
-        context: ?*Type_AST,
+        contexts: std.array_list.Managed(*Type_AST),
         variadic: bool = false,
     },
     annotation: struct {
@@ -254,13 +254,13 @@ pub const Type_AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn create_function(_token: Token, _lhs: *Type_AST, _rhs: *Type_AST, context: ?*Type_AST, allocator: std.mem.Allocator) *Type_AST {
+    pub fn create_function(_token: Token, _lhs: *Type_AST, _rhs: *Type_AST, contexts: std.array_list.Managed(*Type_AST), allocator: std.mem.Allocator) *Type_AST {
         const _common: Type_AST_Common = .{ ._token = _token };
         return Type_AST.box(Type_AST{ .function = .{
             .common = _common,
             ._lhs = _lhs,
             ._rhs = _rhs,
-            .context = context,
+            .contexts = contexts,
         } }, allocator);
     }
 
@@ -650,7 +650,7 @@ pub const Type_AST = union(enum) {
     pub fn expand_identifier(self: *Type_AST) *Type_AST {
         var res = self;
         while (true) {
-            if ((res.* == .identifier or res.* == .access) and res.symbol().?.init_typedef() != null) {
+            if ((res.* == .identifier or res.* == .access) and res.symbol() != null and res.symbol().?.init_typedef() != null) {
                 const new = res.symbol().?.init_typedef().?;
                 new.set_unexpanded_type(res);
                 res = new;
@@ -715,9 +715,11 @@ pub const Type_AST = union(enum) {
                 try self.lhs().print_type(out);
                 try out.print("->", .{});
                 try self.rhs().print_type(out);
-                if (self.function.context) |ctx| {
-                    try out.print(" with ", .{});
-                    try ctx.print_type(out);
+                if (self.function.contexts.items.len > 0) {
+                    for (self.function.contexts.items) |ctx| {
+                        try out.print(" with ", .{});
+                        try ctx.print_type(out);
+                    }
                 }
             },
             .struct_type, .tuple_type, .context_type => {
@@ -973,6 +975,11 @@ pub const Type_AST = union(enum) {
                 }
                 var retval = true;
                 for (A.children().items, B.children().items) |term, B_term| {
+                    if (term.* == .annotation and B_term.* == .annotation and term.annotation.pattern.* == .identifier and B_term.annotation.pattern.* == .identifier) {
+                        if (!std.mem.eql(u8, term.annotation.pattern.token().data, B_term.annotation.pattern.token().data)) {
+                            return false;
+                        }
+                    }
                     retval = retval and term.types_match(B_term);
                 }
                 return retval;
@@ -1119,8 +1126,8 @@ pub const Type_AST = union(enum) {
             .function => {
                 const _lhs = clone(self.lhs(), substs, allocator);
                 const _rhs = clone(self.rhs(), substs, allocator);
-                const context: ?*Type_AST = if (self.function.context) |context| clone(context, substs, allocator) else null;
-                return create_function(self.token(), _lhs, _rhs, context, allocator);
+                const contexts = clone_types(self.function.contexts, substs, allocator);
+                return create_function(self.token(), _lhs, _rhs, contexts, allocator);
             },
             .enum_type => {
                 var new_children = std.array_list.Managed(*Type_AST).init(allocator);

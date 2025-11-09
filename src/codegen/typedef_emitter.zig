@@ -4,7 +4,7 @@ const std = @import("std");
 const Emitter = @import("emitter.zig");
 const Dependency_Node = @import("../ast/dependency_node.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
-const Canonical_Type_Fmt = @import("canonical_type_fmt.zig");
+const Canonical_Type_Fmt = @import("../types/canonical_type_fmt.zig");
 
 const Self = @This();
 
@@ -69,7 +69,7 @@ fn output_include_guard_end(self: *Self) CodeGen_Error!void {
 /// Outputs a typedef declaration based on the provided `DAG`.
 fn output_typedef(self: *Self) CodeGen_Error!void {
     if (self.dep.base.* == .function) {
-        const has_contexts = self.dep.base.function.context != null;
+        const has_contexts = self.dep.base.function.contexts.items.len > 0;
         const has_params = self.dep.base.lhs().* != .unit_type;
 
         try self.writer.print("typedef ", .{});
@@ -99,8 +99,12 @@ fn output_typedef(self: *Self) CodeGen_Error!void {
             if (has_params) {
                 try self.writer.print(", ", .{});
             }
-            const fn_ctx = self.dep.base.function.context.?;
-            try self.emitter.output_type(fn_ctx);
+            for (self.dep.base.function.contexts.items, 0..) |ctx, i| {
+                try self.emitter.output_type(ctx);
+                if (i + 1 < self.dep.base.function.contexts.items.len) {
+                    try self.writer.print(", ", .{});
+                }
+            }
         }
         try self.writer.print(");\n\n", .{});
     } else if (self.dep.base.* == .struct_type or self.dep.base.* == .tuple_type or self.dep.base.* == .context_type) {

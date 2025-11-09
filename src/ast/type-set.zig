@@ -70,7 +70,7 @@ fn add_function(self: *Self, function_type_ast: *Type_AST) ?*Dependency_Node {
     if (self.add_type(function_type_ast.rhs())) |codomain| {
         dag.add_dependency(codomain);
     }
-    if (function_type_ast.function.context) |ctx| {
+    for (function_type_ast.function.contexts.items) |ctx| {
         if (self.add_type(ctx.child())) |context_node| {
             dag.add_dependency(context_node);
         }

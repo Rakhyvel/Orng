@@ -45,7 +45,7 @@ fn new[T]() -> ()!&mut T with core::Allocating {
 
 fn make[T](length: Int) -> ()![mut]T with core::Allocating {
     match core::Allocating.alloc.>alloc(@sizeof(T) * length) {
-        .some(bytes) => .ok(slice_from_parts[T](bytes, length))
+        .some(bytes) => .ok(slice_from_parts[T](bytes as [*mut]T, length))
         .none => .err
     }
 }

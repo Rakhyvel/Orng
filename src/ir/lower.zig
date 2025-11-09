@@ -118,6 +118,7 @@ fn lower_AST_inner(
         .access, .identifier, .generic_apply => {
             const symbol = ast.symbol().?;
             if (symbol.init_validation_state == .validating) {
+                std.debug.print("here2\n", .{});
                 self.ctx.errors.add_error(errs_.Error{ .recursive_definition = .{
                     .span = symbol.span(),
                     .symbol_name = symbol.name,

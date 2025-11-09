@@ -86,7 +86,7 @@ fn create_core(compiler: *Compiler_Context) !void {
         test_result_type.token(),
         prelude_.unit_type,
         test_result_type,
-        null,
+        std.array_list.Managed(*Type_AST).init(compiler.allocator()),
         compiler.allocator(),
     );
     allocating_context = module_scope.lookup("Allocating", .{}).found.init_typedef().?;

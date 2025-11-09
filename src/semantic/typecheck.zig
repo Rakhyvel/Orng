@@ -59,6 +59,7 @@ pub fn assert_typeof(self: *Self, ast: *ast_.AST, _type: *Type_AST) void {
 pub fn typecheck_AST(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Validate_Error_Enum!*Type_AST {
     // TODO: Bit long
     if (ast.common().validation_state == .validating) {
+        std.debug.print("here3\n", .{});
         // std.debug.print("{}\n", .{ast});
         self.ctx.errors.add_error(errs_.Error{ .recursive_definition = .{
             .span = ast.token().span,
@@ -348,19 +349,21 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
             std.debug.assert(ast.lhs().* != .enum_value or expanded_lhs_type.* == .enum_type); // (an `implies` operator would be cool btw...)
 
             // If lhs is function type and has context(s), try and find them. Error if you can't.
-            if (expanded_lhs_type.* == .function and expanded_lhs_type.function.context != null) {
-                var fn_ctx = expanded_lhs_type.function.context.?;
-                const symbol = ast.scope().?.context_lookup(fn_ctx) orelse {
-                    if (fn_ctx.* == .addr_of) {
-                        fn_ctx = fn_ctx.child();
-                    }
-                    self.ctx.errors.add_error(errs_.Error{ .missing_context = .{
-                        .span = ast.token().span,
-                        .context = fn_ctx,
-                    } });
-                    return error.CompileError;
-                };
-                try ast.call.context_args.append(symbol);
+            if (expanded_lhs_type.* == .function) {
+                for (expanded_lhs_type.function.contexts.items) |context| {
+                    var fn_ctx = context;
+                    const symbol = ast.scope().?.context_lookup(fn_ctx, self.ctx) orelse {
+                        if (fn_ctx.* == .addr_of) {
+                            fn_ctx = fn_ctx.child();
+                        }
+                        self.ctx.errors.add_error(errs_.Error{ .missing_context = .{
+                            .span = ast.token().span,
+                            .context = fn_ctx,
+                        } });
+                        return error.CompileError;
+                    };
+                    try ast.call.context_args.append(symbol);
+                }
             }
 
             const domain = if (expanded_lhs_type.* == .function) expanded_lhs_type.lhs() else ast.lhs().enum_value.domain.?;
@@ -509,9 +512,9 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 ast.set_lhs(ast.children().items[0]);
             }
 
-            if (method_decl_type.function.context != null) {
-                var fn_ctx = method_decl_type.function.context.?;
-                const symbol = ast.scope().?.context_lookup(fn_ctx) orelse {
+            for (method_decl_type.function.contexts.items) |context| {
+                var fn_ctx = context;
+                const symbol = ast.scope().?.context_lookup(fn_ctx, self.ctx) orelse {
                     if (fn_ctx.* == .addr_of) {
                         fn_ctx = fn_ctx.child();
                     }

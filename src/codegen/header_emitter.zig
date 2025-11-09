@@ -9,7 +9,7 @@ const String = @import("../zig-string/zig-string.zig").String;
 const Type_Set = @import("../ast/type-set.zig");
 const Dependency_Node = @import("../ast/dependency_node.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
-const Canonical_Type_Fmt = @import("canonical_type_fmt.zig");
+const Canonical_Type_Fmt = @import("../types/canonical_type_fmt.zig");
 
 const Self = @This();
 

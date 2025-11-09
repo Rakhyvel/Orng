@@ -18,6 +18,10 @@ pub fn print_tree(ast: *ast_.AST) void {
     walker_.walk_ast(ast, new(0)) catch unreachable;
 }
 
+pub fn print_type_tree(_type: *Type_AST) void {
+    walker_.walk_type(_type, new(0)) catch unreachable;
+}
+
 pub fn prefix(self: Self, ast: *ast_.AST) walker_.Error!?Self {
     return self.tree_writer_prefix(ast);
 }
@@ -53,6 +57,7 @@ fn tree_writer_prefix_type(self: Self, _type: *Type_AST) walker_.Error!?Self {
     switch (_type.*) {
         else => {},
         .identifier => std.debug.print(".data={s}", .{_type.token().data}),
+        .annotation => std.debug.print(".name={f}", .{_type.annotation.pattern}),
     }
     std.debug.print(")\n", .{});
     return Self.new(self.indent + 4);

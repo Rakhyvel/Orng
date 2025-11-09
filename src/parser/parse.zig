@@ -298,12 +298,12 @@ fn function_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
             variadic = true;
         }
         const codomain = try self.error_type_expr();
-        var context: ?*Type_AST = null;
+        var contexts = std.array_list.Managed(*Type_AST).init(self.allocator);
         if (self.accept(.with) != null) {
-            context = try self.type_expr();
-            context = Type_AST.create_addr_of_type(context.?.token(), context.?, false, false, self.allocator);
+            const context = try self.type_expr();
+            try contexts.append(Type_AST.create_addr_of_type(context.token(), context, false, false, self.allocator));
         }
-        exp = Type_AST.create_function(token, exp, codomain, context, self.allocator);
+        exp = Type_AST.create_function(token, exp, codomain, contexts, self.allocator);
         exp.function.variadic = variadic;
     }
     return exp;
@@ -1231,9 +1231,11 @@ fn with_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
     const token = try self.expect(.with);
     var context_list = std.array_list.Managed(*ast_.AST).init(self.allocator);
 
-    try context_list.append(try self.context_param());
+    try context_list.append(try self.context_param(0));
+    var order: usize = 1;
     while (self.accept(.comma) != null) {
-        try context_list.append(try self.context_param());
+        try context_list.append(try self.context_param(order));
+        order += 1;
     }
 
     const body_block = try self.block_expr();
@@ -1361,21 +1363,23 @@ fn context_paramlist(self: *Self) Parser_Error_Enum!std.array_list.Managed(*ast_
     var retval = std.array_list.Managed(*ast_.AST).init(self.allocator);
     if (self.accept(.with)) |_| {
         if (self.accept(.left_parenthesis) != null) {
+            var order: usize = 0;
             while (!self.peek_kind(.right_parenthesis)) {
-                try retval.append(try self.context_param());
+                try retval.append(try self.context_param(order));
                 if (self.accept(.comma) == null) {
                     break;
                 }
+                order += 1;
             }
             _ = try self.expect(.right_parenthesis);
         } else {
-            try retval.append(try self.context_param());
+            try retval.append(try self.context_param(0));
         }
     }
     return retval;
 }
 
-fn context_param(self: *Self) Parser_Error_Enum!*ast_.AST {
+fn context_param(self: *Self, order: usize) Parser_Error_Enum!*ast_.AST {
     const parent = try self.type_expr();
 
     const addr_context_type = Type_AST.create_addr_of_type(
@@ -1393,6 +1397,7 @@ fn context_param(self: *Self) Parser_Error_Enum!*ast_.AST {
     return ast_.AST.create_context_value_decl(
         parent.token(),
         addr_context_type,
+        order,
         _init,
         self.allocator,
     );

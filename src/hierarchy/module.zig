@@ -255,7 +255,7 @@ pub const Module = struct {
                 found_entry = true;
 
                 // Check for entry context requirements
-                if (cfg.symbol.type().function.context) |ctx| {
+                for (cfg.symbol.type().function.contexts.items) |ctx| {
                     if (!ctx.child().types_match(compiler.get_core_type("Allocating"))) {
                         compiler.errors.add_error(errs_.Error{ .basic = .{
                             .span = ctx.token().span,
