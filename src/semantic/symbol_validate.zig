@@ -10,6 +10,7 @@ const prelude_ = @import("../hierarchy/prelude.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
+const Tree_Writer = @import("../ast/tree_writer.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 const walk_ = @import("../ast/walker.zig");
 
@@ -31,19 +32,16 @@ pub fn validate_symbol(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
     symbol.validation_state = .validating;
     symbol.init_validation_state = .validating;
 
-    // std.debug.assert(symbol.init.* != .poison);
-    // std.debug.print("validating type for: {s} ({t})\n", .{ symbol.name, symbol.kind });
-    // symbol._type = try typecheck_AST(symbol._type, prelude_.type_type, compiler);
-
     _ = symbol.assert_symbol_valid();
-    // symbol.expanded_type = symbol._type.expand_type(allocator);
-    // std.debug.print("expanded type for: {s}: {?}\n", .{ symbol.name, symbol.expanded_type });
     const expected: ?*Type_AST = switch (symbol.kind) {
         .@"fn", .@"test" => symbol.type().rhs(),
         .type, .context => null,
         .import_inner => if (symbol.decl.?.* == .type_alias) null else symbol.type(),
         else => symbol.type(),
     };
+
+    // std.debug.print("validating type for: {s} ({t}): {?f}\n", .{ symbol.name, symbol.kind, expected });
+
     if (expected) |expected_type| {
         try self.ctx.validate_type.validate_type(expected_type);
         if (self.ctx.validate_type.detect_cycle(expected_type, null)) {
@@ -55,8 +53,7 @@ pub fn validate_symbol(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
             return error.CompileError;
         }
     }
-    // std.debug.print("type for: {s}: {?}\n", .{ symbol.name, expected });
-    // std.debug.print("validating init for: {s}: {?f}\n", .{ symbol.name, expected });
+
     if (symbol.init_value()) |_init| {
         // might be null for parameters
         _ = self.ctx.typecheck.typecheck_AST(_init, expected) catch |e| switch (e) {
@@ -81,7 +78,6 @@ pub fn validate_symbol(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
         }
     }
 
-    // std.debug.print("init for: {s}: {?}\n", .{ symbol.name, symbol.init_value });
     if (symbol.kind == .trait) {
         try self.validate_trait(symbol);
     } else if (symbol.init_value() != null and symbol.init_value().?.* == .poison) {

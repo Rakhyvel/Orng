@@ -33,10 +33,10 @@ impl[T] for List[T] {
         }
 
         if new_cap > self.capacity {
-            self.capacity = new_cap * 2
+            self.capacity = new_cap * 2 * @sizeof(T)
             self.items.data = (self.alloc.>realloc(self.items.data as [*mut]Byte, self.capacity) orelse {
                 return .err(.out_of_memory)
-            }) as [*mut]Int
+            }) as [*mut]T
         }
 
         .ok

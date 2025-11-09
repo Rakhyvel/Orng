@@ -945,9 +945,6 @@ pub const Type_AST = union(enum) {
             // If only B is an identifier, and B isn't an atom type, dive
             return types_match(A, B.expand_identifier());
         }
-        if (B.* == .identifier and B.symbol().?.decl.?.* == .type_param_decl) {
-            return true;
-        }
         if (A.* == .poison or B.* == .poison) {
             return true; // Whatever
         }
