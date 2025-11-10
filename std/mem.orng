@@ -50,6 +50,10 @@ fn make[T](length: Int) -> ()![mut]T with core::Allocating {
     }
 }
 
+fn destroy[T](slice: [mut]T) with core::Allocating {
+    core::Allocating.alloc.>free(slice.data as [*mut]Byte)
+}
+
 fn slice_from_parts[T](data: [*mut]T, length: Int) -> [mut]T {
     let mut retval: [mut]T = undefined
     retval.data = data
@@ -75,7 +79,7 @@ fn starts_with(haystack: []Byte, needle: []Byte) -> Bool {
     }
 }
 
-fn copy(dest: [mut]Byte, src: []Byte) {
+fn copy[T](dest: [mut]T, src: []T) {
     while let mut i = 0; i < src.length; i += 1 {
         dest[i] = src[i]
     }
@@ -131,7 +135,7 @@ fn replace(input: []Byte, needle: []Byte, replacement: []Byte, output: [mut]Byte
     let mut replacements = 0
     while let mut i = 0; slide < input.length {
         if starts_with(input[slide..], needle) {
-            copy(output[i..][0..replacement.length], replacement)
+            copy[Byte](output[i..][0..replacement.length], replacement)
             i += replacement.length
             slide += needle.length
             replacements += 1

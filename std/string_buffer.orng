@@ -68,7 +68,7 @@ impl for String_Buffer {
                 match self.allocator.>alloc(string.length) {
                     .some(bytes) => {
                         let new_str = mem::slice_from_parts[Byte](bytes, string.length)
-                        mem::copy(new_str, string)
+                        mem::copy[Byte](new_str, string)
                         .ok(.some(new_str))
                     }
                     .none => .err(.out_of_memory)

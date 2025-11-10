@@ -38,8 +38,15 @@ fn tree_writer_prefix(self: Self, ast: *ast_.AST) walker_.Error!?Self {
     std.debug.print("{t}(", .{ast.*});
     switch (ast.*) {
         else => {},
-        .access => std.debug.print(".symbol={?s}", .{if (ast.symbol()) |sym| sym.name else null}),
-        .identifier => std.debug.print(".data={s}, .symbol={?s}", .{ ast.token().data, if (ast.symbol()) |sym| sym.name else null }),
+        .access => std.debug.print(".symbol={?s}@{?}", .{
+            if (ast.symbol()) |sym| sym.name else null,
+            if (ast.symbol()) |sym| sym.scope.uid else null,
+        }),
+        .identifier => std.debug.print(".data={s}, .symbol={?s}@{?}", .{
+            ast.token().data,
+            if (ast.symbol()) |sym| sym.name else null,
+            if (ast.symbol()) |sym| sym.scope.uid else null,
+        }),
         .fn_decl => std.debug.print(".name={?f}", .{ast.fn_decl.name}),
         .binding => std.debug.print(".pattern={f}, .type={f}, .init={?f}", .{ ast.binding.pattern, ast.binding.type, ast.binding.init }),
         .field => std.debug.print(".data={s}", .{ast.token().data}),

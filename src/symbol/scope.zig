@@ -40,6 +40,7 @@ pub fn init(parent: ?*Self, uid_gen: *UID_Gen, allocator: std.mem.Allocator) *Se
     retval.uid = uid_gen.uid();
     retval.uid_gen = uid_gen;
     if (parent) |_parent| {
+        std.debug.assert(@intFromPtr(retval) != 0xaaaaaaaaaaaaaaaa);
         _parent.children.append(retval) catch unreachable;
         retval.function_depth = _parent.function_depth;
         retval.inner_function = _parent.inner_function;

@@ -326,7 +326,7 @@ fn create_prelude(compiler: *Compiler_Context) !void {
     prelude_abs_path.print("/prelude{c}prelude.orng", .{std.fs.path.sep}) catch unreachable;
     const module = module_.Module.init(prelude_abs_path.toOwnedSlice() catch unreachable, compiler.allocator());
     const symbol = Symbol.init(
-        compiler.prelude,
+        prelude.?,
         "prelude",
         ast_.AST.create_module(
             Token.init_simple("prelude"),

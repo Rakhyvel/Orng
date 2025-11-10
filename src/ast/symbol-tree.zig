@@ -37,10 +37,12 @@ pub fn new(scope: *Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) S
 }
 
 pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
+    std.debug.assert(@intFromPtr(self.scope) != 0xaaaaaaaaaaaaaaaa);
     return self.symbol_tree_prefix(ast);
 }
 
 pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
+    std.debug.assert(@intFromPtr(self.scope) != 0xaaaaaaaaaaaaaaaa);
     return self.symbol_tree_postfix(ast);
 }
 

@@ -16,31 +16,129 @@ impl[T] for List[T] {
         Self(mem::slice_from_parts[T](0 as [*mut]T, 0), 0, core::Allocating.alloc)
     }
 
+    fn init_from_slice(items: []T) -> Error!Self with core::Allocating {
+        let mut retval = Self::init()
+        try retval.>append_slice(items)
+        .ok(retval)
+    }
+
+    fn clone(&self) -> Error!Self with core::Allocating {
+        Self::init_from_slice(self.items)
+    }
+
     fn deinit(&self) {
         self.alloc.>free(self.items.data as [*mut]Byte)
     }
 
+    fn to_owned_slice(&self) -> Error![mut]T with core::Allocating {
+        let retval = mem::make[T](self.items.length) catch {return .err}
+        mem::copy[T](retval, self.items)
+        .ok(retval)
+    }
+
     fn append(&mut self, t: T) -> Error!() {
-        try self.>allocate(self.items.length + 1)
-        self.items.length += 1
+        try self.>ensure_length(self.items.length + 1)
         self.items[self.items.length - 1] = t
         .ok
     }
 
-    fn allocate(&mut self, new_cap: Int) -> Error!() {
+    fn append_slice(&mut self, ts: []T) -> Error!() {
+        let idx = self.items.length
+        try self.>ensure_length(self.items.length + ts.length)
+        mem::copy[T](self.items[idx..], ts)
+        .ok
+    }
+
+    fn insert(&mut self, t: T, idx: Int) -> Error!() {
+        try self.>ensure_length(self.items.length + 1)
+        while let mut i = self.items.length - 1; i > idx; i -= 1 {
+            self.items[i] = self.items[i - 1]
+        }
+        self.items[idx] = t
+        .ok
+    }
+
+    fn swap_remove(&mut self, idx: Int) {
+        self.items[idx] = self.items[self.items.length - 1]
+        self.items.length -= 1
+    }
+
+    fn ordered_remove(&mut self, idx: Int) {
+        mem::copy[T](self.items[idx..], self.items[idx+1..])
+        self.items.length -= 1
+    }
+
+    fn ensure_length(&mut self, new_length: Int) -> Error!() {
         if @sizeof(T) == 0 {
             return
         }
 
-        if new_cap > self.capacity {
-            self.capacity = new_cap * 2 * @sizeof(T)
-            self.items.data = (self.alloc.>realloc(self.items.data as [*mut]Byte, self.capacity) orelse {
+        if new_length > self.items.length {
+            let new_cap_elements = new_length * 2
+            let new_cap_bytes = new_cap_elements * @sizeof(T)
+
+            let new_data = self.alloc.>realloc(
+                self.items.data as [*mut]Byte, 
+                new_cap_bytes
+            ) orelse {
                 return .err(.out_of_memory)
-            }) as [*mut]T
+            }
+
+            self.items.data = new_data as [*mut]T
+            self.capacity = new_cap_elements
+            self.items.length = new_length
         }
 
         .ok
     }
+}
+
+impl core::Writer for List[Byte] {
+    virtual fn write(&mut self, bytes: String) {
+        self.>append_slice(bytes)
+    }
+}
+
+test "init_from_slice" with core::Allocating {
+    let mut list = List[Int]::init_from_slice([][1, 2, 3]) catch {return .err}
+    defer list.>deinit()
+
+    try testing::expect(list.items[0] == 1)
+    try testing::expect(list.items[1] == 2)
+    try testing::expect(list.items[2] == 3)
+    try testing::expect(list.items.length == 3)
+
+    .ok
+}
+
+test "clone" with core::Allocating {
+    let list = List[Int]::init_from_slice([][1, 2, 3]) catch {return .err}
+    defer list.>deinit()
+
+    let list2 = list.>clone() catch {return .err}
+    defer list2.>deinit()
+
+    try testing::expect(list2.items[0] == 1)
+    try testing::expect(list2.items[1] == 2)
+    try testing::expect(list2.items[2] == 3)
+    try testing::expect(list2.items.length == 3)
+
+    .ok
+}
+
+test "to_owned_slice" with core::Allocating {
+    let mut list = List[Int]::init_from_slice([][1, 2, 3]) catch {return .err}
+    defer list.>deinit()
+
+    let slice = list.>to_owned_slice() catch {return .err}
+    defer mem::destroy[Int](slice)
+
+    try testing::expect(slice[0] == 1)
+    try testing::expect(slice[1] == 2)
+    try testing::expect(slice[2] == 3)
+    try testing::expect(slice.length == 3)
+
+    .ok
 }
 
 test "append" with core::Allocating {
@@ -54,6 +152,67 @@ test "append" with core::Allocating {
     try testing::expect(list.items[0] == 1)
     try testing::expect(list.items[1] == 2)
     try testing::expect(list.items[2] == 3)
+    try testing::expect(list.items.length == 3)
+
+    .ok
+}
+
+test "append_slice" with core::Allocating {
+    let mut list = List[Int]::init_from_slice([][1, 2, 3]) catch {return .err}
+    defer list.>deinit()
+
+    list.>append_slice([][4, 5, 6]) catch {return .err}
+
+    try testing::expect(list.items[0] == 1)
+    try testing::expect(list.items[1] == 2)
+    try testing::expect(list.items[2] == 3)
+    try testing::expect(list.items[3] == 4)
+    try testing::expect(list.items[4] == 5)
+    try testing::expect(list.items[5] == 6)
+    try testing::expect(list.items.length == 6)
+
+    .ok
+}
+
+test "insert" with core::Allocating {
+    let mut list = List[Int]::init_from_slice([][1, 2, 4]) catch {return .err}
+    defer list.>deinit()
+
+    list.>insert(3, 2) catch {return .err}
+
+    try testing::expect(list.items[0] == 1)
+    try testing::expect(list.items[1] == 2)
+    try testing::expect(list.items[2] == 3)
+    try testing::expect(list.items[3] == 4)
+    try testing::expect(list.items.length == 4)
+
+    .ok
+}
+
+test "swap_remove" with core::Allocating {
+    let mut list = List[Int]::init_from_slice([][1, 2, 3, 4]) catch {return .err}
+    defer list.>deinit()
+
+    list.>swap_remove(1)
+
+    try testing::expect(list.items[0] == 1)
+    try testing::expect(list.items[1] == 4)
+    try testing::expect(list.items[2] == 3)
+    try testing::expect(list.items.length == 3)
+
+    .ok
+}
+
+test "ordered_remove" with core::Allocating {
+    let mut list = List[Int]::init_from_slice([][1, 2, 3, 4]) catch {return .err}
+    defer list.>deinit()
+
+    list.>ordered_remove(1)
+
+    try testing::expect(list.items[0] == 1)
+    try testing::expect(list.items[1] == 3)
+    try testing::expect(list.items[2] == 4)
+    try testing::expect(list.items.length == 3)
 
     .ok
 }

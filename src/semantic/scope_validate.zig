@@ -24,7 +24,9 @@ pub fn validate_scope(self: *Self, scope: *Scope) Validate_Error_Enum!void {
 
         try self.ctx.validate_symbol.validate_symbol(symbol);
     }
-    for (scope.children.items) |child| {
+    var i: usize = 0;
+    while (i < scope.children.items.len) : (i += 1) {
+        const child = scope.children.items[i];
         try self.validate_scope(child);
     }
     for (scope.impls.items) |impl| {

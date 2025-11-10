@@ -573,3 +573,11 @@ pub fn calculate_offsets(self: *Self) i64 //< Number of bytes used for locals by
     // The total number of bytes used for locals
     return local_offsets - locals_starting_offset;
 }
+
+pub fn print_instructions(self: *Self) void {
+    // Print out the basic blocks
+    std.debug.print("CFG {s}:\n", .{self.symbol.name});
+    for (self.basic_blocks.items) |bb| {
+        bb.pprint();
+    }
+}

@@ -5,6 +5,7 @@ const errs_ = @import("../util/errors.zig");
 const Scope = @import("../symbol/scope.zig");
 const Span = @import("../util/span.zig");
 const Token = @import("../lexer/token.zig");
+const Tree_Writer = @import("../ast/tree_writer.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 const Monomorph_Map = @import("../ast/type_map.zig").Monomorph_Map;
 const unification_ = @import("../types/unification.zig");
@@ -70,6 +71,7 @@ pub fn init(
     storage: Storage,
     allocator: std.mem.Allocator,
 ) *Self {
+    std.debug.assert(@intFromPtr(scope) != 0xaaaaaaaaaaaaaaaa);
     var retval = allocator.create(Self) catch unreachable;
     retval.scope = scope;
     retval.name = name;
@@ -281,6 +283,7 @@ pub fn monomorphize(
         try walker_.walk_ast(decl, decorate_context);
 
         const clone = decl.symbol().?;
+        std.debug.assert(clone.cfg == null);
         try self.monomorphs.put(try key.clone(), clone);
 
         return clone;
