@@ -126,8 +126,6 @@ pub fn context_lookup(self: *Self, context_type: *Type_AST, ctx: *Compiler_Conte
             if (symbol_type.* == .addr_of and context_type.* != .addr_of) {
                 symbol_type = symbol_type.child();
             }
-            const walk_ = @import("../ast/walker.zig");
-            walk_.walk_type(symbol_type, Decorate.new(self, ctx)) catch unreachable;
             if (context_type.types_match(symbol_type)) {
                 return symbol;
             }
