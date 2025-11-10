@@ -350,20 +350,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
 
             // If lhs is function type and has context(s), try and find them. Error if you can't.
             if (expanded_lhs_type.* == .function) {
-                for (expanded_lhs_type.function.contexts.items) |context| {
-                    var fn_ctx = context;
-                    const symbol = ast.scope().?.context_lookup(fn_ctx, self.ctx) orelse {
-                        if (fn_ctx.* == .addr_of) {
-                            fn_ctx = fn_ctx.child();
-                        }
-                        self.ctx.errors.add_error(errs_.Error{ .missing_context = .{
-                            .span = ast.token().span,
-                            .context = fn_ctx,
-                        } });
-                        return error.CompileError;
-                    };
-                    try ast.call.context_args.append(symbol);
-                }
+                try self.validate_context(expanded_lhs_type, ast);
             }
 
             const domain = if (expanded_lhs_type.* == .function) expanded_lhs_type.lhs() else ast.lhs().enum_value.domain.?;
@@ -512,20 +499,7 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                 ast.set_lhs(ast.children().items[0]);
             }
 
-            for (method_decl_type.function.contexts.items) |context| {
-                var fn_ctx = context;
-                const symbol = ast.scope().?.context_lookup(fn_ctx, self.ctx) orelse {
-                    if (fn_ctx.* == .addr_of) {
-                        fn_ctx = fn_ctx.child();
-                    }
-                    self.ctx.errors.add_error(errs_.Error{ .missing_context = .{
-                        .span = ast.token().span,
-                        .context = fn_ctx,
-                    } });
-                    return error.CompileError;
-                };
-                try ast.invoke.context_args.append(symbol);
-            }
+            try self.validate_context(method_decl_type, ast);
 
             ast.set_children(try args_.default_args(.method, ast.children().*, ast.token().span, domain, &self.ctx.errors, self.ctx.allocator()));
             try args_.validate_args_arity(.method, ast.children(), domain, false, ast.token().span, &self.ctx.errors);
@@ -957,6 +931,23 @@ pub fn validate_args_type(
         }
     }
     return terms;
+}
+
+fn validate_context(self: *Self, function_type: *Type_AST, ast: *ast_.AST) Validate_Error_Enum!void {
+    for (function_type.function.contexts.items) |context| {
+        var fn_ctx = context;
+        const symbol = ast.scope().?.context_lookup(fn_ctx, self.ctx) orelse {
+            if (fn_ctx.* == .addr_of) {
+                fn_ctx = fn_ctx.child();
+            }
+            self.ctx.errors.add_error(errs_.Error{ .missing_context = .{
+                .span = ast.token().span,
+                .context = fn_ctx,
+            } });
+            return error.CompileError;
+        };
+        try ast.context_args().append(symbol);
+    }
 }
 
 fn validate_L_Value(self: *Self, ast: *ast_.AST) Validate_Error_Enum!void {
