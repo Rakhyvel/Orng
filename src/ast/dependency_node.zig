@@ -4,7 +4,7 @@
 
 const std = @import("std");
 const Type_AST = @import("../types/type.zig").Type_AST;
-const Canonical_Type_Fmt = @import("../codegen/canonical_type_fmt.zig");
+const Canonical_Type_Fmt = @import("../types/canonical_type_fmt.zig");
 
 const Self = @This();
 

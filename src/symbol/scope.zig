@@ -94,12 +94,36 @@ pub fn lookup(self: *Self, name: []const u8, flags: Lookup_Flags) Lookup_Result 
     }
 }
 
-pub fn context_lookup(self: *Self, context_type: *Type_AST) ?*Symbol {
+pub fn num_visible_contexts(self: *Self) usize {
+    var result: usize = 0;
+
     for (self.symbols.keys()) |symbol_name| {
         const symbol = self.symbols.get(symbol_name).?;
         if (symbol.kind == .let) {
             var symbol_type = symbol.type();
-            if (symbol.type().* == .addr_of and context_type.* != .addr_of) {
+            if (symbol_type.* == .addr_of) {
+                symbol_type = symbol_type.child();
+            }
+            if (symbol_type.* == .context_type or std.mem.startsWith(u8, symbol.name, "context_value__")) {
+                result += 1;
+            }
+        }
+    }
+
+    const parent_contrib = if (self.parent) |parent|
+        parent.num_visible_contexts()
+    else
+        0;
+
+    return result + parent_contrib;
+}
+
+pub fn context_lookup(self: *Self, context_type: *Type_AST, ctx: *Compiler_Context) ?*Symbol {
+    for (self.symbols.keys()) |symbol_name| {
+        const symbol = self.symbols.get(symbol_name).?;
+        if (symbol.kind == .let) {
+            var symbol_type = symbol.type();
+            if (symbol_type.* == .addr_of and context_type.* != .addr_of) {
                 symbol_type = symbol_type.child();
             }
             if (context_type.types_match(symbol_type)) {
@@ -107,7 +131,7 @@ pub fn context_lookup(self: *Self, context_type: *Type_AST) ?*Symbol {
             }
         }
     } else if (self.parent) |parent| {
-        return parent.context_lookup(context_type);
+        return parent.context_lookup(context_type, ctx);
     } else {
         return null;
     }

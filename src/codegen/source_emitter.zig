@@ -174,7 +174,7 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
     , .{});
 
     // TOOD: This won't fly in a standalone context
-    const requires_context = symbol.type().function.context != null;
+    const requires_context = symbol.type().function.contexts.items.len > 0;
     if (requires_context) {
         try self.emitter.output_type(core_.allocating_context);
         try self.writer.print(

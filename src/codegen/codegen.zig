@@ -12,7 +12,7 @@ const Emitter = @import("emitter.zig");
 const Test_Emitter = @import("test_emitter.zig");
 const Typedef_Emitter = @import("typedef_emitter.zig");
 const Type_Set = @import("../ast/type-set.zig");
-const Canonical_Type_Fmt = @import("canonical_type_fmt.zig");
+const Canonical_Type_Fmt = @import("../types/canonical_type_fmt.zig");
 
 /// Goes through each package and outputs a C/H file header pair for each module in each package.
 ///
@@ -218,7 +218,7 @@ fn output_testrunner(
     var any_require_context = false;
     for (modules.items) |module| {
         for (module.tests.items) |@"test"| {
-            any_require_context = @"test".symbol.type().function.context != null or any_require_context;
+            any_require_context = @"test".symbol.type().function.contexts.items.len > 0 or any_require_context;
         }
     }
 
@@ -265,7 +265,7 @@ fn output_testrunner(
         for (module.tests.items) |@"test"| {
             const test_filename = @"test".symbol.scope.module.?.name();
             const test_name = @"test".symbol.decl.?.@"test".name.?.string.data;
-            const requires_context = @"test".symbol.type().function.context != null;
+            const requires_context = @"test".symbol.type().function.contexts.items.len > 0;
 
             buf.print(
                 \\    if (substr == NULL || strstr("{1s}", substr))

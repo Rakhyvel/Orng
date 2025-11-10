@@ -1958,6 +1958,14 @@ pub const AST = union(enum) {
         }
     }
 
+    pub fn context_args(self: *AST) *std.array_list.Managed(*Symbol) {
+        return switch (self.*) {
+            .call => &self.call.context_args,
+            .invoke => &self.invoke.context_args,
+            else => std.debug.panic("compiler error: cannot call `.context_args()` on the AST `{s}`", .{@tagName(self.*)}),
+        };
+    }
+
     pub fn decl_type(self: *AST) *Type_AST {
         return switch (self.*) {
             .decl => self.decl.type,

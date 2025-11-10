@@ -3,6 +3,7 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
+const Type_AST = @import("../types/type.zig").Type_AST;
 const walker_ = @import("../ast/walker.zig");
 
 indent: usize,
@@ -13,8 +14,20 @@ pub fn new(indent: usize) Self {
     return Self{ .indent = indent };
 }
 
+pub fn print_tree(ast: *ast_.AST) void {
+    walker_.walk_ast(ast, new(0)) catch unreachable;
+}
+
+pub fn print_type_tree(_type: *Type_AST) void {
+    walker_.walk_type(_type, new(0)) catch unreachable;
+}
+
 pub fn prefix(self: Self, ast: *ast_.AST) walker_.Error!?Self {
     return self.tree_writer_prefix(ast);
+}
+
+pub fn prefix_type(self: Self, _type: *Type_AST) walker_.Error!?Self {
+    return self.tree_writer_prefix_type(_type);
 }
 
 /// Converts imports to constant declarations
@@ -30,6 +43,21 @@ fn tree_writer_prefix(self: Self, ast: *ast_.AST) walker_.Error!?Self {
         .fn_decl => std.debug.print(".name={?f}", .{ast.fn_decl.name}),
         .binding => std.debug.print(".pattern={f}, .type={f}, .init={?f}", .{ ast.binding.pattern, ast.binding.type, ast.binding.init }),
         .field => std.debug.print(".data={s}", .{ast.token().data}),
+    }
+    std.debug.print(")\n", .{});
+    return Self.new(self.indent + 4);
+}
+
+/// Converts imports to constant declarations
+fn tree_writer_prefix_type(self: Self, _type: *Type_AST) walker_.Error!?Self {
+    for (0..self.indent) |_| {
+        std.debug.print(" ", .{});
+    }
+    std.debug.print("{t}(", .{_type.*});
+    switch (_type.*) {
+        else => {},
+        .identifier => std.debug.print(".data={s}", .{_type.token().data}),
+        .annotation => std.debug.print(".name={f}", .{_type.annotation.pattern}),
     }
     std.debug.print(")\n", .{});
     return Self.new(self.indent + 4);

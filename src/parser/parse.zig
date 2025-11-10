@@ -298,12 +298,12 @@ fn function_type_expr(self: *Self) Parser_Error_Enum!*Type_AST {
             variadic = true;
         }
         const codomain = try self.error_type_expr();
-        var context: ?*Type_AST = null;
+        var contexts = std.array_list.Managed(*Type_AST).init(self.allocator);
         if (self.accept(.with) != null) {
-            context = try self.type_expr();
-            context = Type_AST.create_addr_of_type(context.?.token(), context.?, false, false, self.allocator);
+            const context = try self.type_expr();
+            try contexts.append(Type_AST.create_addr_of_type(context.token(), context, false, false, self.allocator));
         }
-        exp = Type_AST.create_function(token, exp, codomain, context, self.allocator);
+        exp = Type_AST.create_function(token, exp, codomain, contexts, self.allocator);
         exp.function.variadic = variadic;
     }
     return exp;

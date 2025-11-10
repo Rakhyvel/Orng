@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
+const Canonical_Type_Fmt = @import("../types/canonical_type_fmt.zig");
 const core_ = @import("../hierarchy/core.zig");
 const errs_ = @import("../util/errors.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
@@ -142,9 +143,15 @@ fn symbol_tree_prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 // Do not re-do symbol if already declared
                 return null;
             }
+
+            const number = self.scope.num_visible_contexts();
+            var out = std.array_list.Managed(u8).init(self.allocator);
+            defer out.deinit();
+            out.print("context_value__{}", .{number}) catch unreachable;
+
             const symbol = Symbol.init(
                 self.scope,
-                "context_value",
+                out.toOwnedSlice() catch unreachable,
                 ast,
                 .let,
                 .local,
@@ -519,17 +526,17 @@ pub fn create_function_symbol(ast: *ast_.AST, allocator: std.mem.Allocator) *Sym
     // Calculate the domain type from the function paramter types
     const domain = extract_domain(ast.children().*, allocator);
 
-    const context_type = if (ast.fn_decl.context_decls.items.len != 0)
-        ast.fn_decl.context_decls.items[0].context_value_decl.parent
-    else
-        null;
+    var contexts = std.array_list.Managed(*Type_AST).init(allocator);
+    for (ast.fn_decl.context_decls.items) |ctx| {
+        contexts.append(ctx.context_value_decl.parent) catch unreachable;
+    }
 
     // Create the function type
     const _type = Type_AST.create_function(
         ast.fn_decl.ret_type.token(),
         domain,
         ast.fn_decl.ret_type,
-        context_type,
+        contexts,
         allocator,
     );
     ast.fn_decl._decl_type = _type;
@@ -556,16 +563,16 @@ pub fn create_function_symbol(ast: *ast_.AST, allocator: std.mem.Allocator) *Sym
 }
 
 pub fn create_test_symbol(ast: *ast_.AST, allocator: std.mem.Allocator) Error!*Symbol {
-    const context_type = if (ast.@"test".context_decls.items.len != 0)
-        ast.@"test".context_decls.items[0].context_value_decl.parent
-    else
-        null;
+    var contexts = std.array_list.Managed(*Type_AST).init(allocator);
+    for (ast.@"test".context_decls.items) |ctx| {
+        contexts.append(ctx.context_value_decl.parent) catch unreachable;
+    }
 
     const _type = Type_AST.create_function(
         ast.token(),
         prelude_.unit_type,
         core_.test_result_type,
-        context_type,
+        contexts,
         allocator,
     );
     ast.@"test"._decl_type = _type;
@@ -667,7 +674,13 @@ pub fn create_temp_comptime_symbol(
     // Create the function type. The rhs is a typeof node, since type expansion is done in a later time
     const lhs = prelude_.unit_type;
     const rhs = Type_AST.create_type_of(ast.token(), ast, allocator);
-    const _type = Type_AST.create_function(ast.token(), lhs, rhs_type_hint orelse rhs, null, allocator);
+    const _type = Type_AST.create_function(
+        ast.token(),
+        lhs,
+        rhs_type_hint orelse rhs,
+        std.array_list.Managed(*Type_AST).init(allocator),
+        allocator,
+    );
 
     // Create the comptime scope
     // This is to prevent `comptime` expressions from using runtime variables
@@ -736,17 +749,17 @@ fn create_method_type(ast: *ast_.AST, allocator: std.mem.Allocator) *Type_AST {
     else
         extract_domain(ast.children().*, allocator);
 
-    const context_type = if (ast.method_decl.context_decls.items.len != 0)
-        ast.method_decl.context_decls.items[0].context_value_decl.parent
-    else
-        null;
+    var contexts = std.array_list.Managed(*Type_AST).init(allocator);
+    for (ast.method_decl.context_decls.items) |ctx| {
+        contexts.append(ctx.context_value_decl.parent) catch unreachable;
+    }
 
     // Create the function type
     const _type = Type_AST.create_function(
         ast.method_decl.ret_type.token(),
         ast.method_decl.domain.?,
         ast.method_decl.ret_type,
-        context_type,
+        contexts,
         allocator,
     );
     return _type;

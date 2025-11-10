@@ -1,0 +1,24 @@
+// multiptr_mismatch.orng:11:22: error: expected a value of type `[*]T`, got a value of type `[*]Int`
+//         Self(items as [*]Int)
+//                     ^
+// 
+struct My_Type[T] {
+    items: [*]T
+}
+
+impl[T] for My_Type[T] {
+    fn init(items: [*]T) -> Self {
+        Self(items as [*]Int)
+    }
+
+    fn first(&self) -> T {
+        self.items[0]
+    }
+}
+
+fn main() -> Int {
+    let items = [1, 2, 3]
+    let slice = []items
+    let mut my_val = My_Type[Int]::init(slice.data)
+    my_val.>first()
+}
