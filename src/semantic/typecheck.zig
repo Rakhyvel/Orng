@@ -59,7 +59,6 @@ pub fn assert_typeof(self: *Self, ast: *ast_.AST, _type: *Type_AST) void {
 pub fn typecheck_AST(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Validate_Error_Enum!*Type_AST {
     // TODO: Bit long
     if (ast.common().validation_state == .validating) {
-        std.debug.print("here3\n", .{});
         // std.debug.print("{}\n", .{ast});
         self.ctx.errors.add_error(errs_.Error{ .recursive_definition = .{
             .span = ast.token().span,

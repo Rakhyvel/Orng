@@ -716,8 +716,8 @@ pub const Type_AST = union(enum) {
                 try out.print("->", .{});
                 try self.rhs().print_type(out);
                 if (self.function.contexts.items.len > 0) {
+                    try out.print(" with ", .{});
                     for (self.function.contexts.items) |ctx| {
-                        try out.print(" with ", .{});
                         try ctx.print_type(out);
                     }
                 }
