@@ -96,7 +96,7 @@ pub fn set_entry_point(
 
     self.stack_pointer = (5 * @sizeOf(i64)) + frame_address + entry.locals_size.?;
     self.base_pointer = (3 * @sizeOf(i64)) + frame_address;
-    self.instruction_pointer = .{ .module_uid = module.uid, .inst_idx = entry.offset.? };
+    self.instruction_pointer = .{ .module_uid = module.uid, .inst_idx = entry.offset_table.get(module.uid).? };
 
     // First `ret_type.sizeof()` bytes are reserved for the return value
     // Initial stack frame is setup immediately after
@@ -306,22 +306,24 @@ inline fn execute_instruction(self: *Self, instr: *Instruction) Error!void { // 
             self.memory.move(try self.effective_address(instr.dest.?), try self.effective_address(instr.src1.?) + tag_offset, 8);
         },
         .jump => {
+            const module_uid = (self.curr_module() catch unreachable).uid;
             if (instr.data.jump_bb.next) |next| {
-                self.instruction_pointer.inst_idx = next.offset.?;
+                self.instruction_pointer.inst_idx = next.offset_table.get(module_uid).?;
             } else {
                 self.ret();
             }
         },
         .branch_if_false => {
+            const module_uid = (self.curr_module() catch unreachable).uid;
             if (self.memory.load_int(try self.effective_address(instr.src1.?), instr.src1.?.expanded_type_sizeof()) != 0) {
                 if (instr.data.branch_bb.next) |next| {
-                    self.instruction_pointer.inst_idx = next.offset.?;
+                    self.instruction_pointer.inst_idx = next.offset_table.get(module_uid).?;
                 } else {
                     self.ret();
                 }
             } else {
                 if (instr.data.branch_bb.branch) |branch| {
-                    self.instruction_pointer.inst_idx = branch.offset.?;
+                    self.instruction_pointer.inst_idx = branch.offset_table.get(module_uid).?;
                 } else {
                     self.ret();
                 }
@@ -421,7 +423,7 @@ pub fn call(self: *Self, function_symbol: *Symbol, retval_place: *lval_.L_Value,
     // jump to symbol addr
     self.instruction_pointer = Instruction_Pointer{
         .module_uid = function_symbol.scope.module.?.uid,
-        .inst_idx = function_symbol.cfg.?.offset.?,
+        .inst_idx = function_symbol.cfg.?.offset_table.get(function_symbol.scope.module.?.uid).?,
     };
 }
 

@@ -82,7 +82,7 @@ fn interpret_comptime_expr(
     const cfg = try self.ctx.cfg_store.get_cfg(symbol, intered_strings);
     defer cfg.deinit(); // Remove the cfg so that it isn't output
 
-    const idx = cfg.emplace_cfg(&module.cfgs, &module.instructions);
+    const idx = cfg.emplace_cfg(module.uid, &module.cfgs, &module.instructions);
     defer module.pop_cfg(idx); // Remove the cfg so that it isn't output
 
     // Create a context and interpret

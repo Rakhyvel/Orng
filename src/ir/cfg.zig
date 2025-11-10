@@ -45,10 +45,10 @@ return_symbol: *Symbol,
 /// TODO: Remove for LCOM4
 needed_at_runtime: bool,
 
-/// Address in the first instruction of this Self
+/// Maps a module UID to the address of the first instruction of this CFG in the module's list of instructions
 /// Used for Instruction interpretation
 /// TODO: Remove for LCOM4
-offset: ?Instruction.Index,
+offset_table: std.array_hash_map.AutoArrayHashMap(u32, Instruction.Index),
 
 /// Number of bytes required in order to store the local variables of the function
 /// TODO: Remove for LCOM4
@@ -85,7 +85,7 @@ pub fn init(symbol: *Symbol, allocator: std.mem.Allocator) *Self {
     _ = retval.return_symbol.type().expand_identifier();
     _ = symbol.type().expand_identifier();
     retval.needed_at_runtime = false;
-    retval.offset = null;
+    retval.offset_table = std.array_hash_map.AutoArrayHashMap(u32, Instruction.Index).init(allocator);
     retval.locals_size = null;
     retval.allocator = allocator;
     symbol.cfg = retval;
@@ -415,22 +415,22 @@ fn index_of_basic_block(self: *Self, bb: *Basic_Block) usize {
 /// instructions for the CFG start.
 ///
 /// Returns the index in the cfg in the cfgs list.
-pub fn emplace_cfg(self: *Self, cfgs: *std.array_list.Managed(*Self), instructions_list: *std.array_list.Managed(*Instruction)) i64 {
+pub fn emplace_cfg(self: *Self, module_uid: u32, cfgs: *std.array_list.Managed(*Self), instructions_list: *std.array_list.Managed(*Instruction)) i64 {
     const len = @as(i64, @intCast(cfgs.items.len));
-    if (self.offset != null) {
+    if (self.offset_table.contains(module_uid)) {
         // Already visited, do nothing
         return len;
     } else if (self.block_graph_head == null) {
         // CFG doesn't have any real instructions. Insert phony BB.
-        self.offset = self.append_phony_block(instructions_list);
+        self.offset_table.put(module_uid, self.append_phony_block(instructions_list)) catch unreachable;
         cfgs.append(self) catch unreachable;
     } else {
         // Normal CFG with instructions, append BBs to instructions list, recursively append children
-        self.offset = self.append_basic_block(self.block_graph_head.?, instructions_list);
+        self.offset_table.put(module_uid, self.append_basic_block(self.block_graph_head.?, module_uid, instructions_list)) catch unreachable;
         cfgs.append(self) catch unreachable;
 
         for (self.children.keys()) |child| {
-            _ = child.emplace_cfg(cfgs, instructions_list);
+            _ = child.emplace_cfg(module_uid, cfgs, instructions_list);
         }
     }
     self.locals_size = self.calculate_offsets();
@@ -439,7 +439,7 @@ pub fn emplace_cfg(self: *Self, cfgs: *std.array_list.Managed(*Self), instructio
 
 /// Appends the instructions in a BasicBlock to the module's instructions.
 /// Returns the offset of the basic block
-fn append_basic_block(self: *Self, first_bb: *Basic_Block, instructions_list: *std.array_list.Managed(*Instruction)) Instruction.Index {
+fn append_basic_block(self: *Self, first_bb: *Basic_Block, module_uid: u32, instructions_list: *std.array_list.Managed(*Instruction)) Instruction.Index {
     var work_queue = std.array_list.Managed(*Basic_Block).init(self.allocator);
     defer work_queue.deinit();
     work_queue.append(first_bb) catch unreachable;
@@ -447,7 +447,7 @@ fn append_basic_block(self: *Self, first_bb: *Basic_Block, instructions_list: *s
     while (work_queue.items.len > 0) {
         var bb = work_queue.orderedRemove(0); // Youch! Does this really have to be ordered?
 
-        if (bb.offset != null) {
+        if (bb.offset_table.contains(module_uid)) {
             continue;
         }
 
@@ -455,9 +455,9 @@ fn append_basic_block(self: *Self, first_bb: *Basic_Block, instructions_list: *s
         label.uid = bb.uid;
         instructions_list.append(label) catch unreachable;
 
-        bb.append_instructions(instructions_list, &work_queue);
+        bb.append_instructions(module_uid, instructions_list, &work_queue);
     }
-    return first_bb.offset.?;
+    return first_bb.offset_table.get(module_uid).?;
 }
 
 /// This function inserts a label and a return instruction. It is needed for functions which do not have
@@ -572,4 +572,12 @@ pub fn calculate_offsets(self: *Self) i64 //< Number of bytes used for locals by
 
     // The total number of bytes used for locals
     return local_offsets - locals_starting_offset;
+}
+
+pub fn print_instructions(self: *Self) void {
+    // Print out the basic blocks
+    std.debug.print("CFG {s}:\n", .{self.symbol.name});
+    for (self.basic_blocks.items) |bb| {
+        bb.pprint();
+    }
 }

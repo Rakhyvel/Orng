@@ -2,9 +2,11 @@ const std = @import("std");
 const ast_ = @import("../ast/ast.zig");
 const CFG = @import("../ir/cfg.zig");
 const errs_ = @import("../util/errors.zig");
+const fmt_ = @import("../util/fmt.zig");
 const Scope = @import("../symbol/scope.zig");
 const Span = @import("../util/span.zig");
 const Token = @import("../lexer/token.zig");
+const Tree_Writer = @import("../ast/tree_writer.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 const Monomorph_Map = @import("../ast/type_map.zig").Monomorph_Map;
 const unification_ = @import("../types/unification.zig");
@@ -58,6 +60,7 @@ validation_state: Symbol_Validation_State,
 init_validation_state: Symbol_Validation_State,
 param: bool, // True when the symbol is a parameter in a function
 is_temp: bool = false, // Whether this symbol is a temporary when lowered
+is_monomorphed: bool = false, // Whether this symbol came from monomorphing a generic
 
 // Offset
 offset: ?i64, // The offset from the BP that this symbol, for local variables and parameters
@@ -281,7 +284,9 @@ pub fn monomorphize(
         try walker_.walk_ast(decl, decorate_context);
 
         const clone = decl.symbol().?;
+        std.debug.assert(clone.cfg == null);
         try self.monomorphs.put(try key.clone(), clone);
+        clone.is_monomorphed = true;
 
         return clone;
     }

@@ -339,11 +339,10 @@ pub fn pprint(self: Self, allocator: std.mem.Allocator) ![]const u8 {
             } else {
                 try out.print("    if ({f}) ret", .{self.src1.?});
             }
-            try out.print(" ", .{});
             if (self.data == .branch_bb and self.data.branch_bb.branch != null) {
-                try out.print("else jump BB{}\n", .{self.data.branch_bb.branch.?.uid});
+                try out.print(" else jump BB{}\n", .{self.data.branch_bb.branch.?.uid});
             } else if (self.data != .branch) {
-                try out.print("else ret\n", .{});
+                try out.print(" else ret\n", .{});
             }
         },
         .call => {

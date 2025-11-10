@@ -45,14 +45,14 @@ number_predecessors: usize,
 allocator: std.mem.Allocator,
 /// Address in the first instruction of this Self
 /// Used for Instruction interpretation
-offset: ?Instruction.Index,
+offset_table: std.array_hash_map.AutoArrayHashMap(u32, Instruction.Index),
 
 /// Initializes a basic-block
 pub fn init(allocator: std.mem.Allocator) *Self {
     var retval = allocator.create(Self) catch unreachable;
     retval.instructions = std.array_list.Managed(*Instruction).init(allocator); // Starts off undefined, set by CFG's basic_block_from_instructions function
     retval.terminator = .panic;
-    retval.offset = null;
+    retval.offset_table = std.array_hash_map.AutoArrayHashMap(u32, Instruction.Index).init(allocator);
     retval.marked_instrs = std.AutoArrayHashMap(*Instruction, void).init(allocator);
     retval.removed_instrs = std.array_list.Managed(*Instruction).init(allocator);
     retval.uid = uid_counter;
@@ -259,8 +259,8 @@ pub fn count_predecessors(self: *Self) void {
     }
 }
 
-pub fn append_instructions(self: *Self, instructions_list: *std.array_list.Managed(*Instruction), work_queue: *std.array_list.Managed(*Self)) void {
-    self.offset = @as(Instruction.Index, @intCast(instructions_list.items.len)) -| 1;
+pub fn append_instructions(self: *Self, module_uid: u32, instructions_list: *std.array_list.Managed(*Instruction), work_queue: *std.array_list.Managed(*Self)) void {
+    self.offset_table.put(module_uid, @as(Instruction.Index, @intCast(instructions_list.items.len)) -| 1) catch unreachable;
 
     for (self.instructions.items) |instr| {
         instructions_list.append(instr) catch unreachable;

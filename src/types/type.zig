@@ -627,12 +627,12 @@ pub const Type_AST = union(enum) {
         return opt_sum.children().items[1];
     }
 
-    pub fn get_ok_type(err_union: *Type_AST) *Type_AST {
+    pub fn get_ok_type(err_union: *const Type_AST) *Type_AST {
         std.debug.assert(err_union.enum_type.from == .@"error");
         return err_union.children().items[0];
     }
 
-    pub fn get_err_type(err_union: *Type_AST) *Type_AST {
+    pub fn get_err_type(err_union: *const Type_AST) *Type_AST {
         std.debug.assert(err_union.enum_type.from == .@"error");
         return err_union.children().items[1];
     }
@@ -722,7 +722,15 @@ pub const Type_AST = union(enum) {
                     }
                 }
             },
-            .struct_type, .tuple_type, .context_type => {
+            .struct_type, .tuple_type, .context_type => if (self.* == .struct_type and self.struct_type.was_slice) {
+                const data_ptr = self.children().items[0].child();
+                if (data_ptr.addr_of.mut) {
+                    try out.print("[mut]", .{});
+                } else {
+                    try out.print("[]", .{});
+                }
+                try data_ptr.child().print_type(out);
+            } else {
                 try out.print("(", .{});
                 for (self.children().items, 0..) |term, i| {
                     try term.print_type(out);
@@ -736,6 +744,10 @@ pub const Type_AST = union(enum) {
             .enum_type => if (self.enum_type.from == .optional) {
                 try out.print("?", .{});
                 try self.get_some_type().child().print_type(out);
+            } else if (self.enum_type.from == .@"error") {
+                try self.get_err_type().child().print_type(out);
+                try out.print("!", .{});
+                try self.get_ok_type().child().print_type(out);
             } else {
                 try out.print("(", .{});
                 for (self.enum_type._terms.items, 0..) |term, i| {

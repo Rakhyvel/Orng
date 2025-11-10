@@ -1,4 +1,4 @@
-// sliceof.orng:7:23: error: expected a value of type `(data: [*]Int, length: Int)`, got a value of type `(data: [*]Bool, length: Int)`
+// sliceof.orng:7:23: error: expected a value of type `[]Int`, got a value of type `[]Bool`
 //     let y: []Int = []x
 //                      ^
 // 

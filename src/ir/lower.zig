@@ -13,6 +13,7 @@ const Span = @import("../util/span.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Symbol_Version = @import("symbol_version.zig");
 const Token = @import("../lexer/token.zig");
+const Tree_Writer = @import("../ast/tree_writer.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 
 pub const Lower_Errors = error{CompileError};
@@ -62,7 +63,7 @@ pub fn lower_AST_into_cfg(self: *Self) Lower_Errors!void {
 
     if (false) {
         // Print symbol Instruction after lowering, before breaking up into basic blocks
-        std.debug.print("CFG {s}:\n", .{self.cfg.symbol.name});
+        std.debug.print("CFG {s}: {f}\n", .{ self.cfg.symbol.name, self.cfg.symbol.type() });
         for (self.instructions.items) |instr| {
             std.debug.print("{f}", .{instr});
         }

@@ -45,7 +45,9 @@ pub fn init(
 pub fn generate(self: *Self) CodeGen_Error!void {
     try self.output_header_include();
     try self.output_impls();
-    try self.emitter.forall_functions(self, self.module.cfgs.items, "Function definitions", output_function_definition);
+    try self.emitter.forall_functions(self, self.module.cfgs.items, "Monomorphed function declarations", output_monomprphed_decl);
+    try self.emitter.forall_functions(self, self.module.cfgs.items, "Monomorphed function definitions", output_monomprphed_def);
+    try self.emitter.forall_functions(self, self.module.cfgs.items, "Function definitions", output_non_monomorphed_def);
 }
 
 pub fn output_header_include(self: *Self) CodeGen_Error!void {
@@ -99,6 +101,30 @@ fn output_impls(
         }
         try self.writer.print("}};\n", .{});
     }
+}
+
+pub fn output_monomprphed_decl(self: *Self, cfg: *CFG) CodeGen_Error!void {
+    if (!cfg.symbol.is_monomorphed) {
+        return;
+    }
+    try self.writer.print("static ", .{});
+    try self.emitter.output_function_prototype(cfg);
+    try self.writer.print(";\n", .{});
+}
+
+pub fn output_monomprphed_def(self: *Self, cfg: *CFG) CodeGen_Error!void {
+    if (!cfg.symbol.is_monomorphed) {
+        return;
+    }
+    try self.writer.print("static ", .{});
+    try self.output_function_definition(cfg);
+}
+
+fn output_non_monomorphed_def(self: *Self, cfg: *CFG) CodeGen_Error!void {
+    if (cfg.symbol.is_monomorphed or cfg.symbol.scope.module != self.module) {
+        return;
+    }
+    try self.output_function_definition(cfg);
 }
 
 /// Output the definition of a function.

@@ -36,6 +36,8 @@ pub fn init(
 /// Directs the source and header emitters to output the tests
 pub fn generate(self: *Self) CodeGen_Error!void {
     try self.source_emitter.output_header_include();
+    try self.source_emitter.emitter.forall_functions(&self.source_emitter, self.module.cfgs.items, "Monomorphed function declarations", Source_Emitter.output_monomprphed_decl);
+    try self.source_emitter.emitter.forall_functions(&self.source_emitter, self.module.cfgs.items, "Monomorphed function definitions", Source_Emitter.output_monomprphed_def);
     for (self.module.tests.items) |@"test"| {
         try self.source_emitter.output_function_definition(@"test");
     }

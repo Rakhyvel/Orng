@@ -35,6 +35,7 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
 pub fn prefix_type(self: Self, _type: *Type_AST) walk_.Error!?Self {
     return self.decorate_prefix_type(_type);
 }
+
 pub fn postfix_type(self: Self, _type: *Type_AST) walk_.Error!void {
     return self.decorate_postfix_type(_type);
 }
@@ -44,7 +45,9 @@ fn decorate_prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         else => return self,
 
         .identifier => {
-            if (ast.symbol() != null) return self;
+            if (ast.symbol() != null) {
+                return self;
+            }
 
             const res = self.scope.lookup(ast.token().data, .{ .allow_modules = false });
             switch (res) {
@@ -240,7 +243,6 @@ fn decorate_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
         },
         .generic_apply => return self.monomorphize_generic_apply(ast),
         .trait => self.scope.traits.append(ast) catch unreachable,
-        // .impl => ,
         .@"test" => self.scope.tests.append(ast) catch unreachable,
     }
 }

@@ -244,6 +244,9 @@ pub const Module = struct {
             if (symbol.kind != .@"fn") {
                 continue;
             }
+            if (symbol.decl.?.num_generic_params() > 0) {
+                continue;
+            }
 
             // Instruction translation
             const interned_strings = compiler.lookup_interned_string_set(self.uid).?;
@@ -284,7 +287,7 @@ pub const Module = struct {
                 continue;
             }
             next_cfg.collect_generated_symbvers();
-            _ = next_cfg.emplace_cfg(&self.cfgs, &self.instructions);
+            _ = next_cfg.emplace_cfg(self.uid, &self.cfgs, &self.instructions);
         }
     }
 
