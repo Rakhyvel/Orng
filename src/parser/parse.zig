@@ -1231,11 +1231,9 @@ fn with_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
     const token = try self.expect(.with);
     var context_list = std.array_list.Managed(*ast_.AST).init(self.allocator);
 
-    try context_list.append(try self.context_param(0));
-    var order: usize = 1;
+    try context_list.append(try self.context_param());
     while (self.accept(.comma) != null) {
-        try context_list.append(try self.context_param(order));
-        order += 1;
+        try context_list.append(try self.context_param());
     }
 
     const body_block = try self.block_expr();
@@ -1363,23 +1361,21 @@ fn context_paramlist(self: *Self) Parser_Error_Enum!std.array_list.Managed(*ast_
     var retval = std.array_list.Managed(*ast_.AST).init(self.allocator);
     if (self.accept(.with)) |_| {
         if (self.accept(.left_parenthesis) != null) {
-            var order: usize = 0;
             while (!self.peek_kind(.right_parenthesis)) {
-                try retval.append(try self.context_param(order));
+                try retval.append(try self.context_param());
                 if (self.accept(.comma) == null) {
                     break;
                 }
-                order += 1;
             }
             _ = try self.expect(.right_parenthesis);
         } else {
-            try retval.append(try self.context_param(0));
+            try retval.append(try self.context_param());
         }
     }
     return retval;
 }
 
-fn context_param(self: *Self, order: usize) Parser_Error_Enum!*ast_.AST {
+fn context_param(self: *Self) Parser_Error_Enum!*ast_.AST {
     const parent = try self.type_expr();
 
     const addr_context_type = Type_AST.create_addr_of_type(
@@ -1397,7 +1393,6 @@ fn context_param(self: *Self, order: usize) Parser_Error_Enum!*ast_.AST {
     return ast_.AST.create_context_value_decl(
         parent.token(),
         addr_context_type,
-        order,
         _init,
         self.allocator,
     );
