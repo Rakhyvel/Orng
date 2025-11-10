@@ -25,22 +25,18 @@ pub fn new(scope: *Scope, ctx: *Compiler_Context) Self {
 }
 
 pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
-    std.debug.assert(@intFromPtr(self.scope) != 0xaaaaaaaaaaaaaaaa);
     return self.decorate_prefix(ast);
 }
 
 pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
-    std.debug.assert(@intFromPtr(self.scope) != 0xaaaaaaaaaaaaaaaa);
     return self.decorate_postfix(ast);
 }
 
 pub fn prefix_type(self: Self, _type: *Type_AST) walk_.Error!?Self {
-    std.debug.assert(@intFromPtr(self.scope) != 0xaaaaaaaaaaaaaaaa);
     return self.decorate_prefix_type(_type);
 }
 
 pub fn postfix_type(self: Self, _type: *Type_AST) walk_.Error!void {
-    std.debug.assert(@intFromPtr(self.scope) != 0xaaaaaaaaaaaaaaaa);
     return self.decorate_postfix_type(_type);
 }
 

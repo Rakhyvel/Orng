@@ -73,7 +73,6 @@ pub fn init(
     storage: Storage,
     allocator: std.mem.Allocator,
 ) *Self {
-    std.debug.assert(@intFromPtr(scope) != 0xaaaaaaaaaaaaaaaa);
     var retval = allocator.create(Self) catch unreachable;
     retval.scope = scope;
     retval.name = name;
