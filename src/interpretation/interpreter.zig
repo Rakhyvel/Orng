@@ -306,22 +306,24 @@ inline fn execute_instruction(self: *Self, instr: *Instruction) Error!void { // 
             self.memory.move(try self.effective_address(instr.dest.?), try self.effective_address(instr.src1.?) + tag_offset, 8);
         },
         .jump => {
+            const module_uid = (self.curr_module() catch unreachable).uid;
             if (instr.data.jump_bb.next) |next| {
-                self.instruction_pointer.inst_idx = next.offset.?;
+                self.instruction_pointer.inst_idx = next.offset_table.get(module_uid).?;
             } else {
                 self.ret();
             }
         },
         .branch_if_false => {
+            const module_uid = (self.curr_module() catch unreachable).uid;
             if (self.memory.load_int(try self.effective_address(instr.src1.?), instr.src1.?.expanded_type_sizeof()) != 0) {
                 if (instr.data.branch_bb.next) |next| {
-                    self.instruction_pointer.inst_idx = next.offset.?;
+                    self.instruction_pointer.inst_idx = next.offset_table.get(module_uid).?;
                 } else {
                     self.ret();
                 }
             } else {
                 if (instr.data.branch_bb.branch) |branch| {
-                    self.instruction_pointer.inst_idx = branch.offset.?;
+                    self.instruction_pointer.inst_idx = branch.offset_table.get(module_uid).?;
                 } else {
                     self.ret();
                 }

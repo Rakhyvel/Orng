@@ -426,7 +426,7 @@ pub fn emplace_cfg(self: *Self, module_uid: u32, cfgs: *std.array_list.Managed(*
         cfgs.append(self) catch unreachable;
     } else {
         // Normal CFG with instructions, append BBs to instructions list, recursively append children
-        self.offset_table.put(module_uid, self.append_basic_block(self.block_graph_head.?, instructions_list)) catch unreachable;
+        self.offset_table.put(module_uid, self.append_basic_block(self.block_graph_head.?, module_uid, instructions_list)) catch unreachable;
         cfgs.append(self) catch unreachable;
 
         for (self.children.keys()) |child| {
@@ -439,7 +439,7 @@ pub fn emplace_cfg(self: *Self, module_uid: u32, cfgs: *std.array_list.Managed(*
 
 /// Appends the instructions in a BasicBlock to the module's instructions.
 /// Returns the offset of the basic block
-fn append_basic_block(self: *Self, first_bb: *Basic_Block, instructions_list: *std.array_list.Managed(*Instruction)) Instruction.Index {
+fn append_basic_block(self: *Self, first_bb: *Basic_Block, module_uid: u32, instructions_list: *std.array_list.Managed(*Instruction)) Instruction.Index {
     var work_queue = std.array_list.Managed(*Basic_Block).init(self.allocator);
     defer work_queue.deinit();
     work_queue.append(first_bb) catch unreachable;
@@ -447,7 +447,7 @@ fn append_basic_block(self: *Self, first_bb: *Basic_Block, instructions_list: *s
     while (work_queue.items.len > 0) {
         var bb = work_queue.orderedRemove(0); // Youch! Does this really have to be ordered?
 
-        if (bb.offset != null) {
+        if (bb.offset_table.contains(module_uid)) {
             continue;
         }
 
@@ -455,9 +455,9 @@ fn append_basic_block(self: *Self, first_bb: *Basic_Block, instructions_list: *s
         label.uid = bb.uid;
         instructions_list.append(label) catch unreachable;
 
-        bb.append_instructions(instructions_list, &work_queue);
+        bb.append_instructions(module_uid, instructions_list, &work_queue);
     }
-    return first_bb.offset.?;
+    return first_bb.offset_table.get(module_uid).?;
 }
 
 /// This function inserts a label and a return instruction. It is needed for functions which do not have
