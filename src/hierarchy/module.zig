@@ -287,7 +287,7 @@ pub const Module = struct {
                 continue;
             }
             next_cfg.collect_generated_symbvers();
-            _ = next_cfg.emplace_cfg(&self.cfgs, &self.instructions);
+            _ = next_cfg.emplace_cfg(self.uid, &self.cfgs, &self.instructions);
         }
     }
 

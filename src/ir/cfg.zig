@@ -45,10 +45,10 @@ return_symbol: *Symbol,
 /// TODO: Remove for LCOM4
 needed_at_runtime: bool,
 
-/// Address in the first instruction of this Self
+/// Maps a module UID to the address of the first instruction of this CFG in the module's list of instructions
 /// Used for Instruction interpretation
 /// TODO: Remove for LCOM4
-offset: ?Instruction.Index,
+offset_table: std.array_hash_map.AutoArrayHashMap(u32, Instruction.Index),
 
 /// Number of bytes required in order to store the local variables of the function
 /// TODO: Remove for LCOM4
@@ -85,7 +85,7 @@ pub fn init(symbol: *Symbol, allocator: std.mem.Allocator) *Self {
     _ = retval.return_symbol.type().expand_identifier();
     _ = symbol.type().expand_identifier();
     retval.needed_at_runtime = false;
-    retval.offset = null;
+    retval.offset_table = std.array_hash_map.AutoArrayHashMap(u32, Instruction.Index).init(allocator);
     retval.locals_size = null;
     retval.allocator = allocator;
     symbol.cfg = retval;
@@ -415,22 +415,22 @@ fn index_of_basic_block(self: *Self, bb: *Basic_Block) usize {
 /// instructions for the CFG start.
 ///
 /// Returns the index in the cfg in the cfgs list.
-pub fn emplace_cfg(self: *Self, cfgs: *std.array_list.Managed(*Self), instructions_list: *std.array_list.Managed(*Instruction)) i64 {
+pub fn emplace_cfg(self: *Self, module_uid: u32, cfgs: *std.array_list.Managed(*Self), instructions_list: *std.array_list.Managed(*Instruction)) i64 {
     const len = @as(i64, @intCast(cfgs.items.len));
-    if (self.offset != null) {
+    if (self.offset_table.contains(module_uid)) {
         // Already visited, do nothing
         return len;
     } else if (self.block_graph_head == null) {
         // CFG doesn't have any real instructions. Insert phony BB.
-        self.offset = self.append_phony_block(instructions_list);
+        self.offset_table.put(module_uid, self.append_phony_block(instructions_list)) catch unreachable;
         cfgs.append(self) catch unreachable;
     } else {
         // Normal CFG with instructions, append BBs to instructions list, recursively append children
-        self.offset = self.append_basic_block(self.block_graph_head.?, instructions_list);
+        self.offset_table.put(module_uid, self.append_basic_block(self.block_graph_head.?, instructions_list)) catch unreachable;
         cfgs.append(self) catch unreachable;
 
         for (self.children.keys()) |child| {
-            _ = child.emplace_cfg(cfgs, instructions_list);
+            _ = child.emplace_cfg(module_uid, cfgs, instructions_list);
         }
     }
     self.locals_size = self.calculate_offsets();

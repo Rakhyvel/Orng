@@ -45,7 +45,7 @@ number_predecessors: usize,
 allocator: std.mem.Allocator,
 /// Address in the first instruction of this Self
 /// Used for Instruction interpretation
-offset: ?Instruction.Index,
+offset: ?Instruction.Index, // TODO: Replace with offset table as well
 
 /// Initializes a basic-block
 pub fn init(allocator: std.mem.Allocator) *Self {

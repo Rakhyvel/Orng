@@ -1775,7 +1775,7 @@ pub const AST = union(enum) {
             .binding => {
                 const retval = create_binding(
                     self.token(),
-                    self.binding.pattern,
+                    self.binding.pattern.clone(substs, allocator),
                     self.binding.type.clone(substs, allocator),
                     if (self.binding.init) |init| init.clone(substs, allocator) else null,
                     allocator,
@@ -2482,7 +2482,11 @@ pub const AST = union(enum) {
             .@"break" => try out.print("break", .{}),
             .@"continue" => try out.print("continue", .{}),
             .@"return" => try out.print("return()", .{}),
-            .pattern_symbol => try out.print("pattern_symbol({s}, {s})", .{ @tagName(self.pattern_symbol.kind), self.pattern_symbol.name }),
+            .pattern_symbol => try out.print("pattern_symbol({s}, {s}@{?})", .{
+                @tagName(self.pattern_symbol.kind),
+                self.pattern_symbol.name,
+                if (self.pattern_symbol._symbol) |sym| sym.scope.uid else null,
+            }),
             .binding => {
                 try out.print("binding(.type={f})", .{self.binding.type});
             },

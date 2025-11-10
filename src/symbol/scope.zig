@@ -10,6 +10,7 @@ const module_ = @import("../hierarchy/module.zig");
 const unification_ = @import("../types/unification.zig");
 const UID_Gen = @import("../util/uid_gen.zig");
 const walker_ = @import("../ast/walker.zig");
+const Tree_Writer = @import("../ast/tree_writer.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 
 const Self = @This();
@@ -222,9 +223,9 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
                 }
                 const new_scope = init(self, self.uid_gen, std.heap.page_allocator);
 
-                new_impl.set_scope(new_scope);
-
                 try walker_.walk_ast(new_impl, Symbol_Tree.new(new_scope, &compiler.errors, compiler.allocator()));
+
+                new_impl.set_scope(new_scope);
 
                 if (new_impl.impl.trait == null or new_impl.impl.impls_anon_trait) {
                     // impl'd for an anon trait, create an anon trait for it
@@ -245,6 +246,11 @@ pub fn lookup_impl_member(self: *Self, for_type: *Type_AST, name: []const u8, co
                 // Decorate identifiers, validate
                 const new_decorate_context = Decorate.new(new_scope, compiler);
                 try walker_.walk_ast(new_impl, new_decorate_context); // this doesn't know about the anonymous trait
+
+                // Set all method_decls to be monomorphed
+                for (new_impl.impl.method_defs.items) |method_def| {
+                    method_def.symbol().?.is_monomorphed = true;
+                }
 
                 try compiler.validate_scope.validate_scope(new_scope);
 

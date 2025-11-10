@@ -36,6 +36,18 @@ impl[T] for List[T] {
         .ok(retval)
     }
 
+    fn last(&self) -> ?T {
+        if self.items.length == 0 {
+            .none
+        } else {
+            .some(self.items[self.items.length - 1])
+        }
+    }
+
+    fn clear(&mut self) {
+        self.items.length = 0
+    }
+
     fn append(&mut self, t: T) -> Error!() {
         try self.>ensure_length(self.items.length + 1)
         self.items[self.items.length - 1] = t
@@ -66,6 +78,21 @@ impl[T] for List[T] {
     fn ordered_remove(&mut self, idx: Int) {
         mem::copy[T](self.items[idx..], self.items[idx+1..])
         self.items.length -= 1
+    }
+
+    fn remove_range(&mut self, start: Int, end: Int) {
+        let removed = end - start
+        mem::copy[T](self.items[start..], self.items[end..])
+        self.items.length -= removed
+    }
+
+    fn pop(&mut self) -> ?T {
+        if self.items.length == 0 {
+            return .none
+        }
+        let val = self.items[self.items.length - 1]
+        self.items.length -= 1
+        .some(val)
     }
 
     fn ensure_length(&mut self, new_length: Int) -> Error!() {
@@ -137,6 +164,16 @@ test "to_owned_slice" with core::Allocating {
     try testing::expect(slice[1] == 2)
     try testing::expect(slice[2] == 3)
     try testing::expect(slice.length == 3)
+
+    .ok
+}
+
+test "clear" with core::Allocating {
+    let mut list = List[Int]::init_from_slice([][1, 2, 3, 4, 5]) catch {return .err}
+    defer list.>deinit()
+
+    list.>clear()
+    try testing::expect(list.items.length == 0)
 
     .ok
 }
@@ -213,6 +250,58 @@ test "ordered_remove" with core::Allocating {
     try testing::expect(list.items[1] == 3)
     try testing::expect(list.items[2] == 4)
     try testing::expect(list.items.length == 3)
+
+    .ok
+}
+
+test "remove_range" with core::Allocating {
+    let mut list = List[Int]::init_from_slice([][1, 2, 3, 4, 5]) catch {return .err}
+    defer list.>deinit()
+
+    list.>remove_range(1, 3)
+
+    try testing::expect(list.items[0] == 1)
+    try testing::expect(list.items[1] == 4)
+    try testing::expect(list.items[2] == 5)
+    try testing::expect(list.items.length == 3)
+
+    .ok
+}
+
+test "pop" with core::Allocating {
+    let mut list = List[Int]::init_from_slice([][1, 2, 3, 4, 5]) catch {return .err}
+    defer list.>deinit()
+
+    let (a, b, c) = (list.>pop(), list.>pop(), list.>pop())
+
+    try testing::expect(a.some == 5)
+    try testing::expect(b.some == 4)
+    try testing::expect(c.some == 3)
+    try testing::expect(list.items[0] == 1)
+    try testing::expect(list.items[1] == 2)
+    try testing::expect(list.items.length == 2)
+
+    .ok
+}
+
+test "last" with core::Allocating {
+    let mut list = List[Int]::init_from_slice([][1, 2, 3, 4, 5]) catch {return .err}
+    defer list.>deinit()
+
+    let last = list.>last()
+
+    try testing::expect(last.some == 5)
+
+    .ok
+}
+
+test "write" with core::Allocating {
+    let mut list = List[Byte]::init()
+    defer list.>deinit()
+
+    list.>write("Hello, World!")
+
+    try testing::expect(mem::eql(list.items, "Hello, World!"))
 
     .ok
 }

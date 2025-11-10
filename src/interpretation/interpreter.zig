@@ -96,7 +96,7 @@ pub fn set_entry_point(
 
     self.stack_pointer = (5 * @sizeOf(i64)) + frame_address + entry.locals_size.?;
     self.base_pointer = (3 * @sizeOf(i64)) + frame_address;
-    self.instruction_pointer = .{ .module_uid = module.uid, .inst_idx = entry.offset.? };
+    self.instruction_pointer = .{ .module_uid = module.uid, .inst_idx = entry.offset_table.get(module.uid).? };
 
     // First `ret_type.sizeof()` bytes are reserved for the return value
     // Initial stack frame is setup immediately after
@@ -421,7 +421,7 @@ pub fn call(self: *Self, function_symbol: *Symbol, retval_place: *lval_.L_Value,
     // jump to symbol addr
     self.instruction_pointer = Instruction_Pointer{
         .module_uid = function_symbol.scope.module.?.uid,
-        .inst_idx = function_symbol.cfg.?.offset.?,
+        .inst_idx = function_symbol.cfg.?.offset_table.get(function_symbol.scope.module.?.uid).?,
     };
 }
 

@@ -61,7 +61,7 @@ pub fn lower_AST_into_cfg(self: *Self) Lower_Errors!void {
     }
     self.instructions.append(Instruction.init_jump(null, self.cfg.symbol.span(), self.ctx.allocator())) catch unreachable;
 
-    if (true) {
+    if (false) {
         // Print symbol Instruction after lowering, before breaking up into basic blocks
         std.debug.print("CFG {s}: {f}\n", .{ self.cfg.symbol.name, self.cfg.symbol.type() });
         for (self.instructions.items) |instr| {

@@ -1,4 +1,4 @@
-// try_function_incompat.orng:10:19: error: expected a value of type `(ok: Int | err: ())`, got a value of type `(ok: Int | err: Bool)`
+// try_function_incompat.orng:10:19: error: expected a value of type `()!Int`, got a value of type `Bool!Int`
 //     let x = try g()
 //                  ^
 // 

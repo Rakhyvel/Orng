@@ -247,6 +247,9 @@ fn output_impls(self: *Self) CodeGen_Error!void {
 
 /// Outputs the forward declaration of a function.
 pub fn output_forward_function(self: *Self, cfg: *CFG) CodeGen_Error!void {
+    if (cfg.symbol.is_monomorphed) {
+        return;
+    }
     try self.emitter.output_function_prototype(cfg);
     try self.writer.print(";\n", .{});
 }

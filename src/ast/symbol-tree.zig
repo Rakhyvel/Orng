@@ -465,6 +465,11 @@ fn create_symbol(
                 }
             }
 
+            if (pattern.symbol()) |sym| {
+                symbols.append(sym) catch unreachable;
+                return;
+            }
+
             const symbol = Symbol.init(
                 scope,
                 pattern.pattern_symbol.name,
