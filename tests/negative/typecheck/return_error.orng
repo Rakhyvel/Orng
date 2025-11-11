@@ -1,0 +1,10 @@
+// return_error.orng:7:15: error: expected a value of type `()!()`, got a value of type `()`
+//         return
+//              ^
+// 
+fn main() -> ()!() {
+    if false {
+        return
+    }
+    .ok
+}

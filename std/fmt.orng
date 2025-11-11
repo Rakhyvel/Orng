@@ -4,7 +4,7 @@ import string_buffer::String_Buffer
 import testing
 
 impl core::Format for Bool {
-    virtual fn format(&self, writer: &mut dyn core::Writer) {
+    virtual fn format(&self, writer: &mut dyn core::Writer) -> ()!() {
         if self^ {
             writer.>write("true")
         } else {
@@ -14,25 +14,25 @@ impl core::Format for Bool {
 }
 
 impl core::Format for String {
-    virtual fn format(&self, writer: &mut dyn core::Writer) {
+    virtual fn format(&self, writer: &mut dyn core::Writer) -> ()!() {
         writer.>write(self^)
     }
 }
 
 impl core::Format for Int {
-    virtual fn format(&self, writer: &mut dyn core::Writer) {
+    virtual fn format(&self, writer: &mut dyn core::Writer) -> ()!() {
         let mut value = self^
         let mut buf: [20]Byte // large enough for 64-bit int and sign
         let mut i = 0
 
         if value == 0 {
-            writer.>write("0")
-            return
+            try writer.>write("0")
+            return .ok
         }
 
         // Handle sign
         if value < 0 {
-            writer.>write("-")
+            try writer.>write("-")
             value = -value
         }
 
@@ -53,34 +53,34 @@ impl core::Format for Int {
 }
 
 impl core::Format for Float {
-    virtual fn format(&self, writer: &mut dyn core::Writer) {
+    virtual fn format(&self, writer: &mut dyn core::Writer) -> ()!() {
         let mut value = self^
 
         // special cases
         if value.>is_nan() {
-            writer.>write("nan")
-            return
+            try writer.>write("nan")
+            return .ok
         } else if value.>is_inf() {
             if value < 0.0 {
-                writer.>write("-inf")
+                try writer.>write("-inf")
             } else {
-                writer.>write("inf")
+                try writer.>write("inf")
             }
-            return
+            return .ok
         }
 
         // handle sign
         if value < 0.0 {
-            writer.>write("-")
+            try writer.>write("-")
             value = -value
         }
 
         let int_part = math::truncate(value)
         let frac_part = value - math::as_float(int_part)
 
-        int_part.>format(writer)
+        try int_part.>format(writer)
 
-        writer.>write(".")
+        try writer.>write(".")
 
         const precision = 6
         let mut buf: [comptime{precision}]Byte
@@ -104,9 +104,9 @@ test "bool" with core::Allocating {
     let mut str = String_Buffer::init()
     defer str.>deinit()
 
-    true.>format(&mut str)
-    str.>write(" ")
-    false.>format(&mut str)
+    try true.>format(&mut str)
+    try str.>write(" ")
+    try false.>format(&mut str)
 
     try testing::expect(str.>cmp("true false"))
 
@@ -120,10 +120,10 @@ test "string" with core::Allocating {
     let hello = "Hello"
     let world = "World"
 
-    hello.>format(&mut str)
-    str.>write(", ")
-    world.>format(&mut str)
-    str.>write("!")
+    try hello.>format(&mut str)
+    try str.>write(", ")
+    try world.>format(&mut str)
+    try str.>write("!")
 
     try testing::expect(str.>cmp("Hello, World!"))
 
@@ -138,11 +138,11 @@ test "int" with core::Allocating {
     let y = -100
     let z = 0
 
-    x.>format(&mut str)
-    str.>write(" ")
-    y.>format(&mut str)
-    str.>write(" ")
-    z.>format(&mut str)
+    try x.>format(&mut str)
+    try str.>write(" ")
+    try y.>format(&mut str)
+    try str.>write(" ")
+    try z.>format(&mut str)
 
     try testing::expect(str.>cmp("123456789 -100 0"))
 
@@ -160,15 +160,15 @@ test "float" with core::Allocating {
     let a = -1.0 / 0.0
     let b = 0.0 / 0.0
 
-    x.>format(&mut str)
-    str.>write(" ")
-    y.>format(&mut str)
-    str.>write(" ")
-    z.>format(&mut str)
-    str.>write(" ")
-    a.>format(&mut str)
-    str.>write(" ")
-    b.>format(&mut str)
+    try x.>format(&mut str)
+    try str.>write(" ")
+    try y.>format(&mut str)
+    try str.>write(" ")
+    try z.>format(&mut str)
+    try str.>write(" ")
+    try a.>format(&mut str)
+    try str.>write(" ")
+    try b.>format(&mut str)
 
     try testing::expect(str.>cmp("3.14 -3.14 inf -inf nan"))
 

@@ -6,24 +6,26 @@ import std::list
 import std::string_buffer::String_Buffer
 import externs
 
-fn main() with (core::IO, core::Allocating) {
+fn main() -> ()!() with (core::IO, core::Allocating) {
     let mut name_buf = String_Buffer::init()
     defer name_buf.>deinit()
 
-    core::IO.writer.>write("What is your name?\n")
-    core::IO.reader.>read(&mut name_buf)
-    core::IO.writer.>write("Hello, ")
-    core::IO.writer.>write(name_buf.>str())
-    core::IO.writer.>write("!\n")
+    try core::IO.writer.>write("What is your name?\n")
+    try core::IO.reader.>read(&mut name_buf)
+    try core::IO.writer.>write("Hello, ")
+    try core::IO.writer.>write(name_buf.>str())
+    try core::IO.writer.>write("!\n")
+
+    .ok
 }
 
 test "can print" with core::IO {
-    core::IO.writer.>write("Yeah, I'm printing!\n")
+    try core::IO.writer.>write("Yeah, I'm printing!\n")
     .ok
 }
 
 test "can print" with (core::IO, core::Allocating) {
-    core::IO.writer.>write("IO then Allocating!\n")
+    try core::IO.writer.>write("IO then Allocating!\n")
     .ok
 }
 

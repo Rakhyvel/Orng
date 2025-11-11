@@ -1,0 +1,11 @@
+// ignore_error.orng:6:7: error: expected a value of type `()`, got a value of type `()!()`
+//     f()
+//      ^
+// 
+fn main() {
+    f()
+}
+
+fn f() -> ()!() {
+    .err
+}

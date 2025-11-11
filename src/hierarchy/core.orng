@@ -131,15 +131,15 @@ trait Allocator {
 }
 
 trait Writer {
-    virtual fn write(&mut self, bytes: []Byte)
+    virtual fn write(&mut self, bytes: []Byte) -> ()!()
 }
 
 trait Reader {
-    virtual fn read(&mut self, writer: &mut dyn Writer)
+    virtual fn read(&mut self, writer: &mut dyn Writer) -> ()!()
 }
 
 trait Format {
-    virtual fn format(&self, writer: &mut dyn Writer)
+    virtual fn format(&self, writer: &mut dyn Writer) -> ()!()
 }
 
 context Allocating {

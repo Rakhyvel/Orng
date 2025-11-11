@@ -97,7 +97,7 @@ impl[T] for List[T] {
 
     fn ensure_length(&mut self, new_length: Int) -> Error!() {
         if @sizeof(T) == 0 {
-            return
+            return .ok
         }
 
         if new_length > self.items.length {
@@ -121,8 +121,8 @@ impl[T] for List[T] {
 }
 
 impl core::Writer for List[Byte] {
-    virtual fn write(&mut self, bytes: String) {
-        self.>append_slice(bytes)
+    virtual fn write(&mut self, bytes: String) -> ()!() {
+        .ok(self.>append_slice(bytes) catch {return .err})
     }
 }
 
@@ -299,7 +299,7 @@ test "write" with core::Allocating {
     let mut list = List[Byte]::init()
     defer list.>deinit()
 
-    list.>write("Hello, World!")
+    try list.>write("Hello, World!")
 
     try testing::expect(mem::eql(list.items, "Hello, World!"))
 
