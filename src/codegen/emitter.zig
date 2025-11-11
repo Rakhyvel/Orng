@@ -1,6 +1,7 @@
 const std = @import("std");
 const AST = @import("../ast/ast.zig").AST;
 const CFG = @import("../ir/cfg.zig");
+const core_ = @import("../hierarchy/core.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 const Type_Map = @import("../ast/type_map.zig").Type_Map; // TODO: Move to types
@@ -189,7 +190,6 @@ pub fn output_symbol(self: *Self, symbol: *Symbol) CodeGen_Error!void {
 }
 
 pub fn output_context_includes(self: *Self, contexts_used: *Type_Set) CodeGen_Error!void {
-    const core_ = @import("../hierarchy/core.zig");
     for (contexts_used.types.items) |dep| {
         if (dep.base.types_match(core_.allocating_context)) {
             try self.writer.print("#include \"alloc.inc\"\n", .{});
@@ -202,7 +202,6 @@ pub fn output_context_includes(self: *Self, contexts_used: *Type_Set) CodeGen_Er
 }
 
 pub fn output_context_defs(self: *Self, contexts_used: *Type_Set) CodeGen_Error!void {
-    const core_ = @import("../hierarchy/core.zig");
     for (contexts_used.types.items) |dep| {
         if (dep.base.types_match(core_.allocating_context)) {
             try self.output_type(core_.allocating_context);
@@ -218,6 +217,20 @@ pub fn output_context_defs(self: *Self, contexts_used: *Type_Set) CodeGen_Error!
             , .{});
         } else {
             std.debug.panic("compiler error: received unexpected context: {f}", .{dep.base});
+        }
+    }
+}
+
+pub fn output_context_args(self: *Self, contexts: []const *Type_AST) CodeGen_Error!void {
+    for (contexts, 0..) |ctx, i| {
+        std.debug.assert(ctx.* == .addr_of);
+        if (ctx.child().types_match(core_.allocating_context)) {
+            try self.writer.print("&allocator_context", .{});
+        } else if (ctx.child().types_match(core_.io_context)) {
+            try self.writer.print("&io_context", .{});
+        }
+        if (i + 1 < contexts.len) {
+            try self.writer.print(", ", .{});
         }
     }
 }

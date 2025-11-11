@@ -288,17 +288,7 @@ fn output_testrunner(
             , .{ test_filename, test_name }) catch return error.CompileError;
             emitter.output_symbol(@"test".symbol) catch return error.CompileError;
             buf.print("(", .{}) catch return error.CompileError;
-            for (@"test".symbol.type().function.contexts.items, 0..) |ctx, i| {
-                std.debug.assert(ctx.* == .addr_of);
-                if (ctx.child().types_match(core_.allocating_context)) {
-                    buf.print("&allocator_context", .{}) catch return error.CompileError;
-                } else if (ctx.child().types_match(core_.io_context)) {
-                    buf.print("&io_context", .{}) catch return error.CompileError;
-                }
-                if (i + 1 < @"test".symbol.type().function.contexts.items.len) {
-                    buf.print(", ", .{}) catch return error.CompileError;
-                }
-            }
+            emitter.output_context_args(@"test".symbol.type().function.contexts.items) catch return error.CompileError;
             buf.print(");\n", .{}) catch return error.CompileError;
             buf.print(
                 \\        if (res.tag == 0)
