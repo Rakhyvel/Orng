@@ -3,16 +3,22 @@ import std::ffi
 import std::testing
 import std::mem
 import std::list
+import std::string_buffer::String_Buffer
 import externs
 
 fn main() with (core::Allocating, core::IO) {
-    debug::println("Hello, World!")
-    externs::println("Hello, World 2!")
-    core::IO.writer.>write("Hello, World 3!\n")
+    let mut name_buf = String_Buffer::init()
+    defer name_buf.>deinit()
+
+    core::IO.writer.>write("What is your name?\n")
+    core::IO.reader.>read(&mut name_buf)
+    core::IO.writer.>write("Hello, ")
+    core::IO.writer.>write(name_buf.>str())
+    core::IO.writer.>write("!\n")
 }
 
 test "can print" with core::IO {
-    core::IO.writer.>write("Yeah I'm printing!\n")
+    core::IO.writer.>write("Yeah, I'm printing!\n")
     .ok
 }
 
