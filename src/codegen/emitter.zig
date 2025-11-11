@@ -4,8 +4,7 @@ const CFG = @import("../ir/cfg.zig");
 const core_ = @import("../hierarchy/core.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
-const Type_Map = @import("../types/type_map.zig").Type_Map; // TODO: Move to types
-const Type_Set = @import("../types/type_set.zig"); // TODO: Move to types
+const Type_Map = @import("../types/type_map.zig").Type_Map;
 const Symbol = @import("../symbol/symbol.zig");
 const Canonical_Type_Fmt = @import("../types/canonical_type_fmt.zig");
 
