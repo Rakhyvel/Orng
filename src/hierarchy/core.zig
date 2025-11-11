@@ -20,6 +20,7 @@ pub var package_source_type: *Type_AST = undefined;
 pub var test_result_type: *Type_AST = undefined;
 pub var test_type: *Type_AST = undefined;
 pub var allocating_context: *Type_AST = undefined;
+pub var io_context: *Type_AST = undefined;
 
 var core: ?*Scope = null;
 pub var core_symbol: ?*Symbol = null;
@@ -90,6 +91,7 @@ fn create_core(compiler: *Compiler_Context) !void {
         compiler.allocator(),
     );
     allocating_context = module_scope.lookup("Allocating", .{}).found.init_typedef().?;
+    io_context = module_scope.lookup("IO", .{}).found.init_typedef().?;
 
     _ = module_scope.lookup("Requirement", .{}).found.init_typedef().?;
 }

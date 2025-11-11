@@ -14,6 +14,7 @@ const prelude_ = @import("../hierarchy/prelude.zig");
 const module_ = @import("../hierarchy/module.zig");
 const Span = @import("../util/span.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
+const Type_Map = @import("../types/type_map.zig").Type_Map;
 const Symbol = @import("../symbol/symbol.zig");
 
 const Self = @This();
@@ -199,15 +200,10 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
         \\    
     , .{});
 
-    // TOOD: This won't fly in a standalone context
-    const requires_context = symbol.type().function.contexts.items.len > 0;
-    if (requires_context) {
-        try self.emitter.output_type(core_.allocating_context);
-        try self.writer.print(
-            \\ allocator_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &std__mem_2__vtable}}}};
-            \\    
-        , .{});
-    }
+    var contexts_used = Type_Map(void).init(std.heap.page_allocator);
+    defer contexts_used.deinit();
+    try contexts_used.put_many(symbol.type().function.contexts.items, void{});
+    try self.emitter.output_context_defs(&contexts_used);
 
     if (specifier != null) {
         try self.writer.print("printf(\"%{s}{s}\", ", .{ if (codomain.sizeof() == 8) "l" else "", specifier.? });
@@ -219,17 +215,9 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
             try self.writer.print("   retcode = ", .{});
         }
         try self.emitter.output_symbol(symbol);
-        if (requires_context) {
-            try self.writer.print(
-                \\(&allocator_context);
-                \\
-            , .{});
-        } else {
-            try self.writer.print(
-                \\();
-                \\
-            , .{});
-        }
+        try self.writer.print("(", .{});
+        try self.emitter.output_context_args(symbol.type().function.contexts.items);
+        try self.writer.print(");\n", .{});
     }
 
     if (codomain.* == .enum_type and codomain.enum_type.from == .@"error") {

@@ -1,7 +1,7 @@
 .zig-cache/
 .vscode/
 zig-out/
-kcov-out/
+kcov-out*/
 **/build
 tests/fuzz/fuzz.txt
 tests/fuzz/problems.txt

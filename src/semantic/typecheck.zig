@@ -97,7 +97,7 @@ pub fn typecheck_AST(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Validate
     };
 
     if (expected_type) |_| {
-        if (!prelude_.unit_type.types_match(expected_type.?))
+        if (!prelude_.unit_type.types_match(expected_type.?) or (actual_type.* == .enum_type and actual_type.enum_type.from == .@"error"))
             typing_.type_check(ast.token().span, actual_type, expected_type.?, &self.ctx.errors) catch |e| {
                 ast.common().validation_state = .invalid;
                 return e;
@@ -830,13 +830,15 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
         },
         .@"break", .@"continue", .@"unreachable" => return prelude_.void_type,
         .@"return" => {
+            const inner_fn_ret_type = ast.symbol().?.type().rhs();
             if (ast.@"return"._ret_expr) |expr| {
-                _ = self.typecheck_AST(expr, ast.symbol().?.type().rhs()) catch return error.CompileError;
+                _ = self.typecheck_AST(expr, inner_fn_ret_type) catch return error.CompileError;
             } else if (expected != null and (expected.?.expand_identifier()).* != .unit_type) {
-                const inner_fn_ret_type = ast.symbol().?.type().rhs();
                 if (inner_fn_ret_type.expand_identifier().* != .unit_type) {
                     return typing_.throw_unexpected_type(ast.token().span, expected.?, prelude_.void_type, &self.ctx.errors);
                 }
+            } else if (expected == null and inner_fn_ret_type.expand_identifier().* != .unit_type) {
+                return typing_.throw_unexpected_type(ast.token().span, inner_fn_ret_type, prelude_.unit_type, &self.ctx.errors);
             }
             return prelude_.void_type;
         },

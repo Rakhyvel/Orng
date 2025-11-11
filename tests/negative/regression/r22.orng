@@ -1,6 +1,6 @@
-// r22.orng:6:20: error: comptime cannot be type `Void`
+// r22.orng:6:27: error: expected a value of type `Int`, got a value of type `()`
 //     const ident = { return }
-//                   ^
+//                          ^
 // 
 fn main() -> Int { 
     const ident = { return }

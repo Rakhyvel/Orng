@@ -3,11 +3,30 @@ import std::ffi
 import std::testing
 import std::mem
 import std::list
+import std::string_buffer::String_Buffer
 import externs
 
-fn main() with core::Allocating {
-    debug::println("Hello, World!")
-    externs::println("Hello, World f!")
+fn main() -> ()!() with (core::IO, core::Allocating) {
+    let mut name_buf = String_Buffer::init()
+    defer name_buf.>deinit()
+
+    try core::IO.writer.>write("What is your name?\n")
+    try core::IO.reader.>read(&mut name_buf)
+    try core::IO.writer.>write("Hello, ")
+    try core::IO.writer.>write(name_buf.>str())
+    try core::IO.writer.>write("!\n")
+
+    .ok
+}
+
+test "can print" with core::IO {
+    try core::IO.writer.>write("Yeah, I'm printing!\n")
+    .ok
+}
+
+test "can print" with (core::IO, core::Allocating) {
+    try core::IO.writer.>write("IO then Allocating!\n")
+    .ok
 }
 
 test "allocator works" with core::Allocating {

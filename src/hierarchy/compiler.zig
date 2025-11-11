@@ -11,6 +11,7 @@ const Package_Iterator = @import("../util/dfs.zig").Dfs_Iterator(Package_Iterato
 const Package_Iterator_Node = @import("../hierarchy/package.zig").Package_Iterator_Node;
 const poison_ = @import("../ast/poison.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
+const repo_ = @import("../util/repo.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Scope = @import("../symbol/scope.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
@@ -64,6 +65,8 @@ packages: std.StringArrayHashMap(*Package),
 pub fn init(stderr: ?std.fs.File, alloc: std.mem.Allocator) Error!*Self {
     var retval: *Self = alloc.create(Self) catch unreachable;
     retval.arena = std.heap.ArenaAllocator.init(alloc);
+
+    repo_.ensure_inc_dir_exists(retval.allocator());
 
     poison_.init_structures(retval.allocator());
     retval.errors = errs_.Errors.init(retval.allocator());

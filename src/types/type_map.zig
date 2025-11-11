@@ -1,6 +1,10 @@
 const std = @import("std");
 const Type_AST = @import("../types/type.zig").Type_AST;
 
+pub fn Type_Map(comptime Value: type) type {
+    return Linear_Map(*Type_AST, Value, Type_AST.types_match);
+}
+
 /// A type map using C type equivelence
 pub fn C_Type_Map(comptime Value: type) type {
     return Linear_Map(*Type_AST, Value, Type_AST.c_types_match);
@@ -61,6 +65,13 @@ pub fn Linear_Map(comptime Key: type, comptime Value: type, comptime eq: fn (Key
             }
 
             try self.pairs.append(.{ .key = key, .value = value });
+        }
+
+        /// Adds many keys to the same value
+        pub fn put_many(self: *Self, keys: []const Key, value: Value) !void {
+            for (keys) |key| {
+                try self.put(key, value);
+            }
         }
     };
 }

@@ -38,7 +38,6 @@ fn add_internal(self: *Self, oldast_: *Type_AST, from_function: bool) ?*Dependen
         .function => return self.add_function(ast),
         .struct_type, .tuple_type, .enum_type, .untagged_sum_type, .context_type => return self.add_aggregate(ast),
         .dyn_type => return self.add_dependency_node(ast),
-        .annotation => return self.add_type(ast.child()),
         .addr_of => {
             const retval = self.add_type(ast.child());
             if (from_function) {

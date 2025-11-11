@@ -11,7 +11,7 @@ const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Module_Hash = @import("module_hash.zig");
 const Token = @import("../lexer/token.zig");
-const Type_Set = @import("../ast/type-set.zig");
+const Type_Set = @import("../types/type_set.zig");
 const UID_Gen = @import("../util/uid_gen.zig");
 
 // Front-end pipeline steps
@@ -258,15 +258,8 @@ pub const Module = struct {
                 found_entry = true;
 
                 // Check for entry context requirements
-                for (cfg.symbol.type().function.contexts.items) |ctx| {
-                    if (!ctx.child().types_match(compiler.get_core_type("Allocating"))) {
-                        compiler.errors.add_error(errs_.Error{ .basic = .{
-                            .span = ctx.token().span,
-                            .msg = "entry point can't request this context",
-                        } });
-                        return error.CompileError;
-                    }
-                }
+                const args_ = @import("../semantic/args.zig");
+                try args_.validate_requested_contexts(cfg.symbol.type().function.contexts.items, &compiler.errors);
             }
         }
         if (need_entry and !found_entry) {

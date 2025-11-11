@@ -1,4 +1,4 @@
-// invalid_entry_context.orng:9:33: error: entry point can't request this context
+// invalid_entry_context.orng:9:33: error: can't request this context
 // fn main() -> Int with My_Context {
 //                                ^
 // 

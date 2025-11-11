@@ -262,7 +262,7 @@ def all(args):
                 "--clean",
                 "--include-path",
                 SRC_DIR,
-                "kcov-out",
+                "kcov-out-integration",
                 "./zig-out/bin/orng-test",
                 "coverage",
             ]
@@ -277,7 +277,7 @@ def all(args):
                 "kcov",
                 "--include-path",
                 SRC_DIR,
-                "kcov-out",
+                "kcov-out-negative",
                 "./zig-out/bin/orng-test",
                 "negative",
             ]

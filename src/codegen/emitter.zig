@@ -1,8 +1,10 @@
 const std = @import("std");
 const AST = @import("../ast/ast.zig").AST;
 const CFG = @import("../ir/cfg.zig");
+const core_ = @import("../hierarchy/core.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
+const Type_Map = @import("../types/type_map.zig").Type_Map;
 const Symbol = @import("../symbol/symbol.zig");
 const Canonical_Type_Fmt = @import("../types/canonical_type_fmt.zig");
 
@@ -183,5 +185,49 @@ pub fn output_symbol(self: *Self, symbol: *Symbol) CodeGen_Error!void {
     } else {
         // The leading underscore here should be OK, C spec allows leading underscores for auto storage variables
         try self.writer.print("_{}_{s}", .{ symbol.scope.uid, symbol.name });
+    }
+}
+
+pub fn output_context_includes(self: *Self, contexts_used: *Type_Map(void)) CodeGen_Error!void {
+    for (contexts_used.pairs.items) |pair| {
+        var ctx = pair.key.child();
+        if (ctx.types_match(core_.allocating_context)) {
+            try self.writer.print("#include \"alloc.inc\"\n", .{});
+        } else if (ctx.types_match(core_.io_context)) {
+            try self.writer.print("#include \"io.inc\"\n", .{});
+        }
+    }
+}
+
+pub fn output_context_defs(self: *Self, contexts_used: *Type_Map(void)) CodeGen_Error!void {
+    for (contexts_used.pairs.items) |pair| {
+        const ctx = pair.key.child();
+        if (ctx.types_match(core_.allocating_context)) {
+            try self.output_type(core_.allocating_context);
+            try self.writer.print(
+                \\ allocator_context = {{._0 = {{.data_ptr = NULL, .vtable = &orange__core__allocator_vtable}}}};
+                \\    
+            , .{});
+        } else if (ctx.types_match(core_.io_context)) {
+            try self.output_type(core_.io_context);
+            try self.writer.print(
+                \\ io_context = {{._0 = {{.data_ptr = NULL, .vtable = &orange__core__writer_vtable}}, ._1 = {{.data_ptr = NULL, .vtable = &orange__core__reader_vtable}}}};
+                \\    
+            , .{});
+        }
+    }
+}
+
+pub fn output_context_args(self: *Self, contexts: []const *Type_AST) CodeGen_Error!void {
+    for (contexts, 0..) |ctx, i| {
+        std.debug.assert(ctx.* == .addr_of);
+        if (ctx.child().types_match(core_.allocating_context)) {
+            try self.writer.print("&allocator_context", .{});
+        } else if (ctx.child().types_match(core_.io_context)) {
+            try self.writer.print("&io_context", .{});
+        }
+        if (i + 1 < contexts.len) {
+            try self.writer.print(", ", .{});
+        }
     }
 }

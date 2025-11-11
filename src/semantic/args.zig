@@ -330,3 +330,19 @@ pub fn validate_args_arity(
         return error.CompileError;
     }
 }
+
+pub fn validate_requested_contexts(contexts: []const *Type_AST, errors: *errs_.Errors) Validate_Error_Enum!void {
+    const core_ = @import("../hierarchy/core.zig");
+
+    for (contexts) |ctx| {
+        if (!ctx.child().types_match(core_.allocating_context) and
+            !ctx.child().types_match(core_.io_context))
+        {
+            errors.add_error(errs_.Error{ .basic = .{
+                .span = ctx.token().span,
+                .msg = "can't request this context",
+            } });
+            return error.CompileError;
+        }
+    }
+}

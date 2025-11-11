@@ -89,15 +89,8 @@ pub fn validate_symbol(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
 
     // Check that tests are requesting good contexts
     if (symbol.kind == .@"test") {
-        for (symbol.type().function.contexts.items) |ctx| {
-            if (!ctx.child().types_match(self.ctx.get_core_type("Allocating"))) {
-                self.ctx.errors.add_error(errs_.Error{ .basic = .{
-                    .span = ctx.token().span,
-                    .msg = "test can't request this context",
-                } });
-                return error.CompileError;
-            }
-        }
+        const args_ = @import("args.zig");
+        try args_.validate_requested_contexts(symbol.type().function.contexts.items, &self.ctx.errors);
     }
 
     // Symbol's name must be capitalized iff its type is Type

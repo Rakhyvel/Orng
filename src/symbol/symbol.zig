@@ -8,7 +8,7 @@ const Span = @import("../util/span.zig");
 const Token = @import("../lexer/token.zig");
 const Tree_Writer = @import("../ast/tree_writer.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
-const Monomorph_Map = @import("../ast/type_map.zig").Monomorph_Map;
+const Monomorph_Map = @import("../types/type_map.zig").Monomorph_Map;
 const unification_ = @import("../types/unification.zig");
 const validation_state_ = @import("../util/validation_state.zig");
 

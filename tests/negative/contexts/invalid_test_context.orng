@@ -1,4 +1,4 @@
-// invalid_test_context.orng:9:31: error: test can't request this context
+// invalid_test_context.orng:9:31: error: can't request this context
 // test "my test" with My_Context {
 //                              ^
 // 

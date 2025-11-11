@@ -63,6 +63,15 @@ pub const Type_AST = union(enum) {
         _rhs: *Type_AST,
         contexts: std.array_list.Managed(*Type_AST),
         variadic: bool = false,
+
+        pub fn contains_context(self: *@This(), context_type: *Type_AST) bool {
+            for (self.contexts.items) |ctx| {
+                if (context_type.types_match(ctx.child())) {
+                    return true;
+                }
+            }
+            return false;
+        }
     },
     annotation: struct {
         common: Type_AST_Common,

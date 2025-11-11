@@ -1,7 +1,7 @@
 const std = @import("std");
 const core_ = @import("../hierarchy/core.zig");
 const Module_Iterator = @import("../util/dfs.zig").Dfs_Iterator(*Module);
-const Dependency_Node = @import("../ast/dependency_node.zig");
+const Dependency_Node = @import("../types/dependency_node.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const Interned_String_Set = @import("../ir/interned_string_set.zig");
@@ -11,7 +11,8 @@ const Source_Emitter = @import("source_emitter.zig");
 const Emitter = @import("emitter.zig");
 const Test_Emitter = @import("test_emitter.zig");
 const Typedef_Emitter = @import("typedef_emitter.zig");
-const Type_Set = @import("../ast/type-set.zig");
+const Type_Map = @import("../types/type_map.zig").Type_Map;
+const Type_Set = @import("../types/type_set.zig");
 const Canonical_Type_Fmt = @import("../types/canonical_type_fmt.zig");
 
 /// Goes through each package and outputs a C/H file header pair for each module in each package.
@@ -182,6 +183,14 @@ fn output_start(
     );
     source_emitter.output_header_include() catch return error.CompileError;
     buf.print("#include <stdio.h>\n\n", .{}) catch return error.CompileError;
+
+    var contexts_used = Type_Map(void).init(allocator);
+    defer contexts_used.deinit();
+    for (module.cfgs.items) |@"test"| {
+        contexts_used.put_many(@"test".symbol.type().function.contexts.items, void{}) catch return error.CompileError;
+    }
+    source_emitter.emitter.output_context_includes(&contexts_used) catch return error.CompileError;
+
     source_emitter.output_main_function() catch return error.CompileError;
 
     start_file.writeAll(buf.items) catch unreachable;
@@ -215,18 +224,21 @@ fn output_testrunner(
         buf.print("#include \"{s}-{s}-tests.h\"\n", .{ module.package_name, module.name() }) catch unreachable;
     }
 
-    var any_require_context = false;
+    var mod_0_emitter = Emitter.init(&buf);
+
+    var contexts_used = Type_Map(void).init(allocator);
+    defer contexts_used.deinit();
     for (modules.items) |module| {
         for (module.tests.items) |@"test"| {
-            any_require_context = @"test".symbol.type().function.contexts.items.len > 0 or any_require_context;
+            contexts_used.put_many(@"test".symbol.type().function.contexts.items, void{}) catch return error.CompileError;
         }
     }
+    mod_0_emitter.output_context_includes(&contexts_used) catch return error.CompileError;
 
     buf.print(
         \\
         \\typedef 
     , .{}) catch return error.CompileError;
-    var mod_0_emitter = Emitter.init(&buf);
     mod_0_emitter.output_type(core_.test_result_type) catch return error.CompileError;
     buf.print(
         \\ test_result;
@@ -243,13 +255,7 @@ fn output_testrunner(
         \\    int failed_tests = 0;
         \\    
     , .{}) catch return error.CompileError;
-    if (any_require_context) {
-        mod_0_emitter.output_type(core_.allocating_context) catch return error.CompileError;
-        buf.print(
-            \\ allocator_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &std__mem_2__vtable}}}};
-            \\
-        , .{}) catch return error.CompileError;
-    }
+    mod_0_emitter.output_context_defs(&contexts_used) catch return error.CompileError;
     buf.print(
         \\    if (argc >= 2)
         \\    {{
@@ -265,7 +271,6 @@ fn output_testrunner(
         for (module.tests.items) |@"test"| {
             const test_filename = @"test".symbol.scope.module.?.name();
             const test_name = @"test".symbol.decl.?.@"test".name.?.string.data;
-            const requires_context = @"test".symbol.type().function.contexts.items.len > 0;
 
             buf.print(
                 \\    if (substr == NULL || strstr("{1s}", substr))
@@ -283,17 +288,9 @@ fn output_testrunner(
                 \\        res = 
             , .{ test_filename, test_name }) catch return error.CompileError;
             emitter.output_symbol(@"test".symbol) catch return error.CompileError;
-            if (requires_context) {
-                buf.print(
-                    \\(&allocator_context);
-                    \\
-                , .{}) catch return error.CompileError;
-            } else {
-                buf.print(
-                    \\();
-                    \\
-                , .{}) catch return error.CompileError;
-            }
+            buf.print("(", .{}) catch return error.CompileError;
+            emitter.output_context_args(@"test".symbol.type().function.contexts.items) catch return error.CompileError;
+            buf.print(");\n", .{}) catch return error.CompileError;
             buf.print(
                 \\        if (res.tag == 0)
                 \\        {{

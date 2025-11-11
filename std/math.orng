@@ -1,4 +1,4 @@
-cinclude "math.h"
+cinclude "../math.h"
 
 import testing
 
