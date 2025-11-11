@@ -1,18 +1,6 @@
 import debug
 import ffi
 
-struct Lol {}
-impl core::Writer for Lol {
-    virtual fn write(&mut self, bytes: String) {
-        _ = (bytes, self)
-    }
-}
-impl core::Reader for Lol {
-    virtual fn read(&mut self, writer: &mut dyn core::Writer) {
-        _ = (self, writer)
-    }
-}
-
 fn new[T]() -> ()!&mut T with core::Allocating {
     match core::Allocating.alloc.>alloc(@sizeof(T)) {
         .some(bytes) => ffi::ref_from_ptr_mut[T](bytes as [*mut]T)

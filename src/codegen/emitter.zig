@@ -207,13 +207,13 @@ pub fn output_context_defs(self: *Self, contexts_used: *Type_Map(void)) CodeGen_
         if (ctx.types_match(core_.allocating_context)) {
             try self.output_type(core_.allocating_context);
             try self.writer.print(
-                \\ allocator_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &orange__core__allocator_vtable}}}};
+                \\ allocator_context = {{._0 = {{.data_ptr = NULL, .vtable = &orange__core__allocator_vtable}}}};
                 \\    
             , .{});
         } else if (ctx.types_match(core_.io_context)) {
             try self.output_type(core_.io_context);
             try self.writer.print(
-                \\ io_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &orange__core__writer_vtable}}, ._1 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &orange__core__reader_vtable}}}};
+                \\ io_context = {{._0 = {{.data_ptr = NULL, .vtable = &orange__core__writer_vtable}}, ._1 = {{.data_ptr = NULL, .vtable = &orange__core__reader_vtable}}}};
                 \\    
             , .{});
         } else {
