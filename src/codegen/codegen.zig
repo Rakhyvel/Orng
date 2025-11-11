@@ -183,19 +183,12 @@ fn output_start(
     source_emitter.output_header_include() catch return error.CompileError;
     buf.print("#include <stdio.h>\n\n", .{}) catch return error.CompileError;
 
-    var any_require_allocator_context = false;
-    var any_require_io_context = false;
+    var contexts_used = Type_Set.init(allocator);
+    defer contexts_used.deinit();
     for (module.cfgs.items) |@"test"| {
-        any_require_allocator_context = @"test".symbol.type().function.contains_context(core_.allocating_context) or any_require_allocator_context;
-        any_require_io_context = @"test".symbol.type().function.contains_context(core_.io_context) or any_require_io_context;
+        contexts_used.add_types(@"test".symbol.type().function.contexts.items);
     }
-
-    if (any_require_allocator_context) {
-        buf.print("#include \"alloc.inc\"\n", .{}) catch unreachable;
-    }
-    if (any_require_io_context) {
-        buf.print("#include \"io.inc\"\n", .{}) catch unreachable;
-    }
+    source_emitter.emitter.output_context_includes(&contexts_used) catch return error.CompileError;
 
     source_emitter.output_main_function() catch return error.CompileError;
 
@@ -230,27 +223,21 @@ fn output_testrunner(
         buf.print("#include \"{s}-{s}-tests.h\"\n", .{ module.package_name, module.name() }) catch unreachable;
     }
 
-    var any_require_allocator_context = false;
-    var any_require_io_context = false;
+    var mod_0_emitter = Emitter.init(&buf);
+
+    var contexts_used = Type_Set.init(allocator);
+    defer contexts_used.deinit();
     for (modules.items) |module| {
         for (module.tests.items) |@"test"| {
-            any_require_allocator_context = @"test".symbol.type().function.contains_context(core_.allocating_context) or any_require_allocator_context;
-            any_require_io_context = @"test".symbol.type().function.contains_context(core_.io_context) or any_require_io_context;
+            contexts_used.add_types(@"test".symbol.type().function.contexts.items);
         }
     }
-
-    if (any_require_allocator_context) {
-        buf.print("#include \"alloc.inc\"\n", .{}) catch unreachable;
-    }
-    if (any_require_io_context) {
-        buf.print("#include \"io.inc\"\n", .{}) catch unreachable;
-    }
+    mod_0_emitter.output_context_includes(&contexts_used) catch return error.CompileError;
 
     buf.print(
         \\
         \\typedef 
     , .{}) catch return error.CompileError;
-    var mod_0_emitter = Emitter.init(&buf);
     mod_0_emitter.output_type(core_.test_result_type) catch return error.CompileError;
     buf.print(
         \\ test_result;
@@ -267,20 +254,7 @@ fn output_testrunner(
         \\    int failed_tests = 0;
         \\    
     , .{}) catch return error.CompileError;
-    if (any_require_allocator_context) {
-        mod_0_emitter.output_type(core_.allocating_context) catch return error.CompileError;
-        buf.print(
-            \\ allocator_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &orange__core__allocator_vtable}}}};
-            \\
-        , .{}) catch return error.CompileError;
-    }
-    if (any_require_io_context) {
-        mod_0_emitter.output_type(core_.io_context) catch return error.CompileError;
-        buf.print(
-            \\ io_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &orange__core__writer_vtable}}, ._1 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &orange__core__reader_vtable}}}};
-            \\
-        , .{}) catch return error.CompileError;
-    }
+    mod_0_emitter.output_context_defs(&contexts_used) catch return error.CompileError;
     buf.print(
         \\    if (argc >= 2)
         \\    {{

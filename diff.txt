@@ -1,0 +1,592 @@
+diff --git a/examples/main.orng b/examples/main.orng
+index c780de0c..8c471a36 100644
+--- a/examples/main.orng
++++ b/examples/main.orng
+@@ -3,11 +3,28 @@ import std::ffi
+ import std::testing
+ import std::mem
+ import std::list
++import std::string_buffer::String_Buffer
+ import externs
+ 
+-fn main() with core::Allocating {
+-    debug::println("Hello, World!")
+-    externs::println("Hello, World f!")
++fn main() with (core::IO, core::Allocating) {
++    let mut name_buf = String_Buffer::init()
++    defer name_buf.>deinit()
++
++    core::IO.writer.>write("What is your name?\n")
++    core::IO.reader.>read(&mut name_buf)
++    core::IO.writer.>write("Hello, ")
++    core::IO.writer.>write(name_buf.>str())
++    core::IO.writer.>write("!\n")
++}
++
++test "can print" with core::IO {
++    core::IO.writer.>write("Yeah, I'm printing!\n")
++    .ok
++}
++
++test "can print" with (core::IO, core::Allocating) {
++    core::IO.writer.>write("IO then Allocating!\n")
++    .ok
+ }
+ 
+ test "allocator works" with core::Allocating {
+diff --git a/src/codegen/codegen.zig b/src/codegen/codegen.zig
+index 052e6264..b284e5ff 100644
+--- a/src/codegen/codegen.zig
++++ b/src/codegen/codegen.zig
+@@ -182,6 +182,21 @@ fn output_start(
+     );
+     source_emitter.output_header_include() catch return error.CompileError;
+     buf.print("#include <stdio.h>\n\n", .{}) catch return error.CompileError;
++
++    var any_require_allocator_context = false;
++    var any_require_io_context = false;
++    for (module.cfgs.items) |@"test"| {
++        any_require_allocator_context = @"test".symbol.type().function.contains_context(core_.allocating_context) or any_require_allocator_context;
++        any_require_io_context = @"test".symbol.type().function.contains_context(core_.io_context) or any_require_io_context;
++    }
++
++    if (any_require_allocator_context) {
++        buf.print("#include \"alloc.inc\"\n", .{}) catch unreachable;
++    }
++    if (any_require_io_context) {
++        buf.print("#include \"io.inc\"\n", .{}) catch unreachable;
++    }
++
+     source_emitter.output_main_function() catch return error.CompileError;
+ 
+     start_file.writeAll(buf.items) catch unreachable;
+@@ -215,13 +230,22 @@ fn output_testrunner(
+         buf.print("#include \"{s}-{s}-tests.h\"\n", .{ module.package_name, module.name() }) catch unreachable;
+     }
+ 
+-    var any_require_context = false;
++    var any_require_allocator_context = false;
++    var any_require_io_context = false;
+     for (modules.items) |module| {
+         for (module.tests.items) |@"test"| {
+-            any_require_context = @"test".symbol.type().function.contexts.items.len > 0 or any_require_context;
++            any_require_allocator_context = @"test".symbol.type().function.contains_context(core_.allocating_context) or any_require_allocator_context;
++            any_require_io_context = @"test".symbol.type().function.contains_context(core_.io_context) or any_require_io_context;
+         }
+     }
+ 
++    if (any_require_allocator_context) {
++        buf.print("#include \"alloc.inc\"\n", .{}) catch unreachable;
++    }
++    if (any_require_io_context) {
++        buf.print("#include \"io.inc\"\n", .{}) catch unreachable;
++    }
++
+     buf.print(
+         \\
+         \\typedef 
+@@ -243,10 +267,17 @@ fn output_testrunner(
+         \\    int failed_tests = 0;
+         \\    
+     , .{}) catch return error.CompileError;
+-    if (any_require_context) {
++    if (any_require_allocator_context) {
+         mod_0_emitter.output_type(core_.allocating_context) catch return error.CompileError;
+         buf.print(
+-            \\ allocator_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &std__mem_2__vtable}}}};
++            \\ allocator_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &orange__core__allocator_vtable}}}};
++            \\
++        , .{}) catch return error.CompileError;
++    }
++    if (any_require_io_context) {
++        mod_0_emitter.output_type(core_.io_context) catch return error.CompileError;
++        buf.print(
++            \\ io_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &orange__core__writer_vtable}}, ._1 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &orange__core__reader_vtable}}}};
+             \\
+         , .{}) catch return error.CompileError;
+     }
+@@ -265,7 +296,6 @@ fn output_testrunner(
+         for (module.tests.items) |@"test"| {
+             const test_filename = @"test".symbol.scope.module.?.name();
+             const test_name = @"test".symbol.decl.?.@"test".name.?.string.data;
+-            const requires_context = @"test".symbol.type().function.contexts.items.len > 0;
+ 
+             buf.print(
+                 \\    if (substr == NULL || strstr("{1s}", substr))
+@@ -283,17 +313,19 @@ fn output_testrunner(
+                 \\        res = 
+             , .{ test_filename, test_name }) catch return error.CompileError;
+             emitter.output_symbol(@"test".symbol) catch return error.CompileError;
+-            if (requires_context) {
+-                buf.print(
+-                    \\(&allocator_context);
+-                    \\
+-                , .{}) catch return error.CompileError;
+-            } else {
+-                buf.print(
+-                    \\();
+-                    \\
+-                , .{}) catch return error.CompileError;
++            buf.print("(", .{}) catch return error.CompileError;
++            for (@"test".symbol.type().function.contexts.items, 0..) |ctx, i| {
++                std.debug.assert(ctx.* == .addr_of);
++                if (ctx.child().types_match(core_.allocating_context)) {
++                    buf.print("&allocator_context", .{}) catch return error.CompileError;
++                } else if (ctx.child().types_match(core_.io_context)) {
++                    buf.print("&io_context", .{}) catch return error.CompileError;
++                }
++                if (i + 1 < @"test".symbol.type().function.contexts.items.len) {
++                    buf.print(", ", .{}) catch return error.CompileError;
++                }
+             }
++            buf.print(");\n", .{}) catch return error.CompileError;
+             buf.print(
+                 \\        if (res.tag == 0)
+                 \\        {{
+diff --git a/src/codegen/inc/alloc.inc b/src/codegen/inc/alloc.inc
+new file mode 100644
+index 00000000..71383234
+--- /dev/null
++++ b/src/codegen/inc/alloc.inc
+@@ -0,0 +1,47 @@
++// root allocator context implementation
++// Copyright (c) 2023-2025, Joseph Shimel and contributors.
++
++#ifndef ORANGE_CORE_ALLOC_INC
++#define ORANGE_CORE_ALLOC_INC
++
++static inline struct orange_type_F4C9DA480E915B59 orange__core__alloc(void *self, int64_t nbytes)
++{
++    (void)self;
++    void *retval = malloc(nbytes);
++    if (retval)
++    {
++        return (struct orange_type_F4C9DA480E915B59){.tag = 0, ._0 = retval};
++    }
++    else
++    {
++        return (struct orange_type_F4C9DA480E915B59){.tag = 1};
++    }
++}
++
++static inline struct orange_type_F4C9DA480E915B59 orange__core__realloc(void *self, uint8_t *allocation, int64_t newsize)
++{
++    (void)self;
++    void *retval = realloc(allocation, newsize);
++    if (retval)
++    {
++        return (struct orange_type_F4C9DA480E915B59){.tag = 0, ._0 = retval};
++    }
++    else
++    {
++        return (struct orange_type_F4C9DA480E915B59){.tag = 1};
++    }
++}
++
++static inline void orange__core__free(void *self, uint8_t *allocation)
++{
++    (void)self;
++    (void)free(allocation);
++}
++
++const struct vtable_core__core__0_Allocator orange__core__allocator_vtable = {
++    .alloc = orange__core__alloc,
++    .realloc = orange__core__realloc,
++    .free = orange__core__free,
++};
++
++#endif
+diff --git a/std/debug.inc b/src/codegen/inc/debug.inc
+similarity index 99%
+rename from std/debug.inc
+rename to src/codegen/inc/debug.inc
+index 19097da3..d5c3a824 100644
+--- a/std/debug.inc
++++ b/src/codegen/inc/debug.inc
+@@ -1,8 +1,8 @@
+ // debug utilities made use by the Orange compiler when in debug mode
+ // Copyright (c) 2023-2025, Joseph Shimel and contributors.
+ 
+-#ifndef _STD_DEBUG_INC
+-#define _STD_DEBUG_INC
++#ifndef ORANGE_CORE_DEBUG_INC
++#define ORANGE_CORE_DEBUG_INC
+ 
+ #include <stdnoreturn.h>
+ 
+diff --git a/src/codegen/inc/io.inc b/src/codegen/inc/io.inc
+new file mode 100644
+index 00000000..b253e230
+--- /dev/null
++++ b/src/codegen/inc/io.inc
+@@ -0,0 +1,45 @@
++// console input/output implementation
++// Copyright (c) 2023-2025, Joseph Shimel and contributors.
++
++#ifndef ORANGE_CORE_IO_INC
++#define ORANGE_CORE_IO_INC
++
++#include <stdio.h>
++
++static inline void orange__core__write(void *self, struct orange_type_73877515D86B0F5 bytes)
++{
++    (void)self;
++
++    if (bytes._0 != NULL && bytes._1 > 0)
++    {
++        fwrite(bytes._0, 1, bytes._1, stdout);
++        fflush(stdout);
++    }
++}
++
++static inline void orange__core__read(void *self, struct orange_type_384D608F76C1F2D2 /*&mut dyn identifier("core")::Writer*/ writer)
++{
++    (void)self;
++    unsigned char buffer[1024];
++
++    while (1)
++    {
++        size_t n = fread(buffer, 1, sizeof(buffer), stdin);
++        if (n == 0)
++        {
++            break;
++        }
++        struct orange_type_73877515D86B0F5 slice = {._0 = buffer, ._1 = n};
++        writer.vtable->write(writer.data_ptr, slice);
++    }
++}
++
++const struct vtable_core__core__0_Writer orange__core__writer_vtable = {
++    .write = orange__core__write,
++};
++
++const struct vtable_core__core__0_Reader orange__core__reader_vtable = {
++    .read = orange__core__read,
++};
++
++#endif
+diff --git a/src/codegen/source_emitter.zig b/src/codegen/source_emitter.zig
+index b0732291..7054ff78 100644
+--- a/src/codegen/source_emitter.zig
++++ b/src/codegen/source_emitter.zig
+@@ -200,11 +200,19 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
+     , .{});
+ 
+     // TOOD: This won't fly in a standalone context
+-    const requires_context = symbol.type().function.contexts.items.len > 0;
+-    if (requires_context) {
++    const requires_allocating_context = symbol.type().function.contains_context(core_.allocating_context);
++    const requires_io_context = symbol.type().function.contains_context(core_.io_context);
++    if (requires_allocating_context) {
+         try self.emitter.output_type(core_.allocating_context);
+         try self.writer.print(
+-            \\ allocator_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &std__mem_2__vtable}}}};
++            \\ allocator_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &orange__core__allocator_vtable}}}};
++            \\    
++        , .{});
++    }
++    if (requires_io_context) {
++        try self.emitter.output_type(core_.io_context);
++        try self.writer.print(
++            \\ io_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &orange__core__writer_vtable}}, ._1 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &orange__core__reader_vtable}}}};
+             \\    
+         , .{});
+     }
+@@ -219,17 +227,19 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
+             try self.writer.print("   retcode = ", .{});
+         }
+         try self.emitter.output_symbol(symbol);
+-        if (requires_context) {
+-            try self.writer.print(
+-                \\(&allocator_context);
+-                \\
+-            , .{});
+-        } else {
+-            try self.writer.print(
+-                \\();
+-                \\
+-            , .{});
++        try self.writer.print("(", .{});
++        for (symbol.type().function.contexts.items, 0..) |ctx, i| {
++            std.debug.assert(ctx.* == .addr_of);
++            if (ctx.child().types_match(core_.allocating_context)) {
++                try self.writer.print("&allocator_context", .{});
++            } else if (ctx.child().types_match(core_.io_context)) {
++                try self.writer.print("&io_context", .{});
++            }
++            if (i + 1 < symbol.type().function.contexts.items.len) {
++                try self.writer.print(", ", .{});
++            }
+         }
++        try self.writer.print(");\n", .{});
+     }
+ 
+     if (codomain.* == .enum_type and codomain.enum_type.from == .@"error") {
+diff --git a/src/hierarchy/compiler.zig b/src/hierarchy/compiler.zig
+index 372bcc4c..462dc316 100644
+--- a/src/hierarchy/compiler.zig
++++ b/src/hierarchy/compiler.zig
+@@ -11,6 +11,7 @@ const Package_Iterator = @import("../util/dfs.zig").Dfs_Iterator(Package_Iterato
+ const Package_Iterator_Node = @import("../hierarchy/package.zig").Package_Iterator_Node;
+ const poison_ = @import("../ast/poison.zig");
+ const prelude_ = @import("../hierarchy/prelude.zig");
++const repo_ = @import("../util/repo.zig");
+ const Symbol = @import("../symbol/symbol.zig");
+ const Scope = @import("../symbol/scope.zig");
+ const Type_AST = @import("../types/type.zig").Type_AST;
+@@ -65,6 +66,8 @@ pub fn init(stderr: ?std.fs.File, alloc: std.mem.Allocator) Error!*Self {
+     var retval: *Self = alloc.create(Self) catch unreachable;
+     retval.arena = std.heap.ArenaAllocator.init(alloc);
+ 
++    repo_.ensure_inc_dir_exists(retval.allocator());
++
+     poison_.init_structures(retval.allocator());
+     retval.errors = errs_.Errors.init(retval.allocator());
+     retval.module_interned_strings = std.AutoArrayHashMap(u32, *Interned_String_Set).init(retval.allocator());
+diff --git a/src/hierarchy/core.orng b/src/hierarchy/core.orng
+index 081ac13f..55155f76 100644
+--- a/src/hierarchy/core.orng
++++ b/src/hierarchy/core.orng
+@@ -135,7 +135,7 @@ trait Writer {
+ }
+ 
+ trait Reader {
+-    virtual fn read(&mut self) -> [mut]Byte
++    virtual fn read(&mut self, writer: &mut dyn Writer)
+ }
+ 
+ trait Format {
+@@ -145,3 +145,8 @@ trait Format {
+ context Allocating {
+     alloc: &mut dyn Allocator
+ }
++
++context IO {
++    writer: &mut dyn Writer
++    reader: &mut dyn Reader
++}
+diff --git a/src/hierarchy/core.zig b/src/hierarchy/core.zig
+index 51d909a6..f44686e7 100644
+--- a/src/hierarchy/core.zig
++++ b/src/hierarchy/core.zig
+@@ -20,6 +20,7 @@ pub var package_source_type: *Type_AST = undefined;
+ pub var test_result_type: *Type_AST = undefined;
+ pub var test_type: *Type_AST = undefined;
+ pub var allocating_context: *Type_AST = undefined;
++pub var io_context: *Type_AST = undefined;
+ 
+ var core: ?*Scope = null;
+ pub var core_symbol: ?*Symbol = null;
+@@ -90,6 +91,7 @@ fn create_core(compiler: *Compiler_Context) !void {
+         compiler.allocator(),
+     );
+     allocating_context = module_scope.lookup("Allocating", .{}).found.init_typedef().?;
++    io_context = module_scope.lookup("IO", .{}).found.init_typedef().?;
+ 
+     _ = module_scope.lookup("Requirement", .{}).found.init_typedef().?;
+ }
+diff --git a/src/hierarchy/module.zig b/src/hierarchy/module.zig
+index ac981502..ad747990 100644
+--- a/src/hierarchy/module.zig
++++ b/src/hierarchy/module.zig
+@@ -259,7 +259,9 @@ pub const Module = struct {
+ 
+                 // Check for entry context requirements
+                 for (cfg.symbol.type().function.contexts.items) |ctx| {
+-                    if (!ctx.child().types_match(compiler.get_core_type("Allocating"))) {
++                    if (!ctx.child().types_match(compiler.get_core_type("Allocating")) and
++                        !ctx.child().types_match(compiler.get_core_type("IO")))
++                    {
+                         compiler.errors.add_error(errs_.Error{ .basic = .{
+                             .span = ctx.token().span,
+                             .msg = "entry point can't request this context",
+diff --git a/src/hierarchy/package.zig b/src/hierarchy/package.zig
+index 6dccddb0..13235ab1 100644
+--- a/src/hierarchy/package.zig
++++ b/src/hierarchy/package.zig
+@@ -3,6 +3,7 @@ const Module = @import("../hierarchy/module.zig").Module;
+ const CFG = @import("../ir/cfg.zig");
+ const Compiler_Context = @import("compiler.zig");
+ const Symbol = @import("../symbol/symbol.zig");
++const repo_ = @import("../util/repo.zig");
+ const Module_Hash = @import("module_hash.zig");
+ const Type_Set = @import("../ast/type-set.zig");
+ 
+@@ -402,9 +403,9 @@ fn construct_obj_cc_cmd(
+     cc_cmd.append("-o") catch unreachable;
+     cc_cmd.append(o_file) catch unreachable;
+ 
+-    const std_path = env_map.get("ORNG_STD_PATH").?;
++    const inc_path = repo_.get_inc_dir(allocator);
+     var std_include_path = std.array_list.Managed(u8).init(allocator);
+-    std_include_path.print("-I{s}", .{std_path}) catch unreachable;
++    std_include_path.print("-I{s}", .{inc_path}) catch unreachable;
+ 
+     // Add basic flags
+     cc_cmd.appendSlice(&[_][]const u8{
+diff --git a/src/semantic/symbol_validate.zig b/src/semantic/symbol_validate.zig
+index 2d13aa26..1e65a957 100644
+--- a/src/semantic/symbol_validate.zig
++++ b/src/semantic/symbol_validate.zig
+@@ -90,7 +90,9 @@ pub fn validate_symbol(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
+     // Check that tests are requesting good contexts
+     if (symbol.kind == .@"test") {
+         for (symbol.type().function.contexts.items) |ctx| {
+-            if (!ctx.child().types_match(self.ctx.get_core_type("Allocating"))) {
++            if (!ctx.child().types_match(self.ctx.get_core_type("Allocating")) and
++                !ctx.child().types_match(self.ctx.get_core_type("IO")))
++            {
+                 self.ctx.errors.add_error(errs_.Error{ .basic = .{
+                     .span = ctx.token().span,
+                     .msg = "test can't request this context",
+diff --git a/src/types/type.zig b/src/types/type.zig
+index 576e3553..bbe810f4 100644
+--- a/src/types/type.zig
++++ b/src/types/type.zig
+@@ -63,6 +63,15 @@ pub const Type_AST = union(enum) {
+         _rhs: *Type_AST,
+         contexts: std.array_list.Managed(*Type_AST),
+         variadic: bool = false,
++
++        pub fn contains_context(self: *@This(), context_type: *Type_AST) bool {
++            for (self.contexts.items) |ctx| {
++                if (context_type.types_match(ctx.child())) {
++                    return true;
++                }
++            }
++            return false;
++        }
+     },
+     annotation: struct {
+         common: Type_AST_Common,
+diff --git a/src/util/repo.zig b/src/util/repo.zig
+index b4bf5361..0d4a8175 100644
+--- a/src/util/repo.zig
++++ b/src/util/repo.zig
+@@ -61,6 +61,41 @@ pub fn ensure_packages_dir_exists(allocator: std.mem.Allocator) void {
+     };
+ }
+ 
++pub fn ensure_inc_dir_exists(allocator: std.mem.Allocator) void {
++    const orng_dir = get_orng_dir(allocator);
++    defer allocator.free(orng_dir);
++    _ = std.fs.Dir.openDir(std.fs.cwd(), orng_dir, .{}) catch {
++        std.fs.makeDirAbsolute(orng_dir) catch unreachable;
++    };
++    const inc_dir = get_inc_dir(allocator);
++    defer allocator.free(inc_dir);
++    _ = std.fs.Dir.openDir(std.fs.cwd(), inc_dir, .{}) catch {
++        std.fs.makeDirAbsolute(inc_dir) catch unreachable;
++    };
++
++    // TODO: Would be real nice if this could be constructed at comptime
++    const filenames = [_][]const u8{
++        "alloc.inc",
++        "debug.inc",
++        "io.inc",
++    };
++
++    inline for (filenames) |filename| {
++        const inc_dest_file_paths = [_][]const u8{ inc_dir, filename };
++        const inc_dest_file_path = std.fs.path.join(allocator, &inc_dest_file_paths) catch unreachable;
++        _ = if (std.fs.openFileAbsolute(inc_dest_file_path, .{})) |_| {} else |err| {
++            switch (err) {
++                error.FileNotFound => {
++                    var file = std.fs.createFileAbsolute(inc_dest_file_path, .{}) catch unreachable;
++                    defer file.close();
++                    _ = file.write(@embedFile("../codegen/inc/" ++ filename)) catch unreachable;
++                },
++                else => std.debug.panic("whoa: {}", .{err}),
++            }
++        };
++    }
++}
++
+ pub fn get_orng_dir(allocator: std.mem.Allocator) []const u8 {
+     var env_map = std.process.getEnvMap(allocator) catch unreachable;
+     defer env_map.deinit();
+@@ -76,6 +111,13 @@ pub fn get_packages_dir(allocator: std.mem.Allocator) []const u8 {
+     return std.fs.path.join(allocator, &root_file_paths) catch unreachable;
+ }
+ 
++pub fn get_inc_dir(allocator: std.mem.Allocator) []const u8 {
++    const orng_dir = get_orng_dir(allocator);
++    defer allocator.free(orng_dir);
++    const root_file_paths = [_][]const u8{ orng_dir, "inc" };
++    return std.fs.path.join(allocator, &root_file_paths) catch unreachable;
++}
++
+ pub fn get_repo_dir(repo_url: []const u8, allocator: std.mem.Allocator) []const u8 {
+     const repo_dir = get_packages_dir(allocator);
+     var dirs = std.array_list.Managed([]const u8).init(allocator);
+diff --git a/std/ffi.orng b/std/ffi.orng
+index 502fa49c..e427393b 100644
+--- a/std/ffi.orng
++++ b/std/ffi.orng
+@@ -1,4 +1,4 @@
+-cinclude "ffi.h"
++cinclude "../ffi.h"
+ 
+ fn ref_from_ptr_mut[T](ptr: [*mut]T) -> ()!&mut T {
+     extern const ptr_is_null: [*mut]T -> Bool
+diff --git a/std/math.orng b/std/math.orng
+index d80cc2fc..26a85aef 100644
+--- a/std/math.orng
++++ b/std/math.orng
+@@ -1,4 +1,4 @@
+-cinclude "math.h"
++cinclude "../math.h"
+ 
+ import testing
+ 
+diff --git a/std/mem.orng b/std/mem.orng
+index f3798ca8..d5cf20bd 100644
+--- a/std/mem.orng
++++ b/std/mem.orng
+@@ -1,38 +1,15 @@
+ import debug
+ import ffi
+ 
+-struct Heap_Allocator {}
+-impl core::Allocator for Heap_Allocator {
+-    virtual fn alloc(&mut self, nbytes: Int) -> ?[*mut]Byte {
+-        _ = self
+-        extern const malloc: Int -> [*mut]Byte
+-        extern const ptr_is_null: [*mut]Byte -> Bool
+-
+-        let bytes = malloc(nbytes)
+-        if ptr_is_null(bytes) {
+-            .none
+-        } else {
+-            .some(bytes)
+-        }
++struct Lol {}
++impl core::Writer for Lol {
++    virtual fn write(&mut self, bytes: String) {
++        _ = (bytes, self)
+     }
+-
+-    virtual fn realloc(&mut self, allocation: [*mut]Byte, newsize: Int) -> ?[*mut]Byte {
+-        _ = self
+-        extern("realloc") const c_realloc: ([*]Byte, Int) -> [*mut]Byte
+-        extern const ptr_is_null: [*mut]Byte -> Bool
+-
+-        let bytes = c_realloc(allocation, newsize)
+-        if ptr_is_null(bytes) {
+-            .none
+-        } else {
+-            .some(bytes)
+-        }
+-    }
+-
+-    virtual fn free(&mut self, allocation: [*mut]Byte) {
+-        _ = self
+-        extern("free") const c_free: [*]Byte -> ()
+-        c_free(allocation)
++}
++impl core::Reader for Lol {
++    virtual fn read(&mut self, writer: &mut dyn core::Writer) {
++        _ = (self, writer)
+     }
+ }
+ 

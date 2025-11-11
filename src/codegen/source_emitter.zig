@@ -14,6 +14,7 @@ const prelude_ = @import("../hierarchy/prelude.zig");
 const module_ = @import("../hierarchy/module.zig");
 const Span = @import("../util/span.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
+const Type_Set = @import("../ast/type-set.zig"); // TODO: Move to types
 const Symbol = @import("../symbol/symbol.zig");
 
 const Self = @This();
@@ -199,23 +200,10 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
         \\    
     , .{});
 
-    // TOOD: This won't fly in a standalone context
-    const requires_allocating_context = symbol.type().function.contains_context(core_.allocating_context);
-    const requires_io_context = symbol.type().function.contains_context(core_.io_context);
-    if (requires_allocating_context) {
-        try self.emitter.output_type(core_.allocating_context);
-        try self.writer.print(
-            \\ allocator_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &orange__core__allocator_vtable}}}};
-            \\    
-        , .{});
-    }
-    if (requires_io_context) {
-        try self.emitter.output_type(core_.io_context);
-        try self.writer.print(
-            \\ io_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &orange__core__writer_vtable}}, ._1 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &orange__core__reader_vtable}}}};
-            \\    
-        , .{});
-    }
+    var contexts_used = Type_Set.init(std.heap.page_allocator);
+    defer contexts_used.deinit();
+    contexts_used.add_types(symbol.type().function.contexts.items);
+    try self.emitter.output_context_defs(&contexts_used);
 
     if (specifier != null) {
         try self.writer.print("printf(\"%{s}{s}\", ", .{ if (codomain.sizeof() == 8) "l" else "", specifier.? });

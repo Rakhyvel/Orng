@@ -1,6 +1,10 @@
 const std = @import("std");
 const Type_AST = @import("../types/type.zig").Type_AST;
 
+pub fn Type_Map(comptime Value: type) type {
+    return Linear_Map(*Type_AST, Value, Type_AST.types_match);
+}
+
 /// A type map using C type equivelence
 pub fn C_Type_Map(comptime Value: type) type {
     return Linear_Map(*Type_AST, Value, Type_AST.c_types_match);
