@@ -66,6 +66,13 @@ pub fn Linear_Map(comptime Key: type, comptime Value: type, comptime eq: fn (Key
 
             try self.pairs.append(.{ .key = key, .value = value });
         }
+
+        /// Adds many keys to the same value
+        pub fn put_many(self: *Self, keys: []const Key, value: Value) !void {
+            for (keys) |key| {
+                try self.put(key, value);
+            }
+        }
     };
 }
 

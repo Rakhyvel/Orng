@@ -6,8 +6,8 @@ const CFG = @import("../ir/cfg.zig");
 const Emitter = @import("emitter.zig");
 const module_ = @import("../hierarchy/module.zig");
 const String = @import("../zig-string/zig-string.zig").String;
-const Type_Set = @import("../ast/type-set.zig");
-const Dependency_Node = @import("../ast/dependency_node.zig");
+const Type_Set = @import("../types/type_set.zig");
+const Dependency_Node = @import("../types/dependency_node.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
 const Canonical_Type_Fmt = @import("../types/canonical_type_fmt.zig");
 

@@ -4,8 +4,8 @@ const CFG = @import("../ir/cfg.zig");
 const core_ = @import("../hierarchy/core.zig");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
-const Type_Map = @import("../ast/type_map.zig").Type_Map; // TODO: Move to types
-const Type_Set = @import("../ast/type-set.zig"); // TODO: Move to types
+const Type_Map = @import("../types/type_map.zig").Type_Map; // TODO: Move to types
+const Type_Set = @import("../types/type_set.zig"); // TODO: Move to types
 const Symbol = @import("../symbol/symbol.zig");
 const Canonical_Type_Fmt = @import("../types/canonical_type_fmt.zig");
 
@@ -189,34 +189,36 @@ pub fn output_symbol(self: *Self, symbol: *Symbol) CodeGen_Error!void {
     }
 }
 
-pub fn output_context_includes(self: *Self, contexts_used: *Type_Set) CodeGen_Error!void {
-    for (contexts_used.types.items) |dep| {
-        if (dep.base.types_match(core_.allocating_context)) {
+pub fn output_context_includes(self: *Self, contexts_used: *Type_Map(void)) CodeGen_Error!void {
+    for (contexts_used.pairs.items) |pair| {
+        const ctx = pair.key.child();
+        if (ctx.types_match(core_.allocating_context)) {
             try self.writer.print("#include \"alloc.inc\"\n", .{});
-        } else if (dep.base.types_match(core_.io_context)) {
+        } else if (ctx.types_match(core_.io_context)) {
             try self.writer.print("#include \"io.inc\"\n", .{});
         } else {
-            std.debug.panic("compiler error: received unexpected context: {f}", .{dep.base});
+            std.debug.panic("compiler error: received unexpected context: {f}", .{ctx});
         }
     }
 }
 
-pub fn output_context_defs(self: *Self, contexts_used: *Type_Set) CodeGen_Error!void {
-    for (contexts_used.types.items) |dep| {
-        if (dep.base.types_match(core_.allocating_context)) {
+pub fn output_context_defs(self: *Self, contexts_used: *Type_Map(void)) CodeGen_Error!void {
+    for (contexts_used.pairs.items) |pair| {
+        const ctx = pair.key.child();
+        if (ctx.types_match(core_.allocating_context)) {
             try self.output_type(core_.allocating_context);
             try self.writer.print(
                 \\ allocator_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &orange__core__allocator_vtable}}}};
                 \\    
             , .{});
-        } else if (dep.base.types_match(core_.io_context)) {
+        } else if (ctx.types_match(core_.io_context)) {
             try self.output_type(core_.io_context);
             try self.writer.print(
                 \\ io_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &orange__core__writer_vtable}}, ._1 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &orange__core__reader_vtable}}}};
                 \\    
             , .{});
         } else {
-            std.debug.panic("compiler error: received unexpected context: {f}", .{dep.base});
+            std.debug.panic("compiler error: received unexpected context: {f}", .{ctx});
         }
     }
 }

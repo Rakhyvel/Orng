@@ -14,7 +14,7 @@ const prelude_ = @import("../hierarchy/prelude.zig");
 const module_ = @import("../hierarchy/module.zig");
 const Span = @import("../util/span.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
-const Type_Set = @import("../ast/type-set.zig"); // TODO: Move to types
+const Type_Map = @import("../types/type_map.zig").Type_Map;
 const Symbol = @import("../symbol/symbol.zig");
 
 const Self = @This();
@@ -200,9 +200,9 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
         \\    
     , .{});
 
-    var contexts_used = Type_Set.init(std.heap.page_allocator);
+    var contexts_used = Type_Map(void).init(std.heap.page_allocator);
     defer contexts_used.deinit();
-    contexts_used.add_types(symbol.type().function.contexts.items);
+    try contexts_used.put_many(symbol.type().function.contexts.items, void{});
     try self.emitter.output_context_defs(&contexts_used);
 
     if (specifier != null) {

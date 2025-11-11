@@ -1,7 +1,7 @@
 const std = @import("std");
 const core_ = @import("../hierarchy/core.zig");
 const Module_Iterator = @import("../util/dfs.zig").Dfs_Iterator(*Module);
-const Dependency_Node = @import("../ast/dependency_node.zig");
+const Dependency_Node = @import("../types/dependency_node.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Compiler_Context = @import("../hierarchy/compiler.zig");
 const Interned_String_Set = @import("../ir/interned_string_set.zig");
@@ -11,7 +11,8 @@ const Source_Emitter = @import("source_emitter.zig");
 const Emitter = @import("emitter.zig");
 const Test_Emitter = @import("test_emitter.zig");
 const Typedef_Emitter = @import("typedef_emitter.zig");
-const Type_Set = @import("../ast/type-set.zig");
+const Type_Map = @import("../types/type_map.zig").Type_Map;
+const Type_Set = @import("../types/type_set.zig");
 const Canonical_Type_Fmt = @import("../types/canonical_type_fmt.zig");
 
 /// Goes through each package and outputs a C/H file header pair for each module in each package.
@@ -183,10 +184,10 @@ fn output_start(
     source_emitter.output_header_include() catch return error.CompileError;
     buf.print("#include <stdio.h>\n\n", .{}) catch return error.CompileError;
 
-    var contexts_used = Type_Set.init(allocator);
+    var contexts_used = Type_Map(void).init(allocator);
     defer contexts_used.deinit();
     for (module.cfgs.items) |@"test"| {
-        contexts_used.add_types(@"test".symbol.type().function.contexts.items);
+        contexts_used.put_many(@"test".symbol.type().function.contexts.items, void{}) catch return error.CompileError;
     }
     source_emitter.emitter.output_context_includes(&contexts_used) catch return error.CompileError;
 
@@ -225,11 +226,11 @@ fn output_testrunner(
 
     var mod_0_emitter = Emitter.init(&buf);
 
-    var contexts_used = Type_Set.init(allocator);
+    var contexts_used = Type_Map(void).init(allocator);
     defer contexts_used.deinit();
     for (modules.items) |module| {
         for (module.tests.items) |@"test"| {
-            contexts_used.add_types(@"test".symbol.type().function.contexts.items);
+            contexts_used.put_many(@"test".symbol.type().function.contexts.items, void{}) catch return error.CompileError;
         }
     }
     mod_0_emitter.output_context_includes(&contexts_used) catch return error.CompileError;

@@ -23,12 +23,6 @@ pub fn add_type(self: *Self, oldast_: *Type_AST) ?*Dependency_Node {
     return self.add_internal(oldast_, false);
 }
 
-pub fn add_types(self: *Self, types: []const *Type_AST) void {
-    for (types) |ty| {
-        _ = self.add_type(ty);
-    }
-}
-
 fn add_internal(self: *Self, oldast_: *Type_AST, from_function: bool) ?*Dependency_Node {
     const ast = oldast_.expand_identifier();
     // std.debug.print("{f}\n", .{ast});

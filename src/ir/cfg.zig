@@ -9,7 +9,7 @@ const lval_ = @import("../ir/lval.zig");
 const Span = @import("../util/span.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Symbol_Version = @import("symbol_version.zig");
-const Type_Set = @import("../ast/type-set.zig");
+const Type_Set = @import("../types/type_set.zig");
 
 const Self = @This();
 

@@ -11,7 +11,7 @@ const Scope = @import("../symbol/scope.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Module_Hash = @import("module_hash.zig");
 const Token = @import("../lexer/token.zig");
-const Type_Set = @import("../ast/type-set.zig");
+const Type_Set = @import("../types/type_set.zig");
 const UID_Gen = @import("../util/uid_gen.zig");
 
 // Front-end pipeline steps

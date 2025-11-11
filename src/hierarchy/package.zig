@@ -5,7 +5,7 @@ const Compiler_Context = @import("compiler.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const repo_ = @import("../util/repo.zig");
 const Module_Hash = @import("module_hash.zig");
-const Type_Set = @import("../ast/type-set.zig");
+const Type_Set = @import("../types/type_set.zig");
 
 const Package = @This();
 

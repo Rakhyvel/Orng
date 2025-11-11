@@ -410,7 +410,7 @@ index 6dccddb0..13235ab1 100644
  const Symbol = @import("../symbol/symbol.zig");
 +const repo_ = @import("../util/repo.zig");
  const Module_Hash = @import("module_hash.zig");
- const Type_Set = @import("../ast/type-set.zig");
+ const Type_Set = @import("../types/type_set.zig");
  
 @@ -402,9 +403,9 @@ fn construct_obj_cc_cmd(
      cc_cmd.append("-o") catch unreachable;

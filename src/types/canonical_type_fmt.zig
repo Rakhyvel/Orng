@@ -4,7 +4,7 @@ const std = @import("std");
 const prelude_ = @import("../hierarchy/prelude.zig");
 const String = @import("../zig-string/zig-string.zig").String;
 const Type_AST = @import("../types/type.zig").Type_AST;
-const C_Type_Map = @import("../ast/type_map.zig").C_Type_Map;
+const C_Type_Map = @import("../types/type_map.zig").C_Type_Map;
 
 const Self = @This();
 
