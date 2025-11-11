@@ -296,8 +296,6 @@ fn output_testrunner(
         for (module.tests.items) |@"test"| {
             const test_filename = @"test".symbol.scope.module.?.name();
             const test_name = @"test".symbol.decl.?.@"test".name.?.string.data;
-            const requires_allocating_context = @"test".symbol.type().function.contains_context(core_.allocating_context);
-            const requires_io_context = @"test".symbol.type().function.contains_context(core_.io_context);
 
             buf.print(
                 \\    if (substr == NULL || strstr("{1s}", substr))
@@ -316,14 +314,16 @@ fn output_testrunner(
             , .{ test_filename, test_name }) catch return error.CompileError;
             emitter.output_symbol(@"test".symbol) catch return error.CompileError;
             buf.print("(", .{}) catch return error.CompileError;
-            if (requires_allocating_context) {
-                buf.print("&allocator_context", .{}) catch return error.CompileError;
-            }
-            if (requires_io_context) {
-                if (requires_allocating_context) {
+            for (@"test".symbol.type().function.contexts.items, 0..) |ctx, i| {
+                std.debug.assert(ctx.* == .addr_of);
+                if (ctx.child().types_match(core_.allocating_context)) {
+                    buf.print("&allocator_context", .{}) catch return error.CompileError;
+                } else if (ctx.child().types_match(core_.io_context)) {
+                    buf.print("&io_context", .{}) catch return error.CompileError;
+                }
+                if (i + 1 < @"test".symbol.type().function.contexts.items.len) {
                     buf.print(", ", .{}) catch return error.CompileError;
                 }
-                buf.print("&io_context", .{}) catch return error.CompileError;
             }
             buf.print(");\n", .{}) catch return error.CompileError;
             buf.print(

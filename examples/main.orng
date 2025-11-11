@@ -6,7 +6,7 @@ import std::list
 import std::string_buffer::String_Buffer
 import externs
 
-fn main() with (core::Allocating, core::IO) {
+fn main() with (core::IO, core::Allocating) {
     let mut name_buf = String_Buffer::init()
     defer name_buf.>deinit()
 
@@ -19,6 +19,11 @@ fn main() with (core::Allocating, core::IO) {
 
 test "can print" with core::IO {
     core::IO.writer.>write("Yeah, I'm printing!\n")
+    .ok
+}
+
+test "can print" with (core::IO, core::Allocating) {
+    core::IO.writer.>write("IO then Allocating!\n")
     .ok
 }
 

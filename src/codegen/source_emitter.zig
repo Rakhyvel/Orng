@@ -228,14 +228,16 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
         }
         try self.emitter.output_symbol(symbol);
         try self.writer.print("(", .{});
-        if (requires_allocating_context) {
-            try self.writer.print("&allocator_context", .{});
-        }
-        if (requires_io_context) {
-            if (requires_allocating_context) {
+        for (symbol.type().function.contexts.items, 0..) |ctx, i| {
+            std.debug.assert(ctx.* == .addr_of);
+            if (ctx.child().types_match(core_.allocating_context)) {
+                try self.writer.print("&allocator_context", .{});
+            } else if (ctx.child().types_match(core_.io_context)) {
+                try self.writer.print("&io_context", .{});
+            }
+            if (i + 1 < symbol.type().function.contexts.items.len) {
                 try self.writer.print(", ", .{});
             }
-            try self.writer.print("&io_context", .{});
         }
         try self.writer.print(");\n", .{});
     }
