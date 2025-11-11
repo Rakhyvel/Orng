@@ -190,13 +190,11 @@ pub fn output_symbol(self: *Self, symbol: *Symbol) CodeGen_Error!void {
 
 pub fn output_context_includes(self: *Self, contexts_used: *Type_Map(void)) CodeGen_Error!void {
     for (contexts_used.pairs.items) |pair| {
-        const ctx = pair.key.child();
+        var ctx = pair.key.child();
         if (ctx.types_match(core_.allocating_context)) {
             try self.writer.print("#include \"alloc.inc\"\n", .{});
         } else if (ctx.types_match(core_.io_context)) {
             try self.writer.print("#include \"io.inc\"\n", .{});
-        } else {
-            std.debug.panic("compiler error: received unexpected context: {f}", .{ctx});
         }
     }
 }
@@ -216,8 +214,6 @@ pub fn output_context_defs(self: *Self, contexts_used: *Type_Map(void)) CodeGen_
                 \\ io_context = {{._0 = {{.data_ptr = NULL, .vtable = &orange__core__writer_vtable}}, ._1 = {{.data_ptr = NULL, .vtable = &orange__core__reader_vtable}}}};
                 \\    
             , .{});
-        } else {
-            std.debug.panic("compiler error: received unexpected context: {f}", .{ctx});
         }
     }
 }
