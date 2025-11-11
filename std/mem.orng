@@ -1,38 +1,15 @@
 import debug
 import ffi
 
-struct Heap_Allocator {}
-impl core::Allocator for Heap_Allocator {
-    virtual fn alloc(&mut self, nbytes: Int) -> ?[*mut]Byte {
-        _ = self
-        extern const malloc: Int -> [*mut]Byte
-        extern const ptr_is_null: [*mut]Byte -> Bool
-
-        let bytes = malloc(nbytes)
-        if ptr_is_null(bytes) {
-            .none
-        } else {
-            .some(bytes)
-        }
+struct Lol {}
+impl core::Writer for Lol {
+    virtual fn write(&mut self, bytes: String) {
+        _ = (bytes, self)
     }
-
-    virtual fn realloc(&mut self, allocation: [*mut]Byte, newsize: Int) -> ?[*mut]Byte {
-        _ = self
-        extern("realloc") const c_realloc: ([*]Byte, Int) -> [*mut]Byte
-        extern const ptr_is_null: [*mut]Byte -> Bool
-
-        let bytes = c_realloc(allocation, newsize)
-        if ptr_is_null(bytes) {
-            .none
-        } else {
-            .some(bytes)
-        }
-    }
-
-    virtual fn free(&mut self, allocation: [*mut]Byte) {
-        _ = self
-        extern("free") const c_free: [*]Byte -> ()
-        c_free(allocation)
+}
+impl core::Reader for Lol {
+    virtual fn read(&mut self, writer: &mut dyn core::Writer) {
+        _ = (self, writer)
     }
 }
 

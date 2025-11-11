@@ -1,4 +1,4 @@
-cinclude "ffi.h"
+cinclude "../ffi.h"
 
 fn ref_from_ptr_mut[T](ptr: [*mut]T) -> ()!&mut T {
     extern const ptr_is_null: [*mut]T -> Bool

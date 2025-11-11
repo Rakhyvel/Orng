@@ -200,11 +200,19 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
     , .{});
 
     // TOOD: This won't fly in a standalone context
-    const requires_context = symbol.type().function.contexts.items.len > 0;
-    if (requires_context) {
+    const requires_allocating_context = symbol.type().function.contains_context(core_.allocating_context);
+    const requires_io_context = symbol.type().function.contains_context(core_.io_context);
+    if (requires_allocating_context) {
         try self.emitter.output_type(core_.allocating_context);
         try self.writer.print(
-            \\ allocator_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &std__mem_2__vtable}}}};
+            \\ allocator_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &orange__core__allocator_vtable}}}};
+            \\    
+        , .{});
+    }
+    if (requires_io_context) {
+        try self.emitter.output_type(core_.io_context);
+        try self.writer.print(
+            \\ io_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &orange__core__writer_vtable}}, ._1 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &orange__core__reader_vtable}}}};
             \\    
         , .{});
     }
@@ -219,17 +227,17 @@ pub fn output_main_function(self: *Self) CodeGen_Error!void {
             try self.writer.print("   retcode = ", .{});
         }
         try self.emitter.output_symbol(symbol);
-        if (requires_context) {
-            try self.writer.print(
-                \\(&allocator_context);
-                \\
-            , .{});
-        } else {
-            try self.writer.print(
-                \\();
-                \\
-            , .{});
+        try self.writer.print("(", .{});
+        if (requires_allocating_context) {
+            try self.writer.print("&allocator_context", .{});
         }
+        if (requires_io_context) {
+            if (requires_allocating_context) {
+                try self.writer.print(", ", .{});
+            }
+            try self.writer.print("&io_context", .{});
+        }
+        try self.writer.print(");\n", .{});
     }
 
     if (codomain.* == .enum_type and codomain.enum_type.from == .@"error") {

@@ -5,9 +5,15 @@ import std::mem
 import std::list
 import externs
 
-fn main() with core::Allocating {
+fn main() with (core::Allocating, core::IO) {
     debug::println("Hello, World!")
-    externs::println("Hello, World f!")
+    externs::println("Hello, World 2!")
+    core::IO.writer.>write("Hello, World 3!\n")
+}
+
+test "can print" with core::IO {
+    core::IO.writer.>write("Yeah I'm printing!\n")
+    .ok
 }
 
 test "allocator works" with core::Allocating {

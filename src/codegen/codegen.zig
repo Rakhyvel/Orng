@@ -182,6 +182,21 @@ fn output_start(
     );
     source_emitter.output_header_include() catch return error.CompileError;
     buf.print("#include <stdio.h>\n\n", .{}) catch return error.CompileError;
+
+    var any_require_allocator_context = false;
+    var any_require_io_context = false;
+    for (module.cfgs.items) |@"test"| {
+        any_require_allocator_context = @"test".symbol.type().function.contains_context(core_.allocating_context) or any_require_allocator_context;
+        any_require_io_context = @"test".symbol.type().function.contains_context(core_.io_context) or any_require_io_context;
+    }
+
+    if (any_require_allocator_context) {
+        buf.print("#include \"alloc.inc\"\n", .{}) catch unreachable;
+    }
+    if (any_require_io_context) {
+        buf.print("#include \"io.inc\"\n", .{}) catch unreachable;
+    }
+
     source_emitter.output_main_function() catch return error.CompileError;
 
     start_file.writeAll(buf.items) catch unreachable;
@@ -215,11 +230,20 @@ fn output_testrunner(
         buf.print("#include \"{s}-{s}-tests.h\"\n", .{ module.package_name, module.name() }) catch unreachable;
     }
 
-    var any_require_context = false;
+    var any_require_allocator_context = false;
+    var any_require_io_context = false;
     for (modules.items) |module| {
         for (module.tests.items) |@"test"| {
-            any_require_context = @"test".symbol.type().function.contexts.items.len > 0 or any_require_context;
+            any_require_allocator_context = @"test".symbol.type().function.contains_context(core_.allocating_context) or any_require_allocator_context;
+            any_require_io_context = @"test".symbol.type().function.contains_context(core_.io_context) or any_require_io_context;
         }
+    }
+
+    if (any_require_allocator_context) {
+        buf.print("#include \"alloc.inc\"\n", .{}) catch unreachable;
+    }
+    if (any_require_io_context) {
+        buf.print("#include \"io.inc\"\n", .{}) catch unreachable;
     }
 
     buf.print(
@@ -243,10 +267,17 @@ fn output_testrunner(
         \\    int failed_tests = 0;
         \\    
     , .{}) catch return error.CompileError;
-    if (any_require_context) {
+    if (any_require_allocator_context) {
         mod_0_emitter.output_type(core_.allocating_context) catch return error.CompileError;
         buf.print(
-            \\ allocator_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &std__mem_2__vtable}}}};
+            \\ allocator_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &orange__core__allocator_vtable}}}};
+            \\
+        , .{}) catch return error.CompileError;
+    }
+    if (any_require_io_context) {
+        mod_0_emitter.output_type(core_.io_context) catch return error.CompileError;
+        buf.print(
+            \\ io_context = {{._0 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &orange__core__writer_vtable}}, ._1 = {{.data_ptr = (void*)0xAAAAAAAA, .vtable = &orange__core__reader_vtable}}}};
             \\
         , .{}) catch return error.CompileError;
     }
@@ -265,7 +296,8 @@ fn output_testrunner(
         for (module.tests.items) |@"test"| {
             const test_filename = @"test".symbol.scope.module.?.name();
             const test_name = @"test".symbol.decl.?.@"test".name.?.string.data;
-            const requires_context = @"test".symbol.type().function.contexts.items.len > 0;
+            const requires_allocating_context = @"test".symbol.type().function.contains_context(core_.allocating_context);
+            const requires_io_context = @"test".symbol.type().function.contains_context(core_.io_context);
 
             buf.print(
                 \\    if (substr == NULL || strstr("{1s}", substr))
@@ -283,17 +315,17 @@ fn output_testrunner(
                 \\        res = 
             , .{ test_filename, test_name }) catch return error.CompileError;
             emitter.output_symbol(@"test".symbol) catch return error.CompileError;
-            if (requires_context) {
-                buf.print(
-                    \\(&allocator_context);
-                    \\
-                , .{}) catch return error.CompileError;
-            } else {
-                buf.print(
-                    \\();
-                    \\
-                , .{}) catch return error.CompileError;
+            buf.print("(", .{}) catch return error.CompileError;
+            if (requires_allocating_context) {
+                buf.print("&allocator_context", .{}) catch return error.CompileError;
             }
+            if (requires_io_context) {
+                if (requires_allocating_context) {
+                    buf.print(", ", .{}) catch return error.CompileError;
+                }
+                buf.print("&io_context", .{}) catch return error.CompileError;
+            }
+            buf.print(");\n", .{}) catch return error.CompileError;
             buf.print(
                 \\        if (res.tag == 0)
                 \\        {{

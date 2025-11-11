@@ -1,8 +1,8 @@
 // debug utilities made use by the Orange compiler when in debug mode
 // Copyright (c) 2023-2025, Joseph Shimel and contributors.
 
-#ifndef _STD_DEBUG_INC
-#define _STD_DEBUG_INC
+#ifndef ORANGE_CORE_DEBUG_INC
+#define ORANGE_CORE_DEBUG_INC
 
 #include <stdnoreturn.h>
 

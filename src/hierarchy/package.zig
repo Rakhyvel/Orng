@@ -3,6 +3,7 @@ const Module = @import("../hierarchy/module.zig").Module;
 const CFG = @import("../ir/cfg.zig");
 const Compiler_Context = @import("compiler.zig");
 const Symbol = @import("../symbol/symbol.zig");
+const repo_ = @import("../util/repo.zig");
 const Module_Hash = @import("module_hash.zig");
 const Type_Set = @import("../ast/type-set.zig");
 
@@ -402,9 +403,9 @@ fn construct_obj_cc_cmd(
     cc_cmd.append("-o") catch unreachable;
     cc_cmd.append(o_file) catch unreachable;
 
-    const std_path = env_map.get("ORNG_STD_PATH").?;
+    const inc_path = repo_.get_inc_dir(allocator);
     var std_include_path = std.array_list.Managed(u8).init(allocator);
-    std_include_path.print("-I{s}", .{std_path}) catch unreachable;
+    std_include_path.print("-I{s}", .{inc_path}) catch unreachable;
 
     // Add basic flags
     cc_cmd.appendSlice(&[_][]const u8{

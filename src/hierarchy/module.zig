@@ -259,7 +259,9 @@ pub const Module = struct {
 
                 // Check for entry context requirements
                 for (cfg.symbol.type().function.contexts.items) |ctx| {
-                    if (!ctx.child().types_match(compiler.get_core_type("Allocating"))) {
+                    if (!ctx.child().types_match(compiler.get_core_type("Allocating")) and
+                        !ctx.child().types_match(compiler.get_core_type("IO")))
+                    {
                         compiler.errors.add_error(errs_.Error{ .basic = .{
                             .span = ctx.token().span,
                             .msg = "entry point can't request this context",

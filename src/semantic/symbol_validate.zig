@@ -90,7 +90,9 @@ pub fn validate_symbol(self: *Self, symbol: *Symbol) Validate_Error_Enum!void {
     // Check that tests are requesting good contexts
     if (symbol.kind == .@"test") {
         for (symbol.type().function.contexts.items) |ctx| {
-            if (!ctx.child().types_match(self.ctx.get_core_type("Allocating"))) {
+            if (!ctx.child().types_match(self.ctx.get_core_type("Allocating")) and
+                !ctx.child().types_match(self.ctx.get_core_type("IO")))
+            {
                 self.ctx.errors.add_error(errs_.Error{ .basic = .{
                     .span = ctx.token().span,
                     .msg = "test can't request this context",

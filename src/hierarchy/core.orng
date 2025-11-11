@@ -135,7 +135,7 @@ trait Writer {
 }
 
 trait Reader {
-    virtual fn read(&mut self) -> [mut]Byte
+    virtual fn read(&mut self, writer: &mut dyn Writer)
 }
 
 trait Format {
@@ -144,4 +144,9 @@ trait Format {
 
 context Allocating {
     alloc: &mut dyn Allocator
+}
+
+context IO {
+    writer: &mut dyn Writer
+    reader: &mut dyn Reader
 }
