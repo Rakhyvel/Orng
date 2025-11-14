@@ -11,16 +11,23 @@ const Self: type = @This();
 
 const Parser_Error_Enum = error{ ParseError, OutOfMemory };
 
+pub const Parse_Mode = enum {
+    top_level,
+    expr,
+};
+
 tokens: *std.array_list.Managed(Token),
 cursor: usize,
 errors: *errs_.Errors,
+parse_mode: Parse_Mode,
 allocator: std.mem.Allocator,
 
-pub fn init(errors: *errs_.Errors, allocator: std.mem.Allocator) Self {
+pub fn init(parse_mode: Parse_Mode, errors: *errs_.Errors, allocator: std.mem.Allocator) Self {
     return .{
         .tokens = undefined,
         .cursor = 0,
         .allocator = allocator,
+        .parse_mode = parse_mode,
         .errors = errors,
     };
 }
@@ -121,12 +128,17 @@ pub fn run(self: *Self, tokens: *std.array_list.Managed(Token)) Parser_Error_Enu
     self.tokens = tokens;
     var decls = self.allocator.create(std.array_list.Managed(*ast_.AST)) catch unreachable;
     decls.* = std.array_list.Managed(*ast_.AST).init(self.allocator);
-    while (self.accept(.newline)) |_| {}
-    while (!self.peek_kind(.EOF)) {
-        decls.append(try self.top_level_declaration()) catch unreachable;
-        while (self.accept(.newline)) |_| {}
+    switch (self.parse_mode) {
+        .top_level => {
+            while (self.accept(.newline)) |_| {}
+            while (!self.peek_kind(.EOF)) {
+                try decls.append(try self.top_level_declaration());
+                while (self.accept(.newline)) |_| {}
+            }
+            _ = try self.expect(.EOF);
+        },
+        .expr => try decls.append(try self.parse_expr()),
     }
-    _ = try self.expect(.EOF);
     return decls;
 }
 
@@ -647,7 +659,7 @@ fn statement(self: *Self) Parser_Error_Enum!*ast_.AST {
     }
 }
 
-fn parse_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
+pub fn parse_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
     return self.product_expr();
 }
 
@@ -824,7 +836,7 @@ fn prefix_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
                 return error.ParseError;
             }
             const fmt_str = args.items[0];
-            const children = try fmt_string_.parse_fmt_string(fmt_str, self.allocator);
+            const children = try fmt_string_.parse_fmt_string(fmt_str, fmt_str.token().span, self.errors, self.allocator);
             return ast_.AST.create_print(token, children, self.allocator);
         } else if (std.mem.eql(u8, token.data, "bit_and")) {
             const args = try self.call_args();

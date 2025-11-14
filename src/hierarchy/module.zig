@@ -213,9 +213,9 @@ pub const Module = struct {
         _ = try pipeline_.run(contents, .{
             Hash.init(&module.hash),
             Split_Lines.init(&compiler.errors, compiler.allocator()),
-            Tokenize.init(in_name, &compiler.errors, fuzz_tokens, compiler.allocator()),
+            Tokenize.init(in_name, 0, 1, &compiler.errors, fuzz_tokens, compiler.allocator()),
             Apply_Layout.init(),
-            Parse.init(&compiler.errors, compiler.allocator()),
+            Parse.init(.top_level, &compiler.errors, compiler.allocator()),
             Apply_Ast_Walk(Expand).init(Expand.new(&compiler.errors, compiler.allocator())),
             Apply_Flat_Ast_Walk(Import).init(Import.new(compiler, module.get_package_abs_path(), &module.local_imported_modules)),
             Apply_Flat_Ast_Walk(Cinclude).init(Cinclude.new(&module.cincludes)),

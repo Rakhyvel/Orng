@@ -10,7 +10,9 @@ fn main() -> ()!() with (core::IO, core::Allocating) {
     let mut name_buf = String_Buffer::init()
     defer name_buf.>deinit()
 
-    try (@print("Hello, World!\n"))
+    let title = "Mr
+    let name = "Joe"
+    try (@print("Hello, {title} {name}\n"))
 
     //try (@print("Enter your name: "))
     //try core::IO.reader.>read(&mut name_buf)
