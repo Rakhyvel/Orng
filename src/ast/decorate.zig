@@ -221,6 +221,73 @@ fn decorate_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
             }
         },
 
+        .print => {
+            const context_val_symbol = self.scope.parent.?.context_lookup(core_.io_context, self.ctx) orelse {
+                self.ctx.errors.add_error(errs_.Error{ .missing_context = .{
+                    .span = ast.token().span,
+                    .context = Type_AST.create_type_identifier(core_.io_context.token(), self.ctx.allocator()),
+                } });
+                return error.CompileError;
+            };
+
+            // @print("Hello, ", name, "World!\n")
+            // becomes:
+            // {
+            //   let arg0 = "Hello, "
+            //   let arg1 = name
+            //   let arg2 = "World!\n"
+            //   let args: [3]&dyn core::Format = [arg0, arg1, arg2]
+            //   core::format_all(core::IO.writer, []args)
+            // }
+            //
+            // create block
+            // for child in children:
+            //   append(binding(argn, child))
+            // append(binding(args, [arg0, ... argn]))
+            // append(call(core::format_all, slice_of(args)))
+
+            var format_all = ast_.AST.create_identifier(ast.token(), self.ctx.allocator());
+            format_all.set_symbol(self.ctx.get_core_symbol("format_all"));
+            var args = std.array_list.Managed(*ast_.AST).init(self.ctx.allocator());
+
+            // Append writer to the call args
+            var writer_token = ast.token();
+            writer_token.data = context_val_symbol.name;
+            const io_context = ast_.AST.create_identifier(writer_token, self.ctx.allocator());
+            io_context.set_symbol(context_val_symbol);
+            var writer_field_token = ast.token();
+            writer_field_token.data = "writer";
+            const writer_field = ast_.AST.create_field(writer_field_token, self.ctx.allocator());
+            const writer = ast_.AST.create_select(writer_token, io_context, writer_field, self.ctx.allocator());
+            try args.append(writer);
+
+            // Create and append slice to call args
+            var array_terms = std.array_list.Managed(*ast_.AST).init(self.ctx.allocator());
+            var format_ident_token = ast.token();
+            format_ident_token.data = "Format";
+            var format_ident = Type_AST.create_type_identifier(format_ident_token, self.ctx.allocator());
+            format_ident.set_symbol(self.ctx.get_core_symbol("Format"));
+            const dyn_type = Type_AST.create_dyn_type(ast.token(), format_ident, false, self.ctx.allocator());
+            for (ast.print._children.items) |child| {
+                const dyn_value = ast_.AST.create_dyn_value(
+                    child.token(),
+                    dyn_type,
+                    child,
+                    self.scope,
+                    false,
+                    self.ctx.allocator(),
+                );
+                try array_terms.append(dyn_value);
+            }
+            const args_array = ast_.AST.create_array_value(ast.token(), array_terms, self.ctx.allocator());
+            const args_slice = ast_.AST.create_slice_of(ast.token(), args_array, false, self.ctx.allocator());
+            try args.append(args_slice);
+
+            const format_all_call = ast_.AST.create_call(ast.token(), format_all, args, self.ctx.allocator());
+
+            ast.* = format_all_call.*;
+        },
+
         .binding => {
             for (ast.binding.decls.items) |decl| {
                 if (decl.* == .decl) {

@@ -169,10 +169,12 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .struct_value,
         .tuple_value,
         .array_value,
+        .print,
         .bit_and,
         .bit_or,
         .bit_xor,
         => try walk_asts(ast.children(), new_context),
+
         .binding => {
             try walk_asts(ast.children(), new_context);
             try walk_ast(ast.binding.init, new_context);

@@ -187,9 +187,9 @@ pub const AST = union(enum) {
     },
     invoke: struct {
         common: AST_Common,
-        _lhs: *AST,
-        _rhs: *AST,
-        _args: std.array_list.Managed(*AST),
+        _lhs: *AST, // The subject of the invoke
+        _rhs: *AST, // The method, usually a field AST
+        _args: std.array_list.Managed(*AST), // The args of the invoke
         context_args: std.array_list.Managed(*Symbol),
         _scope: ?*Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
         method_decl: ?*AST = null,
@@ -267,6 +267,10 @@ pub const AST = union(enum) {
     size_of: struct {
         common: AST_Common,
         _type: *Type_AST,
+    },
+    print: struct {
+        common: AST_Common,
+        _children: std.array_list.Managed(*AST),
     },
 
     // Control-flow expressions
@@ -576,6 +580,13 @@ pub const AST = union(enum) {
         return AST.box(AST{ .size_of = .{
             .common = AST_Common{ ._token = _token },
             ._type = _expr,
+        } }, allocator);
+    }
+
+    pub fn create_print(_token: Token, _children: std.array_list.Managed(*AST), allocator: std.mem.Allocator) *AST {
+        return AST.box(AST{ .print = .{
+            .common = AST_Common{ ._token = _token },
+            ._children = _children,
         } }, allocator);
     }
 
@@ -1397,6 +1408,10 @@ pub const AST = union(enum) {
             .@"try" => return create_try(self.token(), self.expr().clone(substs, allocator), allocator),
             .default => return create_default(self.token(), self.default._type.clone(substs, allocator), allocator),
             .size_of => return create_size_of(self.token(), self.size_of._type.clone(substs, allocator), allocator),
+            .print => {
+                const cloned_args = clone_children(self.children().*, substs, allocator);
+                return create_print(self.token(), cloned_args, allocator);
+            },
             .@"comptime" => return create_comptime(self.token(), self.expr().clone(substs, allocator), allocator),
 
             .assign => return create_assign(
@@ -1930,6 +1945,7 @@ pub const AST = union(enum) {
             .fn_decl => &self.fn_decl._params,
             .method_decl => &self.method_decl._params,
             .invoke => &self.invoke._args,
+            .print => &self.print._children,
             .bit_and => &self.bit_and._args,
             .bit_or => &self.bit_or._args,
             .bit_xor => &self.bit_xor._args,
@@ -2327,6 +2343,16 @@ pub const AST = union(enum) {
                     }
                 }
                 try out.print("])", .{});
+            },
+            .print => {
+                try out.print("@print(", .{});
+                for (self.print._children.items, 0..) |item, i| {
+                    try out.print("{f}", .{item});
+                    if (i < self.print._children.items.len - 1) {
+                        try out.print(",", .{});
+                    }
+                }
+                try out.print(")", .{});
             },
             .bit_and => {
                 try out.print("@bit_and(", .{});
