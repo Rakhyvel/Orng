@@ -2,6 +2,7 @@ import ascii
 import debug
 import ffi
 import fmt
+import io
 import list
 import math
 import mem
