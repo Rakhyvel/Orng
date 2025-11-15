@@ -335,22 +335,21 @@ pub fn init_project(name: []const u8, args: *std.process.ArgIterator, allocator:
     defer main_orng.close();
 
     const main_content =
-        \\import std::debug
-        \\
-        \\fn main() {
-        \\    debug::println("Hello, World!")
+        \\fn main() -> ()!() with core::IO {
+        \\    @println("Hello, World!")
         \\}
     ;
-    var main_orng_writer = main_orng.writer(&.{}).interface;
-    main_orng_writer.writeAll(main_content) catch return error.FileError;
+    main_orng.writeAll(main_content) catch return error.FileError;
 
     var build_orng = std.fs.cwd().createFile(build_path, .{}) catch return error.FileError;
     defer build_orng.close();
 
     const build_content =
-        \\fn build() -> Package {
-        \\    let mut retval = Package::executable(.root="main.orng")
-        \\    retval.>requires("std", Package::find("std"))
+        \\fn build() -> core::Package {
+        \\    let mut retval = core::Package::executable(.root="main.orng")
+        \\    retval.>requires("std", core::Package::find(
+        \\        .git(core::Git_Source(.url = "https://github.com/Rakhyvel/Orange", .subdir = "std")))
+        \\    )
         \\    retval
         \\}
     ;
