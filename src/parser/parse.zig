@@ -2,6 +2,7 @@ const std = @import("std");
 const anon_name_ = @import("../util/anon_name.zig");
 const ast_ = @import("../ast/ast.zig");
 const errs_ = @import("../util/errors.zig");
+const fmt_string_ = @import("fmt_string.zig");
 const Symbol = @import("../symbol/symbol.zig");
 const Token = @import("../lexer/token.zig");
 const Type_AST = @import("../types/type.zig").Type_AST;
@@ -10,16 +11,23 @@ const Self: type = @This();
 
 const Parser_Error_Enum = error{ ParseError, OutOfMemory };
 
+pub const Parse_Mode = enum {
+    top_level,
+    expr,
+};
+
 tokens: *std.array_list.Managed(Token),
 cursor: usize,
 errors: *errs_.Errors,
+parse_mode: Parse_Mode,
 allocator: std.mem.Allocator,
 
-pub fn init(errors: *errs_.Errors, allocator: std.mem.Allocator) Self {
+pub fn init(parse_mode: Parse_Mode, errors: *errs_.Errors, allocator: std.mem.Allocator) Self {
     return .{
         .tokens = undefined,
         .cursor = 0,
         .allocator = allocator,
+        .parse_mode = parse_mode,
         .errors = errors,
     };
 }
@@ -120,12 +128,17 @@ pub fn run(self: *Self, tokens: *std.array_list.Managed(Token)) Parser_Error_Enu
     self.tokens = tokens;
     var decls = self.allocator.create(std.array_list.Managed(*ast_.AST)) catch unreachable;
     decls.* = std.array_list.Managed(*ast_.AST).init(self.allocator);
-    while (self.accept(.newline)) |_| {}
-    while (!self.peek_kind(.EOF)) {
-        decls.append(try self.top_level_declaration()) catch unreachable;
-        while (self.accept(.newline)) |_| {}
+    switch (self.parse_mode) {
+        .top_level => {
+            while (self.accept(.newline)) |_| {}
+            while (!self.peek_kind(.EOF)) {
+                try decls.append(try self.top_level_declaration());
+                while (self.accept(.newline)) |_| {}
+            }
+            _ = try self.expect(.EOF);
+        },
+        .expr => try decls.append(try self.parse_expr()),
     }
-    _ = try self.expect(.EOF);
     return decls;
 }
 
@@ -646,7 +659,7 @@ fn statement(self: *Self) Parser_Error_Enum!*ast_.AST {
     }
 }
 
-fn parse_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
+pub fn parse_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
     return self.product_expr();
 }
 
@@ -809,6 +822,56 @@ fn prefix_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
                 return error.ParseError;
             }
             return ast_.AST.create_size_of(token, args.items[0], self.allocator);
+        } else if (std.mem.eql(u8, token.data, "write")) {
+            const args = try self.call_args();
+            if (args.items.len != 2) {
+                self.errors.add_error(errs_.Error{ .mismatch_arity = .{
+                    .span = token.span,
+                    .takes = 1,
+                    .given = args.items.len,
+                    .thing_name = "built-in function",
+                    .takes_name = "parameter",
+                    .given_name = "argument",
+                } });
+                return error.ParseError;
+            }
+            const writer = args.items[0];
+            const fmt_str = args.items[1];
+            const children = try fmt_string_.parse_fmt_string(fmt_str, fmt_str.token().span, self.errors, self.allocator);
+            return ast_.AST.create_write(token, writer, children, self.allocator);
+        } else if (std.mem.eql(u8, token.data, "print")) {
+            const args = try self.call_args();
+            if (args.items.len != 1) {
+                self.errors.add_error(errs_.Error{ .mismatch_arity = .{
+                    .span = token.span,
+                    .takes = 1,
+                    .given = args.items.len,
+                    .thing_name = "built-in function",
+                    .takes_name = "parameter",
+                    .given_name = "argument",
+                } });
+                return error.ParseError;
+            }
+            const fmt_str = args.items[0];
+            const children = try fmt_string_.parse_fmt_string(fmt_str, fmt_str.token().span, self.errors, self.allocator);
+            return ast_.AST.create_print(token, children, self.allocator);
+        } else if (std.mem.eql(u8, token.data, "println")) {
+            const args = try self.call_args();
+            if (args.items.len != 1) {
+                self.errors.add_error(errs_.Error{ .mismatch_arity = .{
+                    .span = token.span,
+                    .takes = 1,
+                    .given = args.items.len,
+                    .thing_name = "built-in function",
+                    .takes_name = "parameter",
+                    .given_name = "argument",
+                } });
+                return error.ParseError;
+            }
+            const fmt_str = args.items[0];
+            var children = try fmt_string_.parse_fmt_string(fmt_str, fmt_str.token().span, self.errors, self.allocator);
+            try children.append(ast_.AST.create_string(token, "\n", self.allocator));
+            return ast_.AST.create_print(token, children, self.allocator);
         } else if (std.mem.eql(u8, token.data, "bit_and")) {
             const args = try self.call_args();
             if (args.items.len < 2) {
@@ -928,7 +991,7 @@ fn prefix_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
         _ = try self.expect(.right_square);
         return ast_.AST.create_array_value(token, terms, self.allocator);
     } else if (self.accept(.@"try")) |token| {
-        return ast_.AST.create_try(token, try self.postfix_expr(), self.allocator);
+        return ast_.AST.create_try(token, try self.parse_expr(), self.allocator);
     } else {
         return try self.postfix_expr();
     }

@@ -134,12 +134,26 @@ trait Writer {
     virtual fn write(&mut self, bytes: []Byte) -> ()!()
 }
 
+fn format_all(writer: &mut dyn Writer, args: []&dyn Format) -> ()!() {
+    while let mut i = 0; i < args.length; i += 1 {
+        let arg = args[i]
+        try arg.>format(writer)
+    }
+    .ok
+}
+
 trait Reader {
     virtual fn read(&mut self, writer: &mut dyn Writer) -> ()!()
 }
 
 trait Format {
     virtual fn format(&self, writer: &mut dyn Writer) -> ()!()
+}
+
+impl Format for String {
+    virtual fn format(&self, writer: &mut dyn Writer) -> ()!() {
+        writer.>write(self^)
+    }
 }
 
 context Allocating {

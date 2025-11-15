@@ -178,9 +178,13 @@ pub fn register_interned_string_set(self: *Self, module_uid: u32) void {
     self.module_interned_strings.put(module_uid, interned_strings) catch unreachable;
 }
 
-pub fn get_core_type(self: *Self, name: []const u8) *Type_AST {
+pub fn get_core_symbol(self: *Self, name: []const u8) *Symbol {
     const prelude_abs_path = self.core.?.module.?.absolute_path;
-    return self.module_scope(prelude_abs_path).?.lookup(name, .{}).found.init_typedef().?;
+    return self.module_scope(prelude_abs_path).?.lookup(name, .{}).found;
+}
+
+pub fn get_core_type(self: *Self, name: []const u8) *Type_AST {
+    return self.get_core_symbol(name).init_typedef().?;
 }
 
 pub fn lookup_interned_string_set(self: *Self, module_uid: u32) ?*Interned_String_Set {

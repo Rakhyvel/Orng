@@ -1,0 +1,9 @@
+// empty_arg.orng:7:25: error: empty format argument
+//     try @print("Hello, {}")
+//                        ^
+// 
+fn main() -> ()!() with core::IO {
+    let name = "World"
+    try @print("Hello, {}")
+    .ok
+}

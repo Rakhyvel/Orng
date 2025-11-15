@@ -1,0 +1,7 @@
+// Hello, World!
+
+fn main() -> ()!() with core::IO {
+    let name = "World"
+    try @print("Hello, {name}!")
+    .ok
+}
