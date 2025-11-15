@@ -43,7 +43,7 @@ jobs:
         export ORNG_STD_PATH="$GITHUB_WORKSPACE/std"
         zig build orng
         cd examples
-        ../zig-out/bin/orng run
+        printf 'joseph\nshimel\n' | ../zig-out/bin/orng run
         ../zig-out/bin/orng clean
         ../zig-out/bin/orng test
     
@@ -55,7 +55,7 @@ jobs:
         export ORNG_STD_PATH="$GITHUB_WORKSPACE/std"
         zig build orng
         cd examples
-        ../zig-out/bin/orng run
+        printf 'joseph\nshimel\n' | ../zig-out/bin/orng run
         ../zig-out/bin/orng clean
         ../zig-out/bin/orng test
 
