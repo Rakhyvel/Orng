@@ -1,0 +1,36 @@
+import mem
+
+struct Fixed_Buffer_Writer {
+    buf: [mut]Byte
+    cursor: Int
+}
+
+impl core::Writer for Fixed_Buffer_Writer {
+    virtual fn write(&mut self, bytes: String) -> ()!() {
+        if self.cursor + bytes.length > self.buf.length {
+            return .err
+        }
+        mem::copy[Byte](self.buf[self.cursor..], bytes)
+        self.cursor += bytes.length
+        .ok
+    }
+}
+
+fn read_until_delimeter(reader: &mut dyn core::Reader, writer: &mut dyn core::Writer, delimeter: Byte) -> ()!() {
+    while true {
+        let byte = try read_byte(reader)
+        if byte == delimeter {
+            return .ok
+        }
+        let byte_buf: [1]Byte = [byte]
+        try writer.>write([]byte_buf)
+    }
+    .ok
+}
+
+fn read_byte(reader: &mut dyn core::Reader) -> ()!Byte {
+    let mut byte_buf: [1]Byte
+    let writer = Fixed_Buffer_Writer([mut]byte_buf, 0)
+    try reader.>read(&mut writer, .some(1))
+    .ok(byte_buf[0])
+}

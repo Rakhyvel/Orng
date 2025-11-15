@@ -143,7 +143,7 @@ fn format_all(writer: &mut dyn Writer, args: []&dyn Format) -> ()!() {
 }
 
 trait Reader {
-    virtual fn read(&mut self, writer: &mut dyn Writer) -> ()!()
+    virtual fn read(&mut self, writer: &mut dyn Writer, limit: ?Int) -> ()!()
 }
 
 trait Format {
