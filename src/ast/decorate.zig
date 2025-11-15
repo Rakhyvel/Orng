@@ -230,22 +230,6 @@ fn decorate_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
                 return error.CompileError;
             };
 
-            // @print("Hello, ", name, "World!\n")
-            // becomes:
-            // {
-            //   let arg0 = "Hello, "
-            //   let arg1 = name
-            //   let arg2 = "World!\n"
-            //   let args: [3]&dyn core::Format = [arg0, arg1, arg2]
-            //   core::format_all(core::IO.writer, []args)
-            // }
-            //
-            // create block
-            // for child in children:
-            //   append(binding(argn, child))
-            // append(binding(args, [arg0, ... argn]))
-            // append(call(core::format_all, slice_of(args)))
-
             var format_all = ast_.AST.create_identifier(ast.token(), self.ctx.allocator());
             format_all.set_symbol(self.ctx.get_core_symbol("format_all"));
             var args = std.array_list.Managed(*ast_.AST).init(self.ctx.allocator());

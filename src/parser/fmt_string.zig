@@ -104,10 +104,5 @@ pub fn parse_fmt_string(fmt_str: *AST, span: Span, errors: *errs_.Errors, alloca
         try retval.append(AST.create_string(fmt_str.token(), data[prev..i], allocator));
     }
 
-    for (retval.items) |item| {
-        std.debug.print("{f} ", .{item});
-    }
-    std.debug.print("\n", .{});
-
     return retval;
 }

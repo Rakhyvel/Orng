@@ -957,7 +957,7 @@ fn prefix_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
         _ = try self.expect(.right_square);
         return ast_.AST.create_array_value(token, terms, self.allocator);
     } else if (self.accept(.@"try")) |token| {
-        return ast_.AST.create_try(token, try self.postfix_expr(), self.allocator);
+        return ast_.AST.create_try(token, try self.parse_expr(), self.allocator);
     } else {
         return try self.postfix_expr();
     }

@@ -13,12 +13,6 @@ impl core::Format for Bool {
     }
 }
 
-impl core::Format for String {
-    virtual fn format(&self, writer: &mut dyn core::Writer) -> ()!() {
-        writer.>write(self^)
-    }
-}
-
 impl core::Format for Int {
     virtual fn format(&self, writer: &mut dyn core::Writer) -> ()!() {
         let mut value = self^

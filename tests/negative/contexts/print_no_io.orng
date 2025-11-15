@@ -1,0 +1,7 @@
+// print_no_io.orng:6:11: error: missing context `IO`
+//     @print("Hello, World!")
+//          ^
+// 
+fn main() -> ()!() {
+    @print("Hello, World!")
+}

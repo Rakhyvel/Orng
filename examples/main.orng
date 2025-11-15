@@ -12,7 +12,7 @@ fn main() -> ()!() with (core::IO, core::Allocating) {
 
     let title = "Mr
     let name = "Joe"
-    try (@print("Hello, {title} {name}\n"))
+    try @print("Hello, {title} {name}\n")
 
     //try (@print("Enter your name: "))
     //try core::IO.reader.>read(&mut name_buf)
