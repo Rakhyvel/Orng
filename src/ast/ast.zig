@@ -268,6 +268,11 @@ pub const AST = union(enum) {
         common: AST_Common,
         _type: *Type_AST,
     },
+    write: struct {
+        common: AST_Common,
+        writer: *AST,
+        _children: std.array_list.Managed(*AST),
+    },
     print: struct {
         common: AST_Common,
         _children: std.array_list.Managed(*AST),
@@ -580,6 +585,14 @@ pub const AST = union(enum) {
         return AST.box(AST{ .size_of = .{
             .common = AST_Common{ ._token = _token },
             ._type = _expr,
+        } }, allocator);
+    }
+
+    pub fn create_write(_token: Token, writer: *AST, _children: std.array_list.Managed(*AST), allocator: std.mem.Allocator) *AST {
+        return AST.box(AST{ .write = .{
+            .common = AST_Common{ ._token = _token },
+            .writer = writer,
+            ._children = _children,
         } }, allocator);
     }
 
@@ -1408,6 +1421,10 @@ pub const AST = union(enum) {
             .@"try" => return create_try(self.token(), self.expr().clone(substs, allocator), allocator),
             .default => return create_default(self.token(), self.default._type.clone(substs, allocator), allocator),
             .size_of => return create_size_of(self.token(), self.size_of._type.clone(substs, allocator), allocator),
+            .write => {
+                const cloned_args = clone_children(self.children().*, substs, allocator);
+                return create_write(self.token(), self.write.writer.clone(substs, allocator), cloned_args, allocator);
+            },
             .print => {
                 const cloned_args = clone_children(self.children().*, substs, allocator);
                 return create_print(self.token(), cloned_args, allocator);
@@ -1945,6 +1962,7 @@ pub const AST = union(enum) {
             .fn_decl => &self.fn_decl._params,
             .method_decl => &self.method_decl._params,
             .invoke => &self.invoke._args,
+            .write => &self.write._children,
             .print => &self.print._children,
             .bit_and => &self.bit_and._args,
             .bit_or => &self.bit_or._args,
@@ -2344,8 +2362,18 @@ pub const AST = union(enum) {
                 }
                 try out.print("])", .{});
             },
+            .write => {
+                try out.print("write(", .{});
+                for (self.write._children.items, 0..) |item, i| {
+                    try out.print("{f}", .{item});
+                    if (i < self.write._children.items.len - 1) {
+                        try out.print(",", .{});
+                    }
+                }
+                try out.print(")", .{});
+            },
             .print => {
-                try out.print("@print(", .{});
+                try out.print("print(", .{});
                 for (self.print._children.items, 0..) |item, i| {
                     try out.print("{f}", .{item});
                     if (i < self.print._children.items.len - 1) {

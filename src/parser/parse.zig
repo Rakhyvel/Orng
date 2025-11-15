@@ -822,6 +822,23 @@ fn prefix_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
                 return error.ParseError;
             }
             return ast_.AST.create_size_of(token, args.items[0], self.allocator);
+        } else if (std.mem.eql(u8, token.data, "write")) {
+            const args = try self.call_args();
+            if (args.items.len != 2) {
+                self.errors.add_error(errs_.Error{ .mismatch_arity = .{
+                    .span = token.span,
+                    .takes = 1,
+                    .given = args.items.len,
+                    .thing_name = "built-in function",
+                    .takes_name = "parameter",
+                    .given_name = "argument",
+                } });
+                return error.ParseError;
+            }
+            const writer = args.items[0];
+            const fmt_str = args.items[1];
+            const children = try fmt_string_.parse_fmt_string(fmt_str, fmt_str.token().span, self.errors, self.allocator);
+            return ast_.AST.create_write(token, writer, children, self.allocator);
         } else if (std.mem.eql(u8, token.data, "print")) {
             const args = try self.call_args();
             if (args.items.len != 1) {
@@ -837,6 +854,23 @@ fn prefix_expr(self: *Self) Parser_Error_Enum!*ast_.AST {
             }
             const fmt_str = args.items[0];
             const children = try fmt_string_.parse_fmt_string(fmt_str, fmt_str.token().span, self.errors, self.allocator);
+            return ast_.AST.create_print(token, children, self.allocator);
+        } else if (std.mem.eql(u8, token.data, "println")) {
+            const args = try self.call_args();
+            if (args.items.len != 1) {
+                self.errors.add_error(errs_.Error{ .mismatch_arity = .{
+                    .span = token.span,
+                    .takes = 1,
+                    .given = args.items.len,
+                    .thing_name = "built-in function",
+                    .takes_name = "parameter",
+                    .given_name = "argument",
+                } });
+                return error.ParseError;
+            }
+            const fmt_str = args.items[0];
+            var children = try fmt_string_.parse_fmt_string(fmt_str, fmt_str.token().span, self.errors, self.allocator);
+            try children.append(ast_.AST.create_string(token, "\n", self.allocator));
             return ast_.AST.create_print(token, children, self.allocator);
         } else if (std.mem.eql(u8, token.data, "bit_and")) {
             const args = try self.call_args();

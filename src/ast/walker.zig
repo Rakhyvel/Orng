@@ -175,6 +175,11 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .bit_xor,
         => try walk_asts(ast.children(), new_context),
 
+        .write => {
+            try walk_ast(ast.write.writer, new_context);
+            try walk_asts(ast.children(), new_context);
+        },
+
         .binding => {
             try walk_asts(ast.children(), new_context);
             try walk_ast(ast.binding.init, new_context);

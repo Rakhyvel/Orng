@@ -221,6 +221,11 @@ fn decorate_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
             }
         },
 
+        .write => {
+            const format_all_call = try self.create_format_all_call(ast, ast.write.writer);
+            ast.* = format_all_call.*;
+        },
+
         .print => {
             const context_val_symbol = self.scope.parent.?.context_lookup(core_.io_context, self.ctx) orelse {
                 self.ctx.errors.add_error(errs_.Error{ .missing_context = .{
@@ -229,10 +234,6 @@ fn decorate_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
                 } });
                 return error.CompileError;
             };
-
-            var format_all = ast_.AST.create_identifier(ast.token(), self.ctx.allocator());
-            format_all.set_symbol(self.ctx.get_core_symbol("format_all"));
-            var args = std.array_list.Managed(*ast_.AST).init(self.ctx.allocator());
 
             // Append writer to the call args
             var writer_token = ast.token();
@@ -243,31 +244,8 @@ fn decorate_postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
             writer_field_token.data = "writer";
             const writer_field = ast_.AST.create_field(writer_field_token, self.ctx.allocator());
             const writer = ast_.AST.create_select(writer_token, io_context, writer_field, self.ctx.allocator());
-            try args.append(writer);
 
-            // Create and append slice to call args
-            var array_terms = std.array_list.Managed(*ast_.AST).init(self.ctx.allocator());
-            var format_ident_token = ast.token();
-            format_ident_token.data = "Format";
-            var format_ident = Type_AST.create_type_identifier(format_ident_token, self.ctx.allocator());
-            format_ident.set_symbol(self.ctx.get_core_symbol("Format"));
-            const dyn_type = Type_AST.create_dyn_type(ast.token(), format_ident, false, self.ctx.allocator());
-            for (ast.print._children.items) |child| {
-                const dyn_value = ast_.AST.create_dyn_value(
-                    child.token(),
-                    dyn_type,
-                    child,
-                    self.scope,
-                    false,
-                    self.ctx.allocator(),
-                );
-                try array_terms.append(dyn_value);
-            }
-            const args_array = ast_.AST.create_array_value(ast.token(), array_terms, self.ctx.allocator());
-            const args_slice = ast_.AST.create_slice_of(ast.token(), args_array, false, self.ctx.allocator());
-            try args.append(args_slice);
-
-            const format_all_call = ast_.AST.create_call(ast.token(), format_all, args, self.ctx.allocator());
+            const format_all_call = try self.create_format_all_call(ast, writer);
 
             ast.* = format_all_call.*;
         },
@@ -492,4 +470,36 @@ fn extract_symbol_from_decl(decl: *ast_.AST) *Symbol {
     } else {
         std.debug.panic("compiler error: unsupported access symbol resolution for decl-like AST: {s}", .{@tagName(decl.*)});
     }
+}
+
+fn create_format_all_call(self: Self, ast: *ast_.AST, writer: *ast_.AST) !*ast_.AST {
+    var format_all = ast_.AST.create_identifier(ast.token(), self.ctx.allocator());
+    format_all.set_symbol(self.ctx.get_core_symbol("format_all"));
+    var args = std.array_list.Managed(*ast_.AST).init(self.ctx.allocator());
+    try args.append(writer);
+
+    // Create and append slice to call args
+    var array_terms = std.array_list.Managed(*ast_.AST).init(self.ctx.allocator());
+    var format_ident_token = ast.token();
+    format_ident_token.data = "Format";
+    var format_ident = Type_AST.create_type_identifier(format_ident_token, self.ctx.allocator());
+    format_ident.set_symbol(self.ctx.get_core_symbol("Format"));
+    const dyn_type = Type_AST.create_dyn_type(ast.token(), format_ident, false, self.ctx.allocator());
+    for (ast.children().items) |child| {
+        const dyn_value = ast_.AST.create_dyn_value(
+            child.token(),
+            dyn_type,
+            child,
+            self.scope,
+            false,
+            self.ctx.allocator(),
+        );
+        try array_terms.append(dyn_value);
+    }
+    const args_array = ast_.AST.create_array_value(ast.token(), array_terms, self.ctx.allocator());
+    const args_slice = ast_.AST.create_slice_of(ast.token(), args_array, false, self.ctx.allocator());
+    try args.append(args_slice);
+
+    const format_all_call = ast_.AST.create_call(ast.token(), format_all, args, self.ctx.allocator());
+    return format_all_call;
 }
