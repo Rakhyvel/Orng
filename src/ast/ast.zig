@@ -268,11 +268,14 @@ pub const AST = union(enum) {
         common: AST_Common,
         _type: *Type_AST,
     },
+    /// Print a formatted string to a writer
     write: struct {
         common: AST_Common,
         writer: *AST,
         _children: std.array_list.Managed(*AST),
     },
+    /// Print a formatted string to IO.writer
+    /// Both `@print` and `@println` use this node, with `@println` having a newline appended
     print: struct {
         common: AST_Common,
         _children: std.array_list.Managed(*AST),
