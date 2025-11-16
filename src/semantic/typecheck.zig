@@ -637,6 +637,9 @@ fn typecheck_AST_internal(self: *Self, ast: *ast_.AST, expected: ?*Type_AST) Val
                         self.ctx.allocator(),
                     ).*;
                     return self.typecheck_AST(ast, expected);
+                } else if (expanded_expected.* == .anyptr_type) {
+                    ast.addr_of.anytptr = true;
+                    return expanded_expected;
                 } else if (expanded_expected.* != .addr_of) {
                     // Didn't expect an address type. Validate expr and report error
                     return typing_.throw_unexpected_type(ast.token().span, expected.?, poison_.poisoned_type, &self.ctx.errors);

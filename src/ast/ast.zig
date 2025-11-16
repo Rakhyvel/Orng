@@ -403,6 +403,7 @@ pub const AST = union(enum) {
     type_param_decl: struct {
         common: AST_Common,
         _symbol: ?*Symbol = null,
+        constraint: ?*Type_AST,
     },
     struct_decl: struct {
         common: AST_Common,
@@ -1250,9 +1251,10 @@ pub const AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn create_type_param_decl(_token: Token, allocator: std.mem.Allocator) *AST {
+    pub fn create_type_param_decl(_token: Token, constraint: ?*Type_AST, allocator: std.mem.Allocator) *AST {
         return AST.box(AST{ .type_param_decl = .{
             .common = AST_Common{ ._token = _token },
+            .constraint = constraint,
         } }, allocator);
     }
 
@@ -1620,7 +1622,11 @@ pub const AST = union(enum) {
                 retval.enum_value.init = if (self.enum_value.init) |init| init.clone(substs, allocator) else null;
                 return retval;
             },
-            .type_param_decl => return create_type_param_decl(self.token(), allocator),
+            .type_param_decl => return create_type_param_decl(
+                self.token(),
+                if (self.type_param_decl.constraint) |constraint| constraint.clone(substs, allocator) else null,
+                allocator,
+            ),
             .struct_value => {
                 const cloned_terms = clone_children(self.children().*, substs, allocator);
                 var retval = create_struct_value(
@@ -1861,7 +1867,7 @@ pub const AST = union(enum) {
                     allocator,
                 );
                 retval.method_decl.impl = self.method_decl.impl;
-                retval.method_decl.domain = self.method_decl.domain;
+                retval.method_decl.domain = if (self.method_decl.domain) |domain| domain.clone(substs, allocator) else null;
                 retval.method_decl._decl_type = if (self.method_decl._decl_type != null) self.method_decl._decl_type.?.clone(substs, allocator) else null;
                 return retval;
             },
